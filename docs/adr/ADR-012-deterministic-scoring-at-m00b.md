@@ -1,6 +1,7 @@
 # ADR-012: The control is scored deterministically; the judge arrives at M03
 
-**Status:** Accepted (M00a)
+**Status:** Accepted (M00a). **Amended in place 2026-08-15** — see the amendment
+below; the split this ADR records is unchanged.
 **Seats:** AI Quality (scoring semantics) · PM (milestone ordering)
 
 ## Context
@@ -26,6 +27,11 @@ Three ways out, and only one of them is honest:
 
 M00a builds the deterministic half only. M00b scores the control with it:
 
+> **That first sentence is wrong.** It is kept rather than corrected in place,
+> because this index marks superseded reasoning instead of deleting it. M00a
+> built no runner. Read the amendment below for what is binding; everything
+> after this note — the split itself — stands as written.
+
 - **Deterministic asserts run at M00b.** JSON-schema conformance, `must_mention`,
   `must_not_claim`, `cited_titles ⊆ catalog` (groundedness), budget checks.
   These need no judge and no calibration; they are checkable from the fixture
@@ -40,6 +46,76 @@ M00a builds the deterministic half only. M00b scores the control with it:
 
 The re-score appends. It never edits. The original entry stays in the history
 as what was actually known at m00b.
+
+## Amendment (2026-08-15): the deterministic runner is M00b's to build
+
+**Status:** Accepted. **Seats:** Platform Engineering (drafted) · PM (milestone
+ordering). Touches no two-key path.
+
+### The contradiction
+
+The Decision above assigned the runner to M00a. M00a did not build one — and its
+journal cites *this ADR* as the authority for not building one:
+
+> neither that script nor the harness behind it exists until M03, and M00a
+> deliberately did not build one (ADR-012 defers scoring to M00b's deterministic
+> runner and M03's judge)
+
+The document being cited said the opposite of the thing it was cited for, and
+nobody checked the citation against it. Everything else in the repo already
+reads M00b: the README's progression footnote, the M00a journal, and this file's
+own name. One sentence in one document was out of step with three.
+
+Left standing, it would have been load-bearing in the wrong direction — M00b
+would open against an ADR asserting that its single largest dependency was
+delivered by the milestone before it.
+
+### M00a was right, and the ADR was wrong
+
+This is not a slip to paper over in whichever direction is cheaper. M00a's
+choice was correct on the merits.
+
+At M00a there was nothing to score. No service produced an answer, and the
+golden set was still being authored during that milestone — deliberately, before
+the control ran (SPEC/00a's ordering hazard). A runner built there could not have
+been exercised against a single real answer; its first genuine execution would
+have fallen in the next milestone regardless. Committing an unexercised harness
+and closing the milestone green over it is precisely the failure M00a existed to
+remove.
+
+Deferring it also keeps M00a's own claim true: a pure test-and-contract milestone
+that runs offline, on a fresh clone, with no model call of any kind.
+
+### What is binding
+
+The deterministic runner is built at **M00b**, as part of M00b's own definition
+of done. It is not inherited work, and not a prerequisite M00b may assume exists.
+
+To satisfy the split recorded above, that runner must:
+
+- implement the deterministic assert vocabulary and nothing beyond it — the
+  executable list is `ASSERT_KEYS` in `tests/test_contracts.py`, which is the
+  same contract the golden set's README states in prose;
+- record judge axes as `ADVISORY` without consulting
+  `quality/judge/rubric-sports.md`, which exists and is referenced but is not
+  read until M03;
+- append to `evals/history/` against its committed schema, keyed by git SHA +
+  suite, so that M03's re-score can point `supersedes` back at that entry;
+- run all 10 probes under G4 semantics, where the expected score is 0/10 by
+  construction.
+
+### Consequences of the amendment
+
+`SPEC/00b-baseline.md` predates this ADR entirely. Its DoD says only "scores
+recorded to `evals/history/`" — it mentions neither the deterministic/advisory
+split nor the two-number footnote, and it does not name the runner as something
+M00b builds. Amending it is owed **at M00b's branch cut** and is deliberately not
+done here: a spec is the PM seat's, and it should be amended when the milestone
+opens rather than sitting changed on `main` ahead of it.
+
+Nothing else moves. The re-score-appends rule, the ADVISORY treatment of judge
+axes, and the mandatory footnote distinguishing m00b's two numbers all stand as
+originally written.
 
 ## Consequences
 
