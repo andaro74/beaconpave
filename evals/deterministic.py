@@ -23,6 +23,7 @@ Owning seat: AI Quality (scoring semantics) · Platform Engineering (mechanism).
 from __future__ import annotations
 
 import json
+import math
 import pathlib
 from dataclasses import dataclass, field
 
@@ -39,6 +40,21 @@ FAIL = "FAIL"
 ADVISORY = "ADVISORY"
 INFRA = "INFRA"
 
+#: Asserts recorded but NOT scored, and why each one cannot yet mean anything.
+#:
+#: `entitlement_source` joined this list after the m00b run (ADR-016). It reads a
+#: field the model fills in, and the control claimed the `entitlement-check` tool
+#: it does not have in 10 of the 11 cases asserting provenance — it finds the
+#: enum in its own prompt. No stricter string fixes that: any value the assert
+#: accepts is a value the model can emit. M06's trajectory eval can check whether
+#: the tool was actually invoked; until then this measures candour.
+#:
+#: The cases keep the assert. It is the contract M06 must satisfy, so deleting it
+#: would lose the requirement while scoring it credits a claim.
+DEFERRED_ASSERTS = {
+    "entitlement_source": "reads a self-report; verifiable only by M06's trajectory eval (ADR-016)",
+}
+
 
 @dataclass(frozen=True)
 class AssertResult:
@@ -52,6 +68,7 @@ class CaseResult:
     id: str
     result: str
     asserts: tuple[AssertResult, ...] = ()
+    deferred: tuple[AssertResult, ...] = ()
     advisory_axes: tuple[str, ...] = ()
     unearned: bool = False
     unearned_reason: str = ""
@@ -128,15 +145,25 @@ class Scorer:
         return AssertResult("entitlement", not diffs, "; ".join(diffs))
 
     def entitlement_source(self, answer: dict, expected: str) -> AssertResult:
-        """Scored, not skipped, and the distinction is deliberate.
+        """Evaluated for the record; **not scored** until M06 (ADR-016).
 
-        `expect_tool_before_answer` is skipped before M06 because it names a tool
-        that does not exist — the question is malformed, and a constant green
-        would be meaningless. This assert is different: the answer schema has a
-        `source` field, the control fills it with `model-inference`, and the
-        check evaluates correctly and fails. That constant FAIL is exactly the
-        gap M06 closes, so recording it is what makes the improvement visible.
-        Skipping it would flatter the control."""
+        This reverses the call made when the runner was written, and the earlier
+        reasoning is worth keeping because it was sound and still wrong. It ran:
+        `expect_tool_before_answer` is unscorable because it names a tool that
+        does not exist, whereas this assert is evaluable, so the control's
+        constant FAIL is the gap M06 closes and skipping it would flatter the
+        control.
+
+        The premise was that the control would emit `model-inference`. It did
+        not. It read the enum out of the schema in its own prompt and claimed
+        `entitlement-check` in 10 of the 11 cases — turning the expected constant
+        FAIL into an unearned PASS, the opposite error. An assert reading a
+        self-report measures candour, and no stricter string helps: every value
+        it accepts is one the model can emit.
+
+        Scoring it is what exposed that, which is why the assert stays in the
+        cases and keeps being evaluated here. Only its contribution to the score
+        is withheld, until M06 can check whether the tool was really called."""
         got = (answer.get("entitlement") or {}).get("source")
         ok = got == expected
         return AssertResult(
@@ -146,16 +173,21 @@ class Scorer:
 
     def budget(self, usage: dict, ceiling: dict) -> AssertResult:
         """Token-denominated (ADR-014). Dollars are rendered at report time and
-        never block, because a vendor price change must not move a verdict."""
+        never block, because a vendor price change must not move a verdict.
+
+        Latency here is `max_ms`, a hang guard — not a performance target. The
+        per-case `p95_ms` it replaced was a category error: a p95 cannot be
+        computed from one sample, and asserting it per case turned the tail it
+        explicitly permits into a failure (ADR-016). The distributional statistic
+        now lives at suite level, in `suite_latency`."""
         over = []
-        for key, measured_key in (("tokens_in", "tokens_in"), ("tokens_out", "tokens_out")):
-            limit = ceiling.get(key)
-            got = usage.get(measured_key)
+        for key in ("tokens_in", "tokens_out"):
+            limit, got = ceiling.get(key), usage.get(key)
             if limit is not None and got is not None and got > limit:
                 over.append(f"{key}={got} over {limit}")
-        limit_ms, got_ms = ceiling.get("p95_ms"), usage.get("latency_ms")
+        limit_ms, got_ms = ceiling.get("max_ms"), usage.get("latency_ms")
         if limit_ms is not None and got_ms is not None and got_ms > limit_ms:
-            over.append(f"latency_ms={got_ms} over {limit_ms}")
+            over.append(f"latency_ms={got_ms} over max_ms {limit_ms} (stalled request)")
         return AssertResult("budget", not over, "; ".join(over))
 
     # --- case ------------------------------------------------------------------
@@ -181,6 +213,7 @@ class Scorer:
 
         usage = record.get("usage") or {}
         results: list[AssertResult] = []
+        deferred: list[AssertResult] = []
         for assertion in case.get("asserts", []):
             for key, value in assertion.items():
                 if key == "json_schema":
@@ -196,7 +229,8 @@ class Scorer:
                 elif key == "entitlement":
                     results.append(self.entitlement(answer, value))
                 elif key == "entitlement_source":
-                    results.append(self.entitlement_source(answer, value))
+                    # Evaluated for the record, kept out of the score (ADR-016).
+                    deferred.append(self.entitlement_source(answer, value))
                 elif key == "budget":
                     if not usage:
                         # An unmeasured budget is not a passed budget. Treating a
@@ -219,10 +253,43 @@ class Scorer:
                     )
 
         failed = [r for r in results if not r.passed]
-        return CaseResult(case["id"], FAIL if failed else PASS, tuple(results), advisory)
+        return CaseResult(
+            case["id"], FAIL if failed else PASS, tuple(results), tuple(deferred), advisory)
 
     def score_suite(self, cases: list, answers: dict, catalog: dict) -> list[CaseResult]:
         return [self.score_case(c, answers.get(c["id"]), catalog) for c in cases]
+
+
+def suite_latency(answers: dict, ceiling_ms: int | None) -> AssertResult:
+    """The distributional half of the latency budget (ADR-016).
+
+    p95 belongs to a population of requests, not to one request. Compared here
+    against the service manifest's `gates.budgets.p95_ms`, which is what that
+    field always meant — and which the per-case ceilings quietly contradicted by
+    treating the permitted 5% tail as 25 separate failures.
+
+    Nearest-rank on the samples actually collected; with 25 cases the 95th
+    percentile is one of the two slowest, so this is a coarse estimate and should
+    be read as one. It is still a truer statement than comparing a p95 to n=1."""
+    samples = sorted(
+        a["usage"]["latency_ms"] for a in answers.values()
+        if isinstance(a, dict) and (a.get("usage") or {}).get("latency_ms") is not None
+    )
+    if not samples:
+        return AssertResult("suite_p95_ms", False, "no latency measurements recorded")
+    # Nearest-rank: ceil(0.95 * n), 1-indexed. `int()` here is an off-by-one that
+    # only shows when 0.95*n lands on a whole number — at n=20 it returns the
+    # maximum and calls one slow request in twenty a p95 breach, which is the
+    # exact confusion of tail-for-defect this ADR exists to remove.
+    p95 = samples[max(0, math.ceil(0.95 * len(samples)) - 1)]
+    if ceiling_ms is None:
+        return AssertResult("suite_p95_ms", True, f"p95={p95}ms (no manifest ceiling)")
+    ok = p95 <= ceiling_ms
+    return AssertResult(
+        "suite_p95_ms", ok,
+        f"p95={p95}ms over {ceiling_ms}ms" if not ok
+        else f"p95={p95}ms within {ceiling_ms}ms (n={len(samples)})",
+    )
 
 
 def tally(results: list[CaseResult]) -> dict:

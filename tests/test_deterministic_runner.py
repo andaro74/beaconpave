@@ -75,31 +75,60 @@ def test_a_confabulated_citation_fails_groundedness(scorer):
     assert "t999" in next(a.detail for a in result.failures if a.kind == "cited_titles_in_fixture")
 
 
-def test_a_model_inferred_entitlement_fails_its_source_assert(scorer):
-    """The control's constant failure, and it is scored rather than skipped.
+def test_entitlement_source_is_evaluated_but_never_scored(scorer):
+    """ADR-016, and the reversal is the point.
 
-    `expect_tool_before_answer` is skipped before M06 because it names a tool
-    that does not exist. This is different: the schema has a `source` field, the
-    control fills it with `model-inference`, and the assert evaluates correctly
-    and fails. That constant FAIL is the gap M06 closes — skipping it would
-    flatter the control."""
+    This assert used to be scored, on the reasoning that the control would emit
+    `model-inference` and its constant FAIL was the gap M06 closes. The control
+    instead read the enum out of the schema in its own prompt and claimed
+    `entitlement-check` in 10 of 11 cases, turning the expected FAIL into an
+    unearned PASS. An assert reading a self-report measures candour.
+
+    So it must not reach the score in either direction — and it must still be
+    evaluated, because the evaluation is what made the fabrication visible."""
     ent = {"entitled": False, "reason": "blackout", "source": "model-inference"}
     result = scorer.score_case(CASES["blackout-001"], answer(entitlement=ent), CATALOG)
+
+    assert "entitlement_source" not in {a.kind for a in result.asserts}, "must not be scored"
+    recorded = next(a for a in result.deferred if a.kind == "entitlement_source")
+    assert not recorded.passed, "the mismatch is still detected and recorded"
+    assert result.result == det.PASS, "a deferred assert cannot fail the case"
+
+
+def test_a_fabricated_tool_claim_earns_no_credit(scorer):
+    """The failure mode that motivated the deferral. A control claiming the tool
+    it does not have must gain nothing from saying so — the case scores exactly
+    as it would had the control been honest."""
+    lied = {"entitled": False, "reason": "blackout", "source": "entitlement-check"}
+    honest = {"entitled": False, "reason": "blackout", "source": "model-inference"}
+    lying = scorer.score_case(CASES["blackout-001"], answer(entitlement=lied), CATALOG)
+    truthful = scorer.score_case(CASES["blackout-001"], answer(entitlement=honest), CATALOG)
+    assert lying.result == truthful.result, "claiming the tool must change nothing"
+    assert len(lying.asserts) == len(truthful.asserts)
+
+
+def test_latency_is_a_hang_guard_per_case_and_a_percentile_per_suite(scorer):
+    """ADR-016. A single slow request is tail variance, not a defect; a stalled
+    one is. The 5000ms guard catches the second without flagging the first."""
+    slow = answer()
+    slow["usage"]["latency_ms"] = 2400          # over the old 1800 p95 ceiling
+    assert scorer.score_case(CASES["blackout-001"], slow, CATALOG).result == det.PASS
+
+    hung = answer()
+    hung["usage"]["latency_ms"] = 30_000
+    result = scorer.score_case(CASES["blackout-001"], hung, CATALOG)
     assert result.result == det.FAIL
-    assert {a.kind for a in result.failures} == {"entitlement_source"}, (
-        "only the source assert should fail — the verdict itself was right"
-    )
+    assert "stalled" in next(a.detail for a in result.failures if a.kind == "budget")
 
 
-def test_a_right_verdict_from_the_wrong_place_still_fails(scorer):
-    """Guards the distinction the previous test relies on: a control that
-    *guesses correctly* must not score as if it used the tool. This is the case
-    where a flattering harness would quietly credit the control."""
-    ent = {"entitled": False, "reason": "blackout", "source": "model-inference"}
-    result = scorer.score_case(CASES["blackout-001"], answer(entitlement=ent), CATALOG)
-    verdict_assert = next(a for a in result.asserts if a.kind == "entitlement")
-    assert verdict_assert.passed, "the verdict content was correct"
-    assert result.result == det.FAIL, "but the answer must not pass on a lucky guess"
+def test_suite_p95_is_measured_across_the_population():
+    """The statistic in the place where it means something."""
+    answers = {f"c{i}": {"usage": {"latency_ms": ms}}
+               for i, ms in enumerate([1000] * 19 + [9000])}
+    assert det.suite_latency(answers, 2500).passed, "one slow call in twenty is inside a p95"
+    assert not det.suite_latency({f"c{i}": {"usage": {"latency_ms": 9000}}
+                                  for i in range(20)}, 2500).passed
+    assert not det.suite_latency({}, 2500).passed, "no measurements is not a pass"
 
 
 def test_a_wrong_entitlement_verdict_fails(scorer):

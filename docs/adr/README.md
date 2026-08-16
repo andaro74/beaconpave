@@ -27,8 +27,9 @@ is worth less than one that shows where it was corrected.
 | ADR-013 | G9 enforced as a checked attestation, not a review | Teams + code-owner review; same path list, check retained as a filter |
 | ADR-014 | Budgets denominated in tokens; dollars rendered at report time | Same ceilings per tenant; rate table refreshed on the provider's price feed |
 | ADR-015 | Regional (`us.`) inference profile, at a recorded 10% premium | Per-workload pin driven by each manifest's `classification` |
+| ADR-016 | `entitlement_source` advisory until M06; `p95_ms` moved to suite level | Per-case latency sampled k times; SLO burn-rate alerting |
 
-Written out in full: **001, 003, 004, 007, 009, 011, 012, 013, 014, 015**. The rest are
+Written out in full: **001, 003, 004, 007, 009, 011, 012, 013, 014, 015, 016**. The rest are
 reserved rows you fill as you build each component — the table itself is the scaling story.
 
 003, 004, and 007 were written at M00a because the repo already cited them:
