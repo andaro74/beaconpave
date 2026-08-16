@@ -1,0 +1,60 @@
+name: two-key
+# G9 — whoever feels a control's pain never solely controls its strength.
+#
+# CODEOWNERS cannot enforce this here: GitHub does not let a PR's author approve
+# their own PR, so with one operator the second key is unobtainable rather than
+# merely inconvenient (ADR-013). So the second key is an attestation, and this
+# check verifies it.
+#
+# A PR touching thresholds, baselines, gate criteria, consequence classes, or the
+# adversarial corpus must record the owning seat's disposition AND its reasoning
+# in the PR body:
+#
+#     Two-Key-Disposition: ai-quality
+#     Two-Key-Rationale: <why this change is correct>
+#
+# Required status check. Editing the rules this check enforces is itself two-key.
+
+on:
+  pull_request:
+    branches: [main]
+    # `edited` matters: the disposition lives in the PR body, so editing the body
+    # must re-run the check. Without it, a PR could be opened compliant and
+    # edited afterwards.
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  two-key:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need the base commit to diff against
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Collect changed paths
+        id: changed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > changed.txt
+          echo "--- changed paths ---"
+          cat changed.txt
+
+      - name: Verify the second key (G9)
+        env:
+          # Passed as an environment variable, never interpolated into the shell:
+          # a PR body is attacker-controlled text on a public repo.
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          mapfile -t CHANGED < changed.txt
+          python -m pave.cli gate two-key --changed "${CHANGED[@]}"

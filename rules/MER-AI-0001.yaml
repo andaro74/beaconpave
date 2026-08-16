@@ -1,0 +1,30 @@
+# M00a: this rule ships PROPOSED and UNDISPOSED on purpose.
+#
+# It shipped in the starter as `status: enforced` with controls already pointing
+# at a `disclosure-*` eval pack that also already existed. That makes claim 6
+# ("a rule delta disposed end-to-end into eval cases") unprovable: the delta had
+# already happened at commit one, so M07 would have had nothing to demonstrate
+# but a file that was always there.
+#
+# M07 disposes it: status -> enforced, the no-control record is replaced by the
+# eval pack and the guardrail, and `disclosure-004` is added to cases.yaml. That
+# diff IS the claim. Do not pre-empt it.
+#
+# Owning seat: Legal / Standards & Practices.
+
+rule: MER-AI-0001
+title: AI-generated recaps must carry a visible disclosure
+source:
+  type: regulation
+  ref: "Fictional State of Jefferson AI Disclosure Act, 2026 (demo artifact)"
+  effective: "2026-10-01"
+owner_seat: legal-sp
+severity: blocking
+disposition:
+  decided_by: "unassigned — logged by Legal/S&P, awaiting disposition (M07)"
+  decided_on: "2026-08-15"        # date the rule entered the registry, not the date it was disposed
+  controls:
+    - type: no-control
+      ref: "none yet — disposition at M07 adds the L3 eval pack and the gateway disclosure guardrail"
+status: proposed
+review_by: "2026-10-01"           # the law's effective date: disposition cannot slip past it

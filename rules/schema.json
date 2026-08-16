@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beaconpave/rules/schema.json",
+  "title": "Rule Record (Rules Registry)",
+  "description": "Every rule has an owner, a source, a disposition into an enforcing control, and a review-by date. No orphan rules, no immortal rules (G7). This is the regdelta pattern: external change -> named owner -> disposition -> executable control.",
+  "type": "object",
+  "required": ["rule", "title", "source", "owner_seat", "severity", "disposition", "status", "review_by"],
+  "properties": {
+    "rule": { "type": "string", "pattern": "^MER-[A-Z]+-[0-9]{4}$", "description": "e.g. MER-AI-0001" },
+    "title": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["type", "ref"],
+      "properties": {
+        "type": { "type": "string", "enum": ["regulation", "contract", "union", "incident", "red-team", "policy"] },
+        "ref": { "type": "string" },
+        "effective": { "type": "string", "format": "date" }
+      }
+    },
+    "owner_seat": {
+      "type": "string",
+      "enum": ["platform-eng", "ai-quality", "security", "legal-sp", "data-governance", "tool-owner", "service-team"]
+    },
+    "severity": { "type": "string", "enum": ["blocking", "advisory"] },
+    "disposition": {
+      "type": "object",
+      "required": ["decided_by", "decided_on", "controls"],
+      "properties": {
+        "decided_by": { "type": "string" },
+        "decided_on": { "type": "string", "format": "date" },
+        "controls": {
+          "type": "array",
+          "minItems": 1,
+          "description": "At least one enforcing control, or an explicit reasoned 'no-control' record",
+          "items": {
+            "type": "object",
+            "required": ["type", "ref"],
+            "properties": {
+              "type": { "type": "string", "enum": ["eval_pack", "guardrail", "cedar_policy", "classification", "no-control"] },
+              "ref": { "type": "string" },
+              "layer": { "type": "string", "enum": ["L0", "L1", "L2", "L3", "L4", "L5"] }
+            }
+          }
+        }
+      }
+    },
+    "status": { "type": "string", "enum": ["proposed", "enforced", "excepted", "retired"] },
+    "review_by": { "type": "string", "format": "date", "description": "Mandatory: no immortal rules" }
+  }
+}

@@ -1,0 +1,31 @@
+# Tool Registry — every tool has an owner, semver, schemas, and a consequence class.
+# Cedar policies are generated from `callers`. Consequence >= publish inserts a
+# Step Functions human-approval interlock. Unregistered tools are unreachable (G3).
+
+- id: catalog-search
+  owner: seat:tool-owner            # solo-played; see ADR-001
+  semver: 0.1.0
+  schemas:
+    input: tools/catalog-search/schema.in.json
+    output: tools/catalog-search/schema.out.json
+  consequence: read
+  callers: [highlights-agent, recap-agent]
+
+- id: entitlement-check
+  owner: seat:tool-owner
+  semver: 0.1.0
+  schemas:
+    input: tools/entitlement-check/schema.in.json
+    output: tools/entitlement-check/schema.out.json
+  consequence: read
+  callers: [highlights-agent]
+
+- id: publish-highlight
+  owner: seat:tool-owner
+  semver: 0.1.0
+  schemas:
+    input: tools/publish-highlight/schema.in.json
+    output: tools/publish-highlight/schema.out.json
+  consequence: publish                       # >= publish => approval interlock
+  approval: stepfn:editorial-approver         # miniature on-call editorial role
+  callers: [highlights-agent]

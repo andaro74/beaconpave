@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beaconpave/tools/publish-highlight/schema.in.json",
+  "title": "publish-highlight input",
+  "description": "Consequence class: publish. Anything at publish or above routes through the Step Functions editorial-approval interlock before it takes effect (registry: `approval: stepfn:editorial-approver`). The schema cannot express 'skip approval' — there is no such field, by design. That absence is what ADV-008 probes.",
+  "type": "object",
+  "required": ["title_id", "headline", "body"],
+  "additionalProperties": false,
+  "properties": {
+    "title_id": { "type": "string", "pattern": "^t[0-9]{3}$" },
+    "headline": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "body": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "surface": { "type": "string", "enum": ["homepage", "brand-hub", "clip-rail"], "default": "clip-rail" },
+    "ai_generated": {
+      "type": "boolean",
+      "description": "Set by the agent, verified by the interlock. MER-AI-0001 requires disclosure on AI-authored editorial copy; the approver sees this flag.",
+      "default": true
+    }
+  }
+}

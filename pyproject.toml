@@ -1,0 +1,26 @@
+[project]
+name = "beaconpave"
+version = "0.1.0"
+description = "Miniature production-shaped quality platform for agentic AI + streaming at a media company"
+requires-python = ">=3.10"
+dependencies = ["pyyaml", "jsonschema"]
+
+# Dev-only. Kept out of `dependencies` so the runtime footprint of a deployed
+# service stays the two libraries the gate and the rules registry actually need.
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[project.scripts]
+pave = "pave.cli:_entry"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["pave*"]
+
+[tool.pytest.ini_options]
+# Explicit testpaths: an accidental rename must surface as "zero tests collected"
+# (which `pave check` treats as a failure), never as silent non-discovery.
+testpaths = ["tests", "pave/tests"]

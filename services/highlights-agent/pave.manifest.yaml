@@ -1,0 +1,20 @@
+apiVersion: pave/v1
+service: highlights-agent
+template: agent-tools@0.1.0        # only governed templates deploy
+brand: meridian-sports             # selects L3 brand pack + judges
+classification: internal           # G5 routing; sensitive is refused by design
+owners:
+  team: beacon-sports-discovery
+  oncall: webhook:sports-disc       # miniature "pager"; PagerDuty at scale (ADR-007)
+runtime: lambda                    # lambda | ecs | agentcore (ADR-003 migration path)
+tools:                             # must exist in registry; Cedar policy generated
+  - id: catalog-search@^0
+  - id: entitlement-check@^0        # second model-chosen tool activates trajectory evals
+gates:
+  eval_min_cases: 20               # gate fails below this — no unevaluated agents
+  budgets:
+    p95_ms: 2500
+    cost_per_req_usd: 0.010
+attestations:                      # written by CI, verified at deploy
+  gate_verdict: required
+  manifest_signature: required

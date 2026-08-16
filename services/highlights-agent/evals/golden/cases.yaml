@@ -1,0 +1,61 @@
+# Golden dataset for highlights-agent (Meridian Sports).
+# Each case: input + fixtures + deterministic asserts + judge axes + provenance.
+# Deterministic asserts carry the blocking weight; the judge adds nuance.
+# 2-3 cases are deliberately near-failing to preserve headroom (AI Quality owns this).
+
+- id: blackout-001
+  input: "Can I stream tonight's Jefferson Derby for free in Jefferson City?"
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_not_claim: "free"
+    - must_mention: "blackout"
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check   # meaningful once 2+ tools exist
+  provenance: { author: human }
+
+- id: entitlement-002
+  input: "I'm in North Haven with a base plan — can I watch the Cedar Point Rowing Finals?"
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_mention: "sports-tier"       # correct: requires upgrade
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: recommend-003
+  input: "What sports replays can I watch right now on a base plan?"
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_mention: "Granite Falls Classic"
+    - budget: { model: haiku, cost_usd: 0.005, p95_ms: 2000 }
+  judge:
+    axes: [groundedness, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+# --- Disclosure cases: M07 adds them here, as the MER-AI-0001 disposition.
+# Removed at M00a: the starter shipped `disclosure-004` pre-placed, tagged with
+# the rule that was supposed to produce it. A case that is already present
+# cannot demonstrate a rule delta flowing into eval cases (claim 6). ---
+
+# --- Headroom case: deliberately hard, expected to sit near the judge threshold ---
+- id: headroom-005
+  input: "Compare the vibe of tonight's derby coverage to a classic rivalry night, briefly."
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - budget: { model: haiku, cost_usd: 0.007, p95_ms: 2400 }
+  judge:
+    axes: [brand_tone:meridian-sports, concision]
+    rubric: quality/judge/rubric-sports.md
+    expect_near_threshold: true
+  provenance: { author: human }

@@ -1,0 +1,63 @@
+name: quality-gate
+# The gate: L0 unit -> L1 contract -> L2 evals -> L5 adversarial -> verdict + score-diff.
+# Fail-closed (G2): any step erroring blocks the merge. This workflow is org-required
+# and cannot be removed by a service team.
+#
+# `gate decide` is the single decider, and it runs with `if: always()`. That is the
+# fail-closed design: a step that crashes before writing its verdict leaves the file
+# absent, and an absent verdict blocks (exit 2). There is no arrangement of failures
+# that reaches a merge.
+#
+# Suites arrive milestone by milestone. A suite that does not exist yet is ABSENT
+# from the --verdicts list, never present-and-passing: a placeholder verdict that
+# reports PASS for an unimplemented suite is indistinguishable from a real pass,
+# and would quietly make claims 2 and 5 false.
+#   contract (L1) — live since M00a
+#   evals (L2)    — M03
+#   adversarial (L5) — M04
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write   # to post the score-diff comment
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: L0 unit + L1 contract (hermetic, no cloud - G8)
+        # Runs the rules-registry validation (G7) too, and emits the verdict the
+        # gate decides on. Non-zero exit here is expected to reach `gate decide`
+        # rather than end the job, so the gate is always the thing that speaks.
+        continue-on-error: true
+        run: python -m pave.cli check --out verdict-contract.json
+
+      # - name: L2 evals vs baseline                      # turns on at M03
+      #   continue-on-error: true
+      #   run: python -m pave.cli evals run services/highlights-agent --out verdict-evals.json
+
+      # - name: L5 adversarial (pass = blocked-and-logged - G4)   # turns on at M04
+      #   continue-on-error: true
+      #   run: python -m pave.cli adversarial run services/highlights-agent --out verdict-adv.json
+
+      - name: Post score-diff comment (the gate teaches)
+        if: always()
+        run: python -m pave.cli gate comment --verdicts verdict-contract.json
+
+      - name: Fail closed
+        # The decision. Exit 1 = quality regression (pages the service team);
+        # exit 2 = the gate could not establish that the code is good (missing,
+        # unparseable, or INFRA verdict — pages the platform). Both block.
+        if: always()
+        run: python -m pave.cli gate decide --verdicts verdict-contract.json
