@@ -227,9 +227,25 @@ def test_budgets_stay_within_the_service_manifest():
         for assertion in case.get("asserts", []):
             budget = assertion.get("budget")
             if budget:
-                assert budget["p95_ms"] <= gates["p95_ms"], f"{case['id']}: p95 over manifest"
+                assert budget["max_ms"] <= gates["max_ms"], f"{case['id']}: max_ms over manifest"
                 assert budget["tokens_in"] <= gates["max_tokens_in"], f"{case['id']}: input over manifest"
                 assert budget["tokens_out"] <= gates["max_tokens_out"], f"{case['id']}: output over manifest"
+
+
+def test_no_case_asserts_a_percentile_against_a_single_request():
+    """ADR-016. A p95 is a property of a population; one request cannot be
+    compared to it, and asserting it per case turns the 5% tail a p95 explicitly
+    permits into a per-case failure. It cost three of m00b's ten golden failures
+    before it was caught. `p95_ms` belongs to the manifest, where the runner
+    checks it across the whole suite; a case gets `max_ms`, a hang guard."""
+    for case in load_yaml(GOLDENS):
+        for assertion in case.get("asserts", []):
+            budget = assertion.get("budget") or {}
+            percentiles = sorted(k for k in budget if k.startswith("p") and k[1:].split("_")[0].isdigit())
+            assert not percentiles, (
+                f"{case['id']}: budget asserts {percentiles} against a single measurement. "
+                "Percentiles are suite-level (manifest `gates.budgets.p95_ms`)."
+            )
 
 
 def test_no_budget_is_denominated_in_currency():

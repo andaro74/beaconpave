@@ -1,3 +1,15 @@
+# SUPERSEDED AS AN INPUT, KEPT AS A RECORD (ADR-016).
+#
+# These marks were applied to the m00b run and are baked into
+# `evals/history/m00b-goldens.json`, which is append-only and unchanged. Do not
+# re-apply this file to a later run: the tightening it argued for has landed, so
+# `entitlement_source` is no longer scored and these four cases no longer pass
+# *because of* the fabricated claim. The reasons below describe the instrument as
+# it stood at m00b, which is exactly why the file stays here rather than being
+# deleted or edited to match the present.
+#
+# ---
+#
 # Passes the control got that are NOT credited to the control (SPEC/00b honesty
 # clause). Each is recorded into the history entry, so the weakness travels with
 # the number instead of living only in a journal nobody re-reads.

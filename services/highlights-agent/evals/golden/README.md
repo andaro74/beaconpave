@@ -67,8 +67,8 @@ assert key fails the build instead of silently never running.
 | `must_cite: [<id>…]` | every id listed appears in `cited_titles` |
 | `cited_titles_in_fixture: true` | **every** cited id exists in the fixture catalog |
 | `entitlement: {entitled, reason}` | the structured verdict matches exactly |
-| `entitlement_source: entitlement-check` | the verdict came from the tool, not the model |
-| `budget: {model, tokens_in, tokens_out, p95_ms}` | per-model token and latency ceiling (ADR-014 — **not** dollars) |
+| `entitlement_source: entitlement-check` | the verdict came from the tool, not the model. **Recorded, not scored, until M06** — the control claimed the tool it does not have in 10 of 11 cases (ADR-016) |
+| `budget: {model, tokens_in, tokens_out, max_ms}` | per-model token ceiling (ADR-014 — **not** dollars) plus a per-request hang guard. Latency percentiles are suite-level, in the manifest (ADR-016) |
 
 ### Asserts a correct answer fails
 

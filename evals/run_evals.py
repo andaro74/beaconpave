@@ -29,11 +29,20 @@ from dataclasses import replace
 
 import yaml
 
-from evals.deterministic import ADVISORY, FAIL, INFRA, Scorer, tally
+from evals.deterministic import (
+    ADVISORY,
+    DEFERRED_ASSERTS,
+    FAIL,
+    INFRA,
+    Scorer,
+    suite_latency,
+    tally,
+)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 HISTORY = ROOT / "evals" / "history"
 GOLDENS = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
+MANIFEST = ROOT / "services" / "highlights-agent" / "pave.manifest.yaml"
 CATALOG = ROOT / "data" / "catalog.json"
 
 #: Deliberately unused. The rubric is referenced by every case and read by
@@ -115,6 +124,15 @@ def run(args) -> int:
         f"({scores['failed']} failed, {scores['infra']} infra) — "
         f"judge axes recorded {ADVISORY}, not scored (ADR-012)"
     )
+    latency = suite_latency(answers, _load(MANIFEST)["gates"]["budgets"].get("p95_ms"))
+    print(f"suite latency  {'OK  ' if latency.passed else 'OVER'} {latency.detail}")
+    deferred_hits = sum(len(r.deferred) for r in results)
+    if deferred_hits:
+        kinds = sorted({a.kind for r in results for a in r.deferred})
+        print(f"deferred, evaluated but not scored: {deferred_hits} assert(s) across {kinds}")
+        for kind in kinds:
+            print(f"  {kind}: {DEFERRED_ASSERTS.get(kind, 'deferred')}")
+
     unearned = [r for r in results if r.unearned]
     if unearned:
         print(f"\n{len(unearned)} of those passes are marked UNEARNED (SPEC/00b):")
