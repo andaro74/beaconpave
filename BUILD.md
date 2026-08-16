@@ -48,6 +48,76 @@ next. The recordings are the deliverable.
 
 ## Prerequisites
 
-Python 3.10+, Node 18+ (CDK), an AWS account with Bedrock access (Haiku), the
-CDK CLI. `pip install -e .` then `make check` must pass on a fresh clone,
-offline, before you build anything.
+**None of this is needed to run the tests.** `make check` is hermetic (G8):
+Python 3.10+ and `pip install -e .`, then it must pass on a fresh clone,
+offline, with no AWS account, before you build anything. Two contract tests
+keep that true — `tests/test_hermeticity.py` fails if the hermetic suite
+imports an AWS SDK or reads `AWS_*` / `~/.aws`.
+
+Everything below is for **M00b onward**, where the first model call happens.
+
+- Python 3.10+, Node 18+ and the CDK CLI (M01).
+- Profile **`agentpave`**, region **`us-west-2`**:
+
+  ```bash
+  export AWS_PROFILE=agentpave
+  export AWS_REGION=us-west-2
+  aws sts get-caller-identity     # should name the agentpave IAM user
+  ```
+
+### Bedrock model access — check it before you need it
+
+`aws bedrock list-foundation-models` lists every model Bedrock offers,
+**regardless of what this account may invoke**. Access is a separate
+per-account, per-region grant. The only proof is an invoke:
+
+```bash
+aws bedrock-runtime converse \
+  --model-id us.anthropic.claude-haiku-4-5-20251001-v1:0 \
+  --messages '[{"role":"user","content":[{"text":"Reply with the single word: pong"}]}]' \
+  --inference-config maxTokens=16 \
+  --query 'output.message.content[0].text' --output text
+```
+
+Verified working 2026-08-15: returns `pong`, `stopReason: end_turn`.
+
+### The model ID
+
+One ID, used everywhere — services, fixtures, docs, and the command above:
+
+```
+us.anthropic.claude-haiku-4-5-20251001-v1:0
+```
+
+The US cross-region inference profile, `ACTIVE`, verified working. It is
+reachable through `bedrock-runtime` from boto3 and the CLI, so it adds no
+dependency to a repo whose runtime footprint is currently two libraries.
+
+Three other forms exist and none of them is used here. `global.anthropic.…` is
+also `ACTIVE` and routes more widely, but nothing about this workload needs
+that. `anthropic.claude-haiku-4-5` is the Mantle client's form (Messages API on
+Bedrock) and is what Anthropic recommends for new code in general — it would
+pull in the `anthropic` SDK, which is a new dependency and therefore an ADR
+line (CLAUDE.md), in exchange for nothing M00b needs. And the bare
+`anthropic.claude-haiku-4-5-20251001-v1:0` does not work at all: Haiku 4.5
+reports `inferenceTypesSupported: [INFERENCE_PROFILE]`, so there is no
+on-demand throughput to invoke.
+
+That last one fails like this, and the wording is the trap:
+
+```
+ValidationException: Invocation of model ID anthropic.claude-haiku-4-5-20251001-v1:0
+with on-demand throughput isn't supported. Retry your request with the ID or ARN of
+an inference profile that contains this model.
+```
+
+That is a *validation* error, not an access error. It reads like a missing
+model-access grant and sends you to the Bedrock console to re-request one you
+already have. Reach for the `us.` prefix first.
+
+### Never commit an account identifier
+
+This repo is public. `tests/test_no_account_identifiers.py` fails on any
+12-digit account ID or account-qualified ARN in a committed file — including
+journals and captured command output. Redact to `<ACCOUNT_ID>`. Note that
+`aws sts get-caller-identity` prints one; do not paste its output verbatim.
