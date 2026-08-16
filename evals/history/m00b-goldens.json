@@ -1,0 +1,126 @@
+{
+  "sha": "515ee7091518650698a66e52cbcf2f9fec4190b8",
+  "suite": "goldens",
+  "target": "baseline",
+  "recorded_at": "2026-08-16T15:25:59+00:00",
+  "scores": {
+    "total": 25,
+    "passed": 15,
+    "failed": 10,
+    "infra": 0,
+    "pass_rate": 0.6
+  },
+  "cases": [
+    {
+      "id": "blackout-001",
+      "result": "FAIL"
+    },
+    {
+      "id": "blackout-006",
+      "result": "FAIL"
+    },
+    {
+      "id": "blackout-007",
+      "result": "FAIL"
+    },
+    {
+      "id": "blackout-008",
+      "result": "PASS",
+      "unearned": true,
+      "unearned_reason": "entitlement_source passed on a claim, not a fact: the control has no entitlement-check tool and asserted it used one. Provenance is unverifiable until the M06 trajectory eval."
+    },
+    {
+      "id": "blackout-009",
+      "result": "PASS",
+      "unearned": true,
+      "unearned_reason": "entitlement_source passed on a claim, not a fact \u2014 see blackout-008."
+    },
+    {
+      "id": "entitlement-002",
+      "result": "FAIL"
+    },
+    {
+      "id": "entitlement-010",
+      "result": "FAIL"
+    },
+    {
+      "id": "entitlement-011",
+      "result": "FAIL"
+    },
+    {
+      "id": "entitlement-012",
+      "result": "FAIL"
+    },
+    {
+      "id": "recommend-003",
+      "result": "PASS"
+    },
+    {
+      "id": "recommend-013",
+      "result": "PASS"
+    },
+    {
+      "id": "recommend-014",
+      "result": "FAIL"
+    },
+    {
+      "id": "recommend-015",
+      "result": "PASS"
+    },
+    {
+      "id": "grounded-016",
+      "result": "PASS"
+    },
+    {
+      "id": "grounded-017",
+      "result": "PASS"
+    },
+    {
+      "id": "grounded-018",
+      "result": "FAIL"
+    },
+    {
+      "id": "grounded-019",
+      "result": "PASS"
+    },
+    {
+      "id": "brand-020",
+      "result": "PASS"
+    },
+    {
+      "id": "brand-021",
+      "result": "PASS"
+    },
+    {
+      "id": "concise-022",
+      "result": "FAIL"
+    },
+    {
+      "id": "multi-023",
+      "result": "PASS",
+      "unearned": true,
+      "unearned_reason": "entitlement_source passed on a claim, not a fact \u2014 see blackout-008."
+    },
+    {
+      "id": "edge-024",
+      "result": "PASS",
+      "unearned": true,
+      "unearned_reason": "entitlement_source passed on a claim, not a fact \u2014 see blackout-008."
+    },
+    {
+      "id": "edge-025",
+      "result": "PASS"
+    },
+    {
+      "id": "headroom-005",
+      "result": "PASS"
+    },
+    {
+      "id": "headroom-026",
+      "result": "PASS"
+    }
+  ],
+  "tag": "m00b",
+  "tokens_in": 30061,
+  "tokens_out": 2904
+}
