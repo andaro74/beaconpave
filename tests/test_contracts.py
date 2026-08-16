@@ -228,7 +228,23 @@ def test_budgets_stay_within_the_service_manifest():
             budget = assertion.get("budget")
             if budget:
                 assert budget["p95_ms"] <= gates["p95_ms"], f"{case['id']}: p95 over manifest"
-                assert budget["cost_usd"] <= gates["cost_per_req_usd"], f"{case['id']}: cost over manifest"
+                assert budget["tokens_in"] <= gates["max_tokens_in"], f"{case['id']}: input over manifest"
+                assert budget["tokens_out"] <= gates["max_tokens_out"], f"{case['id']}: output over manifest"
+
+
+def test_no_budget_is_denominated_in_currency():
+    """ADR-014: budgets are token-denominated, because a vendor price change must
+    not silently re-score a suite whose numbers are compared across milestones.
+    A `cost_usd` reintroduced here would re-couple the golden set to a price list
+    — and would do it quietly, since the value would still look plausible."""
+    for case in load_yaml(GOLDENS):
+        for assertion in case.get("asserts", []):
+            budget = assertion.get("budget") or {}
+            priced = sorted(k for k in budget if "usd" in k or "cost" in k)
+            assert not priced, (
+                f"{case['id']}: budget carries currency field(s) {priced}. Token ceilings are "
+                "the assert; dollars are computed at report time (ADR-014)."
+            )
 
 
 def test_case_count_clears_the_manifest_gate():
