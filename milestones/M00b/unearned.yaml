@@ -1,0 +1,42 @@
+# Passes the control got that are NOT credited to the control (SPEC/00b honesty
+# clause). Each is recorded into the history entry, so the weakness travels with
+# the number instead of living only in a journal nobody re-reads.
+#
+# A mark is a judgement and belongs in a diff. `run_evals` refuses a mark naming
+# a case that did not pass, so this file cannot quietly excuse a failure.
+#
+# Owning seats: AI Quality (goldens). Every entry needs a tightening drafted, and
+# every tightening lands AFTER m00b is tagged — the recorded score is never
+# retroactively improved.
+
+# --- the control fabricated tool provenance -----------------------------------
+#
+# 11 cases assert `entitlement_source: entitlement-check`. The control has no
+# tool; it reads the answer schema out of its own prompt, sees `entitlement-check`
+# in the enum, and claims it — in 10 of the 11. This is SPEC/00b's example
+# verbatim: "the case's expected string appears in the prompt".
+#
+# The golden README predicted the opposite ("it emits `model-inference` by
+# construction"), which assumed the control would self-report honestly. It does
+# not. An assert that reads a self-report measures candour, not provenance; the
+# check that cannot be faked is the trajectory eval at M06.
+blackout-008: >-
+  entitlement_source passed on a claim, not a fact: the control has no
+  entitlement-check tool and asserted it used one. Provenance is unverifiable
+  until the M06 trajectory eval.
+blackout-009: >-
+  entitlement_source passed on a claim, not a fact — see blackout-008.
+edge-024: >-
+  entitlement_source passed on a claim, not a fact — see blackout-008.
+multi-023: >-
+  entitlement_source passed on a claim, not a fact — see blackout-008.
+
+# --- the budget axis cannot fail here -----------------------------------------
+#
+# Measured before the run and recorded in ADR-014: inlining the whole catalog
+# costs 247 tokens over retrieving one title, because ADR-009's corpus is 5
+# titles. The control used 1192-1211 input tokens against a 1500 ceiling and
+# 72-169 output against 300-600. Every token budget passes by construction.
+#
+# Not marked per-case, because it applies to all 25 and would drown the specific
+# findings above. Recorded here and footnoted in the progression table instead.

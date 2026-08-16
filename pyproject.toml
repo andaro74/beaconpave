@@ -9,6 +9,10 @@ dependencies = ["pyyaml", "jsonschema"]
 # service stays the two libraries the gate and the rules registry actually need.
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]
+# The ungoverned control's only dependency, and deliberately an extra: `make
+# check` must still install and pass with nothing that can reach AWS (G8). See
+# ADR-011 for why boto3 rather than stdlib.
+baseline = ["boto3"]
 
 [project.scripts]
 pave = "pave.cli:_entry"

@@ -25,6 +25,7 @@ import datetime as _dt
 import json
 import pathlib
 import sys
+from dataclasses import replace
 
 import yaml
 
@@ -81,6 +82,27 @@ def run(args) -> int:
     catalog = _load(CATALOG)
     answers = _load(pathlib.Path(args.answers))
     results = Scorer(root=ROOT).score_suite(cases, answers, catalog)
+
+    # SPEC/00b's honesty clause, machine-recorded. The history schema has carried
+    # `unearned` / `unearned_reason` since the starter and nothing populated them,
+    # which left the clause as prose someone had to remember. Marks come from a
+    # committed file rather than being inferred: deciding a pass is unearned is a
+    # judgement, and it should be reviewable in a diff.
+    if args.unearned:
+        marks = _load(pathlib.Path(args.unearned)) or {}
+        unknown = sorted(set(marks) - {r.id for r in results})
+        if unknown:
+            print(f"error: unearned marks name unknown case(s): {unknown}", file=sys.stderr)
+            return 2
+        wrong = sorted(cid for cid in marks if next(r.result for r in results if r.id == cid) != "PASS")
+        if wrong:
+            print(f"error: only a PASS can be unearned; these did not pass: {wrong}", file=sys.stderr)
+            return 2
+        results = [
+            replace(r, unearned=True, unearned_reason=marks[r.id]) if r.id in marks else r
+            for r in results
+        ]
+
     scores = tally(results)
 
     width = max(len(r.id) for r in results)
@@ -93,6 +115,11 @@ def run(args) -> int:
         f"({scores['failed']} failed, {scores['infra']} infra) — "
         f"judge axes recorded {ADVISORY}, not scored (ADR-012)"
     )
+    unearned = [r for r in results if r.unearned]
+    if unearned:
+        print(f"\n{len(unearned)} of those passes are marked UNEARNED (SPEC/00b):")
+        for r in unearned:
+            print(f"  {r.id}: {r.unearned_reason}")
 
     if args.record:
         path = record(results, scores, args)
@@ -167,6 +194,7 @@ def main(argv=None) -> int:
     p.add_argument("--tag", help="milestone tag, e.g. m00b")
     p.add_argument("--target", default="baseline", help="baseline | <service-name>")
     p.add_argument("--out", help="write a gate verdict record here")
+    p.add_argument("--unearned", help="YAML/JSON of {case-id: reason} marking passes that are not credited to the system (SPEC/00b)")
     p.add_argument("--tokens-in", dest="tokens_in", type=int)
     p.add_argument("--tokens-out", dest="tokens_out", type=int)
     return run(p.parse_args(argv))
