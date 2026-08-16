@@ -114,13 +114,126 @@ def test_every_path_referenced_by_a_golden_case_exists():
             assert (ROOT / rubric).is_file(), f"{case['id']}: rubric {rubric} missing"
 
 
+def test_golden_set_is_the_size_the_progression_table_claims():
+    """ADR-009 fixes the suite at ~25. The README reports scores as `/25`, and a
+    suite that quietly shrinks makes a percentage improve without the system
+    improving."""
+    assert len(load_yaml(GOLDENS)) == 25
+
+
 def test_golden_set_keeps_headroom():
     """5-10% of cases at or near failure. A suite at 100% can only report
     regressions — improvements become invisible and the progression table stops
     being able to show that anything got better."""
     cases = load_yaml(GOLDENS)
     near = [c for c in cases if c.get("judge", {}).get("expect_near_threshold")]
+    ratio = len(near) / len(cases)
     assert near, "no near-threshold cases: the suite has no headroom"
+    assert 0.05 <= ratio <= 0.10, f"headroom is {ratio:.0%}; policy is 5-10% (AI Quality owns this)"
+
+
+#: The assert vocabulary documented in the golden set's README. That README is the
+#: contract the M03 harness implements; this list is the same contract, executable.
+ASSERT_KEYS = {
+    "json_schema",
+    "must_mention",
+    "must_not_claim",
+    "must_cite",
+    "cited_titles_in_fixture",
+    "entitlement",
+    "entitlement_source",
+    "budget",
+}
+
+
+def test_no_case_uses_an_undocumented_assert():
+    """A typo'd assert key is worse than a missing one: the harness skips what it
+    does not recognise, so the case reports PASS while checking nothing. Failing
+    the build is the only way that stays visible."""
+    for case in load_yaml(GOLDENS):
+        for assertion in case.get("asserts", []):
+            unknown = set(assertion) - ASSERT_KEYS
+            assert not unknown, f"{case['id']}: undocumented assert(s) {sorted(unknown)}"
+
+
+def test_every_case_validates_its_answer_against_the_schema():
+    """Schema conformance is the floor. A case without it can pass on prose that
+    is not even the right shape."""
+    for case in load_yaml(GOLDENS):
+        keys = {k for a in case.get("asserts", []) for k in a}
+        assert "json_schema" in keys, f"{case['id']}: no json_schema assert"
+
+
+def test_every_case_checks_groundedness():
+    """`cited_titles_in_fixture` is the deterministic groundedness check. Omitting
+    it leaves confabulation to a judge that does not exist until M03."""
+    for case in load_yaml(GOLDENS):
+        keys = {k for a in case.get("asserts", []) for k in a}
+        assert "cited_titles_in_fixture" in keys, f"{case['id']}: groundedness unchecked"
+
+
+def test_cited_and_expected_titles_exist_in_the_catalog():
+    """A case asserting `must_cite: [t009]` against a catalog with no t009 can
+    never pass — a broken case that looks like a failing system."""
+    catalog = load_json(ROOT / "data" / "catalog.json")
+    known = {t["id"] for t in catalog["titles"]}
+    for case in load_yaml(GOLDENS):
+        for assertion in case.get("asserts", []):
+            for title_id in assertion.get("must_cite", []):
+                assert title_id in known, f"{case['id']}: must_cite names unknown title {title_id}"
+
+
+def test_viewer_context_names_real_dmas_and_plans():
+    catalog = load_json(ROOT / "data" / "catalog.json")
+    dmas = set(catalog["dmas"])
+    plans = {t["entitlement"] for t in catalog["titles"]}
+    for case in load_yaml(GOLDENS):
+        viewer = case.get("viewer")
+        if viewer:
+            assert viewer["dma"] in dmas, f"{case['id']}: unknown DMA {viewer['dma']}"
+            assert viewer["plan"] in plans, f"{case['id']}: unknown plan {viewer['plan']}"
+
+
+def test_cases_asserting_an_entitlement_verdict_require_the_tool():
+    """G-adjacent, and the reason trajectory evals exist: an entitlement verdict
+    the model reasoned its way to is the exact failure the control demonstrates.
+    A case that accepts one without demanding `entitlement-check` is scoring the
+    guess."""
+    for case in load_yaml(GOLDENS):
+        keys = {k for a in case.get("asserts", []) for k in a}
+        if "entitlement" not in keys:
+            continue
+        verdict = next(a["entitlement"] for a in case["asserts"] if "entitlement" in a)
+        if verdict.get("reason") == "unknown-title":
+            continue  # no title to check against; the tool is not reachable
+        assert "entitlement_source" in keys, (
+            f"{case['id']} asserts an entitlement verdict without requiring entitlement-check"
+        )
+
+
+def test_trajectory_expectations_name_registered_tools():
+    registered = {t["id"] for t in load_yaml(REGISTRY)}
+    for case in load_yaml(GOLDENS):
+        expected = case.get("trajectory", {}).get("expect_tool_before_answer")
+        if expected:
+            assert expected in registered, f"{case['id']}: unregistered tool {expected}"
+
+
+def test_budgets_stay_within_the_service_manifest():
+    """Per-case budgets that exceed the manifest's ceilings would let a service
+    pass its evals and blow its declared budget in production."""
+    gates = load_yaml(MANIFEST)["gates"]["budgets"]
+    for case in load_yaml(GOLDENS):
+        for assertion in case.get("asserts", []):
+            budget = assertion.get("budget")
+            if budget:
+                assert budget["p95_ms"] <= gates["p95_ms"], f"{case['id']}: p95 over manifest"
+                assert budget["cost_usd"] <= gates["cost_per_req_usd"], f"{case['id']}: cost over manifest"
+
+
+def test_case_count_clears_the_manifest_gate():
+    """`eval_min_cases` fails the gate below a floor — no unevaluated agents."""
+    assert len(load_yaml(GOLDENS)) >= load_yaml(MANIFEST)["gates"]["eval_min_cases"]
 
 
 def test_no_golden_case_is_disposed_by_an_undisposed_rule():

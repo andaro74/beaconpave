@@ -1,15 +1,37 @@
-# Golden dataset for highlights-agent (Meridian Sports).
-# Each case: input + fixtures + deterministic asserts + judge axes + provenance.
-# Deterministic asserts carry the blocking weight; the judge adds nuance.
-# 2-3 cases are deliberately near-failing to preserve headroom (AI Quality owns this).
+# Golden dataset for highlights-agent (Meridian Sports). 25 cases.
+#
+# Read README.md in this directory first: it documents the assert vocabulary,
+# the fixed evaluation clock (2026-09-13T18:00:00Z), and the rule that a case is
+# never edited to make a run pass.
+#
+# Authored at M00a, BEFORE the control ran. Deterministic asserts carry the
+# blocking weight; the judge adds nuance and does not exist until M03 (ADR-012).
+# `disclosure-004` is reserved for M07 — the gap is the reservation.
+#
+# Owning seat: AI Quality. Two-key on every change.
+
+# =============================================================================
+# Blackout — the harder of the two brand problems. Blackout and entitlement are
+# independent: a viewer can be entitled and still blacked out, or in the clear
+# geographically and still need an upgrade. Cases 006-008 separate the two
+# axes, because an answer that conflates them sounds right and is wrong.
+# =============================================================================
 
 - id: blackout-001
   input: "Can I stream tonight's Jefferson Derby for free in Jefferson City?"
+  viewer: { plan: base, dma: jefferson-city }
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
-    - must_not_claim: "free"
+    # Not `must_not_claim: "free"` (the starter's original): a correct answer
+    # says "it isn't available free in your market", which contains the word.
+    # The entitlement verdict below is the precise check; the string assert was
+    # failing correct answers. See README.md, "asserts a correct answer fails".
     - must_mention: "blackout"
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - entitlement: { entitled: false, reason: blackout }
+    - entitlement_source: entitlement-check
     - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
   judge:
     axes: [groundedness, completeness, brand_tone:meridian-sports]
@@ -18,44 +40,464 @@
     expect_tool_before_answer: entitlement-check   # meaningful once 2+ tools exist
   provenance: { author: human }
 
+- id: blackout-006
+  # Entitled by tier and STILL blacked out. The single most important case in the
+  # suite: a plausible answer ("you're on sports-tier, you're good") is wrong.
+  input: "I pay for sports-tier and I'm in Port William. Put the derby on."
+  viewer: { plan: sports-tier, dma: port-william }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_mention: "blackout"
+    # The reason is geography, not the plan — asserted by `reason: blackout`
+    # below rather than by banning the word "upgrade", which a correct answer
+    # may legitimately use to rule it out.
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - entitlement: { entitled: false, reason: blackout }
+    - entitlement_source: entitlement-check
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check
+  provenance: { author: human }
+
+- id: blackout-007
+  # The mirror of 006: same plan, same event, outside the blacked-out DMAs.
+  # An agent that has learned "derby => blackout" fails here.
+  input: "Watching from North Haven on sports-tier — am I getting the derby?"
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    # "You're all set — no blackout in North Haven" is a correct answer that
+    # contains the word, so the verdict carries this, not a string ban.
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - entitlement: { entitled: true, reason: ok }
+    - entitlement_source: entitlement-check
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check
+  provenance: { author: human }
+
+- id: blackout-008
+  # Not blacked out, but the wrong tier. The failure to catch is answering
+  # "blackout" because the title is the derby.
+  input: "I'm in Lake Adair on the base plan. Can I watch the derby tonight?"
+  viewer: { plan: base, dma: lake-adair }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_mention: "sports-tier"
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    # `reason: upgrade-required` is what distinguishes this from a blackout —
+    # precisely, and without banning a word a correct answer may use.
+    - entitlement: { entitled: false, reason: upgrade-required }
+    - entitlement_source: entitlement-check
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check
+  provenance: { author: human }
+
+- id: blackout-009
+  # A direct question about blackout coverage in a market that has none.
+  input: "Is the Jefferson Derby blacked out in Granite Falls?"
+  viewer: { plan: sports-tier, dma: granite-falls }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - entitlement: { entitled: true, reason: ok }
+    - entitlement_source: entitlement-check
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, concision]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check
+  provenance: { author: human }
+
+# =============================================================================
+# Entitlement
+# =============================================================================
+
 - id: entitlement-002
   input: "I'm in North Haven with a base plan — can I watch the Cedar Point Rowing Finals?"
+  viewer: { plan: base, dma: north-haven }
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - must_mention: "sports-tier"       # correct: requires upgrade
+    - must_cite: [t005]
+    - cited_titles_in_fixture: true
+    - entitlement: { entitled: false, reason: upgrade-required }
+    - entitlement_source: entitlement-check
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check
+  provenance: { author: human }
+
+- id: entitlement-010
+  # Correct plan, correct market, but the event is a week away at the fixed clock.
+  # "Yes, enjoy it" is wrong for a reason that has nothing to do with access.
+  input: "Sports-tier, here in Cedar Point. Am I set for the Rowing Finals?"
+  viewer: { plan: sports-tier, dma: cedar-point }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_cite: [t005]
+    - cited_titles_in_fixture: true
+    - entitlement: { entitled: false, reason: not-yet-started }
+    - entitlement_source: entitlement-check
+    - budget: { model: haiku, cost_usd: 0.005, p95_ms: 2000 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check
+  provenance: { author: human }
+
+- id: entitlement-011
+  input: "Base plan in Port William — is the Granite Falls Classic replay included?"
+  viewer: { plan: base, dma: port-william }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_cite: [t003]
+    - cited_titles_in_fixture: true
+    - entitlement: { entitled: true, reason: ok }
+    - entitlement_source: entitlement-check
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check
+  provenance: { author: human }
+
+- id: entitlement-012
+  # A title that does not exist. The failure mode is a confident entitlement
+  # verdict about nothing.
+  input: "Can I stream the Harbor Bay Invitational on my base plan?"
+  viewer: { plan: base, dma: lake-adair }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_not_claim: "Harbor Bay Invitational is"
+    - cited_titles_in_fixture: true
+    - entitlement: { entitled: false, reason: unknown-title }
     - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
   judge:
     axes: [groundedness, completeness]
     rubric: quality/judge/rubric-sports.md
   provenance: { author: human }
 
+# =============================================================================
+# Discovery — where catalog-search does the work and entitlement shapes the answer
+# =============================================================================
+
 - id: recommend-003
   input: "What sports replays can I watch right now on a base plan?"
+  viewer: { plan: base, dma: granite-falls }
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - must_mention: "Granite Falls Classic"
+    - must_cite: [t003]
+    - cited_titles_in_fixture: true
     - budget: { model: haiku, cost_usd: 0.005, p95_ms: 2000 }
   judge:
     axes: [groundedness, completeness, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
   provenance: { author: human }
 
-# --- Disclosure cases: M07 adds them here, as the MER-AI-0001 disposition.
-# Removed at M00a: the starter shipped `disclosure-004` pre-placed, tagged with
-# the rule that was supposed to produce it. A case that is already present
-# cannot demonstrate a rule delta flowing into eval cases (claim 6). ---
-
-# --- Headroom case: deliberately hard, expected to sit near the judge threshold ---
-- id: headroom-005
-  input: "Compare the vibe of tonight's derby coverage to a classic rivalry night, briefly."
+- id: recommend-013
+  input: "What sport is on live tonight?"
+  viewer: { plan: sports-tier, dma: north-haven }
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_mention: "Jefferson Derby"
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, cost_usd: 0.005, p95_ms: 2000 }
+  judge:
+    axes: [groundedness, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: recommend-014
+  # Discovery filtered by entitlement: the derby is live tonight but out of reach
+  # on base. Recommending it anyway is the failure.
+  input: "I'm on the base plan in Jefferson City. Anything worth watching tonight?"
+  viewer: { plan: base, dma: jefferson-city }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_mention: "Granite Falls Classic"
+    - must_cite: [t003]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, cost_usd: 0.006, p95_ms: 2200 }
+  judge:
+    axes: [groundedness, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: recommend-015
+  input: "Any rowing coming up?"
+  viewer: { plan: sports-tier, dma: cedar-point }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_mention: "Cedar Point Rowing Finals"
+    - must_cite: [t005]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, cost_usd: 0.005, p95_ms: 2000 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+# =============================================================================
+# Groundedness traps — the whole catalog sits in the control's context, which is
+# exactly what invites confabulation. These cases ask for facts the catalog does
+# not contain. The correct answer is to say so.
+# =============================================================================
+
+- id: grounded-016
+  # A fact the catalog DOES contain. Establishes that the traps below are testing
+  # confabulation, not an inability to answer anything.
+  input: "What time does the Rovers vs Union match start?"
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, concision]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: grounded-017
+  # The catalog has the title but no result. Inventing a winner is the failure.
+  input: "Who won the Granite Falls Classic?"
+  viewer: { plan: base, dma: granite-falls }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    # Specific phrasings only. A bare `must_not_claim: "won"` would also fire on
+    # "I wonder" — and on "we don't have the result, so I won't guess", which is
+    # the ideal answer.
+    - must_not_claim: "won the Granite Falls Classic"
+    - must_not_claim: "the winner was"
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: grounded-018
+  # A plausible-sounding fixture that does not exist. "Yes, next month" is the
+  # confabulation this case is built to catch.
+  input: "Is there a Jefferson Derby second leg next month?"
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_not_claim: "second leg is"
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: grounded-019
+  input: "Tell me about the Harbor Bay Invitational — when is it and who's playing?"
+  viewer: { plan: sports-tier, dma: lake-adair }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, cost_usd: 0.005, p95_ms: 2000 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+# =============================================================================
+# Brand boundary — this agent serves Meridian Sports. The catalog also carries
+# Meridian News titles, which have their own attribution and disclosure rules
+# and are not this agent's to editorialize.
+# =============================================================================
+
+- id: brand-020
+  input: "Is North Haven Nightly on my base plan?"
+  viewer: { plan: base, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_cite: [t002]
+    - cited_titles_in_fixture: true
+    - entitlement: { entitled: true, reason: ok }
+    - entitlement_source: entitlement-check
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [groundedness, concision]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check
+  provenance: { author: human }
+
+- id: brand-021
+  # Invites a hot take. On-brand is warm and knowledgeable; off-brand is cruel
+  # about the rival's supporters or hyperbolic about the result. Note the
+  # boundary with ADV-005: tone is graded here, never treated as a security pass.
+  input: "Go on — who deserves to win the derby, Rovers or Union?"
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, cost_usd: 0.005, p95_ms: 2000 }
+  judge:
+    axes: [brand_tone:meridian-sports, groundedness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+# =============================================================================
+# Shape of the answer
+# =============================================================================
+
+- id: concise-022
+  input: "Derby on tonight? Yes or no."
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [concision, groundedness]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check
+  provenance: { author: human }
+
+- id: multi-023
+  # Two questions in one turn. Answering the first and dropping the second is the
+  # completeness failure the rubric describes: correct and incomplete.
+  input: "I'm in Port William on base — can I watch the derby, and if not, what else is on?"
+  viewer: { plan: base, dma: port-william }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_mention: "blackout"
+    - must_mention: "Granite Falls Classic"
+    - must_cite: [t001, t003]
+    - cited_titles_in_fixture: true
+    - entitlement: { entitled: false, reason: blackout }
+    - entitlement_source: entitlement-check
+    - budget: { model: haiku, cost_usd: 0.007, p95_ms: 2400 }
+  judge:
+    axes: [groundedness, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check
+  provenance: { author: human }
+
+# =============================================================================
+# Edges
+# =============================================================================
+
+- id: edge-024
+  # A local event with no blackout entry. Inventing one — because "local event"
+  # pattern-matches to "blackout" — is the failure. The real reason is the tier.
+  input: "Cedar Point local here, base plan. The Rowing Finals are in my back yard — I'm in, right?"
+  viewer: { plan: base, dma: cedar-point }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_mention: "sports-tier"
+    - must_cite: [t005]
+    - cited_titles_in_fixture: true
+    # `reason: upgrade-required` is the whole point: an invented blackout would
+    # come back as `reason: blackout` and fail here, precisely.
+    - entitlement: { entitled: false, reason: upgrade-required }
+    - entitlement_source: entitlement-check
+    - budget: { model: haiku, cost_usd: 0.005, p95_ms: 2000 }
+  judge:
+    axes: [groundedness, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  trajectory:
+    expect_tool_before_answer: entitlement-check
+  provenance: { author: human }
+
+- id: edge-025
+  # Genuinely ambiguous. Asking one clarifying question beats guessing a title
+  # and answering confidently about it.
+  input: "What about tonight?"
+  viewer: { plan: base, dma: lake-adair }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, cost_usd: 0.004, p95_ms: 1800 }
+  judge:
+    axes: [completeness, concision, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+# =============================================================================
+# Headroom — deliberately hard, expected to sit near the judge threshold.
+# 2 of 25 (8%). These are not defects to be fixed. See README.md.
+# =============================================================================
+
+- id: headroom-005
+  input: "Compare the vibe of tonight's derby coverage to a classic rivalry night, briefly."
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - cited_titles_in_fixture: true
     - budget: { model: haiku, cost_usd: 0.007, p95_ms: 2400 }
   judge:
     axes: [brand_tone:meridian-sports, concision]
+    rubric: quality/judge/rubric-sports.md
+    expect_near_threshold: true
+  provenance: { author: human }
+
+- id: headroom-026
+  # Complete AND concise AND on-brand, about a title with almost no metadata to
+  # work with. The three axes pull against each other, which is the point.
+  input: "Sell me on the Rowing Finals in two sentences — why should I care?"
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - must_cite: [t005]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, cost_usd: 0.006, p95_ms: 2200 }
+  judge:
+    axes: [brand_tone:meridian-sports, concision, groundedness]
     rubric: quality/judge/rubric-sports.md
     expect_near_threshold: true
   provenance: { author: human }

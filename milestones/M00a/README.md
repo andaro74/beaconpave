@@ -39,7 +39,8 @@ numbers, and every number after them, mean something.
 
 | Metric | before M00a | after M00a |
 |---|---|---|
-| Tests collected | 0 | 70 |
+| Tests collected | 0 | 80 |
+| Golden cases | 5 (one of them M07's) | 25 |
 | Ways the gate can block a merge | 0 | 6 (FAIL · missing · unparseable · schema-invalid · `fail_closed: false` · INFRA) |
 | Committed contracts pointing at files that exist | 3 of 10 | 10 of 10 |
 | ADR references that resolve | 2 of 5 | 7 of 7 |
@@ -91,6 +92,19 @@ produced.
 and stopped matching the gate-criteria rule. Gate criteria are the single most
 important two-key path — the tests caught it, which is the argument for writing
 the parametrised path test before the implementation felt finished.
+
+**Six golden cases could not be passed by a correct answer.** Authoring the
+remaining 21 surfaced the flaw in the five that already existed and in several
+new ones: `must_not_claim: "blackout"` on a case whose right answer is "no
+blackout here", `must_not_claim: "free"` on one whose right answer is "not
+available free in your market" (that one shipped in the starter), and
+`must_not_claim: "won"` on a case whose ideal answer is "I won't guess" — which
+also fires on "I wonder". All were replaced by the structured `entitlement`
+verdict, which states the requirement exactly. A case a correct answer fails is a
+broken case, and it fails in the most expensive way: it looks like a system
+defect, and the instinct is to go fix the system. Fixing them now is legitimate
+only because nothing has been recorded yet; after M00b the same edit would need
+its own PR and an AI Quality key.
 
 **Anticipated and avoided:** the eval and adversarial steps were left commented
 out of the workflow rather than given placeholder PASS verdicts. A placeholder
