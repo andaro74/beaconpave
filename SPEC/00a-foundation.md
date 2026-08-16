@@ -79,22 +79,34 @@ after M00a, two of them do.
 
 ## Definition of done
 
-- [ ] `pave gate decide` exits 1 on a `FAIL` verdict
-- [ ] `pave gate decide` exits 1 on a missing / unparseable / schema-invalid
-      verdict file (fail-closed on absence, G2)
-- [ ] `pave gate decide` exits 0 only when every verdict is `PASS` or `ADVISORY`
+- [x] `pave gate decide` exits **1** on a `FAIL` verdict — a quality regression,
+      which pages the service team
+- [x] `pave gate decide` exits **2** on a missing / unparseable / schema-invalid
+      verdict, one declaring `fail_closed: false`, or one reporting `INFRA` —
+      the gate could not establish that the code is good, which pages the
+      platform. Both block; 2 outranks 1.
+      *(Amended during the build: this DoD originally said exit 1 for all
+      blocking cases. Splitting them costs nothing and stops "the harness broke"
+      and "the service regressed" from being confused for each other — which is
+      how a flaky gate gets routed around rather than fixed.)*
+- [x] `pave gate decide` exits 0 only when every verdict is `PASS` or `ADVISORY`
       and every file validated
-- [ ] `pytest` collects and passes a non-zero number of tests; `make check`
-      fails if zero tests are collected
-- [ ] `pave check` reproduces `make check` without POSIX-only shell (Windows
-      parity)
-- [ ] Every path referenced by `tools.yaml`, `pave.manifest.yaml`, and
+- [x] `pave gate two-key` blocks a two-key path change with no recorded
+      disposition and rationale (G9) — see ADR-013, added during the build once
+      the repo went public and the CODEOWNERS question was settled
+- [x] `pytest` collects and passes a non-zero number of tests; `make check`
+      fails if zero tests are collected — 80 tests
+- [x] `pave check` reproduces `make check` without POSIX-only shell (Windows
+      parity), and emits the contract verdict the gate decides on
+- [x] Every path referenced by `tools.yaml`, `pave.manifest.yaml`, and
       `cases.yaml` exists — asserted by a test, not by inspection
-- [ ] Golden set at 25 cases, 2–3 near-threshold, `disclosure-004` removed
-- [ ] CODEOWNERS entries resolve; branch protection enabled and admin bypass off
-- [ ] ADR-003, ADR-004, ADR-007, ADR-012 written
-- [ ] `milestones/M00a/README.md` answers the three questions
-- [ ] Progression table gains an `00a` row
+- [x] Golden set at 25 cases, 2 near-threshold (8%), `disclosure-004` removed
+- [x] CODEOWNERS entries resolve
+- [ ] Branch protection enabled and admin bypass off — **operator action**, see
+      `docs/governance/branch-protection.md`
+- [x] ADR-003, ADR-004, ADR-007, ADR-012 written (and ADR-013)
+- [x] `milestones/M00a/README.md` answers the three questions
+- [x] Progression table gains an `00a` row
 - [ ] Tag `m00a` pushed from branch `m00a-foundation`
 
 ## Why this is a milestone and not a chore PR
