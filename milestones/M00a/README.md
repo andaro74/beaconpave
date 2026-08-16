@@ -106,6 +106,16 @@ defect, and the instinct is to go fix the system. Fixing them now is legitimate
 only because nothing has been recorded yet; after M00b the same edit would need
 its own PR and an AI Quality key.
 
+**The two-key check blocked its own introducing PR, and was right to.** PR #1's
+base is the initial commit, so its diff *adds* `tools.yaml`, `probes.yaml`, and
+the verdict and history schemas to version control — unmodified in content, but
+added. The PR body declared AI Quality and Platform Engineering and missed
+tool-owner, legal-sp, and security. It also demanded an ADR for the probe corpus,
+which surfaced that **ADR-009 was owed**: this milestone fixes the golden set at
+25, which is ADR-009's decision, and the row had been sitting in the ADR table
+unwritten. The check found a real gap on its first run, which is the argument for
+building the enforcement before the thing it enforces.
+
 **Anticipated and avoided:** the eval and adversarial steps were left commented
 out of the workflow rather than given placeholder PASS verdicts. A placeholder
 that reports PASS for an unimplemented suite is indistinguishable from a real

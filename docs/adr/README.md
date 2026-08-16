@@ -23,7 +23,7 @@ as instructive as the reasoning that was right.
 | ADR-012 | Control scored deterministically; judge arrives at M03 | Sequencing, not a cut — the discipline is the same at scale |
 | ADR-013 | G9 enforced as a checked attestation, not a review | Teams + code-owner review; same path list, check retained as a filter |
 
-Written out in full: **001, 003, 004, 007, 011, 012, 013**. The rest are reserved rows
+Written out in full: **001, 003, 004, 007, 009, 011, 012, 013**. The rest are reserved rows
 you fill as you build each component — the table itself is the scaling story.
 
 003, 004, and 007 were written at M00a because the repo already cited them:
