@@ -93,6 +93,11 @@ The US cross-region inference profile, `ACTIVE`, verified working. It is
 reachable through `bedrock-runtime` from boto3 and the CLI, so it adds no
 dependency to a repo whose runtime footprint is currently two libraries.
 
+**This is the regional profile, and regional carries a 10% premium over
+`global.`** That is a deliberate choice, not an accident of which one got
+verified first — see ADR-015. If you render costs anywhere, price them at
+regional rates.
+
 Three other forms exist and none of them is used here. `global.anthropic.…` is
 also `ACTIVE` and routes more widely, but nothing about this workload needs
 that. `anthropic.claude-haiku-4-5` is the Mantle client's form (Messages API on
