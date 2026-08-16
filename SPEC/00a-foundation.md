@@ -102,12 +102,22 @@ after M00a, two of them do.
       `cases.yaml` exists — asserted by a test, not by inspection
 - [x] Golden set at 25 cases, 2 near-threshold (8%), `disclosure-004` removed
 - [x] CODEOWNERS entries resolve
-- [ ] Branch protection enabled and admin bypass off — **operator action**, see
-      `docs/governance/branch-protection.md`
+- [x] Branch protection enabled and admin bypass off — ruleset `main-protected`,
+      enforcement `active`, **bypass actors empty**, requiring `gate` and
+      `two-key` (strict), approvals 0, force-push and deletion blocked. Verified
+      against the live config, not against the settings page.
 - [x] ADR-003, ADR-004, ADR-007, ADR-012 written (and ADR-013)
 - [x] `milestones/M00a/README.md` answers the three questions
 - [x] Progression table gains an `00a` row
-- [ ] Tag `m00a` pushed from branch `m00a-foundation`
+- [x] Tag `m00a` pushed from branch `m00a-foundation` — `m00a` → `daadba5`, the
+      merge commit of PR #1; tag name and branch name distinct
+
+**Partially met, stated rather than rounded up:** the demo artifact above asks
+for two red CI runs — one from a `FAIL` verdict, one from an *absent* verdict
+file. PR #2 is the first. The absent-verdict path is covered by
+`test_missing_verdict_file_blocks` and was exercised locally, but never in CI,
+because it needs a step that crashes before writing its verdict and none did.
+See `milestones/M00a/README.md`.
 
 ## Why this is a milestone and not a chore PR
 
