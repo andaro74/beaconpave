@@ -42,7 +42,9 @@
       "type": "number",
       "description": "Re-run variance [0,1]; above threshold auto-quarantines the suite to advisory and pages its owner"
     },
-    "cost_usd": { "type": "number", "description": "Cost of this run; cost regressions block like quality regressions" },
+    "tokens_in": { "type": "number", "description": "Input tokens consumed; the blocking budget dimension (ADR-014)" },
+    "tokens_out": { "type": "number", "description": "Output tokens produced; the blocking budget dimension (ADR-014)" },
+    "cost_usd": { "type": "number", "description": "Reported cost, rendered from tokens at the pinned regional rate (ADR-014, ADR-015). Reporting only — a gate never blocks on this, because a vendor price change would then move a verdict with no code change. Budget regressions block on tokens_in/tokens_out." },
     "duration_s": { "type": "number" },
     "provenance": {
       "type": "object",

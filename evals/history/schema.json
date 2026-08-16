@@ -30,7 +30,9 @@
       }
     },
     "judge_agreement": { "type": "number", "description": "Agreement with hand labels; below threshold the judge is advisory only" },
-    "cost_usd": { "type": "number" },
+    "tokens_in": { "type": "number", "description": "Input tokens; comparable across milestones because it does not move with a price list (ADR-014)" },
+    "tokens_out": { "type": "number", "description": "Output tokens; see tokens_in" },
+    "cost_usd": { "type": "number", "description": "Rendered from tokens at the pinned regional rate. Never compare two entries on this field alone — the rate may differ between them." },
     "supersedes": { "type": "string", "description": "SHA of an entry this corrects. Corrections append; they never edit." }
   }
 }

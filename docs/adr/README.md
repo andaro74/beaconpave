@@ -25,9 +25,11 @@ is worth less than one that shows where it was corrected.
 | ADR-011 | Baseline quarantined as the only direct-model path | Deleted at M01 — visible in that diff |
 | ADR-012 | Control scored deterministically; judge arrives at M03 *(amended in place 2026-08-15: M00b builds the runner)* | Sequencing, not a cut — the discipline is the same at scale |
 | ADR-013 | G9 enforced as a checked attestation, not a review | Teams + code-owner review; same path list, check retained as a filter |
+| ADR-014 | Budgets denominated in tokens; dollars rendered at report time | Same ceilings per tenant; rate table refreshed on the provider's price feed |
+| ADR-015 | Regional (`us.`) inference profile, at a recorded 10% premium | Per-workload pin driven by each manifest's `classification` |
 
-Written out in full: **001, 003, 004, 007, 009, 011, 012, 013**. The rest are reserved rows
-you fill as you build each component — the table itself is the scaling story.
+Written out in full: **001, 003, 004, 007, 009, 011, 012, 013, 014, 015**. The rest are
+reserved rows you fill as you build each component — the table itself is the scaling story.
 
 003, 004, and 007 were written at M00a because the repo already cited them:
 `pave.manifest.yaml` names ADR-003 and ADR-007, and the repository map names
