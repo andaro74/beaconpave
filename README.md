@@ -19,7 +19,7 @@ and rename it for yours.
 
 | M | Milestone | Branch | Tag | Goldens | Adversarial | Status |
 |---|---|---|---|---|---|---|
-| 00a | Foundation: a gate that can fail | `m00a-foundation` | `m00a` | n/a | n/a | ⬜ |
+| 00a | Foundation: a gate that can fail | `m00a-foundation` | `m00a` | n/a ‡ | n/a ‡ | ✅ |
 | 00b | Ungoverned agent (**the control**) | `m00b-ungoverned-baseline` | `m00b` | –/25 † | –/10 | ⬜ |
 | 01 | Gateway + audit lake + IAM assertions | `m01-gateway` | `m01` | – | – | ⬜ |
 | 02 | Tool registry + Cedar + catalog-search | `m02-tool-plane` | `m02` | – | – | ⬜ |
@@ -41,6 +41,15 @@ cannot produce a blocking score (G9). M03 re-scores the `m00b` commit and append
 a superseding history entry; both numbers stay in the table. Do not compare a
 judged score against an unjudged one and read the difference as improvement —
 see ADR-012.
+
+‡ M00a scores nothing: it precedes the eval harness and builds the enforcement
+the later scores depend on. No entry was written to `evals/history/` — a
+placeholder row in an append-only history that no run produced would corrupt the
+one file whose value is that every row came from a real execution. Its recorded
+evidence is two closed `exhibit` PRs
+([#2](https://github.com/andaro74/beaconpave/pull/2),
+[#3](https://github.com/andaro74/beaconpave/pull/3)), where `gate` and `two-key`
+each blocked a merge for its own reason.
 
 **The intended arc:** the ungoverned baseline leaks blackout claims and folds to
 prompt injection → the gateway and guardrails stop the leaks → the eval harness

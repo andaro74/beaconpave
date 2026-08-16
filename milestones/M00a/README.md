@@ -1,6 +1,6 @@
 # M00a — Foundation (make the skeleton enforceable)
 
-**Branch:** `m00a-foundation` · **Tag:** `m00a` · **Closed:** TBD
+**Branch:** `m00a-foundation` · **Tag:** `m00a` · **Closed:** 2026-08-15
 **Spec:** `SPEC/00a-foundation.md` · **Claims advanced:** none directly — it makes
 claims 2 and 5 *enforceable* and every recorded number afterwards trustworthy
 
@@ -32,6 +32,31 @@ before writing its verdict produces no file, and the gate treats that absence as
 blocking rather than as nothing-to-report. Before M00a, all three of these
 commands printed a stub message and exited 0.
 
+### Recorded evidence
+
+Two deliberately-red PRs, labelled `exhibit` and closed unmerged, against a
+`main` protected by an active ruleset with an empty bypass list:
+
+| PR | What was changed | `gate` | `two-key` |
+|---|---|---|---|
+| [#2](https://github.com/andaro74/beaconpave/pull/2) | a failing contract test | **fail** | pass |
+| [#3](https://github.com/andaro74/beaconpave/pull/3) | a `quality/judge/` file, no disposition | pass | **fail** → pass |
+
+The two checks fail independently, each for its own reason — a broken test does
+not drag the governance check down with it, and vice versa. On #3 the run history
+shows `failure` at 01:51:56 and `success` at 01:53:02 on the **same commit**,
+triggered by adding the disposition to the PR body. That gap is the proof that
+`types: [edited]` re-triggers the check; without it a PR could be opened
+compliant and stripped of its disposition afterwards.
+
+**Honest gap against this milestone's spec.** `SPEC/00a-foundation.md` names the
+demo artifact as two red CI runs — one from a `FAIL` verdict, one from an
+*absent* verdict file. #2 is the first. The absent-verdict path was verified
+locally and by `test_missing_verdict_file_blocks`, but never in CI, because
+producing it needs a step that crashes before writing its verdict and no such
+failure occurred. The claim in the spec is therefore half-evidenced in CI and
+half in the test suite. Worth stating rather than rounding up.
+
 ## What's the delta vs baseline?
 
 N/A — this milestone precedes the control. It exists so that the control's
@@ -45,6 +70,15 @@ numbers, and every number after them, mean something.
 | Committed contracts pointing at files that exist | 3 of 10 | 10 of 10 |
 | ADR references that resolve | 2 of 5 | 7 of 7 |
 | Invariants enforced by machinery | 0 | G2, G7, G8, **G9** |
+
+**No entry was written to `evals/history/`, and that is not a skipped step.**
+The close-milestone checklist calls for `run_evals.py --record`; neither that
+script nor the harness behind it exists until M03, and M00a deliberately did not
+build one (ADR-012 defers scoring to M00b's deterministic runner and M03's
+judge). Recording a placeholder entry would have put a number in an append-only
+history that no run produced — in a file whose entire value is that every row
+came from a real execution. M00a's recorded artifacts are the contract verdict
+emitted by `pave check --out`, and the two closed exhibit PRs below.
 
 ## What broke?
 
