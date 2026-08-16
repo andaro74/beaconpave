@@ -39,6 +39,37 @@ def _die(msg, code=1):
     sys.exit(code)
 
 
+def _console_safe(text: str, encoding: str) -> str:
+    """Rewrite `text` so `encoding` can represent it, losing characters rather
+    than raising.
+
+    `pave gate two-key` prints U+2717 on its blocking path. A Windows console
+    running cp1252 cannot encode that character, so the command died with a
+    UnicodeEncodeError *instead of printing why it blocked* — the operator saw a
+    traceback and exit 1, with the reason it exited nowhere on screen. CI never
+    caught it because GitHub runners are UTF-8.
+
+    That is the same class as M00a's BOM bug: a governance check that fails for a
+    reason which is not the team's fault. Those are the failures that teach people
+    to route around the gate, so the console's codepage must not get a vote in
+    whether a blocked merge can explain itself.
+
+    Characters the console *can* show are returned untouched, so nothing is
+    degraded on a UTF-8 terminal or in a CI log."""
+    try:
+        text.encode(encoding)
+    except UnicodeEncodeError:
+        return text.encode(encoding, "replace").decode(encoding, "replace")
+    return text
+
+
+def _emit(text: str) -> None:
+    """Print rendered gate output through `_console_safe`. Stdout's encoding is
+    read at call time rather than cached: it differs between a console, a pipe,
+    and a redirect to file, and the blocking path must survive all three."""
+    print(_console_safe(text, getattr(sys.stdout, "encoding", None) or "utf-8"))
+
+
 def rules_validate():
     """G7 — no orphan rules, no immortal rules: every rule has an owner, a source,
     a disposition into at least one enforcing control, and a review-by date.
@@ -97,7 +128,7 @@ def gate_decide(argv):
     uncaught exception would surface as an errored CI step, and the whole point
     of this command is that erroring and blocking are the same outcome."""
     decision = gate_mod.decide(_flag_values(argv, "--verdicts"))
-    print(gate_mod.render(decision))
+    _emit(gate_mod.render(decision))
     sys.exit(decision.exit_code)
 
 
@@ -109,7 +140,7 @@ def gate_comment(argv):
     Always exits 0 — this is a reporter, not a decider. The workflow runs it with
     `if: always()`, so a non-zero exit here would mask which step actually failed."""
     body = gate_mod.summarize(_flag_values(argv, "--verdicts"))
-    print(body)
+    _emit(body)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as fh:
@@ -130,7 +161,7 @@ def gate_two_key(argv):
         body = pathlib.Path(body_file[0]).read_text(encoding="utf-8-sig")
 
     problems = twokey.evaluate(changed, body, repo_root=ROOT)
-    print(twokey.render(changed, problems))
+    _emit(twokey.render(changed, problems))
     if problems:
         sys.exit(gate_mod.EXIT_QUALITY)
 
