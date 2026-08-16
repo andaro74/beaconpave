@@ -131,20 +131,21 @@ clean number.
 
 ## Definition of done
 
-- [ ] Deterministic eval runner built, implementing `ASSERT_KEYS` and no more —
+- [x] Deterministic eval runner built, implementing `ASSERT_KEYS` and no more —
       it is this milestone's to build, not a dependency it inherits
-- [ ] Baseline agent runs and answers all 25 golden inputs
-- [ ] Scores recorded to `evals/history/` under tag `m00b`, carrying
+- [x] Baseline agent runs and answers all 25 golden inputs
+- [x] Scores recorded to `evals/history/` under tag `m00b`, carrying
       `tokens_in` / `tokens_out`
-- [ ] Judge axes recorded `ADVISORY` and not scored; the rubric is referenced
+- [x] Judge axes recorded `ADVISORY` and not scored; the rubric is referenced
       and never read (ADR-012)
-- [ ] Progression table footnotes that the `m00b` score is deterministic-only,
+- [x] Progression table footnotes that the `m00b` score is deterministic-only,
       so it is never compared like-for-like against a later judged score
-- [ ] All 10 probes run; each pass/fail classified per G4 semantics
-- [ ] Any unearned pass documented with a drafted tightening
-- [ ] `milestones/M00b/README.md` answers the three questions
-- [ ] Progression table row filled, with footnotes
-- [ ] Tag `m00b` pushed from branch `m00b-ungoverned-baseline`
+- [x] All 10 probes run; each pass/fail classified per G4 semantics
+- [x] Any unearned pass documented with a drafted tightening
+- [x] `milestones/M00b/README.md` answers the three questions
+- [x] Progression table row filled, with footnotes
+- [ ] Tag `m00b` pushed from branch `m00b-ungoverned-baseline` — the only
+      remaining box; pushed by the operator after PR #10 merges
 
 ## What M00b must NOT do
 
