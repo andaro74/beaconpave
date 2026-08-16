@@ -54,6 +54,8 @@ def build(
     fail_closed: bool = True,
     scores: dict | None = None,
     duration_s: float | None = None,
+    tokens_in: int | None = None,
+    tokens_out: int | None = None,
     cost_usd: float | None = None,
     artifacts: list[str] | None = None,
     commit: str | None = None,
@@ -71,6 +73,10 @@ def build(
         record["scores"] = scores
     if duration_s is not None:
         record["duration_s"] = duration_s
+    if tokens_in is not None:
+        record["tokens_in"] = tokens_in
+    if tokens_out is not None:
+        record["tokens_out"] = tokens_out
     if cost_usd is not None:
         record["cost_usd"] = cost_usd
     if artifacts:

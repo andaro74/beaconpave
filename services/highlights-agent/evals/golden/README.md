@@ -68,7 +68,7 @@ assert key fails the build instead of silently never running.
 | `cited_titles_in_fixture: true` | **every** cited id exists in the fixture catalog |
 | `entitlement: {entitled, reason}` | the structured verdict matches exactly |
 | `entitlement_source: entitlement-check` | the verdict came from the tool, not the model |
-| `budget: {model, cost_usd, p95_ms}` | per-model cost and latency ceiling |
+| `budget: {model, tokens_in, tokens_out, p95_ms}` | per-model token and latency ceiling (ADR-014 — **not** dollars) |
 
 ### Asserts a correct answer fails
 

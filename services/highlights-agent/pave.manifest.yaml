@@ -12,9 +12,10 @@ tools:                             # must exist in registry; Cedar policy genera
   - id: entitlement-check@^0        # second model-chosen tool activates trajectory evals
 gates:
   eval_min_cases: 20               # gate fails below this — no unevaluated agents
-  budgets:
+  budgets:                         # tokens, not dollars — ADR-014
     p95_ms: 2500
-    cost_per_req_usd: 0.010
+    max_tokens_in: 2000
+    max_tokens_out: 800
 attestations:                      # written by CI, verified at deploy
   gate_verdict: required
   manifest_signature: required
