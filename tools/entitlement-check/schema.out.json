@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beaconpave/tools/entitlement-check/schema.out.json",
+  "title": "entitlement-check output",
+  "description": "`entitled` is the only field the agent may act on. `blackout` and `required_entitlement` explain the verdict so the answer can teach the viewer why — but the decision is the tool's, never the model's.",
+  "type": "object",
+  "required": ["entitled", "reason"],
+  "additionalProperties": false,
+  "properties": {
+    "entitled": { "type": "boolean" },
+    "reason": { "type": "string", "enum": ["ok", "blackout", "upgrade-required", "not-yet-started", "unknown-title"] },
+    "blackout": { "type": "boolean", "description": "True when this DMA is blacked out for this title's event" },
+    "required_entitlement": { "type": "string", "enum": ["base", "sports-tier"] },
+    "event": { "type": "string" }
+  }
+}

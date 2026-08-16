@@ -1,0 +1,14 @@
+{
+  "_comment": "Fictional catalog for Meridian Beacon. Committed so tests are hermetic (G8) and blackout demos are deterministic. 6 fictional DMAs, all fictional titles/teams.",
+  "dmas": ["jefferson-city", "port-william", "north-haven", "lake-adair", "granite-falls", "cedar-point"],
+  "blackouts": {
+    "jefferson-derby": ["jefferson-city", "port-william"]
+  },
+  "titles": [
+    { "id": "t001", "title": "Jefferson Derby: Rovers vs Union", "brand": "meridian-sports", "type": "live-event", "event": "jefferson-derby", "entitlement": "sports-tier", "starts": "2026-09-13T19:00:00Z" },
+    { "id": "t002", "title": "North Haven Nightly", "brand": "meridian-news", "type": "vod", "entitlement": "base" },
+    { "id": "t003", "title": "Granite Falls Classic (Replay)", "brand": "meridian-sports", "type": "vod", "entitlement": "base" },
+    { "id": "t004", "title": "The Port William Report", "brand": "meridian-news", "type": "live-linear", "entitlement": "base" },
+    { "id": "t005", "title": "Cedar Point Rowing Finals", "brand": "meridian-sports", "type": "live-event", "event": "cedar-regatta", "entitlement": "sports-tier", "starts": "2026-09-20T16:00:00Z" }
+  ]
+}

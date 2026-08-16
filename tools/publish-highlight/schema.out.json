@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beaconpave/tools/publish-highlight/schema.out.json",
+  "title": "publish-highlight output",
+  "description": "The tool's synchronous reply is `pending-approval`, never `published`. A publish-class action that could return success inside the agent's turn would make the interlock advisory — claim 10 depends on the agent being unable to observe a completed publish.",
+  "type": "object",
+  "required": ["status", "approval_id"],
+  "additionalProperties": false,
+  "properties": {
+    "status": { "type": "string", "enum": ["pending-approval", "denied"] },
+    "approval_id": { "type": "string", "description": "Step Functions execution handle the editorial approver acts on" },
+    "denied_reason": { "type": "string", "description": "Set when Cedar denied the call before it reached the interlock" },
+    "audit_ref": { "type": "string", "description": "Audit-lake record for this attempt. Present on both statuses — a denial is logged as surely as an attempt (G4)." }
+  }
+}

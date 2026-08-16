@@ -1,0 +1,85 @@
+---
+name: close-milestone
+description: Close a beaconpave milestone — record evals, write the journal, fill the progression row, tag, and record the demo. Use when the user says a milestone is done, asks to close mNN, or asks what's left before tagging.
+---
+
+# Close a milestone
+
+A milestone is not done when the code works. It is done when a stranger can see
+what changed and whether it helped. Work this checklist in order; do not skip
+steps because the code is obviously fine.
+
+## 1. Verify the definition of done
+
+Open `SPEC/NN-*.md` and check its DoD checklist item by item. If the spec has no
+DoD, the milestone was started wrong — write it now and be honest about what was
+actually built.
+
+## 2. Run and record the evals
+
+```bash
+make check                                  # hermetic, must be green
+python evals/run_evals.py --record          # appends to evals/history/
+python evals/run_adversarial.py --record    # if this milestone touches L5
+```
+
+History is append-only, keyed by git SHA + suite. Never edit a past entry; a
+wrong entry gets a superseding one.
+
+**Honesty check:** compare against `m00b`. If a number improved, can you name the
+mechanism? If a number improved and you cannot explain why, that is a finding —
+often it means the case got easier, not the system better. Journal it.
+
+If something passes that should not have passed, mark it **unearned**, say why,
+and draft the tightening for the owning seat as a separate PR after the tag.
+
+## 3. Write the journal
+
+Create `milestones/MNN/README.md` from `milestones/TEMPLATE.md`. It answers
+exactly three questions:
+
+- **What can I demo right now?** Concrete commands and what the viewer sees.
+- **What's the delta vs baseline?** Numbers against `m00b`, plus the mechanism.
+- **What broke?** The honest part. Dead ends, wrong assumptions, things that
+  only worked after the third try. A journal with no "what broke" section is not
+  being written honestly.
+
+## 4. Fill the progression row
+
+Update the README table: branch, tag, goldens, adversarial, status ✅. Footnote
+any unearned pass. The table is the five-minute reader's entire experience —
+it must be true.
+
+## 5. Check the claims
+
+Does this milestone complete a claim in the twelve-claims table? If yes, is the
+proof artifact recorded (screen capture, PR link, artifact file)? A claim
+without an artifact is a promise.
+
+## 6. ADRs
+
+Did this milestone make a consequential choice or a scope cut? Write the ADR.
+Every cut ADR ends with: *"At scale, replace with X; the interface already
+matches."* Superseded ADRs get marked, never deleted.
+
+## 7. Merge, tag, push
+
+```bash
+git push -u origin mNN-<slug>       # open the PR; let the gate run
+# ... seat review (subagents first-pass, human disposes), merge to main ...
+git checkout main && git pull
+git tag mNN && git push origin mNN  # tag name != branch name, always
+```
+
+Do not delete the merged branch — the branch list is a visible progress ledger.
+
+## 8. Record the demo
+
+If this milestone owns an act in `docs/governance/demo-script.md`, record it now
+while the context is fresh. The recordings are the deliverable.
+
+## Final gate
+
+Do not start M(n+1) until every box above is checked. The whole value of this
+repo is that its history is legible; a milestone closed sloppily is invisible
+three weeks later.

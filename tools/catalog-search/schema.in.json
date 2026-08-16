@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beaconpave/tools/catalog-search/schema.in.json",
+  "title": "catalog-search input",
+  "description": "Consequence class: read. Searches the Beacon catalog. Deliberately cannot express 'give me everything' — an unbounded query is how the whole catalog ends up back in the model's context, which is the failure mode M02 exists to remove.",
+  "type": "object",
+  "required": ["query"],
+  "additionalProperties": false,
+  "properties": {
+    "query": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "brand": { "type": "string", "enum": ["meridian-sports", "meridian-news"] },
+    "type": { "type": "string", "enum": ["live-event", "live-linear", "vod"] },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 10, "default": 5 }
+  }
+}

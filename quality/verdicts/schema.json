@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beaconpave/quality/verdicts/schema.json",
+  "title": "Verdict Record",
+  "description": "The single contract every quality runner emits — agent evals, Playwright, k6, drills. One schema is what makes company-wide regression-risk and defect-leakage dashboards possible.",
+  "type": "object",
+  "required": ["service", "surface", "commit", "suite", "layer", "verdict", "fail_closed"],
+  "properties": {
+    "service": { "type": "string", "description": "e.g. highlights-agent" },
+    "surface": {
+      "type": "string",
+      "enum": ["agent", "backend", "web", "mobile", "data", "stream"],
+      "description": "Which surface produced this verdict"
+    },
+    "commit": { "type": "string", "description": "git SHA under test" },
+    "suite": { "type": "string", "description": "e.g. evals, contract, playwright, k6, drill" },
+    "layer": {
+      "type": "string",
+      "enum": ["L0", "L1", "L2", "L3", "L4", "L5"],
+      "description": "Test pyramid layer"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "ADVISORY", "INFRA"],
+      "description": "INFRA = probe/harness infrastructure failed, not the code under test; pages the platform, not the team"
+    },
+    "fail_closed": {
+      "type": "boolean",
+      "description": "True if an errored gate blocked (G2). Must be true for any blocking suite."
+    },
+    "scores": {
+      "type": "object",
+      "description": "Metric name -> value in [0,1] or raw measure",
+      "additionalProperties": { "type": "number" }
+    },
+    "baseline_diff": {
+      "type": "object",
+      "description": "Metric name -> delta vs committed baseline (negative = regression)",
+      "additionalProperties": { "type": "number" }
+    },
+    "flake_score": {
+      "type": "number",
+      "description": "Re-run variance [0,1]; above threshold auto-quarantines the suite to advisory and pages its owner"
+    },
+    "cost_usd": { "type": "number", "description": "Cost of this run; cost regressions block like quality regressions" },
+    "duration_s": { "type": "number" },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "author": { "type": "string", "enum": ["human", "ai-proposed"] },
+        "curated_by": { "type": "string" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "S3 URIs or paths to detailed logs / audit-lake records"
+    }
+  }
+}

@@ -1,0 +1,53 @@
+# CODEOWNERS — the seat map.
+#
+# WHAT THIS FILE DOES HERE, HONESTLY (see ADR-013):
+#
+# It routes. Every path below auto-requests review from its owning seat, and the
+# ownership is visible on every PR. That part works exactly as it does in a real
+# org.
+#
+# It does NOT, in this repo, force a second human to approve. GitHub does not
+# permit a pull request's author to approve their own PR — in an org or out of
+# one — so a solo operator cannot satisfy "Require review from Code Owners" no
+# matter how the teams are arranged. The starter's setup guide asked for teams
+# of one and claimed that made seats real; it did not.
+#
+# What DOES enforce the seat rules here, with no second human:
+#   - the quality gate (G2), a required status check that cannot be bypassed
+#   - the two-key check (G9), `.github/workflows/two-key.yml` — a required status
+#     check that blocks any PR touching thresholds, baselines, or gate criteria
+#     unless the owning seat's disposition and its rationale are recorded in the
+#     PR body
+#
+# Two-key moved from "a review you cannot give yourself" to "an attestation the
+# machine checks." One operator, still two deliberate acts, both in the history.
+#
+# AT SCALE: replace each `@andaro74` with the seat's team (`@meridian/ai-quality`
+# and so on) and turn on "Require review from Code Owners". The path list — the
+# part that encodes the org chart — does not change. That is the whole scale-up.
+
+# Platform Engineering owns the road and the gate mechanism (not the thresholds)
+/platform/                @andaro74
+/templates/               @andaro74
+/pave/                    @andaro74
+/.github/                 @andaro74
+
+# AI Quality owns thresholds, judges, baselines (two-key: see two-key.yml)
+/quality/judge/           @andaro74
+/quality/verdicts/        @andaro74
+/evals/history/           @andaro74
+/services/**/evals/       @andaro74
+
+# Security / Red Team owns the adversarial corpus and guardrail configs
+/quality/adversarial/     @andaro74
+/platform/gateway/guardrail_config.yaml   @andaro74
+
+# Legal / Standards & Practices owns the rules registry
+/rules/                   @andaro74
+
+# Tool owners own tool schemas and consequence classes
+/platform/registry/       @andaro74
+/tools/                   @andaro74
+
+# Service teams own their own code and prompts
+/services/highlights-agent/src/   @andaro74

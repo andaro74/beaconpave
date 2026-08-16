@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beaconpave/tools/entitlement-check/schema.in.json",
+  "title": "entitlement-check input",
+  "description": "Consequence class: read. The authoritative answer to 'can this viewer watch this title right now'. The agent must call this rather than reason about it — a model inferring blackout rules from catalog text is exactly what the m00b control does wrong.",
+  "type": "object",
+  "required": ["title_id", "plan", "dma"],
+  "additionalProperties": false,
+  "properties": {
+    "title_id": { "type": "string", "pattern": "^t[0-9]{3}$" },
+    "plan": { "type": "string", "enum": ["base", "sports-tier"] },
+    "dma": {
+      "type": "string",
+      "enum": ["jefferson-city", "port-william", "north-haven", "lake-adair", "granite-falls", "cedar-point"]
+    }
+  }
+}

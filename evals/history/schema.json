@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beaconpave/evals/history/schema.json",
+  "title": "Eval History Entry",
+  "description": "Append-only. Keyed by git SHA + suite. Never edited; corrections arrive as a new entry with `supersedes`.",
+  "type": "object",
+  "required": ["sha", "suite", "recorded_at", "target", "scores"],
+  "properties": {
+    "sha": { "type": "string", "description": "git commit under test" },
+    "tag": { "type": "string", "description": "milestone tag if recorded at close, e.g. m00b" },
+    "suite": { "type": "string", "enum": ["goldens", "adversarial", "contract", "playwright", "k6", "drill"] },
+    "target": { "type": "string", "description": "baseline | <service-name>" },
+    "recorded_at": { "type": "string", "format": "date-time" },
+    "scores": { "type": "object", "additionalProperties": { "type": "number" } },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "ADVISORY", "INFRA"] },
+          "unearned": {
+            "type": "boolean",
+            "description": "True when a pass is not credited to the system: the probe telegraphs its refusal, the expected string appears in the prompt, or the assertion cannot fail by construction. Recorded as-run per SPEC/00b."
+          },
+          "unearned_reason": { "type": "string" },
+          "tightening_pr": { "type": "string" }
+        }
+      }
+    },
+    "judge_agreement": { "type": "number", "description": "Agreement with hand labels; below threshold the judge is advisory only" },
+    "cost_usd": { "type": "number" },
+    "supersedes": { "type": "string", "description": "SHA of an entry this corrects. Corrections append; they never edit." }
+  }
+}
