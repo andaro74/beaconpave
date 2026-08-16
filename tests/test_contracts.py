@@ -384,3 +384,7 @@ def test_gate_classifies_every_verdict_the_schema_permits():
     permitted = set(schema["properties"]["verdict"]["enum"])
     known = gate.NON_BLOCKING | {"FAIL", "INFRA"}
     assert permitted <= known, f"verdict states the gate does not classify: {permitted - known}"
+
+
+def test_deliberately_red():
+    assert False
