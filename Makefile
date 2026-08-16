@@ -19,7 +19,7 @@ core:
 	cd platform/infra && cdk deploy --all
 
 evals:
-	python evals/run_evals.py --record
+	python -m evals.run_evals --answers $(ANSWERS) --record
 
 adversarial:
 	python evals/run_adversarial.py --record
