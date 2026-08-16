@@ -3,6 +3,15 @@
 **Owning seat:** PM (spec) · AI Quality (scoring) · Security (probe corpus)
 **Milestone:** M00b · branch `m00b-ungoverned-baseline` · tag `m00b`
 
+**Amended at branch cut, 2026-08-15.** This spec was written before ADR-012,
+ADR-014, and ADR-015 existed, and three of its statements did not survive them:
+it did not say who builds the scoring harness, it did not distinguish the
+deterministic score from the judged one, and its cost hypothesis is now known to
+be wrong. All three are corrected below and marked where they are corrected —
+nothing is quietly rewritten, and in particular the pre-registered hypothesis
+table keeps its original wording so the correction can be audited rather than
+taken on trust.
+
 ## Why a control exists
 
 Every later milestone in this repo claims to *improve* something. A claim of
@@ -25,7 +34,31 @@ milestone faces.
   directly**, and it is quarantined: the IAM assertion test (G1) excludes this
   path by an explicit allowlist entry that is deleted at M01. The deletion is
   part of M01's diff and is visible in the history.
-- A scoring run producing `evals/history/` entries tagged `m00b`.
+- **The deterministic eval runner.** ADR-012 originally read as though M00a
+  would build it; M00a built none of it, correctly, because at M00a there was
+  nothing to score. The ADR is amended and the runner is M00b's, part of this
+  milestone's definition of done rather than a dependency it may assume exists.
+  It implements the deterministic assert vocabulary and nothing beyond it — the
+  executable list is `ASSERT_KEYS` in `tests/test_contracts.py` — and it must
+  not consult `quality/judge/rubric-sports.md`, which exists, is referenced by
+  the cases, and is not read until M03.
+- A scoring run producing `evals/history/` entries tagged `m00b`, carrying
+  `tokens_in` / `tokens_out` (ADR-014 — budgets are token-denominated; dollars
+  are rendered at report time and never block).
+
+### Two numbers, not one
+
+Judge axes are recorded `ADVISORY` and are **not scored** at M00b. A judge with
+no published agreement number cannot produce a blocking score — that is G9, and
+it applies to the control exactly as it applies to everything else. M03 adds the
+judge and **re-scores this same commit**, appending a second history entry with
+`supersedes` pointing at the deterministic-only one.
+
+So the `m00b` row carries two numbers for the life of the project, and the
+progression table **must footnote which is which**. Without that footnote a
+reader compares an M04 judged score against an M00b unjudged one and reads a
+platform improvement that is really a change in what was being measured. The
+footnote is not optional; it is the reason ADR-012 exists.
 
 ## Expected result (the hypothesis, written before the run)
 
@@ -35,11 +68,44 @@ milestone faces.
 | Groundedness | Mediocre | Whole catalog in context invites confabulation |
 | Disclosure cases | Fails | No rule exists yet to enforce |
 | Adversarial (10 probes) | Fails most or all | Nothing blocks; "the model declined" is not a pass (G4) |
-| Cost/latency | Higher than budget on some cases | Whole catalog in every prompt |
+| ~~Cost/latency~~ | ~~Higher than budget on some cases~~ | ~~Whole catalog in every prompt~~ **— corrected, see below** |
 | Trajectory | N/A | No tools to choose between |
 
 Record the actual numbers, not these. If reality disagrees with the hypothesis,
 the hypothesis was wrong and that is a finding worth journaling.
+
+**Corrected before the run: cost will not discriminate, and the pass is
+unearned.** The row above is struck rather than deleted, because a
+pre-registered hypothesis that is edited to match what its author later learned
+is worth nothing. What changed is evidence, not hindsight — the measurement
+below was taken against the pinned model before the control existed, so this is
+still a prediction, only a better-informed one.
+
+Measured 2026-08-15 against `us.anthropic.claude-haiku-4-5-20251001-v1:0`,
+sending the committed system prompt, the answer schema, and the fixture catalog
+(ADR-014 records the full derivation):
+
+| Prompt shape | input tokens |
+|---|---|
+| Ungoverned — whole catalog inlined (this milestone) | 1138 |
+| Governed — one retrieved title (M02 onward) | 891 |
+| Floor — no catalog at all | 754 |
+
+Inlining the entire catalog costs **247 tokens**. At ADR-009's corpus size — 5
+titles, 1,173 bytes — "the whole catalog in every prompt" is nearly free, so the
+control will sit comfortably inside its budget.
+
+**Expect the control to pass the budget axis, and record that pass as unearned**
+under the honesty clause below. It is unearned in the clause's exact sense: the
+assertion cannot meaningfully fail here, and it passes for a reason that has
+nothing to do with how well the control is built. Do not read it as evidence the
+ungoverned agent is cheap, and do not let it inflate the m00b row.
+
+This is a limitation of the fixture, not of the metric. Token budgets still
+catch prompt bloat, context-stuffing regressions, and runaway generation, which
+are real failures at any corpus size. The tightening this implies — a catalog
+large enough for the axis to bite — belongs to ADR-009's owner and lands after
+`m00b` is tagged, never before.
 
 ## The honesty clause
 
@@ -65,13 +131,21 @@ clean number.
 
 ## Definition of done
 
-- [ ] Baseline agent runs and answers all 25 golden inputs
-- [ ] Scores recorded to `evals/history/` under tag `m00b`
-- [ ] All 10 probes run; each pass/fail classified per G4 semantics
-- [ ] Any unearned pass documented with a drafted tightening
-- [ ] `milestones/M00b/README.md` answers the three questions
-- [ ] Progression table row filled, with footnotes
-- [ ] Tag `m00b` pushed from branch `m00b-ungoverned-baseline`
+- [x] Deterministic eval runner built, implementing `ASSERT_KEYS` and no more —
+      it is this milestone's to build, not a dependency it inherits
+- [x] Baseline agent runs and answers all 25 golden inputs
+- [x] Scores recorded to `evals/history/` under tag `m00b`, carrying
+      `tokens_in` / `tokens_out`
+- [x] Judge axes recorded `ADVISORY` and not scored; the rubric is referenced
+      and never read (ADR-012)
+- [x] Progression table footnotes that the `m00b` score is deterministic-only,
+      so it is never compared like-for-like against a later judged score
+- [x] All 10 probes run; each pass/fail classified per G4 semantics
+- [x] Any unearned pass documented with a drafted tightening
+- [x] `milestones/M00b/README.md` answers the three questions
+- [x] Progression table row filled, with footnotes
+- [ ] Tag `m00b` pushed from branch `m00b-ungoverned-baseline` — the only
+      remaining box; pushed by the operator after PR #10 merges
 
 ## What M00b must NOT do
 

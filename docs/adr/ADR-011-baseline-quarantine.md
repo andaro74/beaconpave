@@ -19,6 +19,23 @@ carries a comment naming this ADR and the milestone that removes it.
 proof of claim 4: before, one path could call the model directly; after, none
 can, and the attempt is logged.
 
+### The dependency this adds
+
+The control needs `boto3`. CLAUDE.md requires a line saying why the stdlib will
+not do: reaching Bedrock means SigV4-signing every request, and hand-rolling
+request signing to avoid a dependency would be more code, less correct, and
+security-relevant — a worse trade than the dependency by a wide margin.
+
+It is added as the optional extra `baseline`, **not** to `dependencies`. `make
+check` must still install and pass on a fresh clone with nothing present that
+could reach AWS, which is G8; putting an AWS SDK in the default install would
+undo the hermeticity guard added before this milestone by making the import
+available to anything that reached for it.
+
+Unlike the allowlist entry above, this dependency **outlives this ADR**: M01's
+gateway Lambda needs the same SDK. So M01 deletes the allowlist entry and keeps
+the extra, and this note is the record that the two were always separable.
+
 ## Consequences
 
 Between M00b and M01 the repo genuinely contains a G1 exception. This is

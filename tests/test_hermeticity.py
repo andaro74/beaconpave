@@ -42,7 +42,7 @@ SELF = pathlib.Path(__file__).resolve()
 #: here — that path is allowed to reach Bedrock (ADR-011 quarantines it, and G1's
 #: allowlist entry is deleted at M01). What must stay true is that nothing in the
 #: hermetic suite *reaches* it; the sys.modules check below is what enforces that.
-HERMETIC_ROOTS = (ROOT / "pave", ROOT / "tests")
+HERMETIC_ROOTS = (ROOT / "pave", ROOT / "tests", ROOT / "evals")
 
 #: Importing any of these means the module can talk to AWS.
 AWS_SDK_ROOTS = frozenset({"boto3", "botocore", "aiobotocore", "aioboto3", "s3transfer", "awscli"})
