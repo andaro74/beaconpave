@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beaconpave/platform/gateway/audit.schema.json",
+  "title": "Gateway Audit Record",
+  "description": "One record per attempt to reach a model, written by the gateway to the audit lake. Written for BLOCKED and DENIED attempts exactly as for allowed ones — a control that only records its successes cannot evidence a refusal, and the refusal is the half G4 asks for. The gateway writes; the caller cannot. A record is the second half of an adversarial pass (G4): `blocked` alone is an assertion, `blocked` plus a resolvable record is evidence.",
+  "type": "object",
+  "required": ["record_id", "ts", "principal", "service", "classification", "decision", "mechanism", "model_id"],
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "type": "string",
+      "description": "The lake key. Must resolve: the probe harness fetches the record by this id rather than trusting the gateway response that named it. An unresolvable id is not a pass."
+    },
+    "ts": { "type": "string", "format": "date-time" },
+    "request_id": {
+      "type": "string",
+      "description": "Correlates the record with the caller's request and with the CloudTrail event for the same attempt."
+    },
+    "principal": {
+      "type": "string",
+      "description": "The calling role. Account-qualified ARNs are redacted to <ACCOUNT_ID> in any committed fixture — this repo is public and tests/test_no_account_identifiers.py enforces it."
+    },
+    "service": { "type": "string", "description": "e.g. highlights-agent, direct-call-probe" },
+    "classification": {
+      "type": "string",
+      "enum": ["public", "internal", "confidential", "sensitive"],
+      "description": "G5 routes on this. `sensitive` is refused by design, so a record carrying it must also carry decision=denied."
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["allowed", "blocked", "denied"],
+      "description": "blocked = a guardrail stopped it. denied = a policy or classification refused it before any model was reached. allowed = it transited to the model."
+    },
+    "mechanism": {
+      "type": "string",
+      "enum": ["classification", "guardrail", "policy", "iam", "none"],
+      "description": "What made the decision. `none` is only valid with decision=allowed. `iam` records a direct-call attempt refused by an identity policy — claim 4's runtime artifact."
+    },
+    "guardrail": {
+      "type": "object",
+      "description": "Present whenever a guardrail was consulted, whether or not it blocked.",
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string" },
+        "version": {
+          "type": "string",
+          "description": "A published version, never DRAFT. A DRAFT guardrail can be edited outside a commit and silently change every recorded probe result; pinning it is what makes two runs comparable (ADR-018)."
+        },
+        "action": { "type": "string", "enum": ["NONE", "GUARDRAIL_INTERVENED"] },
+        "assessed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Policy types that fired, e.g. PROMPT_ATTACK. Recorded so a pass can be attributed to a mechanism rather than to an aggregate."
+        }
+      }
+    },
+    "model_id": {
+      "type": "string",
+      "description": "The pinned regional inference profile (ADR-015). Recorded on denied attempts too, as the model that was not reached."
+    },
+    "usage": {
+      "type": "object",
+      "description": "Absent on a denial — nothing was spent. Token-denominated per ADR-014; dollars are rendered at report time and never stored here.",
+      "properties": {
+        "tokens_in": { "type": "number" },
+        "tokens_out": { "type": "number" },
+        "latency_ms": { "type": "number" }
+      }
+    },
+    "error": {
+      "type": "object",
+      "description": "The refusal as the platform received it. On an IAM denial this carries the AWS error verbatim: the gateway is a courier for it, not its author.",
+      "properties": {
+        "code": { "type": "string", "description": "e.g. AccessDeniedException" },
+        "message": { "type": "string" }
+      }
+    },
+    "probe_id": {
+      "type": "string",
+      "description": "Set when the attempt came from the adversarial corpus, e.g. ADV-001. Lets the harness find the record for a probe without trusting the response that claimed to write it."
+    },
+    "witness": {
+      "type": "string",
+      "enum": ["gateway", "cloudtrail", "couriered"],
+      "description": "Who observed the event. `gateway` and `cloudtrail` are independent of the caller. `couriered` means the attempting principal reported its own refusal — weaker, permitted only where no independent witness exists, and it must be named as a limitation in the milestone journal rather than counted as equivalent."
+    }
+  }
+}

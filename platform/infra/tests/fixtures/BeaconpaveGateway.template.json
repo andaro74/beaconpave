@@ -1,0 +1,771 @@
+{
+  "Conditions": {
+    "CDKMetadataAvailable": {
+      "Fn::Or": [
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "af-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-3"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-south-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-3"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-4"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ca-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ca-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-northwest-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-central-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-south-2"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-3"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "il-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "me-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "me-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "sa-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-west-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "us-west-2"
+          ]
+        }
+      ]
+    }
+  },
+  "Description": "Gateway, audit lake, guardrail, and the direct-call probe (M01)",
+  "Outputs": {
+    "AuditLakeBucket": {
+      "Value": {
+        "Ref": "AuditLake1BF36E0E"
+      }
+    },
+    "DirectCallProbeFunctionName": {
+      "Value": {
+        "Ref": "DirectCallProbeFn1E627152"
+      }
+    },
+    "GatewayFunctionName": {
+      "Value": {
+        "Ref": "GatewayFn1123A784"
+      }
+    },
+    "PinnedGuardrailId": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Guardrail",
+          "GuardrailId"
+        ]
+      }
+    },
+    "PinnedGuardrailVersion": {
+      "Value": {
+        "Fn::GetAtt": [
+          "GuardrailVersion",
+          "Version"
+        ]
+      }
+    }
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>"
+    }
+  },
+  "Resources": {
+    "AuditLake1BF36E0E": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        }
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "AuditLakePolicyECAB6419": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "AuditLake1BF36E0E"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Effect": "Deny",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "AuditLake1BF36E0E",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "AuditLake1BF36E0E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        }
+      },
+      "Type": "AWS::S3::BucketPolicy"
+    },
+    "CDKMetadata": {
+      "Condition": "CDKMetadataAvailable",
+      "Properties": {
+        "Analytics": "v2:deflate64:H4sIAAAAAAAA/02NwYoCMRBEv8V7T7vO6N5XwT2uKHiVniRKO5lE0okiIf++jKPo6b0qCqrG+nuBXxO6SaV0V1luMe8iqQ7oJocsDeZlUp2JsDq6p43YeMvq/q6feQxLElOgNTp41WFeHd1voqADsYXPsDdB2LsClvpWE+Z1ciqyd8Pq5QWYesxbb81QP/h+H62ANAcSMVHwZ0CBB3aRTuxOw/AvxUuKBZzXBs8yvdZznDU4m5yFuQrJRe4Nbkf+A8TW5zQZAQAA"
+      },
+      "Type": "AWS::CDK::Metadata"
+    },
+    "DirectCallProbeFn1E627152": {
+      "DependsOn": [
+        "HighlightsAgentRoleDefaultPolicy79D05276",
+        "HighlightsAgentRole401A2F1B"
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+          },
+          "S3Key": "<ASSET_HASH>.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "MODEL_ID": "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+          }
+        },
+        "Handler": "direct_call.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "HighlightsAgentRole401A2F1B",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 30
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "GatewayFn1123A784": {
+      "DependsOn": [
+        "GatewayFnServiceRoleDefaultPolicy45DD8837",
+        "GatewayFnServiceRole97795AA7"
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+          },
+          "S3Key": "<ASSET_HASH>.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "AUDIT_LAKE_BUCKET": {
+              "Ref": "AuditLake1BF36E0E"
+            },
+            "GUARDRAIL_ID": {
+              "Fn::GetAtt": [
+                "Guardrail",
+                "GuardrailId"
+              ]
+            },
+            "GUARDRAIL_VERSION": {
+              "Fn::GetAtt": [
+                "GuardrailVersion",
+                "Version"
+              ]
+            },
+            "MODEL_ID": "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+          }
+        },
+        "Handler": "handler.handler",
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "GatewayFnServiceRole97795AA7",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 30
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "GatewayFnServiceRole97795AA7": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "GatewayFnServiceRoleDefaultPolicy45DD8837": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "bedrock:InvokeModel",
+              "Effect": "Allow",
+              "Resource": [
+                "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+                "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+                "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:bedrock:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": "bedrock:ApplyGuardrail",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "Guardrail",
+                  "GuardrailArn"
+                ]
+              }
+            },
+            {
+              "Action": [
+                "s3:Abort*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::GetAtt": [
+                        "AuditLake1BF36E0E",
+                        "Arn"
+                      ]
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "GatewayFnServiceRoleDefaultPolicy45DD8837",
+        "Roles": [
+          {
+            "Ref": "GatewayFnServiceRole97795AA7"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Policy"
+    },
+    "Guardrail": {
+      "Properties": {
+        "BlockedInputMessaging": "Blocked by the Beacon gateway guardrail. This request was not sent to a model.",
+        "BlockedOutputsMessaging": "Blocked by the Beacon gateway guardrail. The model response was withheld.",
+        "ContentPolicyConfig": {
+          "FiltersConfig": [
+            {
+              "InputStrength": "HIGH",
+              "OutputStrength": "NONE",
+              "Type": "PROMPT_ATTACK"
+            },
+            {
+              "InputStrength": "HIGH",
+              "OutputStrength": "HIGH",
+              "Type": "HATE"
+            },
+            {
+              "InputStrength": "MEDIUM",
+              "OutputStrength": "MEDIUM",
+              "Type": "INSULTS"
+            },
+            {
+              "InputStrength": "MEDIUM",
+              "OutputStrength": "MEDIUM",
+              "Type": "VIOLENCE"
+            },
+            {
+              "InputStrength": "HIGH",
+              "OutputStrength": "HIGH",
+              "Type": "SEXUAL"
+            },
+            {
+              "InputStrength": "MEDIUM",
+              "OutputStrength": "MEDIUM",
+              "Type": "MISCONDUCT"
+            }
+          ]
+        },
+        "Description": "The single guardrail every model call on the paved road transits.",
+        "Name": "beaconpave-gateway",
+        "SensitiveInformationPolicyConfig": {
+          "PiiEntitiesConfig": [
+            {
+              "Action": "BLOCK",
+              "Type": "EMAIL"
+            },
+            {
+              "Action": "BLOCK",
+              "Type": "PHONE"
+            },
+            {
+              "Action": "BLOCK",
+              "Type": "CREDIT_DEBIT_CARD_NUMBER"
+            },
+            {
+              "Action": "BLOCK",
+              "Type": "US_SOCIAL_SECURITY_NUMBER"
+            }
+          ]
+        },
+        "TopicPolicyConfig": {
+          "TopicsConfig": [
+            {
+              "Definition": "Diagnosing a condition, recommending a medication or a dosage, or otherwise giving individualized medical guidance. Meridian is a media company; medical guidance is outside every brand\u2019s remit and carries consequence beyond the product.",
+              "Name": "medical-advice",
+              "Type": "DENY"
+            },
+            {
+              "Definition": "Helping a viewer reach content they are not entitled to \u2014 bypassing a regional blackout, a paywall, or a subscription tier, or obtaining credentials or links that would. Entitlement and blackout rules are Meridian Sports\u2019 core compliance surface, so circumventing them is a policy matter and not a content-quality one.",
+              "Name": "entitlement-circumvention",
+              "Type": "DENY"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::Bedrock::Guardrail"
+    },
+    "GuardrailVersion": {
+      "Properties": {
+        "Description": "Pinned for M01 probe and golden runs.",
+        "GuardrailIdentifier": {
+          "Fn::GetAtt": [
+            "Guardrail",
+            "GuardrailId"
+          ]
+        }
+      },
+      "Type": "AWS::Bedrock::GuardrailVersion"
+    },
+    "HighlightsAgentRole401A2F1B": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Description": "Execution role for governed services. Reaches models only through the gateway.",
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "HighlightsAgentRoleDefaultPolicy79D05276": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "bedrock:Converse",
+                "bedrock:ConverseStream",
+                "bedrock:InvokeModel",
+                "bedrock:InvokeModelWithResponseStream"
+              ],
+              "Effect": "Deny",
+              "Resource": "*"
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "GatewayFn1123A784",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "GatewayFn1123A784",
+                          "Arn"
+                        ]
+                      },
+                      ":*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "HighlightsAgentRoleDefaultPolicy79D05276",
+        "Roles": [
+          {
+            "Ref": "HighlightsAgentRole401A2F1B"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Policy"
+    }
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5"
+                  ],
+                  {
+                    "Ref": "BootstrapVersion"
+                  }
+                ]
+              }
+            ]
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+        }
+      ]
+    }
+  }
+}

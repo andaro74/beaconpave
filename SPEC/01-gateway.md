@@ -26,8 +26,14 @@ M01 fixes exactly those three and nothing else.
    meter → audit-record construction. No SDK import. **Added to `HERMETIC_ROOTS`**
    in `tests/test_hermeticity.py`, so the existing guard grows to cover it rather
    than having a hole punched in it.
-2. **`platform/gateway/lambda/`** — the boto3 adapter, excluded from the hermetic
-   surface exactly as the baseline is.
+2. **`platform/gateway/handler.py`** — the boto3 adapter, excluded from the
+   hermetic surface exactly as the baseline is.
+
+   *Amended during the build:* this said `platform/gateway/lambda/`. `lambda` is
+   a reserved word and cannot be a Python package name. The adapter sits at the
+   bundle root instead, which is also the more faithful shape — the Lambda
+   runtime puts the bundle root on `sys.path`, so `import core` resolves in the
+   tests exactly the way it will resolve in production.
 3. **`platform/gateway/audit.schema.json`** — a committed contract, validated in
    `tests/test_contracts.py` alongside the other three. It must carry every field
    `evals/adversarial.py` already reads: `guardrail_blocked`, `policy_denied`,
