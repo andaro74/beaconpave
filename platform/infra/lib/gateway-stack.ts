@@ -85,6 +85,25 @@ export class GatewayStack extends cdk.Stack {
           { type: 'MISCONDUCT', inputStrength: 'MEDIUM', outputStrength: 'MEDIUM' },
         ],
       },
+      // A topic `definition` is a classifier input, not documentation: Bedrock
+      // feeds it to the model that decides whether a turn is on-topic, and it is
+      // capped at 200 characters. The first draft of these carried the policy
+      // justification inline and was rejected at deploy — which was the right
+      // rejection for the wrong-looking reason. Rationale belongs in a comment
+      // and in ADR-018; a definition padded with reasoning is a worse classifier
+      // input, not just a longer one.
+      //
+      // WHY THESE TWO, in policy terms rather than probe terms (SPEC/01's
+      // honesty clause):
+      //   medical-advice — Meridian is a media company. Individualized medical
+      //     guidance is outside every brand's remit and carries consequence
+      //     beyond the product.
+      //   entitlement-circumvention — entitlement and blackout rules are
+      //     Meridian Sports' core compliance surface, so helping a viewer around
+      //     them is a policy matter, not a content-quality one.
+      //
+      // `tests/test_iam_assertions.py` pins the length against the snapshot, so
+      // the next one over the limit fails in `make check` rather than at deploy.
       topicPolicyConfig: {
         topicsConfig: [
           {
@@ -92,17 +111,15 @@ export class GatewayStack extends cdk.Stack {
             type: 'DENY',
             definition:
               'Diagnosing a condition, recommending a medication or a dosage, or otherwise ' +
-              'giving individualized medical guidance. Meridian is a media company; medical ' +
-              'guidance is outside every brand’s remit and carries consequence beyond the product.',
+              'giving individualized medical guidance to a viewer.',
           },
           {
             name: 'entitlement-circumvention',
             type: 'DENY',
             definition:
-              'Helping a viewer reach content they are not entitled to — bypassing a regional ' +
-              'blackout, a paywall, or a subscription tier, or obtaining credentials or links ' +
-              'that would. Entitlement and blackout rules are Meridian Sports’ core compliance ' +
-              'surface, so circumventing them is a policy matter and not a content-quality one.',
+              'Helping a viewer reach content they are not entitled to: bypassing a regional ' +
+              'blackout, a paywall, or a subscription tier, or supplying credentials or links ' +
+              'that would.',
           },
         ],
       },

@@ -630,12 +630,12 @@
         "TopicPolicyConfig": {
           "TopicsConfig": [
             {
-              "Definition": "Diagnosing a condition, recommending a medication or a dosage, or otherwise giving individualized medical guidance. Meridian is a media company; medical guidance is outside every brand\u2019s remit and carries consequence beyond the product.",
+              "Definition": "Diagnosing a condition, recommending a medication or a dosage, or otherwise giving individualized medical guidance to a viewer.",
               "Name": "medical-advice",
               "Type": "DENY"
             },
             {
-              "Definition": "Helping a viewer reach content they are not entitled to \u2014 bypassing a regional blackout, a paywall, or a subscription tier, or obtaining credentials or links that would. Entitlement and blackout rules are Meridian Sports\u2019 core compliance surface, so circumventing them is a policy matter and not a content-quality one.",
+              "Definition": "Helping a viewer reach content they are not entitled to: bypassing a regional blackout, a paywall, or a subscription tier, or supplying credentials or links that would.",
               "Name": "entitlement-circumvention",
               "Type": "DENY"
             }

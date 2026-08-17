@@ -203,6 +203,47 @@ def test_the_gateway_is_not_configured_against_a_draft_guardrail():
         )
 
 
+#: Bedrock's cap on a topic definition. Not a style preference — the service
+#: rejects a longer one with a 400 at deploy.
+MAX_TOPIC_DEFINITION = 200
+
+
+def test_guardrail_topic_definitions_fit_the_service_limit():
+    """Caught the hard way: the first draft of these definitions carried the
+    policy justification inline, ran to 235 and 310 characters, and CloudFormation
+    rejected the stack.
+
+    The failure was correct and arrived at the wrong end of the pipeline — the
+    same argument `pave/verdict.py` makes about validating a verdict before
+    writing it. A synth-time check costs nothing and turns a ten-minute deploy
+    round trip into a test failure with the offending topic named.
+
+    Worth keeping for a second reason: a definition is a *classifier input*.
+    Bedrock hands it to the model that decides whether a turn is on-topic, so
+    padding it with rationale makes it a worse discriminator as well as a longer
+    one. The limit is a nudge toward the right content, not just less of it."""
+    template = load(GATEWAY_SNAPSHOT)
+    guardrails = [
+        r for r in template["Resources"].values() if r.get("Type") == "AWS::Bedrock::Guardrail"
+    ]
+    assert guardrails, "no guardrail in the stack"
+
+    topics = [
+        topic
+        for guard in guardrails
+        for topic in guard["Properties"].get("TopicPolicyConfig", {}).get("TopicsConfig", [])
+    ]
+    assert topics, "the guardrail declares no denied topics — this check would prove nothing"
+
+    for topic in topics:
+        length = len(topic["Definition"])
+        assert length <= MAX_TOPIC_DEFINITION, (
+            f"topic {topic['Name']!r} definition is {length} chars, over Bedrock's "
+            f"{MAX_TOPIC_DEFINITION}. Move the rationale to a comment and ADR-018 — the "
+            "definition is what the classifier reads."
+        )
+
+
 def test_a_published_guardrail_version_exists():
     template = load(GATEWAY_SNAPSHOT)
     kinds = {r.get("Type") for r in template["Resources"].values()}

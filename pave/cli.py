@@ -10,7 +10,7 @@ that implements them, so the repo stays runnable and self-documenting.
   pave evals run|dryrun <service>                     run/dry-run the eval harness
   pave adversarial run <service>                      run the L5 probe suite
   pave rules validate                                 validate the rules registry (G7)
-  pave infra snapshot [--check]                       record / verify the synth snapshot (G1)
+  pave infra snapshot [--check] [--from <dir>]        record / verify the synth snapshot (G1)
   pave gate comment|decide --verdicts ...             post score-diff / fail-closed
   pave drill --event <e> --tier <t>                   game-day readiness drill
   pave selfheal <service>                             classify red suite, propose repair
@@ -244,6 +244,11 @@ def infra_snapshot(argv):
 
     check = "--check" in argv
     out = _flag_values(argv, "--out")
+    # `--from` because the CDK CLI takes an exclusive lock on its output
+    # directory: a `cdk deploy` in another terminal makes `cdk synth` refuse, and
+    # recording a snapshot should not require waiting on an unrelated deploy.
+    source = _flag_values(argv, "--from")
+    cdk_out = pathlib.Path(source[0]) if source else CDK_OUT
     started = time.monotonic()
 
     def emit(state):
@@ -259,10 +264,10 @@ def infra_snapshot(argv):
             ))
             print(f"wrote verdict: {out[0]}")
 
-    templates = sorted(CDK_OUT.glob("*.template.json"))
+    templates = sorted(cdk_out.glob("*.template.json"))
     if not templates:
         emit("INFRA")
-        _die(f"no synthesized templates in {CDK_OUT} — run `cdk synth` first", gate_mod.EXIT_CONTRACT)
+        _die(f"no synthesized templates in {cdk_out} — run `cdk synth` first", gate_mod.EXIT_CONTRACT)
 
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
     drifted = []
