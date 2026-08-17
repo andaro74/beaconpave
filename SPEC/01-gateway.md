@@ -266,9 +266,28 @@ not against a guardrail we would like to have.
       from the lake**; score recorded
 - [ ] 25 goldens run through the gateway; score recorded, footnoted against
       ADR-016 against the 18/25 comparator
-- [ ] m00b answers re-scored under the corrected instrument and recorded as a
+- [x] ~~m00b answers re-scored under the corrected instrument and recorded as a
       **superseding** history entry (`supersedes` set) — two-key path, disposition
-      and rationale in the PR body
+      and rationale in the PR body~~
+
+      *Struck during the build: this item was wrong, and the spec keeps it
+      visible rather than quietly dropping it.* Three reasons, any one sufficient.
+      **It reversed a decision already made.** ADR-016 and the commit closing M00b
+      both say outright that 18/25 is deliberately not recorded anywhere, because
+      15/25 is what was measured on the day. **`supersedes` means "corrects a
+      wrong entry", and 15/25 is not wrong** — the instrument moved underneath a
+      correct measurement, and marking it corrected would mislead every reader
+      later trying to work out which number was real. **The number needs no
+      recording because it is derivable**: history exists for figures a model
+      produced and nobody can regenerate, and the model's output was committed as
+      `milestones/M00b/goldens-run.json`, so everything downstream is a pure
+      function.
+
+      Replaced by `tests/test_instrument_stability.py`, which re-derives 18/25
+      from the committed answers on every run. That is strictly stronger than a
+      recorded row — a reader watches it happen instead of trusting that it once
+      did — and it converts ADR-016's closing rule from a discipline somebody
+      remembers into a check that fails when the judge lands at M03.
 - [ ] Any unearned pass documented with a drafted tightening
 - [ ] ADR-017 (synth-snapshot assertions), ADR-018 (the guardrail as a pinned
       instrument), and any fallback ADR owed by pre-flight item 3
