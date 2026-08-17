@@ -5,10 +5,16 @@ prompt, the whole catalog in context, one direct model call. It exists to be
 measured, not to be good, and every later milestone's claim of improvement is a
 delta against the numbers it produces.
 
-**This directory holds the only direct model call in the repo (ADR-011).** The
-IAM allowlist entry that permits it is deleted at M01, and that deletion is the
-demo artifact for claim 4 — before, one path could reach the model directly;
-after, none can, and the attempt is logged. Do not copy this shape anywhere else.
+**This directory held the only direct model call in the repo, and no longer has
+permission to make one.** ADR-011 quarantined it as a time-boxed G1 exception and
+**expired at M01**: the gateway is now the only path, `tests/test_iam_assertions.py`
+asserts that no service role holds a model-invoke permission, and a role that
+tries is denied and logged. Do not copy this shape anywhere else.
+
+The script still runs for the operator, under the operator's own IAM user, and
+that is deliberate — the `m00b` numbers have to stay reproducible from the commit
+they were recorded against. What changed is that no *deployed* principal can do
+what this file does. `platform/probe/` is the deployed proof of it.
 
 ## What is missing on purpose
 

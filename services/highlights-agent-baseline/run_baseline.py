@@ -3,9 +3,13 @@ The ungoverned control (M00b). The agent a competent engineer builds in an
 afternoon with no platform: a prompt, the whole catalog pasted into context, and
 a direct model call.
 
-THIS IS THE ONLY PLACE IN THE REPO PERMITTED TO CALL A MODEL DIRECTLY (ADR-011).
-The allowlist entry that permits it is deleted at M01, and that deletion is the
-demo artifact for claim 4. Do not copy this file's shape into anything else.
+THIS WAS THE ONLY PLACE IN THE REPO PERMITTED TO CALL A MODEL DIRECTLY. ADR-011
+quarantined it as a time-boxed G1 exception and EXPIRED AT M01: the gateway is
+now the only path, and no deployed role may do what this file does. Do not copy
+this file's shape into anything else.
+
+It still runs for the operator, under the operator's own IAM user, because the
+m00b numbers must stay reproducible from the commit they were recorded against.
 
 What is deliberately missing, because the control's value is that it lacks them:
 no gateway, no guardrails, no classification routing, no tool registry, no audit

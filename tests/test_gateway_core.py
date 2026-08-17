@@ -27,7 +27,11 @@ def a_record(**overrides):
     base = dict(
         request_id="req-1",
         ts=TS,
-        principal="arn:aws:iam::<ACCOUNT_ID>:role/highlights-agent",
+        # Deliberately not an ARN. A committed fixture may not carry an
+        # account-qualified one, and `<ACCOUNT_ID>` inside an ARN is rejected too
+        # — see tests/test_no_account_identifiers.py, which refuses the redaction
+        # habit as well as the leak it hides.
+        principal="role/highlights-agent",
         service="highlights-agent",
         classification="internal",
         decision="allowed",

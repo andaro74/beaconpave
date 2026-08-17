@@ -18,7 +18,7 @@
     },
     "principal": {
       "type": "string",
-      "description": "The calling role. Account-qualified ARNs are redacted to <ACCOUNT_ID> in any committed fixture — this repo is public and tests/test_no_account_identifiers.py enforces it."
+      "description": "The calling role. At runtime this is the invoked function's ARN. Committed fixtures use an account-less form instead: this repo is public, and tests/test_no_account_identifiers.py rejects an account-qualified ARN even when the account field is redacted — the redaction habit is what lets a real one through later."
     },
     "service": { "type": "string", "description": "e.g. highlights-agent, direct-call-probe" },
     "classification": {
