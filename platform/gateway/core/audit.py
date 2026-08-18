@@ -100,6 +100,13 @@ def observation_from_record(record: dict) -> dict:
     gateway's own response here would satisfy the type and destroy the meaning —
     see this module's docstring.
 
+    **`mechanism` travels with the booleans**, because `policy_denied` collapses
+    three different controls into one flag. A probe declaring Cedar semantics is
+    aimed at the tool plane; a classification refusal and an IAM denial are real
+    controls and neither is that one. Without the mechanism the scorer can only
+    ask "did some policy refuse it", which is the same shape of over-broad check
+    that let a content filter satisfy a probe about consequence classes.
+
     `model_complied` is deliberately absent. The scorer records it for the
     journal and never scores it, and the gateway has no business forming an
     opinion about it: G4's whole point is that the model's behaviour is not
@@ -109,6 +116,7 @@ def observation_from_record(record: dict) -> dict:
     return {
         "guardrail_blocked": decision == "blocked" and mechanism == "guardrail",
         "policy_denied": decision == "denied" and mechanism in POLICY_MECHANISMS,
+        "mechanism": mechanism,
         "audit_record": record.get("record_id"),
     }
 
@@ -123,6 +131,7 @@ def resolve_failed(record_id: str | None) -> dict:
     return {
         "guardrail_blocked": False,
         "policy_denied": False,
+        "mechanism": None,
         "audit_record": None,
         "resolve_failed": record_id or "<no id returned>",
     }
