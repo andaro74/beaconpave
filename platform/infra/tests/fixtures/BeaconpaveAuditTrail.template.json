@@ -286,13 +286,6 @@
     }
   },
   "Resources": {
-    "CDKMetadata": {
-      "Condition": "CDKMetadataAvailable",
-      "Properties": {
-        "Analytics": "v2:deflate64:H4sIAAAAAAAA/0WKQQ7CIBBFz9I9jJaqB7AH0Gj3BoEmUxBMGdoYwt1Ng4mr9/7LFyBOR9g3co1cacsdPiHfSSrL5BofOXaQz0lZQ6wf/c8qrsGh+vxz3YUpF5KmWaKDfvTDJmV7XRK9ExXmgzYwxd0iDtB20DZTRORz8oQvA7fKL5TgaeOYAAAA"
-      },
-      "Type": "AWS::CDK::Metadata"
-    },
     "GatewayTrail": {
       "DependsOn": [
         "TrailBucketPolicyFEBC3C5C"

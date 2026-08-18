@@ -280,7 +280,30 @@ def infra_snapshot(argv):
             if not committed.is_file():
                 drifted.append(f"{template_path.name}: no committed snapshot")
             elif committed.read_text(encoding="utf-8") != rendered:
-                drifted.append(f"{template_path.name}: committed snapshot is stale")
+                # Show WHAT drifted, not merely that something did. A drift
+                # report you cannot read is one you re-record without reading,
+                # which is the exact habit ADR-017 says lets an IAM grant in.
+                # The first CI run of this job reported "stale" against a
+                # snapshot that was byte-identical locally, and the message gave
+                # nobody a way to tell an environment difference from a real one.
+                import difflib
+                diff = list(difflib.unified_diff(
+                    committed.read_text(encoding="utf-8").splitlines(),
+                    rendered.splitlines(),
+                    fromfile=f"committed/{template_path.name}",
+                    tofile=f"synthesized/{template_path.name}",
+                    lineterm="",
+                    n=1,
+                ))
+                shown = diff[:60]
+                elided = len(diff) - len(shown)
+                detail = ('\n' + '      ').join(shown)
+                if elided > 0:
+                    detail += '\n' + f'      ... {elided} more diff line(s)'
+                drifted.append(
+                    f'{template_path.name}: committed snapshot is stale'
+                    + '\n' + '      ' + detail
+                )
         else:
             committed.write_text(rendered, encoding="utf-8")
             print(f"recorded {committed.relative_to(ROOT)}")

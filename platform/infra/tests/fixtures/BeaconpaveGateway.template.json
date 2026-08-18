@@ -379,13 +379,6 @@
       },
       "Type": "AWS::S3::BucketPolicy"
     },
-    "CDKMetadata": {
-      "Condition": "CDKMetadataAvailable",
-      "Properties": {
-        "Analytics": "v2:deflate64:H4sIAAAAAAAA/02NwYoCMRBEv8V7T7vO6N5XwT2uKHiVniRKO5lE0okiIf++jKPo6b0qCqrG+nuBXxO6SaV0V1luMe8iqQ7oJocsDeZlUp2JsDq6p43YeMvq/q6feQxLElOgNTp41WFeHd1voqADsYXPsDdB2LsClvpWE+Z1ciqyd8Pq5QWYesxbb81QP/h+H62ANAcSMVHwZ0CBB3aRTuxOw/AvxUuKBZzXBs8yvdZznDU4m5yFuQrJRe4Nbkf+A8TW5zQZAQAA"
-      },
-      "Type": "AWS::CDK::Metadata"
-    },
     "DirectCallProbeFn1E627152": {
       "DependsOn": [
         "HighlightsAgentRoleDefaultPolicy79D05276",

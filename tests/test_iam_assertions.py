@@ -252,3 +252,34 @@ def test_a_published_guardrail_version_exists():
         "the guardrail has no published version resource — the gateway would have to run "
         "against DRAFT (ADR-018)"
     )
+
+
+# --- the snapshot must reproduce on a machine that did not record it ---------
+
+def test_normalize_drops_cdk_telemetry():
+    """`AWS::CDK::Metadata` carries a deflate-compressed analytics blob. It moves
+    with the construct-library version and is not guaranteed byte-stable across
+    zlib builds, so Windows and Linux can disagree on it for identical input.
+
+    The first CI run of the freshness job failed on exactly this: it reported
+    drift against a snapshot that was byte-identical when re-synthesized locally.
+    A snapshot that only reproduces on the machine that recorded it is not a
+    snapshot, and the freshness job that depends on it is not a check."""
+    template = {"Resources": {
+        "CDKMetadata": {"Type": "AWS::CDK::Metadata", "Properties": {"Analytics": "v2:deflate64:xxx"}},
+        "GatewayFnServiceRole": {"Type": "AWS::IAM::Role", "Properties": {}},
+    }}
+    kept = infra.normalize(template)["Resources"]
+    assert "CDKMetadata" not in kept
+    assert "GatewayFnServiceRole" in kept, "normalization dropped a real resource"
+
+
+def test_normalize_keeps_everything_the_assertion_reads():
+    """The counterweight. Dropping telemetry is safe; dropping a policy would make
+    every assertion above vacuous while leaving them green."""
+    template = infra.normalize(load(GATEWAY_SNAPSHOT))
+    kinds = {r["Type"] for r in template["Resources"].values()}
+    for required in ("AWS::IAM::Role", "AWS::IAM::Policy", "AWS::Bedrock::Guardrail"):
+        assert required in kinds, f"normalization removed {required}"
+    assert infra.model_invoke_grants(template), "no grant survives normalization to assert against"
+    assert infra.model_invoke_denials(template), "no Deny survives normalization to assert against"

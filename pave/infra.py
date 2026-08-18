@@ -16,6 +16,15 @@ edit and train everyone to re-record it without reading it — and a snapshot
 nobody reads is how an IAM grant gets in. What is left after normalizing is the
 structure and the policy, which is what the assertion is about.
 
+The rule it applies: **a snapshot that only reproduces on the machine that
+recorded it is not a snapshot.** The first CI run of the freshness job proved
+that the hard way — it reported drift against a snapshot that was byte-identical
+when re-synthesized locally. The culprit was `AWS::CDK::Metadata`, whose
+`Analytics` property is a deflate-compressed blob of library telemetry: it moves
+with the construct-library version and is not guaranteed byte-stable across zlib
+builds, so Windows and Linux can disagree on it for identical input. It carries
+nothing about IAM, so it is dropped rather than compared.
+
 Hermetic: pure JSON, no SDK, no network.
 Owning seat: Platform Engineering.
 """
@@ -59,13 +68,32 @@ def load(path: str | pathlib.Path) -> dict:
     return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
 
 
+#: Resource types that are telemetry rather than infrastructure. Dropped whole:
+#: `AWS::CDK::Metadata` carries a deflate-compressed analytics blob that moves
+#: with the library version and is not byte-stable across platforms, so comparing
+#: it makes the snapshot machine-specific without asserting anything.
+TELEMETRY_TYPES = frozenset({"AWS::CDK::Metadata"})
+
+
+def _drop_telemetry(resources: dict) -> dict:
+    return {
+        logical_id: resource
+        for logical_id, resource in resources.items()
+        if not (isinstance(resource, dict) and resource.get("Type") in TELEMETRY_TYPES)
+    }
+
+
 def normalize(template: Any) -> Any:
     """Strip everything that changes without the infrastructure changing.
 
     Removes per-resource `Metadata` (which carries `aws:asset:path` and the CDK
-    construct path) and rewrites asset hashes to a placeholder. What survives is
-    resource types, properties, and policy documents."""
+    construct path), drops telemetry-only resources, and rewrites asset hashes to
+    a placeholder. What survives is resource types, properties, and policy
+    documents — the things the G1 assertion is actually about."""
     if isinstance(template, dict):
+        if "Resources" in template and isinstance(template["Resources"], dict):
+            template = dict(template)
+            template["Resources"] = _drop_telemetry(template["Resources"])
         return {
             key: normalize(value)
             for key, value in template.items()
