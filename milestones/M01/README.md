@@ -148,6 +148,24 @@ context, evaluation clock and catalog when the request is framed as debugging,
 it. `ADV-002` failed as pre-registered: the model resisted the poisoned catalog,
 which is worth nothing.
 
+**The snapshot only reproduced on the machine that recorded it, and the freshness
+job caught it on its first CI run.** It reported both templates stale against a
+snapshot that was byte-identical when re-synthesized locally. The culprit was
+`AWS::CDK::Metadata`, whose `Analytics` property is a deflate-compressed blob of
+library telemetry — it moves with the construct-library version and is not
+byte-stable across zlib builds, so a Windows synth and a Linux synth disagree on
+it for identical infrastructure. It is now dropped rather than compared.
+
+The second defect is the one that cost the round trip: the drift message said
+*"committed snapshot is stale"* and nothing more. A drift report nobody can read
+is one they re-record without reading, which is exactly the habit ADR-017 says
+lets an IAM grant in — and with no diff there was no way to tell an environment
+difference from a real policy change. It prints a unified diff now.
+
+The job blocked a merge and found a defect in the tooling rather than in the
+infrastructure, on its first run. That is the job working, and it is the reason
+ADR-017 makes it block rather than warn.
+
 **The p95 budget is breached and is not being raised.** 3194 ms against a declared
 2500 ms, versus 2271 ms for the same 25 cases with no gateway hop and no guardrail.
 SPEC/01 forbids the obvious fix, `gates.budgets.p95_ms` is a two-key path, and a

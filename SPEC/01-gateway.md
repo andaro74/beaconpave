@@ -258,8 +258,9 @@ not against a guardrail we would like to have.
       no CI at all and is auto-closed when its base is deleted)*
       holds `bedrock:InvokeModel` — proven by an **`exhibit` PR** that adds the
       permission and is blocked, closed unmerged (M00a's precedent)
-- [ ] Synth-snapshot freshness job in CI; drift blocks — *wired and green
-      locally; its first CI run is this milestone's own PR*
+- [x] Synth-snapshot freshness job in CI; drift blocks — *proven on its first
+      CI run (PR #12), which blocked the merge and caught a real defect in the
+      normalizer rather than in the infrastructure*
 - [x] ADR-011 marked **Expired at M01**; the four active grant sites rewritten;
       the reappearance test passes
 - [x] Direct-call probe deployed; a real denial recorded, with a witness the
