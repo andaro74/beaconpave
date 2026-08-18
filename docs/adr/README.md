@@ -22,15 +22,18 @@ is worth less than one that shows where it was corrected.
 | ADR-008 | Public HLS test stream + fictional catalog | Dark-channel encoder path + real catalog service |
 | ADR-009 | ~10 probes, ~25 goldens | Security-owned corpus + per-brand eval registries |
 | ADR-010 | Single CloudWatch dashboard | Dashboards-as-code per surface + exec rollup |
-| ADR-011 | Baseline quarantined as the only direct-model path | Deleted at M01 — visible in that diff |
+| ADR-011 | Baseline quarantined as the only direct-model path *(**expired at M01**; the entry it promised to delete had never been written as code, and that is recorded in the ADR rather than staged)* | Time-boxed exception via `pave exception request --ttl`; the interface already matches |
+| ADR-017 | IAM assertions run against a committed synth snapshot, with a CI freshness job | Synth-in-CI on every PR + an org SCP that makes the assertion redundant |
+| ADR-018 | The guardrail is defined in CDK and pinned to a published version | Same pin per environment, promoted through stages with the stack |
 | ADR-012 | Control scored deterministically; judge arrives at M03 *(amended in place 2026-08-15: M00b builds the runner)* | Sequencing, not a cut — the discipline is the same at scale |
 | ADR-013 | G9 enforced as a checked attestation, not a review | Teams + code-owner review; same path list, check retained as a filter |
 | ADR-014 | Budgets denominated in tokens; dollars rendered at report time | Same ceilings per tenant; rate table refreshed on the provider's price feed |
 | ADR-015 | Regional (`us.`) inference profile, at a recorded 10% premium | Per-workload pin driven by each manifest's `classification` |
 | ADR-016 | `entitlement_source` advisory until M06; `p95_ms` moved to suite level | Per-case latency sampled k times; SLO burn-rate alerting |
 
-Written out in full: **001, 003, 004, 007, 009, 011, 012, 013, 014, 015, 016**. The rest are
-reserved rows you fill as you build each component — the table itself is the scaling story.
+Written out in full: **001, 003, 004, 007, 009, 011, 012, 013, 014, 015, 016, 017, 018**.
+The rest are reserved rows you fill as you build each component — the table itself is the
+scaling story.
 
 003, 004, and 007 were written at M00a because the repo already cited them:
 `pave.manifest.yaml` names ADR-003 and ADR-007, and the repository map names

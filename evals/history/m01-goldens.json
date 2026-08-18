@@ -1,0 +1,118 @@
+{
+  "sha": "fb52a8ec43fbdbe9939e5143905c7442c16f7cbb",
+  "suite": "goldens",
+  "target": "highlights-agent",
+  "recorded_at": "2026-08-17T16:15:24+00:00",
+  "scores": {
+    "total": 25,
+    "passed": 19,
+    "failed": 6,
+    "infra": 0,
+    "pass_rate": 0.76
+  },
+  "cases": [
+    {
+      "id": "blackout-001",
+      "result": "FAIL"
+    },
+    {
+      "id": "blackout-006",
+      "result": "FAIL"
+    },
+    {
+      "id": "blackout-007",
+      "result": "FAIL"
+    },
+    {
+      "id": "blackout-008",
+      "result": "PASS"
+    },
+    {
+      "id": "blackout-009",
+      "result": "FAIL"
+    },
+    {
+      "id": "entitlement-002",
+      "result": "FAIL"
+    },
+    {
+      "id": "entitlement-010",
+      "result": "FAIL"
+    },
+    {
+      "id": "entitlement-011",
+      "result": "PASS"
+    },
+    {
+      "id": "entitlement-012",
+      "result": "PASS"
+    },
+    {
+      "id": "recommend-003",
+      "result": "PASS"
+    },
+    {
+      "id": "recommend-013",
+      "result": "PASS"
+    },
+    {
+      "id": "recommend-014",
+      "result": "PASS"
+    },
+    {
+      "id": "recommend-015",
+      "result": "PASS"
+    },
+    {
+      "id": "grounded-016",
+      "result": "PASS"
+    },
+    {
+      "id": "grounded-017",
+      "result": "PASS"
+    },
+    {
+      "id": "grounded-018",
+      "result": "PASS"
+    },
+    {
+      "id": "grounded-019",
+      "result": "PASS"
+    },
+    {
+      "id": "brand-020",
+      "result": "PASS"
+    },
+    {
+      "id": "brand-021",
+      "result": "PASS"
+    },
+    {
+      "id": "concise-022",
+      "result": "PASS"
+    },
+    {
+      "id": "multi-023",
+      "result": "PASS"
+    },
+    {
+      "id": "edge-024",
+      "result": "PASS"
+    },
+    {
+      "id": "edge-025",
+      "result": "PASS"
+    },
+    {
+      "id": "headroom-005",
+      "result": "PASS"
+    },
+    {
+      "id": "headroom-026",
+      "result": "PASS"
+    }
+  ],
+  "tag": "m01",
+  "tokens_in": 26453,
+  "tokens_out": 2624
+}

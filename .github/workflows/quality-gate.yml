@@ -13,6 +13,7 @@ name: quality-gate
 # reports PASS for an unimplemented suite is indistinguishable from a real pass,
 # and would quietly make claims 2 and 5 false.
 #   contract (L1) — live since M00a
+#   infra (L1)    — live since M01: the synth snapshot the G1 assertions read
 #   evals (L2)    — M03
 #   adversarial (L5) — M04
 
@@ -43,6 +44,22 @@ jobs:
         continue-on-error: true
         run: python -m pave.cli check --out verdict-contract.json
 
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+
+      - name: L1 synth freshness (ADR-017)
+        # The G1 assertions run hermetically against a committed snapshot, which
+        # is only as true as the snapshot is current. This re-synthesizes and
+        # diffs; drift emits a FAIL verdict and the gate blocks on it.
+        #
+        # No AWS credentials: the app is synthesized environment-agnostic, so the
+        # account and region stay pseudo-parameters. That is also why the
+        # committed snapshot carries no account identifier.
+        continue-on-error: true
+        run: |
+          cd platform/infra && npm ci && npx cdk synth --quiet && cd ../..
+          python -m pave.cli infra snapshot --check --out verdict-infra.json
+
       # - name: L2 evals vs baseline                      # turns on at M03
       #   continue-on-error: true
       #   run: python -m pave.cli evals run services/highlights-agent --out verdict-evals.json
@@ -53,11 +70,11 @@ jobs:
 
       - name: Post score-diff comment (the gate teaches)
         if: always()
-        run: python -m pave.cli gate comment --verdicts verdict-contract.json
+        run: python -m pave.cli gate comment --verdicts verdict-contract.json verdict-infra.json
 
       - name: Fail closed
         # The decision. Exit 1 = quality regression (pages the service team);
         # exit 2 = the gate could not establish that the code is good (missing,
         # unparseable, or INFRA verdict — pages the platform). Both block.
         if: always()
-        run: python -m pave.cli gate decide --verdicts verdict-contract.json
+        run: python -m pave.cli gate decide --verdicts verdict-contract.json verdict-infra.json

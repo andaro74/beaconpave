@@ -2,7 +2,7 @@
 # `make check` is hermetic (G8): unit + contract + rules validation.
 # No AWS account, no network, no excuses.
 
-.PHONY: check bootstrap core evals adversarial drill up down clean
+.PHONY: check bootstrap core evals adversarial drill up down clean snapshot snapshot-check
 
 # One implementation, in `pave check`. The Makefile used to inline the steps and
 # swallow pytest's exit code with `|| echo`, which reported green over zero tests
@@ -17,6 +17,18 @@ bootstrap:
 
 core:
 	cd platform/infra && cdk deploy --all
+
+# The G1 assertions read a committed snapshot so `make check` stays hermetic
+# (ADR-017). Re-record it whenever the CDK app changes; `snapshot-check` is what
+# CI runs, and it blocks on drift — a stale snapshot asserts against
+# infrastructure that no longer exists.
+snapshot:
+	cd platform/infra && npx cdk synth --quiet
+	python -m pave.cli infra snapshot
+
+snapshot-check:
+	cd platform/infra && npx cdk synth --quiet
+	python -m pave.cli infra snapshot --check
 
 evals:
 	python -m evals.run_evals --answers $(ANSWERS) --record

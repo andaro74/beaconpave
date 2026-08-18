@@ -37,12 +37,23 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SELF = pathlib.Path(__file__).resolve()
 
-#: The hermetic surface: every module `pave check` imports or collects. M00b's
-#: control lands in `services/highlights-agent-baseline/` and is deliberately NOT
-#: here — that path is allowed to reach Bedrock (ADR-011 quarantines it, and G1's
-#: allowlist entry is deleted at M01). What must stay true is that nothing in the
-#: hermetic suite *reaches* it; the sys.modules check below is what enforces that.
-HERMETIC_ROOTS = (ROOT / "pave", ROOT / "tests", ROOT / "evals")
+#: The hermetic surface: every module `pave check` imports or collects. Two
+#: directories are deliberately NOT here, for the same reason and with the same
+#: consequence — `services/highlights-agent-baseline/` (M00b's control) and
+#: `platform/gateway/handler.py` (M01's boto3 adapter) both reach Bedrock. What
+#: must stay true is that nothing in the hermetic suite *reaches* them; the
+#: sys.modules check below is what enforces that.
+#:
+#: M01 adds `platform/gateway/core/` rather than excluding it. The gateway's
+#: decisions are what G1, G4, and G5 rest on, so they are exactly the code that
+#: has to be provable offline on a fresh clone — the split between `core/` and
+#: `handler.py` exists so that growing this list was possible at all.
+HERMETIC_ROOTS = (
+    ROOT / "pave",
+    ROOT / "tests",
+    ROOT / "evals",
+    ROOT / "platform" / "gateway" / "core",
+)
 
 #: Importing any of these means the module can talk to AWS.
 AWS_SDK_ROOTS = frozenset({"boto3", "botocore", "aiobotocore", "aioboto3", "s3transfer", "awscli"})

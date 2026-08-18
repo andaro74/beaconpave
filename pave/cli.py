@@ -10,12 +10,14 @@ that implements them, so the repo stays runnable and self-documenting.
   pave evals run|dryrun <service>                     run/dry-run the eval harness
   pave adversarial run <service>                      run the L5 probe suite
   pave rules validate                                 validate the rules registry (G7)
+  pave infra snapshot [--check] [--from <dir>]        record / verify the synth snapshot (G1)
   pave gate comment|decide --verdicts ...             post score-diff / fail-closed
   pave drill --event <e> --tier <t>                   game-day readiness drill
   pave selfheal <service>                             classify red suite, propose repair
   pave exception request --rule <id> --ttl <d>        open a time-boxed exception
 """
 import glob
+import json
 import os
 import pathlib
 import subprocess
@@ -216,6 +218,111 @@ def check(argv=()):
     print("check: PASS (hermetic — no cloud, no network)")
 
 
+#: Where `cdk synth` writes, and where the committed snapshot lives.
+CDK_OUT = ROOT / "platform" / "infra" / "cdk.out"
+SNAPSHOT_DIR = ROOT / "platform" / "infra" / "tests" / "fixtures"
+
+
+def infra_snapshot(argv):
+    """Record the normalized synth snapshot, or verify the committed one (ADR-017).
+
+    `--check` is the CI freshness job: it re-reads `cdk.out` after a synth and
+    exits non-zero if the committed snapshot no longer matches. That job is the
+    only thing standing between a committed template and a fiction, so it blocks
+    rather than warns — the hermetic IAM assertions are only as true as the
+    snapshot they read.
+
+    With `--out`, emits a verdict record so the freshness check reaches the gate
+    the same way every other suite does. It is not a bespoke CI step that fails
+    the job on its own: `gate decide` stays the single decider (G2), and a
+    missing `verdict-infra.json` blocks by absence exactly like any other.
+
+    An absent `cdk.out` is INFRA, not FAIL. The harness could not establish
+    anything — which pages the platform — rather than the infrastructure having
+    regressed, which pages the team. G2 keeps those two distinguishable."""
+    from pave import infra
+
+    check = "--check" in argv
+    out = _flag_values(argv, "--out")
+    # `--from` because the CDK CLI takes an exclusive lock on its output
+    # directory: a `cdk deploy` in another terminal makes `cdk synth` refuse, and
+    # recording a snapshot should not require waiting on an unrelated deploy.
+    source = _flag_values(argv, "--from")
+    cdk_out = pathlib.Path(source[0]) if source else CDK_OUT
+    started = time.monotonic()
+
+    def emit(state):
+        if out:
+            verdict_mod.write(out[0], verdict_mod.build(
+                service="beaconpave",
+                surface="agent",
+                suite="infra",
+                layer="L1",
+                verdict=state,
+                fail_closed=True,
+                duration_s=round(time.monotonic() - started, 3),
+            ))
+            print(f"wrote verdict: {out[0]}")
+
+    templates = sorted(cdk_out.glob("*.template.json"))
+    if not templates:
+        emit("INFRA")
+        _die(f"no synthesized templates in {cdk_out} — run `cdk synth` first", gate_mod.EXIT_CONTRACT)
+
+    SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+    drifted = []
+    for template_path in templates:
+        normalized = infra.normalize(infra.load(template_path))
+        rendered = json.dumps(normalized, indent=2, sort_keys=True) + "\n"
+        committed = SNAPSHOT_DIR / template_path.name
+
+        if check:
+            if not committed.is_file():
+                drifted.append(f"{template_path.name}: no committed snapshot")
+            elif committed.read_text(encoding="utf-8") != rendered:
+                # Show WHAT drifted, not merely that something did. A drift
+                # report you cannot read is one you re-record without reading,
+                # which is the exact habit ADR-017 says lets an IAM grant in.
+                # The first CI run of this job reported "stale" against a
+                # snapshot that was byte-identical locally, and the message gave
+                # nobody a way to tell an environment difference from a real one.
+                import difflib
+                diff = list(difflib.unified_diff(
+                    committed.read_text(encoding="utf-8").splitlines(),
+                    rendered.splitlines(),
+                    fromfile=f"committed/{template_path.name}",
+                    tofile=f"synthesized/{template_path.name}",
+                    lineterm="",
+                    n=1,
+                ))
+                shown = diff[:60]
+                elided = len(diff) - len(shown)
+                detail = ('\n' + '      ').join(shown)
+                if elided > 0:
+                    detail += '\n' + f'      ... {elided} more diff line(s)'
+                drifted.append(
+                    f'{template_path.name}: committed snapshot is stale'
+                    + '\n' + '      ' + detail
+                )
+        else:
+            committed.write_text(rendered, encoding="utf-8")
+            print(f"recorded {committed.relative_to(ROOT)}")
+
+    if not check:
+        return
+
+    emit("FAIL" if drifted else "PASS")
+    if drifted:
+        _die(
+            "synth snapshot is out of date:\n  " + "\n  ".join(drifted)
+            + "\n\nRun `cd platform/infra && npx cdk synth --quiet` then "
+              "`python -m pave.cli infra snapshot`, and commit the result. The hermetic IAM "
+              "assertions (G1) read the committed snapshot — a stale one asserts against "
+              "infrastructure that no longer exists."
+        )
+    print(f"synth snapshot current: {len(templates)} template(s)")
+
+
 def _stub(name, does):
     print(f"[pave {name}] (stub) would: {does}")
     print("  implement in the component referenced in README.md's repository map.")
@@ -254,6 +361,10 @@ def main(argv):
     elif cmd == "exception":
         _stub("exception", "open a time-boxed, dashboard-visible, auto-expiring exception with an "
                            "auto-drafted ADR for the owning seat to approve")
+    elif cmd == "infra" and rest[:1] == ["snapshot"]:
+        infra_snapshot(rest[1:])
+    elif cmd == "infra":
+        _die("infra: expected `snapshot`", gate_mod.EXIT_CONTRACT)
     elif cmd == "check":
         check(rest)
     else:

@@ -36,6 +36,13 @@ class ProbeResult:
     result: str
     reason: str
     model_complied: bool | None = None
+    #: A pass the *system* is not credited with (SPEC/00b's honesty clause). The
+    #: goldens have had this since M00b; the corpus needed it at M01, when probes
+    #: could pass at all for the first time. A mark is a judgement, so it lives in
+    #: a committed file and travels into the history entry — a weakness recorded
+    #: only in a journal is one nobody re-reads next to the number.
+    unearned: bool = False
+    unearned_reason: str | None = None
 
 
 def score_probe(probe: dict, observation: dict | None) -> ProbeResult:
@@ -78,12 +85,18 @@ def tally(results: list[ProbeResult]) -> dict:
     total = len(results)
     passed = sum(1 for r in results if r.result == PASS)
     declined = sum(1 for r in results if r.model_complied is False)
+    unearned = sum(1 for r in results if r.unearned)
     return {
         "total": total,
         "passed": passed,
         "failed": sum(1 for r in results if r.result == FAIL),
         "infra": sum(1 for r in results if r.result == INFRA),
         "pass_rate": round(passed / total, 4) if total else 0.0,
+        # Reported beside `passed`, never subtracted from it. SPEC/00b records a
+        # run as-run and marks what was not earned; silently netting the two
+        # would produce a tidier number that no run actually produced.
+        "unearned": unearned,
+        "earned": passed - unearned,
         # Reported so the journal can say how the control behaved, and pointedly
         # kept out of `passed`. This number is the one a careless reader will
         # mistake for a score.

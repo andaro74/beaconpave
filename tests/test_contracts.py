@@ -12,6 +12,7 @@ Owning seat: Platform Engineering.
 """
 import json
 import pathlib
+import re
 
 import jsonschema
 import pytest
@@ -344,6 +345,93 @@ def test_every_probe_is_blocking_unless_an_adr_downgrades_it():
     that has to explain itself."""
     for probe in load_yaml(PROBES):
         assert probe["severity"] == "blocking", f"{probe['id']} is advisory — needs a Security-seat ADR"
+
+
+# --- ADR-011 expired at M01 ---------------------------------------------------
+
+#: Files that *record* the expired exception rather than granting it. ADR-011 is
+#: the decision itself and SPEC/00b is a closed milestone's spec — both describe a
+#: permission that was real when they were written, and editing them to read as
+#: though it never existed is the direction this repo forbids.
+GRANT_HISTORY = (
+    "docs/adr/ADR-011-baseline-quarantine.md",
+    "SPEC/00b-baseline.md",
+)
+
+#: Present-tense grants. Deliberately verb-anchored: the past-tense forms that
+#: replaced them at M01 ("held the only direct model call", "THIS WAS THE ONLY
+#: PLACE...") are the correct record and must not trip this.
+GRANT_LANGUAGE = (
+    re.compile(r"is permitted to call a model directly", re.I),
+    re.compile(r"is permitted direct model access", re.I),
+    re.compile(r"holds the only direct[- ]model", re.I),
+    re.compile(r"is the only place in the repo permitted", re.I),
+    re.compile(r"allowlist entry that permits", re.I),
+)
+
+
+def test_adr_011_is_marked_expired():
+    """The ADR was written to expire at M01. An ADR that says `Accepted` after the
+    milestone that ended it would leave the exception looking live."""
+    text = (ROOT / "docs" / "adr" / "ADR-011-baseline-quarantine.md").read_text(encoding="utf-8")
+    assert "Expired at M01" in text, "ADR-011 still reads as live; M01 is the milestone that ends it"
+
+
+def test_no_active_file_grants_a_direct_model_path():
+    """ADR-011's epitaph, in prose.
+
+    The mechanical half of this lives in `tests/test_iam_assertions.py`, which
+    pins the allowlist to one entry. This half catches the documentation drifting
+    back: a README that still tells a reader some path may call a model directly
+    is an invitation, whatever the IAM says."""
+    from tests.test_no_account_identifiers import committed_files
+
+    scanned = 0
+    offenders = []
+    for path in committed_files():
+        if path.suffix not in {".md", ".py", ".yaml", ".yml", ".json"}:
+            continue
+        relative = path.relative_to(ROOT).as_posix()
+        if relative in GRANT_HISTORY or relative.startswith("milestones/"):
+            continue
+        if path.resolve() == pathlib.Path(__file__).resolve():
+            continue
+        scanned += 1
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for pattern in GRANT_LANGUAGE:
+            if pattern.search(text):
+                offenders.append(f"{relative}: {pattern.pattern!r}")
+
+    # Same argument as the empty rules registry: a scan that finds nothing to
+    # scan reports success. Committed files only, so `node_modules` is never
+    # walked — and so the scan covers exactly what a reader of the repo sees.
+    assert scanned >= 20, f"only {scanned} file(s) scanned; this epitaph proves nothing"
+    assert not offenders, (
+        "a file grants a direct-model path in the present tense:\n  " + "\n  ".join(offenders)
+        + "\n\nADR-011 expired at M01. If this is a record of what was once true, write it in "
+          "the past tense; if it is a new exception, it needs the Security seat and an ADR."
+    )
+
+
+def test_the_deny_list_and_the_assertion_name_the_same_actions():
+    """A contract between two files in two languages, which is exactly the kind
+    this module exists for.
+
+    `pave/infra.py` asserts that nothing outside the gateway is granted these
+    actions; the CDK stack explicitly denies them on the service role. If the two
+    lists drift, the assertion starts checking for actions the stack never denied
+    — and it would keep passing while doing it."""
+    from pave import infra
+
+    source = (ROOT / "platform" / "infra" / "lib" / "gateway-stack.ts").read_text(encoding="utf-8")
+    block = re.search(r"const MODEL_INVOKE_ACTIONS = \[(.*?)\];", source, re.S)
+    assert block, "MODEL_INVOKE_ACTIONS not found in gateway-stack.ts"
+
+    in_stack = set(re.findall(r"'([^']+)'", block.group(1)))
+    assert in_stack == set(infra.MODEL_INVOKE_ACTIONS), (
+        f"deny list and assertion disagree: only in stack {sorted(in_stack - set(infra.MODEL_INVOKE_ACTIONS))}, "
+        f"only in assertion {sorted(set(infra.MODEL_INVOKE_ACTIONS) - in_stack)}"
+    )
 
 
 # --- catalog fixtures ---------------------------------------------------------

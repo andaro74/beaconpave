@@ -1,0 +1,12 @@
+{
+  "denied": true,
+  "principal": "function BeaconpaveGateway-DirectCallProbeFn (service execution role)",
+  "request_id": "41917426-4361-45d9-9088-72e5ae51e5d5",
+  "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "witness": "couriered",
+  "error": {
+    "code": "AccessDeniedException",
+    "message": "An error occurred (AccessDeniedException) when calling the Converse operation: User: assumed-role BeaconpaveGateway-HighlightsAgentRole401A2F1B-n2IM1FZYwsLI is not authorized to perform: bedrock:InvokeModel on resource: inference-profile us.anthropic.claude-haiku-4-5-20251001-v1:0 with an explicit deny in an identity-based policy"
+  },
+  "_note": "Claim 4's runtime artifact, recorded as-run. The role is the governed service execution role, the same one the agent holds from M02. ARNs are reduced to resource names: this repo is public and an account-qualified ARN is refused even when the account is redacted. The phrase that matters is 'with an explicit deny in an identity-based policy' \u2014 mere absence of a grant produces a vaguer message that does not distinguish forbidden from overlooked."
+}
