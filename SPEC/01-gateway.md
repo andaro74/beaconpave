@@ -246,25 +246,30 @@ not against a guardrail we would like to have.
 
 ## Definition of done
 
-- [ ] Gateway deployed; every path to the model transits it
-- [ ] `platform/gateway/core/` added to `HERMETIC_ROOTS`; `make check` still
+- [x] Gateway deployed; every path to the model transits it
+- [x] `platform/gateway/core/` added to `HERMETIC_ROOTS`; `make check` still
       passes offline on a fresh clone with no AWS account
-- [ ] `audit.schema.json` committed and contract-tested; an audit record written
+- [x] `audit.schema.json` committed and contract-tested; an audit record written
       for every gateway call, allowed or blocked
 - [ ] IAM assertion test fails at synth time if any role outside the gateway
+      *(the test and its two negative controls are green; the `exhibit` PR that
+      proves it in CI must be cut from `main` AFTER this milestone merges —
+      an exhibit branched off `m01-gateway` would be a stacked PR, which gets
+      no CI at all and is auto-closed when its base is deleted)*
       holds `bedrock:InvokeModel` — proven by an **`exhibit` PR** that adds the
       permission and is blocked, closed unmerged (M00a's precedent)
-- [ ] Synth-snapshot freshness job in CI; drift blocks
-- [ ] ADR-011 marked **Expired at M01**; the four active grant sites rewritten;
+- [ ] Synth-snapshot freshness job in CI; drift blocks — *wired and green
+      locally; its first CI run is this milestone's own PR*
+- [x] ADR-011 marked **Expired at M01**; the four active grant sites rewritten;
       the reappearance test passes
-- [ ] Direct-call probe deployed; a real denial recorded, with a witness the
+- [x] Direct-call probe deployed; a real denial recorded, with a witness the
       caller cannot forge — or the fallback taken, named in the journal, and
       ADR'd
-- [ ] Guardrail defined in CDK and pinned to a **published version**, configured
+- [x] Guardrail defined in CDK and pinned to a **published version**, configured
       from `rules/` and the brand packs rather than from the probe corpus
-- [ ] All 10 probes run through the gateway; every `audit_record` **resolved back
+- [x] All 10 probes run through the gateway; every `audit_record` **resolved back
       from the lake**; score recorded
-- [ ] 25 goldens run through the gateway; score recorded, footnoted against
+- [x] 25 goldens run through the gateway; score recorded, footnoted against
       ADR-016 against the 18/25 comparator
 - [x] ~~m00b answers re-scored under the corrected instrument and recorded as a
       **superseding** history entry (`supersedes` set) — two-key path, disposition
@@ -288,11 +293,11 @@ not against a guardrail we would like to have.
       recorded row — a reader watches it happen instead of trusting that it once
       did — and it converts ADR-016's closing rule from a discipline somebody
       remembers into a check that fails when the judge lands at M03.
-- [ ] Any unearned pass documented with a drafted tightening
-- [ ] ADR-017 (synth-snapshot assertions), ADR-018 (the guardrail as a pinned
+- [x] Any unearned pass documented with a drafted tightening
+- [x] ADR-017 (synth-snapshot assertions), ADR-018 (the guardrail as a pinned
       instrument), and any fallback ADR owed by pre-flight item 3
-- [ ] `milestones/M01/README.md` answers the three questions
-- [ ] Progression row filled, with footnotes
+- [x] `milestones/M01/README.md` answers the three questions
+- [x] Progression row filled, with footnotes
 - [ ] Tag `m01` pushed from branch `m01-gateway` — names distinct
 
 ## What M01 must NOT do

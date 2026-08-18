@@ -24,6 +24,19 @@ That last clause is what the explicit Deny bought. Absence of a grant already
 denies, but it produces a vaguer message that cannot distinguish *forbidden* from
 *nobody got around to it*. Recorded at `milestones/M01/direct-call-probe.json`.
 
+**And it has an independent witness.** The probe's own report is *couriered* — a
+principal reporting its own refusal, which is the shape ADR-016 ruled out.
+CloudTrail recorded the same denial, and the calling principal cannot write to the
+trail. Exactly one event in the entire trail carries an `errorCode` and it is this
+one: `milestones/M01/direct-call-witness.json`.
+
+This was SPEC/01's one pre-registered unknown — whether `AWS::Bedrock::Model` is
+selectable as a CloudTrail data-event resource type. It is. The fallback (courier
+the AWS error, name the gap, owe an ADR) is not needed and no ADR is owed. Stated
+precisely rather than overclaimed: the CloudTrail `requestID` and the Lambda
+`aws_request_id` are different identifiers by construction, so the two records are
+tied by principal, action and timestamp rather than by a shared id.
+
 **2. The same invariant, before anything is deployed.**
 
 ```bash

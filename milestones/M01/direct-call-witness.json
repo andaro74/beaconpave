@@ -1,0 +1,14 @@
+{
+  "_what": "Claim 4's independent witness. CloudTrail recorded the governed service role being refused bedrock:InvokeModel. The calling principal cannot write to this trail, which is the entire difference between this record and the probe's own report in direct-call-probe.json.",
+  "_how_it_was_found": "Exactly one event in the whole trail carries an errorCode, and it is this one. The trail selects eventCategory=Data with resources.type=AWS::Bedrock::Model, which SPEC/01 pre-registered as unverified and which turned out to be supported.",
+  "_limitation": "The CloudTrail requestID and the Lambda aws_request_id are different identifiers and do not match by construction. The two records are tied together by principal, action and timestamp, not by a shared id. Stated rather than glossed: a reader should know exactly how strong the link is.",
+  "eventTime": "2026-08-17T14:33:39Z",
+  "eventName": "Converse",
+  "eventSource": "bedrock.amazonaws.com",
+  "eventCategory": "Data",
+  "errorCode": "AccessDenied",
+  "errorMessage": "User: assumed-role BeaconpaveGateway-HighlightsAgentRole401A2F1B-n2IM1FZYwsLI is not authorized to perform: bedrock:InvokeModel on resource: inference-profile us.anthropic.claude-haiku-4-5-20251001-v1:0 with an explicit deny in an identity-based policy",
+  "principal": "assumed-role BeaconpaveGateway-HighlightsAgentRole401A2F1B-n2IM1FZYwsLI",
+  "requestID": "8c62049d-2d84-40f2-b80a-1b562114281e",
+  "witness": "cloudtrail"
+}
