@@ -112,7 +112,7 @@ Anything that doesn't serve one is out of scope.
 | 1 | One command → governed service | `pave new`: repo → deployed agent under 30 min | 05 |
 | 2 | Gates fail closed and teach | A red PR in history with a score-diff comment | 04 |
 | 3 | One verdict schema, many runners | Agent evals + Playwright + k6 emit identical JSON | 08 |
-| 4 | No direct model access | IAM assertion tests + a failed direct call, logged | 01 |
+| 4 | No direct model access | ✅ [PR #14](https://github.com/andaro74/beaconpave/pull/14) blocked by the IAM assertion; the denial witnessed in `milestones/M01/direct-call-witness.json` | 01 |
 | 5 | Adversarial pass = blocked-and-logged | 10 probes; the assert greps the audit lake | 04 |
 | 6 | Rules have owners and dispositions | A rule delta disposed end-to-end into eval cases | 07 |
 | 7 | AI proposes, a human disposes, rates published | An `ai-proposed` PR merged; curation panel | 10 |

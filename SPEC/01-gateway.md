@@ -251,11 +251,11 @@ not against a guardrail we would like to have.
       passes offline on a fresh clone with no AWS account
 - [x] `audit.schema.json` committed and contract-tested; an audit record written
       for every gateway call, allowed or blocked
-- [ ] IAM assertion test fails at synth time if any role outside the gateway
-      *(the test and its two negative controls are green; the `exhibit` PR that
-      proves it in CI must be cut from `main` AFTER this milestone merges —
-      an exhibit branched off `m01-gateway` would be a stacked PR, which gets
-      no CI at all and is auto-closed when its base is deleted)*
+- [x] IAM assertion test fails at synth time if any role outside the gateway
+      holds `bedrock:InvokeModel` — proven by **[PR #14](https://github.com/andaro74/beaconpave/pull/14)**,
+      which granted the permission to the governed service role and was blocked:
+      `2 failed, 516 passed`, both failures the invariant itself. Labelled
+      `exhibit`, closed unmerged, branch preserved.
       holds `bedrock:InvokeModel` — proven by an **`exhibit` PR** that adds the
       permission and is blocked, closed unmerged (M00a's precedent)
 - [x] Synth-snapshot freshness job in CI; drift blocks — *proven on its first

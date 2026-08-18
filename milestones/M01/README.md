@@ -44,7 +44,10 @@ make check      # hermetic: no Node, no AWS account, no network
 ```
 
 `tests/test_iam_assertions.py` reads the committed synth snapshot and fails if any
-role outside the gateway holds a model-invoke action. Two negative controls plant
+role outside the gateway holds a model-invoke action. **[PR #14](https://github.com/andaro74/beaconpave/pull/14)
+is the proof it bites**: it grants `bedrock:InvokeModel` to the governed service
+role and the gate blocked the merge — `2 failed, 516 passed`, both failures the
+invariant itself. Labelled `exhibit`, closed unmerged, branch preserved. Two negative controls plant
 the forbidden grant in a copy of the snapshot — in both shapes CDK emits — and
 require the checker to find it, because a test that only ever runs against a
 compliant template proves the template is compliant and not that the test works.
@@ -206,6 +209,26 @@ say outright that 18/25 is deliberately *not* recorded; `supersedes` means
 because it is derivable from committed artifacts. Struck visibly in the spec, and
 replaced by the stability test — which also closes the gap that was genuinely
 there, since nothing had pinned the 18.
+
+**The exhibit PR found a defect in my own negative controls.** Both asserted the
+planted role was the *only* offender, which quietly assumed the committed
+snapshot was compliant. The exhibit makes it deliberately non-compliant, so they
+failed reporting that `test_the_assertion_catches_a_grant_it_should_catch` had
+**not** caught it — the opposite of true. A permanent artifact showing four
+failures, two claiming the detector is broken, teaches the wrong thing; it is the
+same class as M00a's BOM bug, a check failing for a reason that is not the
+change's fault. Fixed in PR #13 before the exhibit ran: both controls now measure
+a delta against the same template before planting, and plant on a synthetic role.
+The artifact shows two failures, both real.
+
+**M01 was squash-merged, against the milestone convention.** CLAUDE.md and
+CONTRIBUTING call for milestone branches to merge with `--merge`, preserving a
+real merge commit, so `main` carries the milestone's commit-by-commit narrative —
+`m00a` and `m00b` both did. `c2e58f5` has a single parent. Nothing is lost:
+`m01-gateway` is preserved on the remote and still holds all 11 commits, which is
+the other half of the same convention. It is recorded here rather than repaired,
+because repairing it means rewriting a protected branch and that is a worse
+trade than an honest note.
 
 **Left in place deliberately:** three `smoke-*` records from deployment
 verification sit in the audit lake beside the run records. An audit lake you
