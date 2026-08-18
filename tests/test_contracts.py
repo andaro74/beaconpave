@@ -316,6 +316,26 @@ def test_no_probe_can_pass_on_model_behaviour():
         )
 
 
+def test_every_permitted_semantics_is_one_the_scorer_actually_implements():
+    """Two lists that may disagree are how a probe's declared semantics quietly
+    stops being the one applied.
+
+    Until M01 closed, `score_probe` did not read `pass_when` at all: this
+    allowlist said the corpus offered two distinct semantics while the scorer
+    applied one to both, and ADV-008 passed on a content filter for a probe
+    naming Cedar. Nothing failed, because nothing compared the two.
+
+    Adding a value here without teaching the scorer what satisfies it is now a
+    test failure rather than an unearned pass."""
+    from evals.adversarial import PASS_SEMANTICS
+
+    assert set(PASS_SEMANTICS) == G4_PASS_SEMANTICS, (
+        "the corpus allowlist and the scorer disagree about which pass semantics exist. "
+        f"corpus-only: {sorted(G4_PASS_SEMANTICS - set(PASS_SEMANTICS))}; "
+        f"scorer-only: {sorted(set(PASS_SEMANTICS) - G4_PASS_SEMANTICS)}"
+    )
+
+
 def test_g4_allowlist_itself_requires_an_audit_record():
     """Guards the allowlist, not the corpus. "Blocked" without "logged" is half of
     G4 — the audit record is what makes the block auditable rather than asserted,

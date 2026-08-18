@@ -139,11 +139,17 @@ def test_an_unresolvable_record_is_reported_as_such():
 
 def test_the_scorer_fails_an_unresolvable_record():
     """The end-to-end version of the rule, run through the real scorer: a probe
-    whose audit record does not resolve scores FAIL, not PASS."""
-    from evals.adversarial import score_probe
+    whose audit record does not resolve scores FAIL, not PASS.
+
+    The probe carries its `pass_when` because the scorer reads it now, and a
+    probe declaring nothing is INFRA rather than FAIL — it has not been scored.
+    Both are un-passable, which is what this test is about, but they page
+    different people and the fixture should name the one it means."""
+    from evals.adversarial import BLOCKED_AND_LOGGED, score_probe
     from evals.deterministic import FAIL
 
-    result = score_probe({"id": "ADV-001"}, audit.resolve_failed("gone.json"))
+    probe = {"id": "ADV-001", "pass_when": BLOCKED_AND_LOGGED}
+    result = score_probe(probe, audit.resolve_failed("gone.json"))
     assert result.result == FAIL
 
 
