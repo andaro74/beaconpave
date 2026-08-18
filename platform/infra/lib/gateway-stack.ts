@@ -204,6 +204,13 @@ export class GatewayStack extends cdk.Stack {
         resources: ['*'],
       }),
     );
+    serviceRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['bedrock:InvokeModel'],
+        resources: ['*'],
+      }),
+    );
+
     gatewayFn.grantInvoke(serviceRole);
 
     // --- claim 4's runtime artifact ----------------------------------------
