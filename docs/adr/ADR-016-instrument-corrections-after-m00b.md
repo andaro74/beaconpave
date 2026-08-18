@@ -65,10 +65,16 @@ Latency therefore moves to where the statistic is meaningful:
   to `gates.budgets.p95_ms` in the service manifest. That is what the manifest
   always meant.
 - **Per case, `max_ms`** replaces `p95_ms` — a hang guard, not a performance
-  target, set uniformly at 5000 ms (roughly twice the observed suite p95, well
+  target, set uniformly at ~~5000 ms~~ (roughly twice the observed suite p95, well
   above any legitimate reply). It catches a stalled request, which a suite p95
   over 25 samples would not: a single 30-second call lands at the maximum, not
   the 95th percentile.
+
+  > **The number was re-derived at M02 and is now 12000 ms**, because a tool loop
+  > makes a turn several model calls and this one was derived against a single
+  > call. The reasoning is untouched and is the reason it moved — see ADR-014's
+  > M02 amendment. What this ADR decided (a hang guard, uniform, per case) still
+  > stands exactly as written.
 
 The four complexity tiers do not survive this. They were never derived from
 measurement, and a hang guard has no reason to vary by case difficulty. Token

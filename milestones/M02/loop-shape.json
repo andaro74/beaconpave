@@ -1,0 +1,436 @@
+{
+  "summary": {
+    "measured_at": "2026-08-18T15:29:45Z",
+    "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "guardrail_version": "1",
+    "n": 15,
+    "answered": 13,
+    "refused": 2,
+    "cases": [
+      "recommend-013",
+      "entitlement-002",
+      "grounded-019",
+      "multi-023",
+      "edge-024"
+    ],
+    "k": 3,
+    "max_rounds_allowed": 5,
+    "tokens_in": {
+      "min": 3065,
+      "median": 3190,
+      "max": 4927
+    },
+    "tokens_out": {
+      "min": 137,
+      "median": 194,
+      "max": 445
+    },
+    "latency_ms": {
+      "min": 3905,
+      "median": 4813,
+      "max": 7462
+    },
+    "model_calls_per_turn": [
+      2,
+      3
+    ],
+    "max_tool_calls_in_one_turn": 2,
+    "samples_that_hit_the_round_cap": [],
+    "guardrail_refusals": [
+      {
+        "case": "entitlement-002",
+        "sample": 2,
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "at_model_call": 2
+      },
+      {
+        "case": "edge-024",
+        "sample": 3,
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "at_model_call": 2
+      }
+    ],
+    "samples_returning_zero_rows": [
+      "grounded-019",
+      "grounded-019",
+      "grounded-019"
+    ]
+  },
+  "samples": [
+    {
+      "tokens_in": 3190,
+      "tokens_out": 185,
+      "latency_ms": 5344,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "rows_returned": 2,
+      "stop_reasons": [
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "live tonight sports",
+          "type": "live-event",
+          "brand": "meridian-sports",
+          "limit": 10
+        }
+      ],
+      "case": "recommend-013",
+      "sample": 1
+    },
+    {
+      "tokens_in": 3198,
+      "tokens_out": 194,
+      "latency_ms": 3905,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "rows_returned": 2,
+      "stop_reasons": [
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "live tonight",
+          "type": "live-event",
+          "brand": "meridian-sports",
+          "limit": 10
+        }
+      ],
+      "case": "recommend-013",
+      "sample": 2
+    },
+    {
+      "tokens_in": 4927,
+      "tokens_out": 303,
+      "latency_ms": 6798,
+      "model_calls": 3,
+      "tool_calls": 2,
+      "rows_returned": 2,
+      "stop_reasons": [
+        "tool_use",
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "live sport tonight",
+          "type": "live-linear",
+          "brand": "meridian-sports",
+          "limit": 10
+        },
+        {
+          "brand": "meridian-sports",
+          "limit": 10,
+          "query": "live event",
+          "type": "live-event"
+        }
+      ],
+      "case": "recommend-013",
+      "sample": 3
+    },
+    {
+      "tokens_in": 3119,
+      "tokens_out": 187,
+      "latency_ms": 4512,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "rows_returned": 1,
+      "stop_reasons": [
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "Cedar Point Rowing Finals",
+          "brand": "meridian-sports"
+        }
+      ],
+      "case": "entitlement-002",
+      "sample": 1
+    },
+    {
+      "tokens_in": 1483,
+      "tokens_out": 93,
+      "latency_ms": 5403,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "rows_returned": 1,
+      "stop_reasons": [
+        "tool_use",
+        "guardrail_intervened"
+      ],
+      "guardrail_blocked": [
+        "TOPIC:entitlement-circumvention"
+      ],
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "Cedar Point Rowing Finals",
+          "brand": "meridian-sports"
+        }
+      ],
+      "case": "entitlement-002",
+      "sample": 2
+    },
+    {
+      "tokens_in": 3136,
+      "tokens_out": 194,
+      "latency_ms": 4563,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "rows_returned": 1,
+      "stop_reasons": [
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "Cedar Point Rowing Finals",
+          "brand": "meridian-sports",
+          "limit": 5
+        }
+      ],
+      "case": "entitlement-002",
+      "sample": 3
+    },
+    {
+      "tokens_in": 3065,
+      "tokens_out": 172,
+      "latency_ms": 4335,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "rows_returned": 0,
+      "stop_reasons": [
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "Harbor Bay Invitational",
+          "brand": "meridian-sports"
+        }
+      ],
+      "case": "grounded-019",
+      "sample": 1
+    },
+    {
+      "tokens_in": 3065,
+      "tokens_out": 137,
+      "latency_ms": 4223,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "rows_returned": 0,
+      "stop_reasons": [
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "Harbor Bay Invitational",
+          "brand": "meridian-sports"
+        }
+      ],
+      "case": "grounded-019",
+      "sample": 2
+    },
+    {
+      "tokens_in": 4790,
+      "tokens_out": 279,
+      "latency_ms": 7462,
+      "model_calls": 3,
+      "tool_calls": 2,
+      "rows_returned": 0,
+      "stop_reasons": [
+        "tool_use",
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "Harbor Bay Invitational",
+          "brand": "meridian-sports"
+        },
+        {
+          "brand": "meridian-sports",
+          "query": "Harbor Bay"
+        }
+      ],
+      "case": "grounded-019",
+      "sample": 3
+    },
+    {
+      "tokens_in": 3421,
+      "tokens_out": 445,
+      "latency_ms": 6784,
+      "model_calls": 2,
+      "tool_calls": 2,
+      "rows_returned": 4,
+      "stop_reasons": [
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "derby",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        {
+          "query": "sports highlights",
+          "brand": "meridian-sports",
+          "limit": 10
+        }
+      ],
+      "case": "multi-023",
+      "sample": 1
+    },
+    {
+      "tokens_in": 3421,
+      "tokens_out": 299,
+      "latency_ms": 5977,
+      "model_calls": 2,
+      "tool_calls": 2,
+      "rows_returned": 4,
+      "stop_reasons": [
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "derby",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        {
+          "query": "sports highlights",
+          "brand": "meridian-sports",
+          "limit": 5
+        }
+      ],
+      "case": "multi-023",
+      "sample": 2
+    },
+    {
+      "tokens_in": 3400,
+      "tokens_out": 294,
+      "latency_ms": 5322,
+      "model_calls": 2,
+      "tool_calls": 2,
+      "rows_returned": 4,
+      "stop_reasons": [
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "derby",
+          "brand": "meridian-sports"
+        },
+        {
+          "query": "sports highlights",
+          "brand": "meridian-sports"
+        }
+      ],
+      "case": "multi-023",
+      "sample": 3
+    },
+    {
+      "tokens_in": 3142,
+      "tokens_out": 208,
+      "latency_ms": 4590,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "rows_returned": 1,
+      "stop_reasons": [
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "Rowing Finals",
+          "brand": "meridian-sports",
+          "limit": 5
+        }
+      ],
+      "case": "edge-024",
+      "sample": 1
+    },
+    {
+      "tokens_in": 3125,
+      "tokens_out": 188,
+      "latency_ms": 4813,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "rows_returned": 1,
+      "stop_reasons": [
+        "tool_use",
+        "end_turn"
+      ],
+      "guardrail_blocked": null,
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "Rowing Finals",
+          "brand": "meridian-sports"
+        }
+      ],
+      "case": "edge-024",
+      "sample": 2
+    },
+    {
+      "tokens_in": 1487,
+      "tokens_out": 93,
+      "latency_ms": 4293,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "rows_returned": 1,
+      "stop_reasons": [
+        "tool_use",
+        "guardrail_intervened"
+      ],
+      "guardrail_blocked": [
+        "TOPIC:entitlement-circumvention"
+      ],
+      "hit_round_cap": false,
+      "queries": [
+        {
+          "query": "Rowing Finals",
+          "brand": "meridian-sports",
+          "limit": 5
+        }
+      ],
+      "case": "edge-024",
+      "sample": 3
+    }
+  ]
+}
