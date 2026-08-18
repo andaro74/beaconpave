@@ -123,45 +123,56 @@ def test_the_grant_allowlist_has_exactly_one_entry():
 
 # --- the assertions can actually fail ----------------------------------------
 
-def test_the_assertion_catches_a_grant_it_should_catch():
-    """The negative control, and the reason to trust everything above.
-
-    A test that only ever runs against a compliant template proves that the
-    template is compliant, not that the test would notice if it were not. M00a
-    made the same argument about a gate that cannot block. Here the compliant
-    snapshot is mutated in memory — the committed file is untouched — to add
-    exactly the grant G1 forbids, and the checker must find it."""
-    template = copy.deepcopy(load(GATEWAY_SNAPSHOT))
-    service_roles = [r for r in infra.roles(template) if not infra.is_gateway_role(r)]
-    assert service_roles, "no non-gateway role to plant a grant on"
-
-    template["Resources"]["SmugglerPolicy"] = {
-        "Type": "AWS::IAM::Policy",
-        "Properties": {
-            "Roles": [{"Ref": service_roles[0]}],
-            "PolicyDocument": {
-                "Statement": [
-                    {"Effect": "Allow", "Action": "bedrock:InvokeModel", "Resource": "*"}
-                ]
-            },
-        },
-    }
-
-    offenders = [
+def offenders_in(template):
+    """Roles outside the gateway holding a model-invoke grant."""
+    return {
         role
         for grant in infra.model_invoke_grants(template)
         for role in grant["roles"]
         if not infra.is_gateway_role(role)
-    ]
-    assert offenders == [service_roles[0]]
+    }
+
+
+def test_the_assertion_catches_a_standalone_policy_grant():
+    """The negative control, and the reason to trust everything above.
+
+    A test that only ever runs against a compliant template proves that the
+    template is compliant, not that the test would notice if it were not. M00a
+    made the same argument about a gate that cannot block. Here the committed
+    snapshot is copied in memory — the file is untouched — and given exactly the
+    grant G1 forbids, on a role that did not previously hold one.
+
+    Measured as a DELTA against the same template before planting. The earlier
+    absolute form asserted the planted role was the *only* offender, which
+    silently assumed the committed snapshot was compliant; M01's exhibit PR broke
+    that assumption and the test then reported that the assertion had NOT caught
+    what it should — the opposite of true. What is under test is the detection,
+    never the baseline's cleanliness."""
+    template = copy.deepcopy(load(GATEWAY_SNAPSHOT))
+    before = offenders_in(template)
+
+    template["Resources"]["SmugglerRole"] = {"Type": "AWS::IAM::Role", "Properties": {}}
+    template["Resources"]["SmugglerPolicy"] = {
+        "Type": "AWS::IAM::Policy",
+        "Properties": {
+            "Roles": [{"Ref": "SmugglerRole"}],
+            "PolicyDocument": {"Statement": [
+                {"Effect": "Allow", "Action": "bedrock:InvokeModel", "Resource": "*"}
+            ]},
+        },
+    }
+    assert offenders_in(template) - before == {"SmugglerRole"}
 
 
 def test_the_assertion_catches_an_inline_role_policy():
-    """The other shape CDK emits. A grant inlined on the role reads exactly like
-    a standalone policy to a human and not at all like one to a parser that only
-    looks at `AWS::IAM::Policy`."""
+    """The other shape CDK emits, which is what these two tests actually differ
+    on. A grant inlined on the role reads exactly like a standalone policy to a
+    human and not at all like one to a parser that only looks at
+    `AWS::IAM::Policy`."""
     template = copy.deepcopy(load(GATEWAY_SNAPSHOT))
-    template["Resources"]["SmugglerRole"] = {
+    before = offenders_in(template)
+
+    template["Resources"]["InlineSmugglerRole"] = {
         "Type": "AWS::IAM::Role",
         "Properties": {
             "Policies": [
@@ -171,14 +182,7 @@ def test_the_assertion_catches_an_inline_role_policy():
             ]
         },
     }
-
-    offenders = [
-        role
-        for grant in infra.model_invoke_grants(template)
-        for role in grant["roles"]
-        if not infra.is_gateway_role(role)
-    ]
-    assert offenders == ["SmugglerRole"]
+    assert offenders_in(template) - before == {"InlineSmugglerRole"}
 
 
 # --- the guardrail is a pinned instrument (ADR-018) --------------------------
