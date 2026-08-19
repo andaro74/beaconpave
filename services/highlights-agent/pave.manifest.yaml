@@ -10,6 +10,7 @@ runtime: lambda                    # lambda | ecs | agentcore (ADR-003 migration
 tools:                             # must exist in registry; Cedar policy generated
   - id: catalog-search@^0
   - id: entitlement-check@^0        # second model-chosen tool activates trajectory evals
+  - id: catalog-purge@^0            # EXHIBIT: not in platform/registry/tools.yaml
 gates:
   eval_min_cases: 20               # gate fails below this — no unevaluated agents
   budgets:                         # tokens, not dollars — ADR-014
