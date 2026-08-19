@@ -266,6 +266,35 @@ def test_a_refusal_before_the_call_still_tells_the_model_why():
     assert "withheld" not in text
 
 
+def test_a_tool_the_platform_cannot_reach_is_routing_and_not_a_contract_failure():
+    """"The tool answered badly" and "the platform could not get to the tool" are
+    different findings, and only one of them is about a schema.
+
+    A missing `lambda:InvokeFunction` grant is the failure a deploy is most likely
+    to produce, and it arrives through the same channel as a malformed result.
+    Recording it as `schema` would send whoever reads the lake to inspect an output
+    contract that is fine."""
+    converse = Converse(tool_use(), final())
+    tool = Tool(toolloop.ToolReply(
+        error="AccessDeniedException: not authorized to perform lambda:InvokeFunction",
+        unreachable=True))
+    outcome = run(converse, tool)
+
+    assert outcome.calls[0].decision.mechanism == toolplane.ROUTING
+    assert "could not reach catalog-search" in " ".join(outcome.calls[0].decision.reasons)
+    assert "AccessDeniedException" in " ".join(outcome.calls[0].decision.reasons)
+    assert toolplane.ROUTING not in audit.POLICY_MECHANISMS
+
+
+def test_an_unreachable_tool_still_lets_the_turn_finish():
+    """A deployment gap must not take the whole turn down. The model is told, and
+    what it does next is a trajectory rather than an outage."""
+    converse = Converse(tool_use(), final("answered without the tool"))
+    outcome = run(converse, Tool(toolloop.ToolReply(error="boom", unreachable=True)))
+    assert outcome.status == toolloop.ANSWERED
+    assert outcome.answer == "answered without the tool"
+
+
 def test_a_tool_that_errored_is_a_contract_failure_and_not_a_new_mechanism():
     """A tool that failed produced no result, so it fails its output contract.
     Inventing a mechanism for "the tool broke" would have meant one more name to

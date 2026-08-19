@@ -147,7 +147,8 @@ def _call_tool(tool_id, args):
     lose the records for the calls that already succeeded."""
     function_name = TOOL_FUNCTIONS.get(tool_id)
     if function_name is None:
-        return toolloop.ToolReply(error=f"no endpoint is deployed for {tool_id}")
+        return toolloop.ToolReply(
+            error=f"no endpoint is deployed for {tool_id}", unreachable=True)
 
     request = {"jsonrpc": "2.0", "id": f"{tool_id}-1", "method": "tools/call",
                "params": {"name": tool_id, "arguments": args}}
@@ -158,9 +159,17 @@ def _call_tool(tool_id, args):
         )
         body = json.loads(response["Payload"].read().decode("utf-8"))
     except Exception as exc:  # noqa: BLE001 — the transport boundary is the point
-        return toolloop.ToolReply(error=f"{type(exc).__name__}: {exc}")
+        # Everything that fails *on the way* is unreachable rather than a contract
+        # failure: a missing `lambda:InvokeFunction` grant, a function that is not
+        # there, a throttle. Recording those as `schema` would send a reader to
+        # inspect an output schema that is fine — and a missing grant is exactly
+        # the failure a deploy is most likely to produce.
+        return toolloop.ToolReply(error=f"{type(exc).__name__}: {exc}", unreachable=True)
 
     if "FunctionError" in response:
+        # The function ran and raised. That is the tool failing, not the platform
+        # failing to reach it — `server.handler` catches its own exceptions, so an
+        # unhandled fault here means the bundle is broken rather than absent.
         return toolloop.ToolReply(error=f"the tool function faulted: {body}")
     if not isinstance(body, dict) or "error" in body:
         return toolloop.ToolReply(error=f"the tool returned a JSON-RPC error: {body}")

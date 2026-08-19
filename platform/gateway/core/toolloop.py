@@ -38,7 +38,7 @@ from dataclasses import dataclass, field
 
 from core import guardrail as guardrail_module
 from core import meter
-from core.toolplane import SCHEMA, ToolDecision
+from core.toolplane import ROUTING, SCHEMA, ToolDecision
 
 #: Bedrock's stop reason when the model wants one or more tools.
 STOP_REASON_TOOL_USE = "tool_use"
@@ -56,15 +56,25 @@ class ToolReply:
     """What a tool said, as the handler's transport understood it.
 
     `error` is the tool's own failure — a malformed catalog, an MCP error
-    response, a transport fault. It is **not** a plane decision, and the loop does
-    not dress it as one: a tool that errored produced no result, so it fails its
-    committed output contract and is refused with `schema`. That path is written
-    down here rather than special-cased, because the alternative was inventing a
-    mechanism for "the tool broke" and then having to keep it out of
-    `audit.POLICY_MECHANISMS` forever."""
+    response, a fault inside the function. It is **not** a plane decision, and the
+    loop does not dress it as one: a tool that errored produced no result, so it
+    fails its committed output contract and is refused with `schema`. That path is
+    written down here rather than special-cased, because the alternative was
+    inventing a mechanism for "the tool broke" and then having to keep it out of
+    `audit.POLICY_MECHANISMS` forever.
+
+    **`unreachable` separates "the tool answered badly" from "the platform could
+    not get to the tool".** A missing `lambda:InvokeFunction` grant, a function
+    that does not exist, a throttle — none of those are the tool's contract
+    failing, and recording them as `schema` sends whoever reads the lake to
+    inspect an output schema that is fine. That is the misattribution `ROUTING`
+    exists to prevent, and the first version of this handed the whole class to
+    `schema` because the error arrived through the same channel. The verbatim
+    error is carried either way; the mechanism is what gets counted."""
 
     payload: object | None = None
     error: str | None = None
+    unreachable: bool = False
 
 
 @dataclass(frozen=True)
@@ -242,8 +252,12 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
                 reply = call_tool(tool_id, args)
                 if reply.error is not None:
                     withheld = True
-                    decision = ToolDecision(False, tool_id, SCHEMA, (
-                        f"the tool returned no result: {reply.error}",))
+                    decision = ToolDecision(
+                        False, tool_id,
+                        ROUTING if reply.unreachable else SCHEMA,
+                        ((f"the platform could not reach {tool_id}: {reply.error}",)
+                         if reply.unreachable
+                         else (f"the tool returned no result: {reply.error}",)))
                 else:
                     checked = plane.validate_result(tool_id=tool_id, result=reply.payload)
                     if checked.allowed:
