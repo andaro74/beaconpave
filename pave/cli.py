@@ -11,6 +11,7 @@ that implements them, so the repo stays runnable and self-documenting.
   pave adversarial run <service>                      run the L5 probe suite
   pave rules validate                                 validate the rules registry (G7)
   pave infra snapshot [--check] [--from <dir>]        record / verify the synth snapshot (G1)
+  pave policy generate [--check]                      generate / verify Cedar from the registry (G3)
   pave gate comment|decide --verdicts ...             post score-diff / fail-closed
   pave drill --event <e> --tier <t>                   game-day readiness drill
   pave selfheal <service>                             classify red suite, propose repair
@@ -223,6 +224,52 @@ CDK_OUT = ROOT / "platform" / "infra" / "cdk.out"
 SNAPSHOT_DIR = ROOT / "platform" / "infra" / "tests" / "fixtures"
 
 
+#: The registry Cedar is generated from, and the generated set the gateway reads.
+REGISTRY = ROOT / "platform" / "registry" / "tools.yaml"
+POLICY_SET = ROOT / "platform" / "gateway" / "policy" / "tools.cedar"
+
+
+def policy_generate(argv):
+    """Generate the Cedar policy set from the registry, or verify the committed one.
+
+    ADR-004 makes generation the load-bearing half: a hand-written policy drifts
+    from the registry, and one that disagrees with the registry is worse than no
+    policy because it makes the registry look authoritative while something else
+    decides.
+
+    `--check` is the drift gate, and unlike its `infra snapshot` counterpart it is
+    **hermetic** — regenerating needs the registry and nothing else, no Node and no
+    AWS account. So the check runs inside `make check` rather than needing a CI job
+    of its own, which makes it strictly harder to skip than the synth snapshot it
+    is modelled on (ADR-017)."""
+    import yaml
+
+    sys.path.insert(0, str(ROOT / "platform" / "gateway"))
+    from core import cedar
+
+    registry = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
+    generated = cedar.generate(registry)
+
+    if "--check" in argv:
+        committed = POLICY_SET.read_text(encoding="utf-8") if POLICY_SET.is_file() else ""
+        if committed != generated:
+            _die(
+                "the committed Cedar policy set is not what the registry generates. "
+                "Run `python -m pave.cli policy generate` and commit the result. "
+                "A policy set that disagrees with the registry makes the registry look "
+                "authoritative while something else decides (ADR-004).",
+                gate_mod.EXIT_CONTRACT,
+            )
+        print(f"cedar policy set current: {len(cedar.parse(generated))} policies from "
+              f"{len(registry)} registered tool(s)")
+        return
+
+    POLICY_SET.parent.mkdir(parents=True, exist_ok=True)
+    POLICY_SET.write_text(generated, encoding="utf-8")
+    print(f"wrote {POLICY_SET.relative_to(ROOT)}: "
+          f"{len(cedar.parse(generated))} policies from {len(registry)} registered tool(s)")
+
+
 def infra_snapshot(argv):
     """Record the normalized synth snapshot, or verify the committed one (ADR-017).
 
@@ -361,6 +408,10 @@ def main(argv):
     elif cmd == "exception":
         _stub("exception", "open a time-boxed, dashboard-visible, auto-expiring exception with an "
                            "auto-drafted ADR for the owning seat to approve")
+    elif cmd == "policy" and rest[:1] == ["generate"]:
+        policy_generate(rest[1:])
+    elif cmd == "policy":
+        _die("policy: expected `generate`", gate_mod.EXIT_CONTRACT)
     elif cmd == "infra" and rest[:1] == ["snapshot"]:
         infra_snapshot(rest[1:])
     elif cmd == "infra":
