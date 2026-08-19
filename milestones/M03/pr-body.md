@@ -131,8 +131,8 @@ Engineering (the gateway path the judge will use) · Security + Data Governance
 
 Two-Key-Disposition: ai-quality
 Two-Key-Rationale: The calibration corpus and its labels are the reference every
-published agreement number will be measured against, so both are fixed before any
-judge prompt exists in the tree and the ordering is visible in the commit history
+published agreement number will be measured against, so both were fixed before any
+judge prompt existed in the tree and the ordering is visible in the commit history
 rather than asserted afterwards. The corpus is drawn by a committed deterministic
 rule salted with the SHA of the commit that pre-registered the thresholds, so it
 is reproducible by anyone and cannot be re-rolled after seeing which items it
@@ -146,4 +146,10 @@ published number rather than an unrecorded act; the judge runner will refuse to
 run until all thirty are disposed. No threshold is relaxed here: the only
 threshold change is the clarification that the five-item evidence floor counts
 scorable held-out items, which tightens it, and it was written before any label
-was disposed and before any agreement number existed.
+was disposed and before any agreement number existed. The rubric is edited here
+and the edit moves no band and no threshold: a seat-boundary note about ADV-005 is
+lifted out of the brand_tone axis into the reviewer-facing half of the file,
+because everything inside an axis is now sent to the model verbatim and that note
+is written for two seats rather than for a judge. The judge prompt is new, is
+hash-pinned together with the rubric slice it embeds, and cannot score the
+held-out half until those digests are frozen in a commit.
