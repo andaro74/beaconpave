@@ -20,7 +20,8 @@ speak MCP without paying for a subprocess per tool call — the wire format is r
 even where the wire is not.
 
 Subset, and ADR-019 says which: `initialize`, `tools/list`, `tools/call`, over
-JSON-RPC 2.0. No SDK, no notifications, no resources, no prompts, no sampling.
+JSON-RPC 2.0. No SDK, no resources, no prompts, no sampling. Notifications are
+recognised and correctly answered with silence.
 
 Owning seat: Tool Owner.
 """
@@ -60,6 +61,7 @@ PARSE_ERROR = -32700
 INVALID_REQUEST = -32600
 METHOD_NOT_FOUND = -32601
 INVALID_PARAMS = -32602
+INTERNAL_ERROR = -32603
 
 
 def catalog_path() -> pathlib.Path:
@@ -100,11 +102,27 @@ def dispatch(request: dict) -> dict | None:
     Unknown methods are an error rather than a silent success. A server that
     accepted anything would let a caller believe a call happened."""
     if not isinstance(request, dict) or request.get("jsonrpc") != "2.0":
-        return _error(None, INVALID_REQUEST, "expected a JSON-RPC 2.0 request object")
+        request_id = request.get("id") if isinstance(request, dict) else None
+        return _error(request_id, INVALID_REQUEST, "expected a JSON-RPC 2.0 request object")
 
     request_id = request.get("id")
     method = request.get("method")
-    params = request.get("params") or {}
+    params = request.get("params")
+
+    # A request with no id is a notification and takes no response — for EVERY
+    # method, not only unrecognised ones. This check sat after dispatch, so
+    # `tools/list` with no id got a full reply carrying `"id": null`: a protocol
+    # violation, and a client tracking outstanding requests sees a response to
+    # nothing.
+    if request_id is None:
+        return None
+
+    # JSON-RPC permits positional params. This server implements none, and saying
+    # so is better than an AttributeError from treating a list as a mapping.
+    if params is None:
+        params = {}
+    elif not isinstance(params, dict):
+        return _error(request_id, INVALID_PARAMS, "this server takes named params only")
 
     if method == "initialize":
         return _result(request_id, {
@@ -131,23 +149,40 @@ def dispatch(request: dict) -> dict | None:
         if not isinstance(arguments, dict):
             return _error(request_id, INVALID_PARAMS, "arguments must be an object")
 
-        result = search.search(arguments, search.load_catalog(catalog_path()))
+        try:
+            result = search.search(arguments, search.load_catalog(catalog_path()))
+        except (OSError, ValueError, TypeError) as exc:
+            # A missing or malformed catalog fixture, or an argument the tool
+            # cannot use. Reported through the protocol's own error channel: an
+            # uncaught exception here kills the stdio session outright and
+            # surfaces from Lambda as an unhandled fault, leaving no JSON-RPC
+            # record of what was asked.
+            return _result(request_id, {
+                "content": [{"type": "text", "text": f"catalog-search failed: {exc}"}],
+                "isError": True,
+            })
         return _result(request_id, {
             "content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}],
             "structuredContent": result,
             "isError": False,
         })
 
-    if request_id is None:
-        return None      # a notification for a method we do not implement
     return _error(request_id, METHOD_NOT_FOUND, f"unknown method {method!r}")
 
 
 def handler(event, context=None):
     """Lambda entry point. The event *is* the JSON-RPC request, so the deployed
     tool speaks the same messages as the stdio one — the transport changes and the
-    protocol does not."""
-    return dispatch(event)
+    protocol does not.
+
+    Nothing escapes as an unhandled fault. A Lambda that raises returns no
+    protocol response at all, so the caller learns only that something went wrong
+    somewhere — and the tool plane in front cannot record what it was."""
+    try:
+        return dispatch(event)
+    except Exception as exc:  # noqa: BLE001 — the boundary is the point
+        request_id = event.get("id") if isinstance(event, dict) else None
+        return _error(request_id, INTERNAL_ERROR, f"{type(exc).__name__}: {exc}")
 
 
 def main(stdin=None, stdout=None) -> int:
@@ -164,7 +199,11 @@ def main(stdin=None, stdout=None) -> int:
         except json.JSONDecodeError:
             response = _error(None, PARSE_ERROR, "invalid JSON")
         else:
-            response = dispatch(request)
+            try:
+                response = dispatch(request)
+            except Exception as exc:  # noqa: BLE001 — one bad request must not end the session
+                request_id = request.get("id") if isinstance(request, dict) else None
+                response = _error(request_id, INTERNAL_ERROR, f"{type(exc).__name__}: {exc}")
         if response is not None:
             stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
             stdout.flush()

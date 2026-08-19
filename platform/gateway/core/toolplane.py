@@ -37,11 +37,13 @@ from dataclasses import dataclass
 
 from core import cedar
 
-#: How many tool rounds one turn may take. Derived from measurement rather than
-#: chosen: no turn in `milestones/M02/loop-shape.json` needed more than two, and
-#: this is a bound rather than an expectation — it exists to stop a loop, not to
-#: shape one.
+#: How many tool rounds one turn may take, and how many calls in total. Derived
+#: from measurement rather than chosen: no turn in `milestones/M02/loop-shape.json`
+#: needed more than two rounds, and no round asked for more than two calls. These
+#: are bounds rather than expectations — they exist to stop a loop, not to shape
+#: one.
 MAX_ROUNDS = 4
+MAX_CALLS_PER_TURN = 8
 
 #: Mechanisms this plane can refuse with. `policy` is Cedar and only Cedar; see
 #: the module docstring for why that separation is load-bearing.
@@ -112,17 +114,46 @@ class ToolDecision:
 
 def unsupported_keywords(schema: dict) -> set[str]:
     """Every keyword in `schema`, at any depth, that this validator does not
-    implement. Empty means the schema is fully covered."""
+    implement. Empty means the schema is fully covered.
+
+    **A keyword name is not a boundary.** Three seats found the same hole
+    independently: `additionalProperties` is a supported *name* but only its
+    `false` form is implemented, so a schema-valued one reported "fully covered"
+    and was then silently unenforced. Tuple-form `items` did the same and then
+    raised out of the authorization path. So the shapes are checked here too, and
+    a construct this validator cannot enforce is reported rather than assumed.
+
+    Type *values* are checked for the same reason: `{"type": "str"}` is not a
+    JSON Schema type, and `validate` would reject every instance at run time with
+    a message that reads like a validator bug instead of a schema typo."""
     found: set[str] = set()
     if not isinstance(schema, dict):
         return found
+
+    declared = schema.get("type")
+    if declared is not None:
+        for name in ([declared] if isinstance(declared, str) else list(declared)):
+            if name not in _TYPES:
+                found.add(f"type:{name}")
+
     for key, value in schema.items():
         if key == "properties" and isinstance(value, dict):
             for subschema in value.values():
                 found |= unsupported_keywords(subschema)
             continue
         if key == "items":
-            found |= unsupported_keywords(value)
+            # Tuple form (a list of schemas) is positional validation, which this
+            # validator does not implement. Reported, not silently skipped.
+            if isinstance(value, list):
+                found.add("items:tuple-form")
+            else:
+                found |= unsupported_keywords(value)
+            continue
+        if key == "additionalProperties":
+            # Only `false` is implemented. A schema-valued form constrains the
+            # *type* of extra properties, which `validate` does not check.
+            if value is not False:
+                found.add("additionalProperties:schema-form")
             continue
         if key not in SUPPORTED_KEYWORDS:
             found.add(key)
@@ -144,7 +175,12 @@ def validate(instance, schema: dict, path: str = "<root>") -> list[str]:
         if not any(_TYPES[t](instance) for t in allowed if t in _TYPES):
             return [f"{path}: expected {'/'.join(allowed)}, got {type(instance).__name__}"]
 
-    if "enum" in schema and instance not in schema["enum"]:
+    # `instance in enum` would let True satisfy `enum: [1]`, because Python's bool
+    # is an int and `True == 1`. `_TYPES` already takes that care for `integer`
+    # and `number`; an enum has the same hole and the same fix.
+    if "enum" in schema and not any(
+        type(instance) is type(option) and instance == option for option in schema["enum"]
+    ):
         problems.append(f"{path}: {instance!r} is not one of {schema['enum']}")
 
     if isinstance(instance, str):
@@ -215,21 +251,31 @@ class ToolPlane:
     policies: list
     contracts: dict
     max_rounds: int = MAX_ROUNDS
+    max_calls: int = MAX_CALLS_PER_TURN
 
-    def authorize(self, *, principal: str, tool_id: str, args: dict,
-                  context: dict | None = None, round_number: int = 1) -> ToolDecision:
+    def begin_turn(self) -> Turn:
+        """Start a turn. **This is the only way to authorize a tool call**, and it
+        is the only way the loop bound can be real.
+
+        The first draft took a `round_number` argument and its docstring claimed
+        the bound was "enforced here rather than trusted to the caller". It was
+        not: the caller passed the number, so a caller looping with
+        `round_number=1` was never stopped. A guarantee documented more strongly
+        than the mechanism provides is the failure this repo names most often, so
+        the counter moved inside."""
+        return Turn(plane=self)
+
+    def _authorize(self, *, principal: str, tool_id: str, args: dict,
+                   approval: Approval | None = None) -> ToolDecision:
         """Authorize one tool call. Cedar first, then the contract.
 
         **Cedar first is deliberate.** An unregistered tool must be denied because
         no policy permits it — G3's claim — and not because its arguments failed to
         validate against a contract that does not exist. The order is what makes
-        the denial mean what the milestone says it means."""
-        if round_number > self.max_rounds:
-            return ToolDecision(False, tool_id, LOOP, (
-                f"turn exceeded {self.max_rounds} tool rounds — an unbounded agent loop is "
-                "stopped here rather than trusted to the caller",
-            ))
+        the denial mean what the milestone says it means.
 
+        **The context is built here, never accepted.** See `Approval`."""
+        context = approval.as_context() if approval is not None else {}
         decision = cedar.authorize(self.policies, principal=principal,
                                    action="invoke", resource=tool_id, context=context)
         if not decision.allowed:
@@ -268,3 +314,74 @@ class ToolPlane:
         if problems:
             return ToolDecision(False, tool_id, SCHEMA, tuple(problems))
         return ToolDecision(True, tool_id)
+
+
+@dataclass(frozen=True)
+class Approval:
+    """Evidence that a human interlock released a gated call.
+
+    **A typed value the gateway constructs, never a dict the caller supplies.**
+    The first draft took `context: dict` and passed it straight to Cedar, so the
+    publish interlock — the only thing making a publish-class tool unreachable at
+    M02 — was one key in caller-controlled JSON. The gateway's event is caller
+    JSON, so `context=event.get("context")` was the path of least resistance for
+    whoever wired it, and a test documented the recipe as "M06's path".
+
+    Nothing constructs one at M02. M06 does, from the Step Functions execution
+    that actually collected the approval, and `granted_by` is what will let the
+    policy bind to the *declared* approver rather than to any source — otherwise
+    the interlock is satisfiable by the agent it exists to gate."""
+
+    granted_by: str
+    reference: str
+
+    def as_context(self) -> dict:
+        return {cedar.APPROVAL_CONTEXT_KEY: True}
+
+    def as_exemptions(self) -> list[str]:
+        """What the audit record names, so an approved call is distinguishable
+        from an ungated one. Without it a released publish records `allowed` /
+        `none` and the interlock leaves no evidence it was exercised."""
+        return [cedar.APPROVAL_CONTEXT_KEY]
+
+
+@dataclass
+class Turn:
+    """One agent turn, and the thing that actually enforces the loop bound.
+
+    Mutable and short-lived by design: the counters have to live somewhere the
+    caller cannot reset, and a frozen plane shared across turns is the wrong
+    place. The gateway makes one of these per request."""
+
+    plane: ToolPlane
+    rounds: int = 0
+    calls: int = 0
+
+    def begin_round(self) -> ToolDecision | None:
+        """Call once per model turn that requests tools. Returns a denial when the
+        turn has run past its bound, `None` when it may proceed."""
+        self.rounds += 1
+        if self.rounds > self.plane.max_rounds:
+            return ToolDecision(False, "<turn>", LOOP, (
+                f"turn exceeded {self.plane.max_rounds} tool rounds — an unbounded agent loop "
+                "is stopped by the plane, not trusted to the caller",
+            ))
+        return None
+
+    def authorize(self, *, principal: str, tool_id: str, args: dict,
+                  approval: Approval | None = None) -> ToolDecision:
+        """Authorize one tool call inside this turn.
+
+        Bounds first: a turn that has run past its rounds or its total calls is
+        refused before any policy is consulted, because at that point the question
+        is not whether the caller may use the tool."""
+        self.calls += 1
+        if self.rounds > self.plane.max_rounds:
+            return ToolDecision(False, tool_id, LOOP, (
+                f"turn exceeded {self.plane.max_rounds} tool rounds",))
+        if self.calls > self.plane.max_calls:
+            return ToolDecision(False, tool_id, LOOP, (
+                f"turn exceeded {self.plane.max_calls} tool calls — a round may carry several "
+                "calls, so rounds alone do not bound the work a turn can ask for",))
+        return self.plane._authorize(
+            principal=principal, tool_id=tool_id, args=args, approval=approval)

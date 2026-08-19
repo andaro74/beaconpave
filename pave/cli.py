@@ -185,6 +185,9 @@ def check(argv=()):
     started = time.monotonic()
     failures = []
 
+    print("==> tool-plane drift (G3): the committed Cedar and contracts vs the registry")
+    policy_generate(["--check"])
+
     print("==> rules registry validation (G7)")
     try:
         rules_validate()
@@ -277,11 +280,16 @@ def policy_generate(argv):
               f"{len(registry)} contract(s) from {len(registry)} registered tool(s)")
         return
 
+    # Parse before write. A generator that emits something its own parser rejects
+    # would otherwise leave the bad artifact on disk and fail afterwards, and the
+    # next reader would find a policy set nothing can evaluate.
+    policies = cedar.parse(generated)
+
     POLICY_SET.parent.mkdir(parents=True, exist_ok=True)
     POLICY_SET.write_text(generated, encoding="utf-8")
     CONTRACT_SET.write_text(contracts, encoding="utf-8")
     print(f"wrote {POLICY_SET.relative_to(ROOT)} and {CONTRACT_SET.relative_to(ROOT)}: "
-          f"{len(cedar.parse(generated))} policies, {len(registry)} contracts")
+          f"{len(policies)} policies, {len(registry)} contracts")
 
 
 def infra_snapshot(argv):

@@ -190,6 +190,13 @@
         "args": {
           "type": "object",
           "description": "The arguments as received, so a denial can be reconstructed rather than re-guessed."
+        },
+        "exemptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Context attributes that exempted this call from a forbid \u2014 e.g. an approval interlock granting `approval_granted`. Empty or absent at M02, where nothing grants one. Without this field an approved publish-class call at M06 would record `allowed`/`none` and be indistinguishable from an ungated read, so the interlock would leave no evidence that it was exercised. Added while the interlock is being modelled rather than after."
         }
       }
     }

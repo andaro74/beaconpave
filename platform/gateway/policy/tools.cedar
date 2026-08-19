@@ -46,4 +46,4 @@ forbid(
   principal,
   action == Action::"invoke",
   resource == Tool::"publish-highlight"
-) unless { context.approval_granted };
+) unless { context has approval_granted && context.approval_granted == true };

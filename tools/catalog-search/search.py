@@ -44,11 +44,24 @@ RESULT_FIELDS = ("id", "title", "brand", "type", "entitlement", "event", "starts
 #: not a search term; and `entitlement` because it is a policy attribute rather
 #: than a discovery one — "what do I get on sports-tier" is an entitlement
 #: question, and entitlement questions are not this tool's to answer.
-SEARCHABLE_FIELDS = ("title", "event", "brand", "type")
+#:
+#: **`brand` and `type` were here and are deliberately not.** They are already
+#: structured filters, so matching them as free text was redundant — and it made
+#: the input schema's own claim false: `{"query": "meridian"}` returned the entire
+#: catalog, which is exactly the "give me everything" the contract says this tool
+#: deliberately cannot express. The description is the text the model reads when
+#: deciding how to call this, so a contract statement that is not true is worse
+#: than a narrow tool.
+SEARCHABLE_FIELDS = ("title", "event")
 
-#: A term this short carries no signal and matches most of the catalog. Dropping
-#: it is what stops "is the derby on" from behaving like a wildcard.
-MIN_TERM_LENGTH = 3
+#: A term shorter than this carries no signal and matches most of the catalog.
+#: Dropping it is what stops "is the derby on" from behaving like a wildcard.
+#:
+#: It was 3, which kept "the" — and the docstring's own worked example was the
+#: counterexample: "is the derby on" matched *The Port William Report*, which has
+#: nothing to do with the derby, on a stopword. That noise would have surfaced at
+#: M06 as a trajectory failure and been attributed to the model.
+MIN_TERM_LENGTH = 4
 
 DEFAULT_LIMIT = 5
 MAX_LIMIT = 10
@@ -60,6 +73,26 @@ def load_catalog(path: str | pathlib.Path) -> dict:
     lets the adversarial run point it at `data/catalog_poisoned.json` without a
     second code path."""
     return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+
+
+def _limit(value) -> int:
+    """Clamp at both ends, and never raise.
+
+    `min(int(value), MAX_LIMIT)` had no lower bound, so `limit: -1` became
+    `rows[:-1]` — silently dropping the last row instead of refusing. It was only
+    unreachable because the tool plane happened to be in front, and a tool that is
+    correct only because of what sits ahead of it is a tool with a bug.
+
+    The plane rejects an out-of-contract `limit` before this is reached; this
+    makes the tool total on its own, so a malformed call cannot corrupt a result
+    on any path."""
+    if value is None:
+        return DEFAULT_LIMIT
+    try:
+        requested = int(value)
+    except (TypeError, ValueError):
+        return DEFAULT_LIMIT
+    return max(1, min(requested, MAX_LIMIT))
 
 
 def _terms(query: str) -> list[str]:
@@ -95,8 +128,7 @@ def search(args: dict, catalog: dict) -> dict:
     on the request the model is most likely to send when it has no idea what to
     ask for."""
     terms = _terms(args.get("query", ""))
-    limit = args.get("limit")
-    limit = DEFAULT_LIMIT if limit is None else min(int(limit), MAX_LIMIT)
+    limit = _limit(args.get("limit"))
 
     scored = []
     for position, title in enumerate(catalog.get("titles", [])):

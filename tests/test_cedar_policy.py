@@ -203,9 +203,81 @@ def test_an_unreadable_forbid_cannot_be_dropped_while_its_permit_survives():
     """The specific shape of the above, spelled out because it is the one that
     would look like a working system: `publish-highlight` keeps a valid permit, so
     a dropped forbid would return ALLOW rather than an error."""
-    mangled = COMMITTED.replace("unless { context.approval_granted }", "when { false }")
+    mangled = COMMITTED.replace(
+        "unless { context has approval_granted && context.approval_granted == true }",
+        "when { false }")
+    assert mangled != COMMITTED, "the guard shape changed; this test no longer mangles anything"
     with pytest.raises(ValueError):
         cedar.parse(mangled)
+
+
+# --- the generator interpolates into policy text, so its inputs are validated ----
+
+@pytest.mark.parametrize("evil", [
+    'x") ; permit(principal == Service::"attacker", action == Action::"invoke", '
+    'resource == Tool::"entitlement-check',
+    'ok" ; forbid(principal, action == Action::"invoke", resource == Tool::"catalog-search',
+    "Upper-Case",
+    "has space",
+    "",
+])
+def test_a_registry_identifier_that_could_inject_policy_is_refused(evil):
+    """The finding that made this check exist.
+
+    `generate` interpolates registry strings into policy text. An id carrying a
+    quote closes the string, closes the statement and opens a new one — and the
+    injected `permit` parses cleanly, so the committed artifact still matches what
+    the registry generates and **both drift gates pass**. Review of the small
+    readable YAML would stop implying review of what it authorizes, which is the
+    property ADR-004 exists to buy."""
+    with pytest.raises(ValueError):
+        cedar.generate([{"id": evil, "consequence": "read", "callers": ["highlights-agent"]}])
+    with pytest.raises(ValueError):
+        cedar.generate([{"id": "catalog-search", "consequence": "read", "callers": [evil]}])
+
+
+def test_the_injection_would_otherwise_have_produced_a_working_permit():
+    """The positive control. Without it, the test above passes against a generator
+    that refuses everything — and would not show the refusal is load-bearing.
+
+    Built by hand rather than through `generate`, because `generate` now refuses to
+    build it. This is what the emitted text would have been."""
+    injected = COMMITTED + (
+        '\npermit(\n'
+        '  principal == Service::"attacker",\n'
+        '  action == Action::"invoke",\n'
+        '  resource == Tool::"entitlement-check"\n'
+        ');\n'
+    )
+    policies = cedar.parse(injected)
+    decision = cedar.authorize(policies, principal="attacker", action="invoke",
+                               resource="entitlement-check")
+    assert decision.allowed, (
+        "the injected statement did not grant anything, so the validation above is not "
+        "demonstrably preventing an escalation"
+    )
+
+
+def test_the_forbid_guards_its_context_access():
+    """A bare `unless { context.x }` errors on a real Cedar engine when the
+    attribute is absent, and an erroring policy is *dropped* — taking the interlock
+    with it and leaving the permit to govern. The in-process evaluator would say
+    DENY and AVP would say ALLOW, which is the one direction a divergence must
+    never run (ADR-020)."""
+    assert "context has approval_granted" in COMMITTED
+    assert "unless { context.approval_granted }" not in COMMITTED
+    for policy in POLICIES:
+        if policy.effect == "forbid":
+            assert policy.unless, "a forbid with no guard cannot be exempted or evaluated safely"
+
+
+def test_a_forbid_whose_guard_and_test_disagree_is_rejected():
+    """`context has a && context.b == true` is not a subset gap — it is a broken
+    guard that would error and drop the forbid on a real engine."""
+    broken = COMMITTED.replace("context.approval_granted == true",
+                               "context.something_else == true")
+    with pytest.raises(ValueError):
+        cedar.parse(broken)
 
 
 def test_handing_the_evaluator_raw_text_fails_loudly_rather_than_permitting():

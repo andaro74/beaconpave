@@ -113,8 +113,11 @@ def test_a_query_with_no_usable_terms_returns_nothing_rather_than_everything():
 
 
 def test_the_limit_is_honoured_and_capped():
-    assert len(search({"query": "meridian", "limit": 2}, CATALOG)["results"]) == 2
-    everything = search({"query": "meridian", "limit": MAX_LIMIT * 5}, CATALOG)["results"]
+    """The query names titles rather than leaning on the brand prefix, which is no
+    longer free text — see `test_the_brand_name_is_not_a_wildcard`."""
+    broad = "derby report nightly classic rowing"
+    assert len(search({"query": broad, "limit": 2}, CATALOG)["results"]) == 2
+    everything = search({"query": broad, "limit": MAX_LIMIT * 5}, CATALOG)["results"]
     assert len(everything) <= MAX_LIMIT
     assert len(everything) <= len(CATALOG["titles"])
 
@@ -153,12 +156,55 @@ def test_a_title_that_does_not_exist_returns_no_rows():
 
 
 def test_filters_narrow_rather_than_reorder():
-    unfiltered = {r["id"] for r in search({"query": "meridian", "limit": MAX_LIMIT}, CATALOG)["results"]}
-    news = {r["id"] for r in search({"query": "meridian", "brand": "meridian-news",
-                                     "limit": MAX_LIMIT}, CATALOG)["results"]}
+    """Note the query. `"meridian"` served as the everything-query here, and it
+    worked because `brand` was searchable free text — which is what made the input
+    schema's "cannot express give me everything" claim false. Both are fixed, and
+    the filters do the narrowing, which is what they are for."""
+    args = {"query": "report nightly derby", "limit": MAX_LIMIT}
+    unfiltered = {r["id"] for r in search(args, CATALOG)["results"]}
+    news = {r["id"] for r in search(dict(args, brand="meridian-news"), CATALOG)["results"]}
     assert news < unfiltered
     assert all(r["brand"] == "meridian-news"
-               for r in search({"query": "meridian", "brand": "meridian-news"}, CATALOG)["results"])
+               for r in search(dict(args, brand="meridian-news"), CATALOG)["results"])
+
+
+def test_the_brand_name_is_not_a_wildcard():
+    """The claim in `schema.in.json` is the text the model reads when deciding how
+    to call this tool, and it was false: `brand` and `type` were searchable free
+    text, so `"meridian"` returned all five titles and `"live"` returned three. A
+    contract statement that is not true is worse than a narrow tool."""
+    for wildcard in ["meridian", "live", "vod", "meridian-sports"]:
+        rows = search({"query": wildcard, "limit": MAX_LIMIT}, CATALOG)["results"]
+        assert len(rows) < len(CATALOG["titles"]), f"{wildcard!r} matched the whole catalog"
+
+
+def test_a_stopword_is_not_a_search_term():
+    """`MIN_TERM_LENGTH` was 3 with `>=`, which kept "the" — and the constant's own
+    worked example was the counterexample: "is the derby on" matched *The Port
+    William Report*, which has nothing to do with the derby, on a stopword."""
+    assert [r["id"] for r in search({"query": "is the derby on"}, CATALOG)["results"]] == ["t001"]
+    assert search({"query": "the"}, CATALOG)["results"] == []
+
+
+@pytest.mark.parametrize("limit,expected", [(-1, 1), (0, 1), (1, 1), (99, 5), ("abc", 5), (None, 5)])
+def test_the_limit_is_total_and_clamped_at_both_ends(limit, expected):
+    """`min(int(limit), MAX_LIMIT)` had no lower bound, so `limit: -1` became a
+    negative slice — dropping the last row rather than refusing. It was unreachable
+    only because the plane happened to be in front, and a tool that is correct only
+    because of what sits ahead of it is a tool with a bug."""
+    query = "derby report nightly classic rowing"
+    rows = search({"query": query, "limit": limit}, CATALOG)["results"]
+    assert len(rows) == expected
+
+
+def test_the_limit_constants_agree_with_the_committed_schema():
+    """Three copies of the same two numbers — here, `schema.in.json`, and
+    `schema.out.json`'s `maxItems`. Raising one alone would produce results the
+    tool plane then denies at run time: a SCHEMA refusal on a call nothing
+    rejected."""
+    assert IN_SCHEMA["properties"]["limit"]["default"] == DEFAULT_LIMIT
+    assert IN_SCHEMA["properties"]["limit"]["maximum"] == MAX_LIMIT
+    assert OUT_SCHEMA["properties"]["results"]["maxItems"] == MAX_LIMIT
 
 
 # --- the adversarial fixture ----------------------------------------------------

@@ -40,10 +40,19 @@ PLANE = toolplane.ToolPlane(policies=POLICIES, contracts=CONTRACTS)
 GOOD_ARGS = {"query": "derby", "limit": 3}
 
 
-def authorize(**kw):
+def authorize(rounds=1, **kw):
+    """Authorize through a fresh turn, which is the only path there is.
+
+    `ToolPlane` has no public `authorize`: the loop bound has to live somewhere
+    the caller cannot simply decline to increment, so `begin_turn` owns it."""
     base = dict(principal="highlights-agent", tool_id="catalog-search", args=GOOD_ARGS)
     base.update(kw)
-    return PLANE.authorize(**base)
+    turn = PLANE.begin_turn()
+    for _ in range(rounds):
+        stop = turn.begin_round()
+        if stop is not None:
+            return stop
+    return turn.authorize(**base)
 
 
 # --- the generated contract set -------------------------------------------------
@@ -192,6 +201,33 @@ def test_a_publish_class_tool_is_denied_until_an_approval_grants_it():
     assert cedar.APPROVAL_CONTEXT_KEY in denied.reasons[0]
 
 
+def test_the_plane_accepts_no_caller_shaped_context():
+    """The interlock was one dict key. `authorize` took `context: dict` and passed
+    it straight to Cedar, and the gateway's event is caller JSON — so
+    `context=event.get("context")` was the path of least resistance for whoever
+    wired it, and this file documented the recipe as "M06's path".
+
+    Structural: an approval is a typed value the gateway constructs, so there is
+    no parameter a caller can populate."""
+    import inspect
+
+    params = inspect.signature(toolplane.Turn.authorize).parameters
+    assert "context" not in params
+    assert params["approval"].annotation.startswith("Approval")
+
+
+def test_only_a_gateway_constructed_approval_releases_a_gated_call():
+    """M06's path, and the reason it is a dataclass rather than a flag: an
+    approval carries who granted it and what execution collected it, so the policy
+    can eventually bind to the *declared* approver rather than to any source."""
+    approval = toolplane.Approval(granted_by="stepfn:editorial-approver", reference="exec:abc")
+    released = authorize(tool_id="publish-highlight",
+                         args={"title_id": "t001", "headline": "H", "body": "B"},
+                         approval=approval)
+    assert released.allowed
+    assert approval.as_exemptions() == [cedar.APPROVAL_CONTEXT_KEY]
+
+
 # --- the contract is checked after authorization ---------------------------------
 
 def test_arguments_that_violate_the_contract_are_denied_by_schema():
@@ -230,10 +266,41 @@ def test_a_result_carrying_a_field_the_schema_forbids_is_denied():
 # --- the turn is bounded ----------------------------------------------------------
 
 def test_a_turn_that_exceeds_its_round_bound_is_denied():
-    """An unbounded agent loop is a cost incident waiting to happen. Enforced here
-    rather than trusted to the caller, because the caller is the thing looping."""
-    assert authorize(round_number=PLANE.max_rounds).allowed
-    over = authorize(round_number=PLANE.max_rounds + 1)
+    """An unbounded agent loop is a cost incident waiting to happen."""
+    assert authorize(rounds=PLANE.max_rounds).allowed
+    over = authorize(rounds=PLANE.max_rounds + 1)
+    assert not over.allowed
+    assert over.mechanism == toolplane.LOOP
+
+
+def test_the_bound_cannot_be_avoided_by_a_caller_that_never_advances_the_round():
+    """The finding that made `Turn` exist. The bound used to be a `round_number`
+    argument, so a caller looping with `round_number=1` was never stopped — the
+    docstring promised a control and the code provided a parameter.
+
+    A guarantee documented more strongly than the mechanism provides is the
+    failure this repo names most often."""
+    turn = PLANE.begin_turn()
+    turn.begin_round()
+    allowed = sum(
+        1 for _ in range(1000)
+        if turn.authorize(principal="highlights-agent", tool_id="catalog-search",
+                          args=GOOD_ARGS).allowed
+    )
+    assert allowed == PLANE.max_calls, (
+        f"{allowed} calls were allowed in a single round. The turn bound must hold against a "
+        "caller that simply never advances the round counter."
+    )
+
+
+def test_calls_are_bounded_as_well_as_rounds():
+    """A round carries n tool calls (PF-5), so rounds alone do not bound the work a
+    turn can ask for."""
+    turn = PLANE.begin_turn()
+    turn.begin_round()
+    for _ in range(PLANE.max_calls):
+        turn.authorize(principal="highlights-agent", tool_id="catalog-search", args=GOOD_ARGS)
+    over = turn.authorize(principal="highlights-agent", tool_id="catalog-search", args=GOOD_ARGS)
     assert not over.allowed
     assert over.mechanism == toolplane.LOOP
 
@@ -319,6 +386,18 @@ def test_the_plane_mechanisms_are_all_recordable_and_only_policy_is_cedar():
     from evals.adversarial import CEDAR_MECHANISMS
 
     for mechanism in (toolplane.POLICY, toolplane.SCHEMA, toolplane.LOOP):
-        assert mechanism in audit.MECHANISMS
-        assert mechanism in audit.POLICY_MECHANISMS
+        assert mechanism in audit.MECHANISMS, "every plane refusal must be recordable"
+
+    # The correction. The first draft put all three in POLICY_MECHANISMS and the
+    # commit message argued it was principled. It was not: that set is the
+    # adversarial suite's pass condition for nine of the ten probes, so a contract
+    # failure or a loop bound would have satisfied them — and `loop` fires when the
+    # *model* flails, which makes a probe passable by the attack being incompetent.
+    assert toolplane.SCHEMA not in audit.POLICY_MECHANISMS
+    assert toolplane.LOOP not in audit.POLICY_MECHANISMS
+    assert frozenset({"classification", "policy", "iam"}) == audit.POLICY_MECHANISMS, (
+        "POLICY_MECHANISMS is the adversarial suite's pass condition. Widening it changes what "
+        "nine probes measure and belongs in its own two-key PR, never inside a branch that will "
+        "record a score against it."
+    )
     assert set(CEDAR_MECHANISMS) == {toolplane.POLICY}
