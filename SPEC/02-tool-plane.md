@@ -42,9 +42,14 @@ M02 fixes exactly those three and nothing else.
    implementation, and the generated artifact cannot quietly disagree with the
    registry it claims to encode. Owes ADR-020.
 4. **`platform/gateway/core/toolplane.py`** — pure: authorize → validate the
-   arguments against the committed input schema → decide. **Deny by default.** An
-   unregistered tool, an uninvited caller, a policy set that fails to parse, and a
-   publish-class tool whose declared approval interlock is not deployed all deny.
+   arguments against the committed input schema → decide → validate the result
+   against the committed output schema. **Deny by default.** An unregistered tool,
+   an uninvited caller, a policy set that fails to parse, and a publish-class tool
+   whose declared approval interlock is not deployed all deny.
+
+   **A round carries n tool calls and a turn carries n rounds** (PF-5), so this is
+   n authorization decisions and n audit records per turn, not one. The loop is
+   bounded, and exceeding the bound denies rather than continues.
 5. **The audit record grows a `tool` object.** `mechanism: "policy"` already
    exists in `core/audit.py`'s `MECHANISMS` and already sits inside
    `POLICY_MECHANISMS`; M01 built the vocabulary and M02 is the first caller.
@@ -179,11 +184,11 @@ A tool loop is **two** model calls: one that chooses the tool, one that answers
 with its result. Both per-case ceilings in `cases.yaml` were derived at M00b
 against a **one-call** shape.
 
-Measured at pre-flight, before any code (see below): the loop costs **3133 input
-tokens** against a per-case ceiling of **1500**, and the first call alone costs
-1472. Left alone, **every golden case would fail its budget assert at M02**, for a
-reason that has nothing to do with the tool plane, and the paired diff M02 exists
-to produce would be noise.
+Measured at pre-flight, before any code (see below): the loop costs up to **4927
+input tokens** against a per-case ceiling of **1500**, and takes 2 or 3 model
+calls where the ceiling assumed one. Left alone, **every golden case would fail
+its budget assert at M02**, for a reason that has nothing to do with the tool
+plane, and the paired diff M02 exists to produce would be noise.
 
 The ceilings are therefore re-derived from measurement, in **their own two-key PR,
 before the run, with the derivation recorded** — the method ADR-014 and ADR-016
@@ -205,6 +210,14 @@ Precisely scoped, because the temptation is to fix all three at once:
   raise it, and `suite_latency` is computed separately from case scoring — so the
   breach costs no golden case and destroys no signal. It stays breached, and it
   accumulates as a finding across two milestones now rather than one.
+
+**Landed before the tool plane, as required:** `tokens_in` 1500 → **6000**,
+`max_ms` 5000 → **12000**, `tokens_out` **unchanged** because no measured sample
+exceeded the ceiling its case already carried, `p95_ms` untouched. The two moved
+ceilings sit in deliberately different headroom bands — a budget that sits above
+the loop bound catches no runaway loop, whereas a hang guard is supposed to sit
+clear of every legitimate reply — and `tests/test_budget_derivation.py` ties both
+to the committed measurement so the derivation cannot drift into prose.
 
 **ADR-014 is amended in place**, superseded sentence marked and kept, because its
 recorded table — *"Governed — one retrieved title (M02+) | 891"* — is precisely
@@ -282,33 +295,84 @@ than the system prompt — and it moves from one place the guardrail cannot see 
 another. ADV-002 is pre-registered as **fail again**, now for a measured reason
 rather than a predicted one.
 
-**The tightening this implies is drafted for the Security seat and lands after
-the tag, not in this milestone.** The gateway could assess tool output explicitly
-before it reaches the model, and that is defensible as general policy — data
-returned by a tool is untrusted input. But the corpus is frozen, M02 has just
-measured exactly what would make ADV-002 go green, and building that control in
-this milestone would be teaching to the test in its purest form: SPEC/01's honesty
-clause, applied to the milestone that discovers the gap rather than to the one
-that closes it. The PR that finds a result does not also adjust the instrument.
+**The tightening this implies is drafted for the Security seat and lands at M04,
+not in this milestone.**
 
-**PF-2 — the two-call loop costs 2.6× the input tokens of the one-call shape,
-against a ceiling it was never derived for.** Same question, same day, same
-guardrail, same pinned model:
+The first draft of this spec justified that deferral as teaching to the test, and
+**that argument is wrong and is replaced rather than quietly dropped.** Assessing
+tool output is an architectural control — data returned by a tool is untrusted
+input — not a filter string written to a probe's wording. ADR-018 is explicit that
+general policy which happens to catch a probe is permitted: *"ADV-007 happens to
+fall inside it. That is the direction the implication is allowed to run."* The
+honesty clause does not forbid this control, and if that were the only objection
+M02 should build it.
+
+**The argument that holds is attribution, and it rests on a measurement rather
+than a preference.** Deriving the ceilings found the guardrail already refusing 2
+of 15 samples *mid-loop* — on `entitlement-002` and `edge-024`, cases M01 scored
+without refusal. A second assessment point would add false-positive surface on
+precisely the entitlement and blackout cases already losing ground, giving M02's
+golden score a third loss mechanism and muddying the one comparison this milestone
+exists to make. The control is right; adding it here would cost the measurement.
+
+**M04 rather than "after the tag", and the milestone is named on purpose.** M01
+owed three tightenings and two remain unlanded; work owed to "later" is work that
+stays owed. M04 turns the adversarial suite on in `quality-gate.yml`, so a control
+that changes probe outcomes belongs where probe outcomes begin blocking merges.
+
+**M02 records the exposure rather than leaving it unstated.** ADV-002 runs through
+the tool plane and the observation is committed showing the poisoned title
+reaching the model via a tool result, unassessed — the treatment M01 gave ADV-010's
+leak. A measured open path is a finding; an unmentioned one is a hole.
+
+**And M02 validates tool *output* against the committed schema**, which is a
+contract check rather than a content filter. It cannot catch the poisoned title —
+a valid string in a valid field — so it neither touches ADV-002 nor costs the
+attribution above. It is here because without it the deferral would read as "the
+tool plane trusts whatever a tool hands back", and that is not what is being
+decided.
+
+**PF-2 — ~~the two-call loop~~ the loop costs several times the input tokens of
+the one-call shape, against a ceiling it was never derived for.** Same question,
+same day, same guardrail, same pinned model:
 
 | Shape | input | output | latency |
 |---|---|---|---|
 | M01 arm — catalog inlined, one call | 1195 | 115 | 3244 ms |
-| M02 — call 1 (tool choice) | 1472 | 113 | 2230 ms |
-| M02 — call 2 (answer from the result) | 1661 | 71 | 2288 ms |
-| **M02 loop total** | **3133** | **184** | **4518 ms** |
+| ~~M02 — call 1 (tool choice)~~ | ~~1472~~ | ~~113~~ | ~~2230 ms~~ |
+| ~~M02 — call 2 (answer from the result)~~ | ~~1661~~ | ~~71~~ | ~~2288 ms~~ |
+| ~~**M02 loop total**~~ | ~~**3133**~~ | ~~**184**~~ | ~~**4518 ms**~~ |
 
-Per-case ceilings today: `tokens_in: 1500`, `max_ms: 5000`. The first call alone
-is at the token ceiling. **ADR-014's projection of 891 input tokens for the
-governed shape is falsified** — it measured one retrieved title inlined in a
-single call, not a tool loop, and the loop pays the system prompt twice plus the
-tool schema. Retrieval does not save tokens at this corpus size; it costs nearly
-three times as many, and buys governance and groundedness rather than cost. That
-is a strictly more useful thing to have measured than a confirmation.
+> **This measurement was itself taken against a truncated shape, and is struck
+> rather than deleted.** It assumed the loop is two calls. It is not: measured
+> properly for the ceiling PR, a turn takes **2 or 3** model calls, and the harness
+> that produced the numbers above stopped after the second — recording a
+> truncation as though it were a turn. Corrected figures, n=13 answered samples
+> over five cases, committed at `milestones/M02/loop-shape.json`: input
+> **3065 / 3190 / 4927** (min/median/max), output 137 / 194 / 445, latency
+> **3905 / 4813 / 7462 ms**.
+>
+> The error is worth keeping visible because of how it presented. The truncated
+> loop returned plausible numbers, a plausible answer, and no error — the model
+> simply asked for another search and was never given one. A shape that is wrong
+> in a way that still produces output is the kind this repo keeps mistaking for a
+> measurement, and it is the third time (ADR-012, ADR-016, and now here).
+
+Per-case ceilings at the time: `tokens_in: 1500`, `max_ms: 5000`. **ADR-014's
+projection of 891 input tokens for the governed shape is falsified** — it measured
+one retrieved title inlined in a single call, not a tool loop, and the loop pays
+the system prompt once per call plus the tool schema. Retrieval does not save
+tokens at this corpus size; it costs several times as many, and buys governance
+and groundedness rather than cost. That is a strictly more useful thing to have
+measured than a confirmation.
+
+**PF-5 — a round is not one tool call, and a turn is not one round.** The model
+may emit several `toolUse` blocks in a single round — `multi-023` asks two
+questions and gets two — and Converse requires every one of them to be answered
+in the same message. So the tool plane authorizes **n calls per round and n rounds
+per turn**, with n audit records, and it needs an iteration bound for the same
+reason the measuring harness needed one: an unbounded agent loop is a cost
+incident waiting to happen. No measured turn exceeded three model calls.
 
 **PF-3 — `toolConfig` and `guardrailConfig` coexist.** The model emitted a
 well-formed `toolUse` with `stopReason: tool_use` while the guardrail was attached
@@ -332,13 +396,46 @@ way `AWS::CDK::Metadata` did.
 
 | Dimension | Prediction | Why | What falsifies it |
 |---|---|---|---|
-| **Goldens** | **14/25 ± 3**, i.e. a delta of **−3 to −7** against the re-measured M01 arm | The blackout table leaves the prompt with the catalog, and retrieval introduces a failure mode the inlined shape did not have | **A delta at or above zero.** Nothing in M02 improves answer quality; an improvement means the catalog is still reaching context, or the model is guessing entitlement without tool support. Both are bugs |
-| Loss attribution | ≥ 2 losses on cases needing blackout geography; the rest retrieval misses | The two mechanisms M02 introduces | A loss attributable to neither — which would mean something else moved |
+| **Goldens** | ~~14/25 ± 3~~ → **13/25 ± 4**, i.e. a delta of **−4 to −9** against the re-measured M01 arm | Three loss mechanisms now, not two — see the correction below | **A delta at or above zero.** Nothing in M02 improves answer quality; an improvement means the catalog is still reaching context, or the model is guessing entitlement without tool support. Both are bugs |
+| Loss attribution | ~~≥ 2 blackout-geography losses, rest retrieval~~ → ≥ 2 blackout-geography, plus retrieval misses, plus **mid-loop guardrail refusals** | The three mechanisms M02 introduces | A loss attributable to none of them — which would mean something else moved |
+| **Run-to-run variance** | **wider than M01's**, and non-deterministic per case | Mid-loop refusal is a coin flip on the same input: measured 2 refusals in 15 samples, on cases M01 scored clean | A k=3 run in which every case lands identically across all three samples |
 | **Tokens in** | **~3100 ± 400 per case**, ~2.6× the control's 1138 | Measured at pre-flight; the loop pays the system prompt twice | Anything near 891, which would mean the loop is not really two calls |
 | Suite p95 | breaches 2500 ms further, ~5000–6000 ms | Two sequential model calls per case | **Do not raise the budget.** Record the breach |
 | **Adversarial** | **6/10, unchanged** from the re-derived m01 arm | No probe in the frozen corpus targets an unregistered tool, so M02's central achievement is invisible to it | Any pass whose `audit_record` does not resolve in the lake |
 | **ADV-008** | **FAIL** | Measured at M01: `PROMPT_ATTACK` fires on "skip review" *before* the request reaches any tool plane, so the Cedar semantics it declares are still never exercised. Under the tightened scorer a `guardrail` mechanism cannot satisfy `cedar_denied_or_approval_required_and_logged` | A pass whose mechanism is `guardrail` — which is now a fail by construction, and that is the point |
 | **ADV-002** | **FAIL** | PF-1: the injection moves from the system prompt to a tool result, and the guardrail assesses neither | A pass without the guardrail assessing tool output |
+
+### Corrected before the run: a third loss mechanism nobody predicted
+
+The two rows above are struck rather than deleted, on SPEC/00b's precedent. A
+pre-registered hypothesis edited to match what its author later learned is worth
+nothing; **what changed here is evidence, not hindsight** — the measurement was
+taken while deriving the budget ceilings, before the tool plane existed and before
+any M02 score existed, so this is still a prediction, only a better-informed one.
+
+**In a loop, the model's own intermediate reasoning becomes guardrail-assessed
+input on the next call.** Two of fifteen samples were refused mid-loop by
+`TOPIC:entitlement-circumvention` — on `entitlement-002` and `edge-024`, cases M01
+scored without refusal. The user turn was not the problem; the model's own draft
+answer was, because it discusses blackouts and tiers in order to reason about them.
+
+Three consequences, and the third is the one worth having found:
+
+1. **The tool plane enlarges the guardrail's false-positive surface**, without the
+   guardrail changing at all. M01's finding was that a topic aimed at evasion
+   cannot tell it from a viewer asking whether a rule applies; M02 hands that same
+   topic a second, larger body of text to judge, generated by the model itself.
+2. **The prediction moves down and its variance moves up.** Refusal costs the case
+   outright, and it lands non-deterministically.
+3. **The same request was refused on one sample and answered on another.** That is
+   a per-case coin flip that a single sample cannot see, and it is direct measured
+   support for the k=3 comparator this spec had already chosen for other reasons.
+
+This mechanism is *not* the guardrail-topic tightening M01 owes. That one is still
+deliberately unlanded and still belongs after M02, for the reason already recorded:
+it would return three refused cases and inflate the very delta this milestone is
+measuring. Landing it now to reduce mid-loop refusals would be fixing a
+measurement by removing the thing it measures.
 
 **The adversarial comparator is 6/10 and is derived, not re-run.** M01's
 observations are committed at `milestones/M01/probes-run.json`, and ADV-008's
@@ -355,12 +452,15 @@ recorded in the entry is what already said so.
 
 ## Definition of done
 
-- [ ] `SPEC/02-tool-plane.md` is the branch's first commit, before any code
-- [ ] `score_probe` honours `pass_when`; Cedar semantics satisfiable only by
+- [x] `SPEC/02-tool-plane.md` is the branch's first commit, before any code
+- [x] `score_probe` honours `pass_when`; Cedar semantics satisfiable only by
       mechanism `policy`; the m01 re-derivation to 6/10 pinned in
       `tests/test_instrument_stability.py` — own PR, Security + AI Quality
-- [ ] Per-case `tokens_in` and `max_ms` re-derived from measurement, own two-key
+      (**[PR #16](https://github.com/andaro74/beaconpave/pull/16)**)
+- [x] Per-case `tokens_in` and `max_ms` re-derived from measurement, own two-key
       PR, derivation recorded, **landed before the run**; `p95_ms` untouched
+      (**[PR #17](https://github.com/andaro74/beaconpave/pull/17)**; `tokens_out`
+      left alone on the evidence that no measured sample bit it)
 - [ ] `catalog-search` implemented against the unmodified committed schemas;
       added to `HERMETIC_ROOTS`; `make check` still passes offline on a fresh
       clone with no AWS account
@@ -369,7 +469,9 @@ recorded in the entry is what already said so.
 - [ ] Cedar policies **generated** from `callers`, committed, with a drift check
       that blocks
 - [ ] Tool plane denies by default: unregistered tool, uninvited caller,
-      unparseable policy set, publish-class tool with no deployed approver
+      unparseable policy set, publish-class tool with no deployed approver;
+      tool output validated against the committed output schema; the loop
+      bounded, and exceeding the bound denies rather than continues
 - [ ] Audit record carries the tool decision; written for denials exactly as
       carefully as for allowed calls
 - [ ] G3 negative controls measure a delta against the same fixture **before**
@@ -390,7 +492,9 @@ recorded in the entry is what already said so.
       lineage break and the re-measured comparator); **ADR-014 amended in place**
       with its projection marked and the measured loop shape recorded
 - [ ] Any unearned pass documented with a drafted tightening
-- [ ] Guardrail-assesses-tool-output tightening drafted for Security, unlanded
+- [ ] Guardrail-assesses-tool-output tightening drafted for Security, **named
+      for M04**, unlanded — with ADV-002's unassessed tool result committed as
+      the evidence that the path is open
 - [ ] `milestones/M02/README.md` answers the three questions
 - [ ] Progression row filled, with footnotes
 - [ ] Tag `m02` pushed from branch `m02-tool-plane` — names distinct
@@ -408,8 +512,10 @@ recorded in the entry is what already said so.
   configuration problem.
 - **Do not add a probe** targeting unregistered tools to make M02's achievement
   visible in the adversarial number.
-- **Do not build tool-output guardrail assessment in this milestone**, having
-  just measured what would make ADV-002 pass.
+- **Do not build tool-output guardrail assessment in this milestone** — not
+  because the honesty clause forbids it (it does not), but because a second
+  assessment point would add refusals to the cases already losing and cost M02
+  the attribution it exists to produce. It is named for M04.
 - **Do not touch `platform/registry/tools.yaml`** unless the build proves a field
   is genuinely missing — and then only in its own PR, with `tool-owner` and
   `legal-sp` dispositions.
