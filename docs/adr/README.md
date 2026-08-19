@@ -28,6 +28,7 @@ is worth less than one that shows where it was corrected.
 | ADR-019 | MCP implemented as messages over one `dispatch`; transports are adapters, and no transport can authorize | AgentCore Gateway or a hosted MCP server per tool, same messages over HTTP |
 | ADR-020 | Policies are real Cedar; the evaluator is a stdlib subset over a closed, generated grammar | Amazon Verified Permissions, evaluating the identical policy text |
 | ADR-022 | No third-party dependency in the gateway bundle; subsets bounded by coverage + differential tests | A bundled runtime from a lockfile; the same library validates everywhere and the subsets are deleted |
+| ADR-023 | The Cedar principal is deployment configuration, never the caller's `service` field | A caller identity the platform verifies rather than receives, mapped to the registry's `callers` |
 | ADR-012 | Control scored deterministically; judge arrives at M03 *(amended in place 2026-08-15: M00b builds the runner)* | Sequencing, not a cut — the discipline is the same at scale |
 | ADR-013 | G9 enforced as a checked attestation, not a review | Teams + code-owner review; same path list, check retained as a filter |
 | ADR-014 | Budgets denominated in tokens; dollars rendered at report time *(amended in place at M02: `tokens_in` and `max_ms` re-derived for a tool loop, which makes a turn n model calls; the 891-token governed projection struck as a measurement of the wrong shape)* | Same ceilings per tenant; rate table refreshed on the provider's price feed |

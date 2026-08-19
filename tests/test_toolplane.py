@@ -373,9 +373,31 @@ def test_a_tool_denial_record_conforms_to_the_audit_schema():
         decision="denied", mechanism=decision.mechanism,
         model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
         tool=decision.as_record_fragment(round_number=1, args=GOOD_ARGS),
+        seq=1,
     )
     jsonschema.validate(record, schema)
     assert record["tool"]["mechanism"] == toolplane.POLICY
+    assert record["record_id"].endswith(".001.json"), (
+        "a tool-call record must carry its call ordinal in the key. A turn writes "
+        "several records under one request_id, and without the ordinal they share a "
+        "key: on a versioned bucket that collision is silent, and every record but "
+        "the last is behind it."
+    )
+
+
+def test_a_tool_call_record_without_its_ordinal_is_refused():
+    """The counterweight to the assertion above, which a builder that ignored
+    `seq` would still satisfy on the happy path. This is the case that actually
+    loses evidence, so it is refused at build time rather than found in the lake."""
+    from core import audit
+
+    with pytest.raises(ValueError, match="needs a `seq`"):
+        audit.build_record(
+            request_id="probe-1", ts="2026-08-18T00:00:00Z", principal="p",
+            service="highlights-agent", classification="internal",
+            decision="denied", mechanism=toolplane.POLICY, model_id="m",
+            tool=authorize(tool_id="catalog-purge").as_record_fragment(round_number=1),
+        )
 
 
 def test_a_record_cannot_say_the_turn_was_allowed_while_its_tool_call_was_denied():
@@ -389,6 +411,7 @@ def test_a_record_cannot_say_the_turn_was_allowed_while_its_tool_call_was_denied
             service="highlights-agent", classification="internal",
             decision="allowed", mechanism="none", model_id="m",
             tool=authorize(tool_id="catalog-purge").as_record_fragment(round_number=1),
+            seq=1,
         )
 
 

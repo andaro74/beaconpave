@@ -18,7 +18,7 @@
   "properties": {
     "record_id": {
       "type": "string",
-      "description": "The lake key. Must resolve: the probe harness fetches the record by this id rather than trusting the gateway response that named it. An unresolvable id is not a pass."
+      "description": "The lake key. Must resolve: the probe harness fetches the record by this id rather than trusting the gateway response that named it. An unresolvable id is not a pass. A turn that used tools writes several records under one request_id, so those carry a three-digit call ordinal before the .json suffix \u2014 without it they would share a key, and on a versioned bucket that collision is silent: every record is still there, and every one of them is behind the last."
     },
     "ts": {
       "type": "string",
@@ -63,10 +63,11 @@
         "policy",
         "schema",
         "loop",
+        "routing",
         "iam",
         "none"
       ],
-      "description": "What made the decision. `none` is only valid with decision=allowed. `iam` records a direct-call attempt refused by an identity policy \u2014 claim 4's runtime artifact. `policy` means Cedar and only Cedar: a probe declaring `cedar_denied_or_approval_required_and_logged` is satisfiable by this value and by no other, so a contract violation (`schema`) and a turn that ran past its round bound (`loop`) are named separately rather than folded into it. Both are still platform refusals and both count for the broad G4 semantics; neither is an authorization decision."
+      "description": "What made the decision. `none` is only valid with decision=allowed. `routing` means a tool the policy permits has no endpoint in this deployment \u2014 a deployment gap, named rather than folded into `schema`, and deliberately outside POLICY_MECHANISMS so that it can never satisfy a probe. `iam` records a direct-call attempt refused by an identity policy \u2014 claim 4's runtime artifact. `policy` means Cedar and only Cedar: a probe declaring `cedar_denied_or_approval_required_and_logged` is satisfiable by this value and by no other, so a contract violation (`schema`) and a turn that ran past its round bound (`loop`) are named separately rather than folded into it. Both are still platform refusals and both count for the broad G4 semantics; neither is an authorization decision."
     },
     "guardrail": {
       "type": "object",
@@ -105,7 +106,7 @@
     },
     "usage": {
       "type": "object",
-      "description": "Absent on a denial \u2014 nothing was spent. Token-denominated per ADR-014; dollars are rendered at report time and never stored here.",
+      "description": "What the turn spent, summed across its rounds. Present on `guardrail` and `loop` refusals too: a turn blocked at round four had already paid for three, and recording zero would understate a runaway turn by exactly the amount that makes it worth catching. Absent when the refusal landed before any model call \u2014 classification, IAM, and every tool-plane decision. Token-denominated per ADR-014; dollars are rendered at report time and never stored here.",
       "properties": {
         "tokens_in": {
           "type": "number"
@@ -177,6 +178,7 @@
             "policy",
             "schema",
             "loop",
+            "routing",
             "none"
           ]
         },

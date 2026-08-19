@@ -254,6 +254,40 @@ recorded table — *"Governed — one retrieved title (M02+) | 891"* — is prec
 what this measurement falsifies. A new ADR would leave ADR-014 reading as though
 it had always been right, which the ADR README forbids in as many words.
 
+### What a refused turn costs, and where that number is allowed to land
+
+Decided here because deciding it after the run would be deciding it having seen
+which way it cut.
+
+A refusal used to be free. At M01 a turn was one `converse` call, the gateway
+recorded no `usage` on a block, and `run_via_gateway.py` reported
+`{0, 0, 0}` for a refused case. With a tool loop that premise is gone: a turn
+blocked at round four has already paid for three, and a `loop` denial has paid
+for all of them. The audit record now carries that spend — the flat "no usage on
+a refusal" rule was replaced by one keyed on the mechanism, so a refusal that
+landed *before* any model call still may not claim spend, and one that landed
+after must.
+
+**The run harness keeps reporting zeros for a refused case, and the budget axis
+is unchanged.** Three reasons, in the order they matter:
+
+- A refused case already scores FAIL on its content asserts. Charging it a budget
+  failure as well double-counts one event, and the budget axis would start
+  reporting the guardrail's false-positive rate in a column labelled cost.
+- It would change what the axis measures between the two arms, in the middle of
+  the one comparison the milestone exists to make. The M01 arm is frozen; if the
+  M02 arm scored refusals differently, part of the delta would be the
+  instrument — ADR-016 exactly.
+- The number is not lost. It is in the lake, on the record for the refused turn,
+  which is where cost belongs and where a reader looking for the cost of
+  governance would go.
+
+So the cost of a refusal is **recorded and not scored**, the same disposition
+tool trajectories get, for the same reason: it is evidence about the system, and
+turning it into a score changes what the score means without announcing it. If
+M03 wants a "spend on refused turns" number, it is a new axis with its own
+threshold and its own two-key PR, computed from records that already exist.
+
 ## G3's proof artifact: static and runtime
 
 Claim 4 got a pair at M01 and the spec said so rather than letting the weaker half
@@ -576,19 +610,24 @@ recorded in the entry is what already said so.
       PR, derivation recorded, **landed before the run**; `p95_ms` untouched
       (**[PR #17](https://github.com/andaro74/beaconpave/pull/17)**; `tokens_out`
       left alone on the evidence that no measured sample bit it)
-- [ ] `catalog-search` implemented against the unmodified committed schemas;
+- [x] `catalog-search` implemented against the unmodified committed schemas;
       added to `HERMETIC_ROOTS`; `make check` still passes offline on a fresh
       clone with no AWS account
-- [ ] MCP surface exposes `tools/list` and `tools/call` and holds **no**
-      authorization logic
-- [ ] Cedar policies **generated** from `callers`, committed, with a drift check
+- [x] MCP surface exposes `tools/list` and `tools/call` and holds **no**
+      authorization logic; deployed as its own function with its own role, and
+      the gateway holds `lambda:InvokeFunction` on that function and no other
+- [x] Cedar policies **generated** from `callers`, committed, with a drift check
       that blocks
-- [ ] Tool plane denies by default: unregistered tool, uninvited caller,
+- [x] Tool plane denies by default: unregistered tool, uninvited caller,
       unparseable policy set, publish-class tool with no deployed approver;
       tool output validated against the committed output schema; the loop
-      bounded, and exceeding the bound denies rather than continues
-- [ ] Audit record carries the tool decision; written for denials exactly as
-      carefully as for allowed calls
+      bounded, and exceeding the bound denies rather than continues. Asserted
+      through the loop as well as the plane, because the plane being right does
+      not prove it is asked before the tool runs
+- [x] Audit record carries the tool decision; written for denials exactly as
+      carefully as for allowed calls. One record per call plus one per turn, and
+      the call ordinal is in the key — without it a turn's records share one and
+      a versioned bucket hides the collision
 - [ ] G3 negative controls measure a delta against the same fixture **before**
       planting
 - [ ] Unregistered-tool denial demonstrated at runtime, audit record **fetched
@@ -604,10 +643,12 @@ recorded in the entry is what already said so.
 - [ ] Tool trajectories recorded; none scored
 - [ ] `entitlement_source` and `expect_tool_before_answer` still deferred
 - [ ] Scores recorded — two-key, disposition and rationale in the PR body
-- [ ] ADR-019 (MCP transport), ADR-020 (Cedar evaluation), ADR-021 (the prompt
-      lineage break and the re-measured comparator), ADR-022 (no third-party deps
-      in the gateway bundle); **ADR-014 amended in place** with its projection
-      marked and the measured loop shape recorded
+- [ ] ADR-019 (MCP transport, amended in place once the tool actually deployed),
+      ADR-020 (Cedar evaluation), ADR-021 (the prompt lineage break and the
+      re-measured comparator), ADR-022 (no third-party deps in the gateway
+      bundle), ADR-023 (the Cedar principal is deployment configuration, never
+      the caller's `service` field); **ADR-014 amended in place** with its
+      projection marked and the measured loop shape recorded
 - [x] Seat review before the deploy: Platform Engineering, Security, Tool Owner
       and AI Quality each read the diff from their seat. All four found real
       defects, five of them blocking, and every one was closed before any score

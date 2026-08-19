@@ -60,6 +60,19 @@ POLICY = "policy"
 SCHEMA = "schema"
 LOOP = "loop"
 
+#: The policy permits a tool this deployment has no endpoint for. Not a plane
+#: decision — the plane is pure and knows nothing about endpoints — but the name
+#: lives here with the others so the set of things that can refuse a tool call is
+#: readable in one place.
+#:
+#: **Named rather than folded into `schema`.** The registry lists three tools and
+#: M02 deploys one, so "permitted but not deployed" is a state the system is
+#: actually in, and calling it a contract violation would file a deployment gap as
+#: a drift alarm — a reader chasing the wrong thing, in the lake, months later.
+#: Like `schema` and `loop` it is deliberately outside `audit.POLICY_MECHANISMS`:
+#: a tool that is merely absent has refused nobody.
+ROUTING = "routing"
+
 #: JSON Schema keywords this validator implements. A committed tool schema using
 #: anything else fails `test_every_tool_schema_stays_inside_the_supported_subset`
 #: — at check time, where it is a five-minute conversation, rather than at run

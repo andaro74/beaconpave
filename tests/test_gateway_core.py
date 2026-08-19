@@ -78,11 +78,14 @@ def test_every_record_the_builder_produces_validates(overrides):
         ({"decision": "allowed", "mechanism": "guardrail"}, "was not refused"),
         ({"classification": "sensitive", "decision": "allowed", "mechanism": "none"},
          "G5 refuses it by design"),
-        ({"decision": "blocked", "mechanism": "guardrail",
-          "usage": {"tokens_in": 10, "tokens_out": 2, "latency_ms": 5}}, "nothing was spent"),
+        ({"decision": "denied", "mechanism": "classification",
+          "usage": {"tokens_in": 10, "tokens_out": 2, "latency_ms": 5}}, "nothing had been spent"),
+        ({"decision": "denied", "mechanism": "policy",
+          "usage": {"tokens_in": 10, "tokens_out": 2, "latency_ms": 5}}, "nothing had been spent"),
         ({"decision": "sideways", "mechanism": "none"}, "unknown decision"),
     ],
-    ids=["blocked-by-nothing", "allowed-yet-refused", "sensitive-allowed", "spend-on-refusal", "bad-decision"],
+    ids=["blocked-by-nothing", "allowed-yet-refused", "sensitive-allowed",
+         "spend-before-the-model", "spend-on-a-plane-denial", "bad-decision"],
 )
 def test_self_contradictory_records_are_refused(overrides, fragment):
     """A lake full of self-inconsistent records is worse than an empty one: it
@@ -93,6 +96,53 @@ def test_self_contradictory_records_are_refused(overrides, fragment):
 
 def test_record_key_is_date_partitioned():
     assert audit.record_key(TS, "svc", "req-9") == "2026-09-13/svc/req-9.json"
+
+
+def test_a_refusal_that_happened_after_the_model_may_record_what_it_spent():
+    """The correction M02's tool loop forced, and the reason it is not a
+    relaxation.
+
+    The old rule was flat: no usage on a refusal, because "nothing was spent".
+    That was true when a turn was one `converse` call. A turn now runs several
+    rounds, so a guardrail block at round four has already paid for three and a
+    `loop` denial has paid for all of them — and recording zero would understate a
+    runaway turn by exactly the amount that makes it worth catching. The invariant
+    is *the record must not claim spend that did not happen*; forbidding the
+    record of spend that did happen protects nothing and hides the cost of the
+    control.
+
+    The parametrized cases above hold the other direction, which is now stricter
+    than it was: a refusal that landed before any model call may not carry usage,
+    and that is checked on the mechanism rather than on the decision."""
+    spend = {"tokens_in": 4834, "tokens_out": 210, "latency_ms": 5951}
+    for mechanism in ("guardrail", "loop"):
+        record = a_record(decision=("blocked" if mechanism == "guardrail" else "denied"),
+                          mechanism=mechanism, usage=spend)
+        assert record["usage"] == spend
+        jsonschema.validate(record, AUDIT_SCHEMA)
+
+
+def test_the_spend_rule_names_every_mechanism_that_can_follow_a_model_call():
+    """A list of names is only a boundary if something checks it against reality.
+
+    `SPENDING_MECHANISMS` is the set of refusals that can happen *after* the model
+    was reached. Every other mechanism refuses before it, so the two sets must
+    partition `MECHANISMS` — a mechanism in neither would be one nobody decided
+    about, and the decision would fall out of whichever branch ran first."""
+    assert audit.SPENDING_MECHANISMS <= audit.MECHANISMS
+    pre_model = audit.MECHANISMS - audit.SPENDING_MECHANISMS
+    assert pre_model == {"classification", "policy", "schema", "routing", "iam"}
+
+
+def test_a_tool_call_record_carries_its_ordinal_in_the_key():
+    """Several records share one `request_id` once a turn uses tools. Without the
+    ordinal they share a lake key, and a versioned bucket makes that collision
+    silent: every record is still there, and every one of them is behind the
+    last."""
+    assert audit.record_key(TS, "svc", "req-9", 3) == "2026-09-13/svc/req-9.003.json"
+    assert audit.record_key(TS, "svc", "req-9", 12) == "2026-09-13/svc/req-9.012.json"
+    keys = {audit.record_key(TS, "svc", "req-9", n) for n in range(1, 13)}
+    assert len(keys) == 12, "two calls in one turn resolved to the same key"
 
 
 # --- G4: the observation is derived from the record --------------------------

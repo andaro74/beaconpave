@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import * as bedrock from 'aws-cdk-lib/aws-bedrock';
@@ -37,6 +38,57 @@ const MODEL_INVOKE_ACTIONS = [
   'bedrock:Converse',
   'bedrock:ConverseStream',
 ];
+
+/** Repository root, from `platform/infra/lib`. */
+const REPO = path.join(__dirname, '..', '..', '..');
+
+/**
+ * The registry id, used verbatim as the Cedar resource, the MCP tool name, and
+ * the model-facing name in `toolConfig`. One identifier end to end, so there is
+ * no mapping layer to get out of step (ADR-019).
+ */
+const CATALOG_SEARCH = 'catalog-search';
+
+/**
+ * Stage the tool's Lambda bundle: its own source, plus the catalog fixture it
+ * serves.
+ *
+ * **Local bundling, so `cdk synth` needs no Docker** and CI's freshness job keeps
+ * working on a runner with none. It is a file copy; the reason it exists at all
+ * is that `data/catalog.json` lives outside the tool directory and must not be
+ * duplicated into it — two copies of a fixture is two things to update, and the
+ * deployed one would be the stale one.
+ *
+ * The catalog lands at the bundle root and `BEACONPAVE_CATALOG` points at it, so
+ * the deployed tool reports it through `serverInfo` exactly as the local one
+ * does. **Which catalog is served is deployment configuration**, never a request
+ * parameter: a tool whose data source can move per call is an instrument that can
+ * move without a commit (ADR-018), and the adversarial fixture is reached by
+ * deploying it, not by asking for it.
+ */
+function stageToolBundle(source: string, outputDir: string): boolean {
+  fs.cpSync(source, outputDir, {
+    recursive: true,
+    filter: (from) => !from.includes('__pycache__'),
+  });
+  fs.copyFileSync(path.join(REPO, 'data', 'catalog.json'), path.join(outputDir, 'catalog.json'));
+  return true;
+}
+
+function toolCode(toolDir: string): lambda.AssetCode {
+  const source = path.join(REPO, 'tools', toolDir);
+  return lambda.Code.fromAsset(source, {
+    // Hashed on the OUTPUT, not the source: the catalog is copied in from
+    // outside the source directory, so a source hash would not move when the
+    // fixture did — and the deployed tool would go on serving the old one with
+    // nothing printing differently.
+    assetHashType: cdk.AssetHashType.OUTPUT,
+    bundling: {
+      image: lambda.Runtime.PYTHON_3_12.bundlingImage,
+      local: { tryBundle: (outputDir: string) => stageToolBundle(source, outputDir) },
+    },
+  });
+}
 
 export class GatewayStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -207,6 +259,56 @@ export class GatewayStack extends cdk.Stack {
     gatewayFn.grantInvoke(serviceRole);
 
     // --- claim 4's runtime artifact ----------------------------------------
+    // --- the tool plane's one deployed tool (M02) --------------------------
+    // Its own function, with its own role. The process boundary that matters is
+    // not the one around an MCP subprocess — ADR-019 rejected that — it is this
+    // one: the tool's role is separate from the gateway's, so the gateway holds
+    // `lambda:InvokeFunction` on exactly the tools the registry names, and the
+    // tool holds nothing at all.
+    const catalogSearchFn = new lambda.Function(this, 'CatalogSearchFn', {
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'server.handler',
+      code: toolCode(CATALOG_SEARCH),
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 256,
+      environment: {
+        // Deployment configuration, and the only way the served catalog moves.
+        BEACONPAVE_CATALOG: '/var/task/catalog.json',
+      },
+    });
+
+    // The tool reaches no model, and says so explicitly rather than relying on
+    // the absence of a grant. Same argument as the service role below: absence
+    // already denies, but a Deny survives a later careless grant — and a tool
+    // that could call a model would be a second control point, which is the one
+    // thing G1 is a singular noun about.
+    catalogSearchFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.DENY,
+        actions: MODEL_INVOKE_ACTIONS,
+        resources: ['*'],
+      }),
+    );
+
+    // G3 at the infrastructure layer. Until this line, G3 rested entirely on the
+    // plane: a caller that could reach the tool function directly would be a
+    // route nobody authorized, and ADR-019 said so in as many words while the
+    // grant did not yet exist. Narrow by construction — `grantInvoke` names this
+    // one function, so a tool added to the registry and not deployed is not
+    // reachable by a wildcard that happened to already cover it.
+    catalogSearchFn.grantInvoke(gatewayFn);
+
+    // The routing table, and the gateway derives its offered tool set from it, so
+    // it cannot advertise a tool it has no way to call.
+    gatewayFn.addEnvironment('TOOL_FUNCTIONS', cdk.Fn.toJsonString({
+      [CATALOG_SEARCH]: catalogSearchFn.functionName,
+    }));
+
+    // The Cedar principal, from the stack rather than from the request. See
+    // `SERVICE_PRINCIPAL` in `platform/gateway/handler.py`: a caller that picks
+    // its own principal picks its own policies.
+    gatewayFn.addEnvironment('SERVICE_PRINCIPAL', 'highlights-agent');
+
     const probeFn = new lambda.Function(this, 'DirectCallProbeFn', {
       runtime: lambda.Runtime.PYTHON_3_12,
       handler: 'direct_call.handler',
@@ -221,6 +323,11 @@ export class GatewayStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'AuditLakeBucket', { value: auditLake.bucketName });
     new cdk.CfnOutput(this, 'GatewayFunctionName', { value: gatewayFn.functionName });
     new cdk.CfnOutput(this, 'DirectCallProbeFunctionName', { value: probeFn.functionName });
+    // Published so a harness can *attempt* the direct tool invocation the plane
+    // is supposed to make pointless. Security pre-registered that probe for M04
+    // against the frozen corpus; the name is here because discovering a resource
+    // from stack outputs beats pasting one that still resolves after a redeploy.
+    new cdk.CfnOutput(this, 'CatalogSearchFunctionName', { value: catalogSearchFn.functionName });
     // Output ids must not collide with construct ids in the same stack, which is
     // why this is not simply `GuardrailVersion`.
     new cdk.CfnOutput(this, 'PinnedGuardrailId', { value: guardrail.attrGuardrailId });

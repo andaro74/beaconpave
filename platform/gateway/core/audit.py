@@ -39,13 +39,42 @@ from __future__ import annotations
 POLICY_MECHANISMS = frozenset({"classification", "policy", "iam"})
 
 DECISIONS = frozenset({"allowed", "blocked", "denied"})
-MECHANISMS = frozenset({"classification", "guardrail", "policy", "schema", "loop", "iam", "none"})
+MECHANISMS = frozenset({
+    "classification", "guardrail", "policy", "schema", "loop", "routing", "iam", "none",
+})
+
+#: Mechanisms that can honestly accompany recorded spend, because by the time they
+#: refused, the model had already been reached.
+#:
+#: **This replaces a flat "no usage on a refusal" rule, and the replacement is a
+#: correction rather than a relaxation.** That rule encoded "nothing was spent",
+#: which was true when a turn was one `converse` call. A turn now runs several
+#: rounds, so a guardrail block at round four has spent three full rounds and a
+#: `loop` denial has spent all of them — and recording zero would understate a
+#: runaway turn by exactly the amount that makes it worth catching. The invariant
+#: being protected is *the record must not claim spend that did not happen*; a
+#: rule that also forbids recording spend that did happen protects nothing.
+#:
+#: It is stricter in the other direction: a `policy`, `schema`, `routing` or
+#: `classification` refusal carrying usage is now refused outright, where the old
+#: rule only looked at `decision`.
+SPENDING_MECHANISMS = frozenset({"none", "guardrail", "loop"})
 
 
-def record_key(ts: str, service: str, request_id: str) -> str:
+def record_key(ts: str, service: str, request_id: str, seq: int | None = None) -> str:
     """The lake key. Date-partitioned so a probe run can be found by when it ran
-    without listing the whole bucket."""
-    return f"{ts[:10]}/{service}/{request_id}.json"
+    without listing the whole bucket.
+
+    **`seq` exists because a turn writes several records that share a
+    `request_id`.** A round carries n tool calls and a turn carries n rounds, so
+    the tool-plane records and the turn's own record would otherwise collide on
+    one key — and with a versioned bucket the collision is silent: every record is
+    still there, and every one of them is behind the last. An audit trail whose
+    records overwrite each other is the failure mode `versioned: true` was chosen
+    to prevent, arriving through the key instead of through the object."""
+    if seq is None:
+        return f"{ts[:10]}/{service}/{request_id}.json"
+    return f"{ts[:10]}/{service}/{request_id}.{seq:03d}.json"
 
 
 def build_record(
@@ -63,6 +92,7 @@ def build_record(
     error: dict | None = None,
     probe_id: str | None = None,
     tool: dict | None = None,
+    seq: int | None = None,
     witness: str = "gateway",
 ) -> dict:
     """Build one audit record conforming to `platform/gateway/audit.schema.json`.
@@ -80,11 +110,19 @@ def build_record(
         raise ValueError(f"decision='allowed' with mechanism={mechanism!r} — an allowed call was not refused")
     if classification == "sensitive" and decision != "denied":
         raise ValueError("classification='sensitive' must be denied — G5 refuses it by design")
-    if decision != "allowed" and usage:
-        raise ValueError("usage on a refused call — nothing was spent, and recording spend implies it was")
+    if usage and mechanism not in SPENDING_MECHANISMS:
+        raise ValueError(
+            f"usage recorded with mechanism={mechanism!r} — nothing had been spent when it "
+            "refused, and recording spend implies it was"
+        )
+    if tool is not None and seq is None:
+        raise ValueError(
+            "a tool-call record needs a `seq` — a turn writes several records under one "
+            "request_id, and without an ordinal they share a lake key and hide each other"
+        )
 
     record = {
-        "record_id": record_key(ts, service, request_id),
+        "record_id": record_key(ts, service, request_id, seq),
         "ts": ts,
         "request_id": request_id,
         "principal": principal,

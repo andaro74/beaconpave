@@ -77,15 +77,23 @@ letting the gateway hold `lambda:InvokeFunction` on exactly the tools the regist
 names. That belongs where it does work, rather than around a subprocess where it
 would not.
 
-> **Stated as intent, because it has not happened yet.** The first draft of this
-> section wrote it in the present tense, as accomplished fact, while the diff
-> contained no `platform/infra/` change and no such grant existed. An ADR that
-> describes deployment which has not occurred is the drift ADR-017 spends a page
-> on, arriving in the document that is supposed to prevent it. Until the wiring
-> commit lands, `handler` is exercised by tests and by nothing else, and **G3
-> rests on the plane rather than on IAM** — which is exactly why the Security seat
-> pre-registered a direct-tool-invocation probe for M04 and a synth-time assertion
-> for the deploy commit.
+> **Superseded by the wiring commit.** This paragraph read, correctly at the time:
+> *"Stated as intent, because it has not happened yet — the diff contains no
+> `platform/infra/` change and no such grant exists. Until the wiring commit lands,
+> `handler` is exercised by tests and by nothing else, and G3 rests on the plane
+> rather than on IAM."* It is kept because it is the reason the assertions below
+> exist rather than a note about a draft.
+>
+> `CatalogSearchFn` is now its own function with its own role. The gateway holds
+> `lambda:InvokeFunction` on that function and no other; the tool's role carries
+> the model-invoke Deny every non-gateway role carries; and
+> `tests/test_tool_plane_iam.py` asserts at synth time that no second role, no
+> resource policy with a wildcard principal, and no function URL opens a way in.
+> Those are the assertions the Security seat pre-registered for this commit. The
+> direct-tool-invocation *probe* is still owed and still named for M04, against
+> the frozen corpus — an assertion about a template and an attempt against a
+> deployed function are different evidence, and this commit produces only the
+> first.
 
 **A second tool at M06 inherits all of this** by implementing three methods. If it
 does not, the shape was wrong here.

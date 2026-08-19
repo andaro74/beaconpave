@@ -186,3 +186,158 @@ def roles(template: dict) -> list[str]:
         for logical_id, resource in template.get("Resources", {}).items()
         if resource.get("Type") == "AWS::IAM::Role"
     ]
+
+
+# --- the tool plane, at the infrastructure layer (M02) ------------------------
+
+#: Actions that reach a tool function. Same reasoning as `MODEL_INVOKE_ACTIONS`:
+#: naming more than the minimum is deliberate, because a list that is exactly
+#: minimal stops being correct the moment the provider adds an action.
+TOOL_INVOKE_ACTIONS = frozenset({
+    "lambda:InvokeFunction",
+    "lambda:InvokeFunctionUrl",
+    "lambda:InvokeAsync",
+})
+
+#: The environment variable carrying the gateway's tool routing table. The
+#: assertions read the deployed table rather than a list in a test, so a tool
+#: added to the stack is asserted about without anybody remembering to add it
+#: here — the failure mode a hand-maintained list has is that it stays green.
+TOOL_ROUTING_ENV = "TOOL_FUNCTIONS"
+
+_ROUTED_KEY = re.compile(r'"([a-z0-9][a-z0-9-]*)"\s*:\s*"')
+
+
+def referenced_logical_ids(value: Any) -> set[str]:
+    """Every logical id a template fragment points at, through `Ref` or `GetAtt`.
+
+    Needed because an IAM `Resource` is rarely a string: CDK emits
+    `{"Fn::GetAtt": ["CatalogSearchFn...", "Arn"]}`, and a check that only looked
+    at strings would read a narrowly-scoped grant as naming nothing at all."""
+    found: set[str] = set()
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == "Ref" and isinstance(item, str):
+                found.add(item)
+            elif key == "Fn::GetAtt":
+                target = item[0] if isinstance(item, list) and item else item
+                if isinstance(target, str):
+                    found.add(target.split(".")[0])
+            else:
+                found |= referenced_logical_ids(item)
+    elif isinstance(value, list):
+        for item in value:
+            found |= referenced_logical_ids(item)
+    return found
+
+
+def functions(template: dict) -> dict[str, dict]:
+    return {
+        logical_id: resource
+        for logical_id, resource in template.get("Resources", {}).items()
+        if resource.get("Type") == "AWS::Lambda::Function"
+    }
+
+
+def gateway_function(template: dict) -> tuple[str, dict]:
+    """The one function holding the model grant, found through the grant itself.
+
+    Not by name. `is_gateway_role` matches a construct-id prefix, which is fine
+    for a role and would be circular here: the question these assertions ask is
+    *which* function is the control point, and answering it from a naming
+    convention would let a second one become the answer by being named well."""
+    granted = {role for grant in model_invoke_grants(template) for role in grant["roles"]}
+    for logical_id, resource in functions(template).items():
+        if referenced_logical_ids(resource.get("Properties", {}).get("Role")) & granted:
+            return logical_id, resource
+    raise AssertionError("no Lambda function holds the model-invoke grant")
+
+
+def routed_tools(template: dict) -> dict[str, str]:
+    """Tool id -> the logical id of the function the gateway routes it to.
+
+    Parsed out of the gateway's own environment, which is the table the running
+    gateway obeys. Reading the deployment's answer rather than restating it is the
+    same rule `test_iam_assertions` follows about the snapshot: an assertion
+    against a second copy asserts about the copy."""
+    _, gateway = gateway_function(template)
+    raw = gateway.get("Properties", {}).get("Environment", {}).get("Variables", {}).get(
+        TOOL_ROUTING_ENV)
+    if raw is None:
+        return {}
+    if isinstance(raw, str):
+        return {tool: "" for tool in _ROUTED_KEY.findall(raw)}
+
+    parts = raw.get("Fn::Join", [None, []])[1]
+    literals = "".join(p for p in parts if isinstance(p, str))
+    targets = [next(iter(referenced_logical_ids(p))) for p in parts if not isinstance(p, str)]
+    keys = _ROUTED_KEY.findall(literals)
+    if len(keys) != len(targets):
+        raise AssertionError(
+            f"cannot read {TOOL_ROUTING_ENV}: {len(keys)} tool id(s) and {len(targets)} "
+            "function reference(s). The assertions below depend on reading this table, so "
+            "an unreadable one fails loudly rather than asserting about an empty dict."
+        )
+    return dict(zip(keys, targets, strict=True))
+
+
+def tool_invoke_grants(template: dict) -> list[dict]:
+    """Every statement that ALLOWS an invoke action, with what it names."""
+    found = []
+    for entry in statements(template):
+        statement = entry["statement"]
+        if statement.get("Effect") != "Allow":
+            continue
+        if actions_of(statement) & TOOL_INVOKE_ACTIONS:
+            found.append(entry)
+    return found
+
+
+def invoke_targets(statement: dict) -> set[str]:
+    """Logical ids an invoke grant names. Empty means it names none — which for a
+    grant that is not a wildcard is the interesting case, and for one that is, see
+    `wildcard_invoke_grants`."""
+    return referenced_logical_ids(_as_list(statement.get("Resource")))
+
+
+def wildcard_invoke_grants(template: dict) -> list[dict]:
+    """Invoke grants whose `Resource` is `*` or a string with one in it.
+
+    A wildcard invoke grant is how a tool added to the registry later becomes
+    reachable without anybody granting anything: the grant that already covers it
+    was written before it existed."""
+    found = []
+    for entry in tool_invoke_grants(template):
+        for resource in _as_list(entry["statement"].get("Resource")):
+            if isinstance(resource, str) and "*" in resource.split(":")[-1].strip("/"):
+                found.append(entry)
+                break
+    return found
+
+
+def function_urls(template: dict) -> list[str]:
+    """`AWS::Lambda::Url` resources. A function URL is a public HTTPS endpoint in
+    front of a function, and one on a tool would be a route to that tool with no
+    plane in front of it — G3 held by the plane and lost at the network."""
+    return [
+        logical_id
+        for logical_id, resource in template.get("Resources", {}).items()
+        if resource.get("Type") == "AWS::Lambda::Url"
+    ]
+
+
+def open_invoke_permissions(template: dict) -> list[str]:
+    """`AWS::Lambda::Permission` resources whose principal is a wildcard.
+
+    A resource policy grants invoke from the *other* side, so it is invisible to
+    every check that reads role policies — and `Principal: "*"` on a tool would
+    make it callable by anyone, with the gateway's own narrow grant still looking
+    correct."""
+    found = []
+    for logical_id, resource in template.get("Resources", {}).items():
+        if resource.get("Type") != "AWS::Lambda::Permission":
+            continue
+        principal = resource.get("Properties", {}).get("Principal")
+        if isinstance(principal, str) and "*" in principal:
+            found.append(logical_id)
+    return found

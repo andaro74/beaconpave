@@ -52,6 +52,17 @@
 /platform/policy/                     @andaro74
 /platform/gateway/policy/             @andaro74
 
+# The loop is an authorization path too, and in the way that is easiest to miss:
+# the plane answers whether a call may happen, and the loop decides whether the
+# plane is asked before the tool runs. A change moving the authorize below the
+# call would leave every plane test green.
+/platform/gateway/core/toolloop.py    @andaro74
+
+# The synth-time assertions this seat pre-registered for the deploy commit. They
+# are the only thing standing between "no role outside the gateway may invoke a
+# tool" and a template where one quietly does.
+/tests/test_tool_plane_iam.py         @andaro74
+
 # Legal / Standards & Practices owns the rules registry
 /rules/                   @andaro74
 
