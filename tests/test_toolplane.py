@@ -216,16 +216,35 @@ def test_the_plane_accepts_no_caller_shaped_context():
     assert params["approval"].annotation.startswith("Approval")
 
 
-def test_only_a_gateway_constructed_approval_releases_a_gated_call():
-    """M06's path, and the reason it is a dataclass rather than a flag: an
-    approval carries who granted it and what execution collected it, so the policy
-    can eventually bind to the *declared* approver rather than to any source."""
+def test_an_approval_releases_a_gated_call():
+    """M06's path, and the reason it is a dataclass rather than a flag: an approval
+    carries who granted it and what execution collected it, so the policy can
+    eventually bind to the *declared* approver rather than to any source.
+
+    **The name used to say "only a gateway-constructed approval".** Nothing
+    distinguishes one — `as_context` returns the same grant whatever `granted_by`
+    says, and binding to the declared approver is M06's job. The class docstring
+    was honest about that and the test name was not, which is worse: a reader
+    scanning names reads it as a control. The typing change is still real — a
+    caller can no longer name a context key — just not the guarantee the old name
+    asserted."""
     approval = toolplane.Approval(granted_by="stepfn:editorial-approver", reference="exec:abc")
     released = authorize(tool_id="publish-highlight",
                          args={"title_id": "t001", "headline": "H", "body": "B"},
                          approval=approval)
     assert released.allowed
-    assert approval.as_exemptions() == [cedar.APPROVAL_CONTEXT_KEY]
+    # Carries who granted it, not merely that something did: a record showing an
+    # exemption applied without naming its source cannot evidence the interlock.
+    assert approval.as_exemptions() == [f"{cedar.APPROVAL_CONTEXT_KEY}:stepfn:editorial-approver"]
+
+
+def test_an_approval_must_name_its_approver():
+    """`Approval("", "")` released a gated call — the typed wrapper was shape
+    without substance. An unattributed approval is indistinguishable from a bug
+    that constructed one."""
+    for bad in [("", "exec:1"), ("stepfn:approver", ""), ("", "")]:
+        with pytest.raises(ValueError):
+            toolplane.Approval(*bad)
 
 
 # --- the contract is checked after authorization ---------------------------------

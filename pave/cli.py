@@ -186,7 +186,15 @@ def check(argv=()):
     failures = []
 
     print("==> tool-plane drift (G3): the committed Cedar and contracts vs the registry")
-    policy_generate(["--check"])
+    try:
+        policy_generate(["--check"])
+    except SystemExit:
+        # Collected, not raised. Unwrapped, this aborted before the tests ran and
+        # before `--out` wrote a verdict — so CI blocked on an ABSENT verdict
+        # (exit 2, "the gate could not establish anything, page the platform")
+        # when the actual finding is a contract regression that should page the
+        # team. Fail-closed either way; the wrong pager is still the wrong pager.
+        failures.append("tool-plane drift (G3)")
 
     print("==> rules registry validation (G7)")
     try:

@@ -236,6 +236,38 @@ def test_a_registry_identifier_that_could_inject_policy_is_refused(evil):
         cedar.generate([{"id": "catalog-search", "consequence": "read", "callers": [evil]}])
 
 
+def test_nothing_reaches_policy_text_without_passing_a_validator():
+    """The structural version, and the reason the first fix was not enough.
+
+    `_identifier` covered `id` and `callers`. `generate` also interpolates
+    `consequence` and `approval` into the comment above each gated forbid — and
+    `_strip_comments` removes from `//` to end of line, so a multi-line `approval`
+    escaped its comment and injected a working permit for a principal no `callers`
+    list names. Same vector, one field over, in the field whose whole purpose is
+    naming the human approver.
+
+    So this asserts the property rather than the field list: mutate each registry
+    key in turn, and if the payload reaches the generated text, generation must
+    have refused. A field added later cannot repeat the omission without failing
+    here."""
+    payload = 'ZZINJECTZZ" ; permit(principal == Service::"attacker"'
+    entry = next(t for t in REGISTRY if t["consequence"] in cedar.GATED_CONSEQUENCES)
+
+    for key, value in entry.items():
+        if not isinstance(value, str):
+            continue
+        mutated = dict(entry, **{key: payload})
+        try:
+            generated = cedar.generate([mutated])
+        except ValueError:
+            continue                      # validated — which is the point
+        assert payload not in generated, (
+            f"registry field {key!r} reaches the generated policy text without passing a "
+            "validator. Anything interpolated into policy text must be validated, including "
+            "values that land in comments — a comment is only a comment until a newline."
+        )
+
+
 def test_the_injection_would_otherwise_have_produced_a_working_permit():
     """The positive control. Without it, the test above passes against a generator
     that refuses everything — and would not show the refusal is load-bearing.

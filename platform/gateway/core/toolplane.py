@@ -38,12 +38,21 @@ from dataclasses import dataclass
 from core import cedar
 
 #: How many tool rounds one turn may take, and how many calls in total. Derived
-#: from measurement rather than chosen: no turn in `milestones/M02/loop-shape.json`
-#: needed more than two rounds, and no round asked for more than two calls. These
-#: are bounds rather than expectations — they exist to stop a loop, not to shape
-#: one.
-MAX_ROUNDS = 4
-MAX_CALLS_PER_TURN = 8
+#: from `milestones/M02/loop-shape.json` rather than chosen — bounds, not
+#: expectations: they exist to stop a loop, not to shape one.
+#:
+#: **Re-derived after the retrieval narrowing**, which is the point of tying them
+#: to a measurement. When free text stopped matching `brand` and `type`, cases
+#: that used to retrieve on the first query started retrying: the observed
+#: maximum went from 2 rounds and 2 calls to **4 rounds and 5 calls** in a single
+#: turn. Bounds of 4 and 8 would have started denying legitimate work with
+#: `mechanism: loop` — a control firing on the system it is meant to protect.
+#:
+#: Derived from **every** sample including the guardrail-refused ones. A refused
+#: turn still spent its rounds, and the first version of this derivation read only
+#: the answered samples — which is how a 4-round turn stayed invisible.
+MAX_ROUNDS = 6
+MAX_CALLS_PER_TURN = 12
 
 #: Mechanisms this plane can refuse with. `policy` is Cedar and only Cedar; see
 #: the module docstring for why that separation is load-bearing.
@@ -137,9 +146,26 @@ def unsupported_keywords(schema: dict) -> set[str]:
                 found.add(f"type:{name}")
 
     for key, value in schema.items():
-        if key == "properties" and isinstance(value, dict):
-            for subschema in value.values():
-                found |= unsupported_keywords(subschema)
+        if key == "properties":
+            if not isinstance(value, dict):
+                found.add("properties:not-an-object")
+                continue
+            for name, subschema in value.items():
+                # A boolean subschema is legal draft-07 and this validator does not
+                # implement it — `validate` would call `.get` on a bool. Same bug as
+                # tuple-form `items`, one keyword over, which is what "a boundary
+                # expressed as a list of names bounds the vocabulary and not the
+                # language" actually means.
+                if not isinstance(subschema, dict):
+                    found.add(f"properties.{name}:boolean-schema")
+                else:
+                    found |= unsupported_keywords(subschema)
+            continue
+        if key == "required" and not isinstance(value, list):
+            # A string here iterates its own characters as property names and finds
+            # nothing missing — a schema author's typo becoming a silently
+            # unenforced `required` on a tool contract.
+            found.add("required:not-a-list")
             continue
         if key == "items":
             # Tuple form (a list of schemas) is positional validation, which this
@@ -177,9 +203,17 @@ def validate(instance, schema: dict, path: str = "<root>") -> list[str]:
 
     # `instance in enum` would let True satisfy `enum: [1]`, because Python's bool
     # is an int and `True == 1`. `_TYPES` already takes that care for `integer`
-    # and `number`; an enum has the same hole and the same fix.
+    # and `number`; an enum has the same hole.
+    #
+    # Only bool is separated, not every type. The first fix compared `type(a) is
+    # type(b)`, which also split `1.0` from `1` — and JSON Schema treats those as
+    # the same number, so the validator became *stricter than its own reference*.
+    # That is the direction ADR-022 warns about in as many words: a validator
+    # stricter than its schema is as wrong as a lax one and harder to notice,
+    # because it only ever refuses.
     if "enum" in schema and not any(
-        type(instance) is type(option) and instance == option for option in schema["enum"]
+        isinstance(instance, bool) == isinstance(option, bool) and instance == option
+        for option in schema["enum"]
     ):
         problems.append(f"{path}: {instance!r} is not one of {schema['enum']}")
 
@@ -254,8 +288,12 @@ class ToolPlane:
     max_calls: int = MAX_CALLS_PER_TURN
 
     def begin_turn(self) -> Turn:
-        """Start a turn. **This is the only way to authorize a tool call**, and it
-        is the only way the loop bound can be real.
+        """Start a turn. **The caller-facing way to authorize a tool call**, and
+        the only one where the loop bound is real.
+
+        `_authorize` is reachable by convention rather than by enforcement, which
+        is worth saying rather than claiming otherwise — the first draft of this
+        docstring said "the only way", and Python does not have a way to mean it.
 
         The first draft took a `round_number` argument and its docstring claimed
         the bound was "enforced here rather than trusted to the caller". It was
@@ -335,14 +373,29 @@ class Approval:
     granted_by: str
     reference: str
 
+    def __post_init__(self):
+        # An approval with no approver is not an approval. Without this,
+        # `Approval("", "")` released a gated call — the typed wrapper would have
+        # been shape without substance.
+        if not self.granted_by or not self.reference:
+            raise ValueError(
+                "an approval must name who granted it and what execution collected it; "
+                "an unattributed approval is indistinguishable from a bug that constructed one"
+            )
+
     def as_context(self) -> dict:
         return {cedar.APPROVAL_CONTEXT_KEY: True}
 
     def as_exemptions(self) -> list[str]:
         """What the audit record names, so an approved call is distinguishable
         from an ungated one. Without it a released publish records `allowed` /
-        `none` and the interlock leaves no evidence it was exercised."""
-        return [cedar.APPROVAL_CONTEXT_KEY]
+        `none` and the interlock leaves no evidence it was exercised.
+
+        **Carries the approver, not just the fact of an exemption.** The first
+        version returned the bare context key, so the record would have shown
+        *that* something was exempted and never *who* granted it — and the fields
+        were already on the object."""
+        return [f"{cedar.APPROVAL_CONTEXT_KEY}:{self.granted_by}"]
 
 
 @dataclass
@@ -359,7 +412,15 @@ class Turn:
 
     def begin_round(self) -> ToolDecision | None:
         """Call once per model turn that requests tools. Returns a denial when the
-        turn has run past its bound, `None` when it may proceed."""
+        turn has run past its bound, `None` when it may proceed.
+
+        **The round count is still the caller's to advance**, so `max_rounds` alone
+        would be the old `round_number` parameter wearing a method. What actually
+        bounds a turn is `max_calls`, which `authorize` increments unconditionally
+        — a caller that never calls this still stops at eight. Said plainly because
+        the first version of these docstrings credited the round counter with a
+        guarantee the call counter provides, and the wiring commit owes a test that
+        the handler calls this once per model turn."""
         self.rounds += 1
         if self.rounds > self.plane.max_rounds:
             return ToolDecision(False, "<turn>", LOOP, (

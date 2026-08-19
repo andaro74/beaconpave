@@ -175,7 +175,12 @@ def test_the_brand_name_is_not_a_wildcard():
     contract statement that is not true is worse than a narrow tool."""
     for wildcard in ["meridian", "live", "vod", "meridian-sports"]:
         rows = search({"query": wildcard, "limit": MAX_LIMIT}, CATALOG)["results"]
-        assert len(rows) < len(CATALOG["titles"]), f"{wildcard!r} matched the whole catalog"
+        # `== []`, not `< len(titles)`. The looser form left four-fifths of a
+        # five-title catalog as slack, so a regression restoring `brand` to the
+        # searchable fields would have passed it on any fixture with six titles.
+        # This test stands in for a claim in model-facing contract text; it should
+        # assert what was measured.
+        assert rows == [], f"{wildcard!r} is searchable free text again"
 
 
 def test_a_stopword_is_not_a_search_term():

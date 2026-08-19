@@ -114,7 +114,11 @@ def dispatch(request: dict) -> dict | None:
     # `tools/list` with no id got a full reply carrying `"id": null`: a protocol
     # violation, and a client tracking outstanding requests sees a response to
     # nothing.
-    if request_id is None:
+    #
+    # An *explicit* `"id": null` is a request, not a notification, and the spec
+    # says it gets a response. `request.get("id") is None` cannot tell the two
+    # apart, so the membership test is what distinguishes them.
+    if "id" not in request:
         return None
 
     # JSON-RPC permits positional params. This server implements none, and saying
@@ -148,6 +152,24 @@ def dispatch(request: dict) -> dict | None:
         arguments = params.get("arguments")
         if not isinstance(arguments, dict):
             return _error(request_id, INVALID_PARAMS, "arguments must be an object")
+
+        # `query` is `required` with `minLength: 1` in the schema this server
+        # publishes through `tools/list`. Reporting success for a call its own
+        # published contract rejects would be bad enough; the specific harm is
+        # that an empty result set is indistinguishable from "searched, found
+        # nothing" — which is the exact shape `grounded-019` is pre-registered
+        # around. A model that omitted `query` would get the same signal as one
+        # that asked about a title the catalog does not have.
+        #
+        # This is not the plane's contract validation moved into the transport:
+        # it is the one distinction `search` already knows and discards, reported
+        # through the error channel the protocol provides.
+        if not str(arguments.get("query") or "").strip():
+            return _result(request_id, {
+                "content": [{"type": "text",
+                             "text": "catalog-search requires a non-empty `query`"}],
+                "isError": True,
+            })
 
         try:
             result = search.search(arguments, search.load_catalog(catalog_path()))

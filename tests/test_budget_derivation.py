@@ -158,9 +158,57 @@ def test_the_loop_is_bounded_and_no_sample_reached_the_bound():
     A sample that hit the cap would mean the measurement recorded a truncation
     rather than a turn, and the maximum it reports would be an artifact of the cap
     instead of the shape."""
-    summary = measurement()["summary"]
+    data = measurement()
+    summary = data["summary"]
     assert summary["max_rounds_allowed"] >= max(summary["model_calls_per_turn"]) + 1
+
+    # ...and the bound the PLANE actually ships, which is a different number in a
+    # different file and was tied to nothing. `MAX_ROUNDS` could have been lowered
+    # to 2 with every test still green while every multi-round case began failing
+    # on `mechanism: loop`.
+    from core import toolplane
+
+    # Every sample, not only the answered ones. A guardrail-refused turn still
+    # spent its rounds and its calls, and reading `model_calls_per_turn` — which
+    # summarises answered turns — hid a four-round turn completely.
+    observed_rounds = max(s["model_calls"] for s in data["samples"]) - 1
+    observed_calls = max(s["tool_calls"] for s in data["samples"])
+
+    assert observed_rounds < toolplane.MAX_ROUNDS, (
+        f"the shipped round bound is {toolplane.MAX_ROUNDS} against a measured {observed_rounds} "
+        "rounds. A bound at or below the measured shape is a performance target dressed as a "
+        "safety limit, and it denies legitimate work with `mechanism: loop`."
+    )
+    assert observed_calls < toolplane.MAX_CALLS_PER_TURN, (
+        f"the shipped call bound is {toolplane.MAX_CALLS_PER_TURN} against a measured "
+        f"{observed_calls} calls in one turn."
+    )
     assert summary["samples_that_hit_the_round_cap"] == [], (
         "a measured turn hit the round cap, so the recorded maximum is the cap and not the "
         "loop. Re-measure with a higher bound before deriving anything from it."
     )
+
+
+def test_the_measurement_records_which_tool_produced_it():
+    """Provenance for the tool, not only the model and the guardrail.
+
+    Its absence is what let a retrieval change invalidate this file invisibly: the
+    summary recorded `measured_at`, `model_id` and `guardrail_version`, so a reader
+    could tell which model and which guardrail produced it and could not tell that
+    the tool's searchable surface had narrowed underneath it. ADR-018's rule — a
+    data source that can move silently is an instrument that can move silently —
+    was already quoted one component over and not applied here.
+
+    Pinned against the shipped tool, so the file self-invalidates the next time
+    retrieval moves rather than quietly describing a tool that no longer exists."""
+    from search import DEFAULT_LIMIT, MAX_LIMIT, MIN_TERM_LENGTH, SEARCHABLE_FIELDS
+
+    recorded = measurement()["summary"]["tool"]
+    assert recorded["searchable_fields"] == list(SEARCHABLE_FIELDS), (
+        "the measurement was taken against a different retrieval surface than the one that "
+        "ships. Re-measure before deriving anything from it — the ceilings, the pre-registered "
+        "prediction and the unearned-pass registration all cite this file."
+    )
+    assert recorded["min_term_length"] == MIN_TERM_LENGTH
+    assert recorded["default_limit"] == DEFAULT_LIMIT
+    assert recorded["max_limit"] == MAX_LIMIT
