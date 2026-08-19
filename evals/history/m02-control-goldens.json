@@ -1,8 +1,8 @@
 {
-  "sha": "4eda0d036884a2d536d757b60b78ff10ac7d91e8",
+  "sha": "1ca9963df9b189e11d6a2849bb1dbc6acaf0038c",
   "suite": "goldens",
   "target": "highlights-agent",
-  "recorded_at": "2026-08-19T12:06:28+00:00",
+  "recorded_at": "2026-08-19T12:43:29+00:00",
   "scores": {
     "total": 25,
     "passed": 17,
@@ -159,6 +159,8 @@
     {
       "id": "grounded-019",
       "result": "PASS",
+      "unearned": true,
+      "unearned_reason": "Passed on a vacuous groundedness assert. The Harbor Bay Invitational is not in the catalog, the answer cited nothing, and cited_titles_in_fixture is true by construction on an empty list. The confabulation trap this case exists to set was not sprung, because with nothing to cite there was nothing to confabulate. Identical shape in the tools arm and marked there too.",
       "samples": [
         "PASS",
         "PASS",

@@ -740,7 +740,7 @@ recorded in the entry is what already said so.
       carefully as for allowed calls. One record per call plus one per turn, and
       the call ordinal is in the key — without it a turn's records share one and
       a versioned bucket hides the collision
-- [ ] G3 negative controls measure a delta against the same fixture **before**
+- [x] G3 negative controls measure a delta against the same fixture **before**
       planting
 - [x] Unregistered-tool denial demonstrated at runtime, audit record **fetched
       back from the lake** (`milestones/M02/g3-runtime-denial.json`; four further
@@ -753,20 +753,20 @@ recorded in the entry is what already said so.
       bytes, not merely permitted — and the new prompt is hash-pinned. The parity
       test split; the `SYSTEM` pin was kept rather than ended, because the control
       arm freezing means it now pins that arm (amended above, ADR-021)
-- [ ] `run_via_gateway.py` frozen as the M01 control arm; both arms run k = 3 the
+- [x] `run_via_gateway.py` frozen as the M01 control arm; both arms run k = 3 the
       same day; both summarised by per-case majority, with `k` and `arm` recorded
       and all six runs committed *(harness landed: `run_evals.py` takes repeated
       `--answers` and an `--arm`, scores each sample independently through the
       unchanged scorer, and records the majority plus the per-sample verdicts;
       the runs themselves are owed)*
-- [ ] Paired per-case diff recorded; both arms' raw answers committed *(harness
+- [x] Paired per-case diff recorded; both arms' raw answers committed *(harness
       landed before the run: `run_evals.py --against` re-scores the other arm
       through the identical path, requires the same `k` on both sides, refuses an
       unpaired case, and writes the diff with `--diff-out`. It reports lost,
       gained and net separately, because M01's headline +1 concealed a real −3)*
-- [ ] Tool trajectories recorded; none scored
-- [ ] `entitlement_source` and `expect_tool_before_answer` still deferred
-- [ ] Scores recorded — two-key, disposition and rationale in the PR body
+- [x] Tool trajectories recorded; none scored
+- [x] `entitlement_source` and `expect_tool_before_answer` still deferred
+- [x] Scores recorded — two-key, disposition and rationale in the PR body
 - [x] ADR-019 (MCP transport, amended in place once the tool actually deployed),
       ADR-020 (Cedar evaluation), ADR-021 (the prompt lineage break and the
       re-measured comparator), ADR-022 (no third-party deps in the gateway
@@ -777,8 +777,9 @@ recorded in the entry is what already said so.
       and AI Quality each read the diff from their seat. All four found real
       defects, five of them blocking, and every one was closed before any score
       existed — the point of reviewing while fixes are still free
-- [ ] Any unearned pass documented with a drafted tightening — `grounded-019` is
-      pre-registered as one
+- [x] Any unearned pass documented with a drafted tightening — `grounded-019` is
+      pre-registered as one, and `edge-025` turned out to be unearned in the tools
+      arm only (`milestones/M02/unearned-{control,tools}.yaml`)
 - [x] Guardrail-assesses-tool-output tightening drafted for Security, **named
       for M04**, unlanded. ~~with ADV-002's unassessed tool result committed as
       the evidence that the path is open~~ — **struck; see the cut below.** The
@@ -828,8 +829,8 @@ tool-call records live under their own keys, and `run_probes_via_gateway.py`
 fetches only `record_id`. It is latent at M02 precisely because no probe asks for
 tools. When the M04 tranche lands, the observation must be built from the turn's
 tool records and not from the turn record alone.
-- [ ] `milestones/M02/README.md` answers the three questions
-- [ ] Progression row filled, with footnotes
+- [x] `milestones/M02/README.md` answers the three questions
+- [x] Progression row filled, with footnotes
 - [ ] Tag `m02` pushed from branch `m02-tool-plane` — names distinct
 
 ## What M02 must NOT do

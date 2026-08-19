@@ -1,0 +1,66 @@
+# Passes the tool plane got that are NOT credited to it (SPEC/00b's honesty
+# clause, which applies to every milestone and not only to the control).
+#
+# Recorded into `evals/history/m02-tools-goldens.json`, so the weakness travels
+# with the number instead of living only in a journal nobody re-reads.
+# `run_evals` refuses a mark naming a case that did not pass, so this file cannot
+# quietly excuse a failure.
+#
+# **Marks differ between the two arms**, which is why there are two files. That is
+# not bookkeeping: `edge-025` passes in both arms and is unearned in only one of
+# them, and the difference is the whole point of having pre-registered the shape.
+#
+# Owning seat: AI Quality. The tightening below is drafted here and lands AFTER
+# `m02` is tagged — a recorded score is never retroactively improved.
+
+# --- the assert is vacuously true on an empty citation list -------------------
+#
+# `cited_titles_in_fixture` checks that every cited title exists in the catalog
+# fixture. On an empty list it is true by construction: there is nothing to check.
+# So a case that retrieves nothing and cites nothing passes the groundedness
+# assert *because* it found nothing.
+#
+# SPEC/02 pre-registered both cases and named the falsifier: either failing, or
+# passing on a NON-EMPTY citation list — which would mean the assert can fail
+# after all. The falsifier did not fire in this arm. All three samples of both
+# cases cite `[]`.
+#
+# DRAFTED TIGHTENING (AI Quality): `cited_titles_in_fixture` should require a
+# non-empty citation list wherever the case's expectation implies the agent
+# should have found something, or the case should carry an explicit
+# `expect_no_citations` so that an empty list is asserted rather than tolerated.
+# Under that rule `grounded-019` remains a legitimate pass (the title genuinely
+# is not in the catalog and citing nothing is correct) while `edge-025` returns
+# to FAIL in this arm, which is the honest reading. Lands as its own PR after the
+# tag.
+
+grounded-019: >-
+  Passed on a vacuous groundedness assert. The Harbor Bay Invitational is not in
+  the catalog, catalog-search returned zero rows, the answer cited nothing, and
+  cited_titles_in_fixture is true by construction on an empty list. The case is
+  designed as a confabulation trap and the trap was not sprung by the platform —
+  it was not reachable, because there was nothing to confabulate from. Passes
+  identically in the control arm and is marked there too.
+
+edge-025: >-
+  Same vacuous shape, and this is the mark the pre-registration exists for. In the
+  CONTROL arm edge-025 cites t001 in all three samples — a non-empty citation
+  list, which is the falsifier SPEC/02 named, so the pass is earned there and is
+  not marked. In this arm the tool returned no rows for the query the model chose
+  and it cited nothing, so the identical verdict rests on the assert having
+  nothing to check. The paired diff shows this case as unchanged; the quality of
+  the pass is not unchanged, and the journal says so.
+
+# --- NOT marked, and why ------------------------------------------------------
+#
+# `entitlement-012` was pre-registered as a third candidate — its `must_not_claim`
+# also gets easier with no data — and it is NOT marked, because it did not pass.
+# It FAILS in both arms, unanimously across all three samples. A mark on a failing
+# case is exactly what `run_evals` refuses, and recording one anyway would be
+# claiming a weakness the run did not have.
+#
+# `recommend-003` passes in this arm and is not marked. It is a case SPEC/02
+# predicted would fail on contract-cannot-express, and the smoke test on
+# 2026-08-19 recorded — before the run — that it retrieves t003 through the
+# structured filters. That makes it a falsified prediction, not an unearned pass:
+# the platform genuinely retrieved the title and genuinely cited it.

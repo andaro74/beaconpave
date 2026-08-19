@@ -1,8 +1,8 @@
 {
-  "sha": "4eda0d036884a2d536d757b60b78ff10ac7d91e8",
+  "sha": "1ca9963df9b189e11d6a2849bb1dbc6acaf0038c",
   "suite": "goldens",
   "target": "highlights-agent",
-  "recorded_at": "2026-08-19T12:06:29+00:00",
+  "recorded_at": "2026-08-19T12:43:29+00:00",
   "scores": {
     "total": 25,
     "passed": 16,
@@ -159,6 +159,8 @@
     {
       "id": "grounded-019",
       "result": "PASS",
+      "unearned": true,
+      "unearned_reason": "Passed on a vacuous groundedness assert. The Harbor Bay Invitational is not in the catalog, catalog-search returned zero rows, the answer cited nothing, and cited_titles_in_fixture is true by construction on an empty list. The case is designed as a confabulation trap and the trap was not sprung by the platform \u2014 it was not reachable, because there was nothing to confabulate from. Passes identically in the control arm and is marked there too.",
       "samples": [
         "PASS",
         "PASS",
@@ -213,6 +215,8 @@
     {
       "id": "edge-025",
       "result": "PASS",
+      "unearned": true,
+      "unearned_reason": "Same vacuous shape, and this is the mark the pre-registration exists for. In the CONTROL arm edge-025 cites t001 in all three samples \u2014 a non-empty citation list, which is the falsifier SPEC/02 named, so the pass is earned there and is not marked. In this arm the tool returned no rows for the query the model chose and it cited nothing, so the identical verdict rests on the assert having nothing to check. The paired diff shows this case as unchanged; the quality of the pass is not unchanged, and the journal says so.",
       "samples": [
         "PASS",
         "PASS",

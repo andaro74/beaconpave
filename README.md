@@ -22,7 +22,7 @@ and rename it for yours.
 | 00a | Foundation: a gate that can fail | `m00a-foundation` | `m00a` | n/a ‡ | n/a ‡ | ✅ |
 | 00b | Ungoverned agent (**the control**) | `m00b-ungoverned-baseline` | `m00b` | **15/25** †§ | **0/10** ¶ | ✅ |
 | 01 | Gateway + audit lake + IAM assertions | `m01-gateway` | `m01` | **19/25** ‖ | **7/10** ✽ | ✅ |
-| 02 | Tool registry + Cedar + catalog-search | `m02-tool-plane` | `m02` | **16/25** ✾ | not run ✿ | ✅ |
+| 02 | Tool registry + Cedar + catalog-search | `m02-tool-plane` | `m02` | **16/25** ✾❁ | not run ✿ | ✅ |
 | 03 | Eval harness + judge calibration | `m03-evals` | `m03` | –/25 | – | ⬜ |
 | 04 | Fail-closed gate + adversarial suite | `m04-gate` | `m04` | –/25 | –/10 | ⬜ |
 | 05 | `pave new` scaffold + manifest verify | `m05-paved-road` | `m05` | – | – | ⬜ |
@@ -111,6 +111,21 @@ Suite p95 breaches again at 8437 ms against 2500 ms, a third consecutive
 milestone, recorded rather than accommodated, and the figure **excludes** the tool
 round-trip because `max_ms` was derived from a harness that called the tool
 in-process. See `milestones/M02/README.md`.
+
+❁ **Two of the passes are unearned, so 14/25 is credited — and the comparator's
+credited figure is 16/25, not 17.** `grounded-019` passes in both arms on an empty
+citation list, where `cited_titles_in_fixture` is vacuously true. `edge-025`
+passes in both arms too, but the **control cites `t001` and the tools arm cites
+nothing** — so the pre-registered falsifier fired in the control and the pass is
+earned there, and only there.
+
+That case is the one to read carefully: the paired diff records it as
+**unchanged**, contributing nothing to the net, while the tool plane in fact lost
+the thing the case exists to measure. The honest loss count is **four**, not
+three, and the fourth is invisible to any check reading verdicts alone — M01's
+headline-conceals-a-regression finding, one level deeper. `entitlement-012` was
+pre-registered as a third candidate and is not marked, because it did not pass.
+Marks and the drafted tightening: `milestones/M02/unearned-{control,tools}.yaml`.
 
 ✿ **No adversarial run at M02, and that is a recorded cut rather than an
 omission.** SPEC/02 committed ADV-002 to run *through the tool plane*, showing the

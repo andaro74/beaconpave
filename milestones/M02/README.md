@@ -1,10 +1,17 @@
 # M02 — Tool plane: catalog-search, the registry, and Cedar
 
 **Branch:** `m02-tool-plane` · **Tag:** `m02` · **Spec:** `SPEC/02-tool-plane.md`
-**Claims advanced:** 3 (every tool call authorized against the registry via
-policy — G3, proved statically *and* at runtime). Claim 8's first half becomes
-possible: a tool has a committed contract that the platform, not the model,
-enforces.
+**Claims completed:** none. **Guarantee established:** G3 — every tool call is
+authorized against the registry via policy, proved statically *and* at runtime.
+
+> The first draft of this line read *"Claims advanced: 3"*, which confused the
+> guarantee **G3** with **claim 3** ("one verdict schema, many runners", M08).
+> They are different lists and M02 touches only one of them. No entry in the
+> twelve-claims table is assigned to M02: what this milestone does is build the
+> plane that **claim 10** (consequence classes gate real actions, M06) and
+> **claim 5** (adversarial pass = blocked-and-logged, M04) will need. A milestone
+> that completes no claim is a normal thing; a milestone that says it completed
+> one it did not is the thing the table exists to prevent.
 
 ## What can I demo right now?
 
@@ -144,6 +151,52 @@ Same prompt, same guardrail version, same day: 18, 16, 14. A single sample of
 either arm could have produced a headline anywhere from −4 to +1. This is the
 finding that justifies k = 3 outright, and it arrived from the arm that was
 supposed to be the boring one.
+
+## Unearned passes
+
+Two, and they are not the same two in both arms — which is the reason SPEC/02
+pre-registered the *shape* rather than the verdict.
+
+| case | control | tools | marked |
+|---|---|---|---|
+| `grounded-019` | PASS, cites `[]` | PASS, cites `[]` | **both arms** |
+| `edge-025` | PASS, cites `t001` | PASS, cites `[]` | **tools only** |
+| `entitlement-012` | FAIL | FAIL | neither — it did not pass |
+
+`cited_titles_in_fixture` is vacuously true on an empty citation list: there is
+nothing to check. So a case that retrieves nothing and cites nothing passes the
+groundedness assert *because* it found nothing.
+
+**`edge-025` is the finding.** SPEC/02 named the falsifier — a pass on a
+**non-empty** citation list would mean the assert can fail after all — and in the
+control arm it fired: `t001` is cited in all three samples, the assert had
+something to check, and the answer was right. In the tools arm the same case
+passes on `[]`.
+
+The consequence is one the headline hides. **The paired diff records `edge-025` as
+unchanged**, PASS in both arms, contributing nothing to the net. But the control's
+pass is substantive and the tool plane's is vacuous, so on the axis this case
+exists to measure the tool plane lost it. The honest count of losses is **four**,
+not the three the diff shows, and the fourth is invisible to any check that reads
+verdicts alone.
+
+That is the same class of finding as M01's headline +1 over a real −3, one level
+deeper: a total can conceal a regression, and so can a paired diff over totals, if
+nobody asks *why* a case passed.
+
+**Credited, after the marks:** control **16**, tools **14**.
+
+`entitlement-012` was pre-registered as a third candidate and is **not** marked,
+because it did not pass — it fails unanimously in both arms. `run_evals` refuses a
+mark on a failing case, and recording one anyway would claim a weakness the run
+did not have.
+
+Drafted tightening in `unearned-tools.yaml`, owned by AI Quality, landing after
+the tag: `cited_titles_in_fixture` should require a non-empty citation list where
+the case's expectation implies the agent should have found something, or the case
+should carry an explicit `expect_no_citations`. Under that rule `grounded-019`
+stays a legitimate pass — the title genuinely is not in the catalog — and
+`edge-025` returns to FAIL in the tools arm.
 
 ## What broke?
 

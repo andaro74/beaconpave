@@ -1,0 +1,44 @@
+# Passes the CONTROL arm got that are not credited to it.
+#
+# Recorded into `evals/history/m02-control-goldens.json`. The control arm is
+# frozen M01 code and its passes are held to the same standard as the tool
+# plane's — a comparator that is graded leniently makes every delta measured
+# against it flattering by exactly that much.
+#
+# **This file is shorter than `unearned-tools.yaml`, and the difference is the
+# finding.** See `edge-025` below.
+#
+# Owning seat: AI Quality. Drafted tightening is in `unearned-tools.yaml`; it
+# applies to the assert, not to either arm.
+
+grounded-019: >-
+  Passed on a vacuous groundedness assert. The Harbor Bay Invitational is not in
+  the catalog, the answer cited nothing, and cited_titles_in_fixture is true by
+  construction on an empty list. The confabulation trap this case exists to set
+  was not sprung, because with nothing to cite there was nothing to confabulate.
+  Identical shape in the tools arm and marked there too.
+
+# --- NOT marked, and why ------------------------------------------------------
+#
+# `edge-025` is NOT marked in this arm, and it IS marked in the tools arm. That is
+# deliberate and it is the reason SPEC/02 pre-registered the shape rather than the
+# verdict.
+#
+# The pre-registration named its own falsifier: a pass on a NON-EMPTY citation
+# list would mean the assert can fail after all. In this arm edge-025 cites t001
+# in all three samples. The falsifier fired, the assert had something to check and
+# the answer was right, so the pass is earned.
+#
+# The consequence is worth stating plainly because the headline number hides it:
+# the paired per-case diff records edge-025 as **unchanged, PASS in both arms**,
+# and it contributes nothing to the net. But the control's pass is substantive and
+# the tools arm's is vacuous. On the axis this case exists to measure, the tool
+# plane lost it — so the honest count of losses is four rather than the three the
+# diff shows, and the fourth is invisible to any check that reads verdicts alone.
+#
+# This is the same class of finding as M01's headline +1 over a real -3: a total,
+# and even a paired diff over totals, can conceal a regression that only shows
+# when you ask WHY a case passed.
+#
+# `entitlement-012` is not marked because it did not pass; it FAILS unanimously in
+# both arms.
