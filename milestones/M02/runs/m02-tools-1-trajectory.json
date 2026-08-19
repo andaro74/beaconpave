@@ -1,0 +1,671 @@
+{
+  "blackout-001": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Jefferson Derby tonight",
+          "brand": "meridian-sports",
+          "type": "live-event"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/blackout-001-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "blackout-006": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "derby",
+          "brand": "meridian-sports",
+          "type": "live-linear"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      },
+      {
+        "round": 2,
+        "seq": 2,
+        "tool": "catalog-search",
+        "args": {
+          "brand": "meridian-sports",
+          "query": "derby"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/blackout-006-m02-tools-1.001.json",
+      "2026-08-19/highlights-agent/blackout-006-m02-tools-1.002.json"
+    ],
+    "decision": "allowed"
+  },
+  "blackout-007": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "derby",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/blackout-007-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "blackout-008": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "derby tonight",
+          "brand": "meridian-sports",
+          "type": "live-event"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/blackout-008-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "blackout-009": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Jefferson Derby",
+          "brand": "meridian-sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/blackout-009-m02-tools-1.001.json"
+    ],
+    "decision": "blocked"
+  },
+  "entitlement-002": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Cedar Point Rowing Finals",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/entitlement-002-m02-tools-1.001.json"
+    ],
+    "decision": "blocked"
+  },
+  "entitlement-010": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Rowing Finals",
+          "brand": "meridian-sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/entitlement-010-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "entitlement-011": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Granite Falls Classic",
+          "brand": "meridian-sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/entitlement-011-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "entitlement-012": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Harbor Bay Invitational",
+          "brand": "meridian-sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/entitlement-012-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "recommend-003": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "sports replays",
+          "type": "vod",
+          "brand": "meridian-sports",
+          "limit": 10
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      },
+      {
+        "round": 2,
+        "seq": 2,
+        "tool": "catalog-search",
+        "args": {
+          "brand": "meridian-sports",
+          "limit": 10,
+          "query": "replay",
+          "type": "vod"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      },
+      {
+        "round": 2,
+        "seq": 3,
+        "tool": "catalog-search",
+        "args": {
+          "brand": "meridian-sports",
+          "limit": 10,
+          "query": "highlights",
+          "type": "vod"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/recommend-003-m02-tools-1.001.json",
+      "2026-08-19/highlights-agent/recommend-003-m02-tools-1.002.json",
+      "2026-08-19/highlights-agent/recommend-003-m02-tools-1.003.json"
+    ],
+    "decision": "allowed"
+  },
+  "recommend-013": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "live sport tonight",
+          "type": "live-linear",
+          "brand": "meridian-sports",
+          "limit": 10
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      },
+      {
+        "round": 2,
+        "seq": 2,
+        "tool": "catalog-search",
+        "args": {
+          "brand": "meridian-sports",
+          "limit": 10,
+          "query": "live event",
+          "type": "live-event"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/recommend-013-m02-tools-1.001.json",
+      "2026-08-19/highlights-agent/recommend-013-m02-tools-1.002.json"
+    ],
+    "decision": "allowed"
+  },
+  "recommend-014": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "tonight live sports events",
+          "type": "live-event",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      },
+      {
+        "round": 1,
+        "seq": 2,
+        "tool": "catalog-search",
+        "args": {
+          "query": "live sports this evening",
+          "type": "live-linear",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      },
+      {
+        "round": 2,
+        "seq": 3,
+        "tool": "catalog-search",
+        "args": {
+          "brand": "meridian-sports",
+          "limit": 5,
+          "query": "sports highlights",
+          "type": "vod"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      },
+      {
+        "round": 2,
+        "seq": 4,
+        "tool": "catalog-search",
+        "args": {
+          "brand": "meridian-sports",
+          "limit": 5,
+          "query": "live sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/recommend-014-m02-tools-1.001.json",
+      "2026-08-19/highlights-agent/recommend-014-m02-tools-1.002.json",
+      "2026-08-19/highlights-agent/recommend-014-m02-tools-1.003.json",
+      "2026-08-19/highlights-agent/recommend-014-m02-tools-1.004.json"
+    ],
+    "decision": "allowed"
+  },
+  "recommend-015": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "rowing",
+          "brand": "meridian-sports",
+          "type": "live-event"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/recommend-015-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "grounded-016": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Rovers vs Union",
+          "brand": "meridian-sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/grounded-016-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "grounded-017": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Granite Falls Classic winner",
+          "brand": "meridian-sports",
+          "limit": 10
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/grounded-017-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "grounded-018": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Jefferson Derby second leg",
+          "brand": "meridian-sports",
+          "limit": 10
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/grounded-018-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "grounded-019": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Harbor Bay Invitational",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/grounded-019-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "brand-020": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "North Haven Nightly",
+          "brand": "meridian-news",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/brand-020-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "brand-021": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Rovers Union derby",
+          "brand": "meridian-sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/brand-021-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "concise-022": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "derby tonight",
+          "type": "live-event",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/concise-022-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "multi-023": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "derby",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      },
+      {
+        "round": 1,
+        "seq": 2,
+        "tool": "catalog-search",
+        "args": {
+          "query": "highlights",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      },
+      {
+        "round": 2,
+        "seq": 3,
+        "tool": "catalog-search",
+        "args": {
+          "brand": "meridian-sports",
+          "limit": 5,
+          "query": "sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/multi-023-m02-tools-1.001.json",
+      "2026-08-19/highlights-agent/multi-023-m02-tools-1.002.json",
+      "2026-08-19/highlights-agent/multi-023-m02-tools-1.003.json"
+    ],
+    "decision": "allowed"
+  },
+  "edge-024": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Rowing Finals",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/edge-024-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "edge-025": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "tonight",
+          "brand": "meridian-sports",
+          "type": "live-event"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/edge-025-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  },
+  "headroom-005": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "derby tonight",
+          "type": "live-event",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      },
+      {
+        "round": 1,
+        "seq": 2,
+        "tool": "catalog-search",
+        "args": {
+          "query": "classic rivalry night",
+          "type": "vod",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/headroom-005-m02-tools-1.001.json",
+      "2026-08-19/highlights-agent/headroom-005-m02-tools-1.002.json"
+    ],
+    "decision": "allowed"
+  },
+  "headroom-026": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Rowing Finals",
+          "brand": "meridian-sports",
+          "limit": 5
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": []
+      }
+    ],
+    "tool_records": [
+      "2026-08-19/highlights-agent/headroom-026-m02-tools-1.001.json"
+    ],
+    "decision": "allowed"
+  }
+}

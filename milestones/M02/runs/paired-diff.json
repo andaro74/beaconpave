@@ -1,0 +1,114 @@
+{
+  "lost": [
+    {
+      "id": "blackout-008",
+      "from": "PASS",
+      "to": "FAIL"
+    },
+    {
+      "id": "recommend-013",
+      "from": "PASS",
+      "to": "FAIL"
+    },
+    {
+      "id": "recommend-014",
+      "from": "PASS",
+      "to": "FAIL"
+    }
+  ],
+  "gained": [
+    {
+      "id": "blackout-007",
+      "from": "FAIL",
+      "to": "PASS"
+    },
+    {
+      "id": "concise-022",
+      "from": "FAIL",
+      "to": "PASS"
+    }
+  ],
+  "unchanged": [
+    {
+      "id": "blackout-001",
+      "result": "FAIL"
+    },
+    {
+      "id": "blackout-006",
+      "result": "FAIL"
+    },
+    {
+      "id": "blackout-009",
+      "result": "FAIL"
+    },
+    {
+      "id": "entitlement-002",
+      "result": "PASS"
+    },
+    {
+      "id": "entitlement-010",
+      "result": "FAIL"
+    },
+    {
+      "id": "entitlement-011",
+      "result": "PASS"
+    },
+    {
+      "id": "entitlement-012",
+      "result": "FAIL"
+    },
+    {
+      "id": "recommend-003",
+      "result": "PASS"
+    },
+    {
+      "id": "recommend-015",
+      "result": "PASS"
+    },
+    {
+      "id": "grounded-016",
+      "result": "PASS"
+    },
+    {
+      "id": "grounded-017",
+      "result": "PASS"
+    },
+    {
+      "id": "grounded-018",
+      "result": "PASS"
+    },
+    {
+      "id": "grounded-019",
+      "result": "PASS"
+    },
+    {
+      "id": "brand-020",
+      "result": "PASS"
+    },
+    {
+      "id": "brand-021",
+      "result": "PASS"
+    },
+    {
+      "id": "multi-023",
+      "result": "FAIL"
+    },
+    {
+      "id": "edge-024",
+      "result": "PASS"
+    },
+    {
+      "id": "edge-025",
+      "result": "PASS"
+    },
+    {
+      "id": "headroom-005",
+      "result": "PASS"
+    },
+    {
+      "id": "headroom-026",
+      "result": "PASS"
+    }
+  ],
+  "net": -1
+}
