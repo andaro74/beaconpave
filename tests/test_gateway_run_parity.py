@@ -27,8 +27,11 @@ import ast
 import hashlib
 import json
 import pathlib
+from collections import Counter
 
 import pytest
+
+from pave import infra
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BASELINE = ROOT / "services" / "highlights-agent-baseline" / "run_baseline.py"
@@ -36,6 +39,8 @@ GOVERNED = ROOT / "services" / "highlights-agent" / "gateway_client.py"
 CONTROL_ARM = ROOT / "services" / "highlights-agent" / "run_via_gateway.py"
 TOOL_ARM = ROOT / "services" / "highlights-agent" / "run_with_tools.py"
 CATALOG = ROOT / "data" / "catalog.json"
+GATEWAY_SNAPSHOT = (ROOT / "platform" / "infra" / "tests" / "fixtures"
+                    / "BeaconpaveGateway.template.json")
 
 
 def module_constants(path):
@@ -150,6 +155,38 @@ def test_transport_decoding_matches_the_control():
 TOOL_SYSTEM_SHA256 = "c5e0e50584613dbfa75b0dc991fda55e075709dfb07fd3c5f38db8e0a6818e38"
 
 
+#: sha256 of the tool specs the gateway renders for the model.
+#:
+#: **The prompt is not the whole of what the model reads.** `handler.tool_config`
+#: hands Bedrock each tool's `description` and its full input schema, so the
+#: model-facing surface at M02 is `TOOL_SYSTEM` *plus* those documents — and the
+#: description shipped a reviewer-facing rationale as tool documentation while the
+#: schema carries catalog vocabulary the control arm had inside `CATALOG:`.
+#:
+#: Unpinned, a tool description could be reworded between the two arms of one
+#: comparison: exactly what `TOOL_SYSTEM_SHA256` exists to prevent, one field over
+#: and invisible to it. SPEC/02 forbids editing a committed schema in this
+#: milestone, so the description's rewrite is drafted for the Tool Owner with a
+#: semver bump rather than made here — but it cannot move unnoticed in the
+#: meantime.
+TOOL_SPECS_SHA256 = "1912657b11c164df77ed5f162729f6cd785d840f31233bafcc03aeb89dc15c4a"
+
+
+def test_the_tool_specs_the_model_reads_are_hash_pinned():
+    contracts = json.loads(
+        (ROOT / "platform" / "gateway" / "policy" / "tools.contracts.json").read_text(
+            encoding="utf-8"))
+    routed = infra.routed_tools(json.loads(GATEWAY_SNAPSHOT.read_text(encoding="utf-8")))
+    specs = json.dumps([contracts[t]["input"] for t in sorted(routed) if t in contracts],
+                       sort_keys=True)
+    digest = hashlib.sha256(specs.encode("utf-8")).hexdigest()
+    assert digest == TOOL_SPECS_SHA256, (
+        f"the tool specs the model reads changed (sha256 {digest}). They are part of the "
+        "system under measurement just as the prompt is. Update this pin deliberately, and "
+        "never between the two arms of one comparison."
+    )
+
+
 def test_the_m02_prompt_is_hash_pinned():
     digest = hashlib.sha256(GOVERNED_CONSTANTS["TOOL_SYSTEM"].encode("utf-8")).hexdigest()
     assert digest == TOOL_SYSTEM_SHA256, (
@@ -160,15 +197,41 @@ def test_the_m02_prompt_is_hash_pinned():
     )
 
 
-def test_the_catalog_is_gone_from_the_m02_prompt():
+#: What the model actually receives at M02: the rendered system prompt plus the
+#: tool specs the gateway builds from the committed input contracts.
+#:
+#: **Both halves, because only one of them was being checked.** The prompt is
+#: `TOOL_SYSTEM.format(schema=...)`, and the first version of this file asserted
+#: against the *template* — one level above where its own docstring said the
+#: failure would happen. And `handler.tool_config` hands Bedrock the tool's
+#: `description` and full input schema, which is model-facing text nobody pinned:
+#: the description shipped a reviewer-facing rationale as tool documentation, and
+#: the schema carries catalog vocabulary the control arm had inside `CATALOG:`.
+def rendered_model_surface() -> str:
+    schema = (ROOT / "services" / "highlights-agent" / "evals" / "answer.schema.json")
+    prompt = GOVERNED_CONSTANTS["TOOL_SYSTEM"].format(schema=schema.read_text(encoding="utf-8"))
+    contracts = json.loads(
+        (ROOT / "platform" / "gateway" / "policy" / "tools.contracts.json").read_text(
+            encoding="utf-8"))
+    routed = infra.routed_tools(json.loads(GATEWAY_SNAPSHOT.read_text(encoding="utf-8")))
+    specs = json.dumps([contracts[t]["input"] for t in routed if t in contracts])
+    return prompt + "\n" + specs
+
+
+def test_the_catalog_is_gone_from_everything_the_model_receives():
     """**Asserted, not merely permitted.** This is M02's central claim about the
     prompt, so it is checked against the fixture's own bytes rather than against
     the absence of the word "CATALOG": a template that dropped the placeholder but
     inlined the titles some other way would pass a keyword check.
 
+    Checked against the **rendered** surface, including the tool specs. The first
+    version read the pre-`.format()` template and ignored `toolConfig` entirely —
+    so it checked one level above where the failure it describes would occur, and
+    it did not look at the second thing the model reads at all.
+
     Every title id, every title string, and the blackout table's own vocabulary
     must be absent."""
-    prompt = GOVERNED_CONSTANTS["TOOL_SYSTEM"]
+    prompt = rendered_model_surface()
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
 
     assert catalog["titles"], "the catalog fixture has no titles — this check would be vacuous"
@@ -176,11 +239,22 @@ def test_the_catalog_is_gone_from_the_m02_prompt():
         assert title["id"] not in prompt, f"{title['id']} is inlined in the M02 prompt"
         assert title["title"] not in prompt, f"{title['title']!r} is inlined in the M02 prompt"
 
+    # The blackout table's own DATA, not the word "blackout". The answer schema
+    # names `blackout` as a possible verdict and always has — it is in the control
+    # arm's prompt too, so a bare keyword check would fail on something shared by
+    # both arms and prove nothing about either. What must be absent is every DMA
+    # name and every blackout entry, which is the ground truth the agent used to
+    # read out of its own prompt.
     assert catalog["blackouts"], "the fixture has no blackout table — this check would be vacuous"
-    for token in ("blackout", "dma", "jefferson-city"):
+    assert catalog["dmas"], "the fixture has no DMAs — this check would be vacuous"
+    forbidden = set(catalog["dmas"])
+    for event, dmas in catalog["blackouts"].items():
+        forbidden.add(event)
+        forbidden.update(dmas)
+    for token in sorted(forbidden):
         assert token not in prompt.lower(), (
-            f"{token!r} is back in the M02 prompt. SPEC/02 rejects re-inlining the blackout "
-            "table as 'policy context' on the record: it lets the agent keep inferring "
+            f"{token!r} is back in what the model receives. SPEC/02 rejects re-inlining the "
+            "blackout table as 'policy context' on the record: it lets the agent keep inferring "
             "entitlement from its own prompt while a tool call in the trajectory makes it look "
             "as though a tool answered — which is what ADR-016 demoted `entitlement_source` for."
         )
@@ -197,8 +271,16 @@ def test_the_m02_prompt_is_the_control_prompt_minus_the_catalog_and_nothing_else
     control = GOVERNED_CONSTANTS["SYSTEM"].splitlines()
     tool = GOVERNED_CONSTANTS["TOOL_SYSTEM"].splitlines()
 
-    only_control = [line for line in control if line not in tool]
-    only_tool = [line for line in tool if line not in control]
+    # **A multiset difference, not a set difference.** The first version used
+    # `line not in tool`, which is blind to repetition: appending a duplicate copy
+    # of the JSON-instruction line to `TOOL_SYSTEM` left both lists exactly as the
+    # assertions expect and the test stayed green. Repetition is real prompt
+    # emphasis, and the hash pin would catch it — but the hash and the prompt move
+    # in the same commit, and the test whose job is to NAME what changed would have
+    # said nothing.
+    counts_control, counts_tool = Counter(control), Counter(tool)
+    only_control = sorted((counts_control - counts_tool).elements())
+    only_tool = sorted((counts_tool - counts_control).elements())
 
     assert only_tool == [
         "You are the Meridian Sports highlights agent. Answer the viewer's question using "
@@ -206,12 +288,17 @@ def test_the_m02_prompt_is_the_control_prompt_minus_the_catalog_and_nothing_else
         "you rely on.",
     ], f"the M02 prompt adds lines beyond the forced one: {only_tool}"
 
-    assert only_control == [
+    # Sorted, and the blank line is real: removing the trailing `CATALOG:` block
+    # removes the blank line that separated it from the schema. The set-difference
+    # version could not see that, which is the same blindness that let a duplicated
+    # line pass.
+    assert only_control == sorted([
+        "",
         "You are the Meridian Sports highlights agent. Answer the viewer's question using "
         "only the catalog below. Cite the ids of any titles you rely on.",
         "CATALOG:",
         "{catalog}",
-    ], f"the M02 prompt drops more than the catalog: {only_control}"
+    ]), f"the M02 prompt drops more than the catalog: {only_control}"
 
 
 # --- the two arms differ where they are supposed to, and nowhere else --------
@@ -257,6 +344,24 @@ def test_only_the_tool_arm_asks_for_tools():
     assert "tools" not in CONTROL_ARM.read_text(encoding="utf-8"), (
         "the control arm mentions tools. Defaulting them on, or asking for them here, would "
         "change the frozen arm's behaviour without changing a line of what it measures."
+    )
+
+
+def test_the_tool_arm_refuses_to_write_a_run_in_which_nothing_was_authorized():
+    """The harness half of the finding Platform Engineering raised.
+
+    A tools arm in which the plane authorized nothing is indistinguishable, in the
+    committed evidence, from a model that chose never to search: both leave an
+    empty trajectory file and a complete set of plausible answers, and the score
+    lands inside the predicted band as a fifth loss mechanism nobody registered.
+    The gateway now refuses to start without a routing table, and the harness
+    refuses to write a run that measured nothing — belt and braces, because only
+    one of the two is in front of the file that becomes history."""
+    source = TOOL_ARM.read_text(encoding="utf-8")
+    assert "no tool call was authorized in the whole run" in source
+    assert source.index("no tool call was authorized") < source.index("out.write_text"), (
+        "the pre-flight check runs after the answers are written, so a run that "
+        "measured nothing still leaves a file somebody can record"
     )
 
 

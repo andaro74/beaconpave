@@ -309,6 +309,52 @@ turning it into a score changes what the score means without announcing it. If
 M03 wants a "spend on refused turns" number, it is a new axis with its own
 threshold and its own two-key PR, computed from records that already exist.
 
+### The summariser is an estimator, and both numbers are recorded
+
+Caught by AI Quality reviewing the harness, before any run.
+
+**Majority-of-k is nonlinear.** For a case with per-sample pass probability `p`,
+the recorded probability is `3p² − 2p³`: it *polarizes* rather than averages,
+pushing `p > 0.5` up and `p < 0.5` down. On this milestone's own numbers — control
+19/25 = 0.76, tools predicted 10/25 = 0.40 — that widens the expected delta from
+**−9.0 to −12.6**, toward the far end of the band pre-registered above, and it
+makes the stated falsifier harder to trigger.
+
+The claim that this was "a reporting discipline, not a new scorer" is true per
+case and false per suite. The estimator did not exist when `m01`'s 19/25 was
+recorded.
+
+**So both are recorded and the journal reports the paired delta both ways.** The
+majority is the headline, because it is what removes the cherry-pick surface and
+what `k` was introduced for; `pooled_pass_rate` — every sample of every case over
+`k × cases` — is recorded beside it in `scores`, needing no schema change. If the
+two agree the finding is robust; **if they diverge, the divergence is the
+finding**, and it is a property of the summariser rather than of the tool plane.
+
+Decided here, before the run, rather than after seeing which way it cut.
+
+### Two limitations in what the budget axis will report
+
+Both pre-registered rather than discovered in the numbers.
+
+**`max_ms` was derived without the deployed tool's network time.** The loop-shape
+harness called `catalog-search` in-process; the deployed tool is a Lambda invoke.
+So the turn now reports `latency_ms` (model time, comparable to the ceiling the
+measurement produced) and `tool_ms` beside it, and the axis reads the comparable
+one. **The p95 breach M02 records is therefore understated by the tool
+round-trip.** Folding tool time into `latency_ms` would compare a number against a
+ceiling derived without it, which is the mirror of raising a ceiling after seeing
+a run — so it is not done, and the gap is named instead.
+
+**A refused case reports `latency_ms: null`, not `0`.** `suite_latency` filters on
+`is not None`, so a zero is a *sample* in the p95 population rather than an
+omission — and a refusal at round four took real wall-clock, so recording 0 ms is
+a positive falsehood in a distribution. Since this spec pre-registers more
+refusals for the tools arm than for the control, artificial zeros would have given
+the arm with more refusals the flattering p95. The token zeros stand for the
+reasons already given above; abstaining is the honest form of not counting a
+latency.
+
 ## G3's proof artifact: static and runtime
 
 Claim 4 got a pair at M01 and the spec said so rather than letting the weaker half
@@ -478,6 +524,25 @@ is safe either way — `pave/infra.py` already normalizes asset hashes to
 way `AWS::CDK::Metadata` did.
 
 ## Pre-registered hypothesis (written before the run)
+
+> **Labelled honestly: this is a projection calibrated on a 15-case pilot, not a
+> blind pre-registration.** `milestones/M02/loop-shape.json` is a 15-case, k=3 run
+> of the M02 tool arm against the golden set — 45 executions, 10 answered and 5
+> refused, with the losing cases named. The prediction moved 14/25 ± 3 → 13/25 ± 4
+> → 10/25 ± 4 as that measurement was taken and retaken, and the cases named "in
+> advance" overlap the pilot. The recorded run will be roughly the **third look at
+> 60% of this data**.
+>
+> Revision-with-receipts is the right practice and the strikethroughs stay
+> visible, but it is not the same epistemic object as a prediction made blind, and
+> calling it one would overstate what the number proves. The journal says
+> "projection calibrated on a 15-case pilot" in those words.
+>
+> Same caveat, one component over: `MAX_ROUNDS` and `MAX_CALLS_PER_TURN` are
+> derived from that pilot. They are ~2× the observed maximum and no sample hit the
+> cap, so they do not touch this score — but they are system parameters fitted on
+> the evaluation set, and if either ever becomes binding the score becomes partly
+> a function of that fit.
 
 | Dimension | Prediction | Why | What falsifies it |
 |---|---|---|---|
@@ -665,7 +730,10 @@ recorded in the entry is what already said so.
       `--answers` and an `--arm`, scores each sample independently through the
       unchanged scorer, and records the majority plus the per-sample verdicts;
       the runs themselves are owed)*
-- [ ] Paired per-case diff recorded; both arms' raw answers committed
+- [ ] Paired per-case diff recorded; both arms' raw answers committed.
+      **ADR-021 designates the paired diff as "the result, not the total" and only
+      the total has a harness** — `run_evals.py` has no diff mode. Whatever the
+      tool prints is what gets reported, so the diff needs code before the run
 - [ ] Tool trajectories recorded; none scored
 - [ ] `entitlement_source` and `expect_tool_before_answer` still deferred
 - [ ] Scores recorded — two-key, disposition and rationale in the PR body
@@ -681,9 +749,55 @@ recorded in the entry is what already said so.
       existed — the point of reviewing while fixes are still free
 - [ ] Any unearned pass documented with a drafted tightening — `grounded-019` is
       pre-registered as one
-- [ ] Guardrail-assesses-tool-output tightening drafted for Security, **named
-      for M04**, unlanded — with ADV-002's unassessed tool result committed as
-      the evidence that the path is open
+- [x] Guardrail-assesses-tool-output tightening drafted for Security, **named
+      for M04**, unlanded. ~~with ADV-002's unassessed tool result committed as
+      the evidence that the path is open~~ — **struck; see the cut below.** The
+      evidence is the hermetic
+      `test_the_poisoned_catalog_is_served_verbatim_and_not_sanitised`, which
+      shows the tool serving the injected title unaltered and the plane's output
+      contract accepting it. That is the same open path, demonstrated one layer
+      short of the model.
+
+### The cut: M02's adversarial number measures the M01 path
+
+Found by Security and the Tool Owner independently, before the deploy, and
+recorded rather than quietly satisfied differently.
+
+**Nothing committed can run ADV-002 through the tool plane.** Four independent
+blocks, any one of which is sufficient: `run_probes_via_gateway.py` sends no
+`tools: true` and still inlines `data/catalog_poisoned.json` into the system
+prompt; `build_tool_prompt()` takes no fixture argument, deliberately and
+correctly; the stack stages only `data/catalog.json` and there is no context key
+that would stage the other; and the deployed tool's catalog is deployment
+configuration by design, so a probe cannot ask for a different one.
+
+So the recorded M02 adversarial run **describes the M01 threat model**, and the
+line above was an obligation the milestone could not meet. Building the second
+fixture path — a stack context key plus a tools mode on the probe harness, and a
+second deploy between the two runs — was the alternative and was rejected as
+scope this milestone does not need to carry.
+
+**What that costs, said plainly:** M02 ships a tool plane whose adversarial
+exposure is *asserted and not measured*. Unprobed by the corpus and unprobed by
+anything else are the `toolResult` channel, the per-round guardrail exposure a
+longer turn creates, the `tool_probe` event path, and tool-output indirect
+injection. The frozen corpus (ADR-009) has no probe for any of them, and adding
+one would be two-key, would need an ADR, and would make the progression table
+incomparable — which is exactly why the artifact carries what the corpus cannot.
+
+**Owed for M04, in Security's words**, none of them added to the frozen corpus
+here: a direct tool invoke bypassing the gateway (already pre-registered); an
+injection arriving in `structuredContent`, the ADV-002 successor; `tool_probe`
+as a policy oracle; and a turn driven past `MAX_CALLS_PER_TURN` by a single
+round.
+
+**One seam this leaves open, and it must be closed before any probe runs with
+tools.** A Cedar denial *inside the loop* leaves no observation the scorer can
+find: the turn record says `allowed`/`none` because the turn answered, the
+tool-call records live under their own keys, and `run_probes_via_gateway.py`
+fetches only `record_id`. It is latent at M02 precisely because no probe asks for
+tools. When the M04 tranche lands, the observation must be built from the turn's
+tool records and not from the turn record alone.
 - [ ] `milestones/M02/README.md` answers the three questions
 - [ ] Progression row filled, with footnotes
 - [ ] Tag `m02` pushed from branch `m02-tool-plane` — names distinct

@@ -126,14 +126,18 @@ def test_a_three_way_split_records_advisory_rather_than_a_verdict():
     assert samples["a"] == [PASS, FAIL, ADVISORY]
 
 
-def test_an_even_k_with_a_dead_heat_records_advisory():
-    """k=4 splitting 2-2 has no strict majority. `needed` is k//2 + 1, so a dead
-    heat does not round toward PASS — which is the direction it would round in if
-    the rule were written the obvious way."""
-    summary, _ = summarise(
-        [[CaseResult(id="a", result=PASS)], [CaseResult(id="a", result=PASS)],
-         [CaseResult(id="a", result=FAIL)], [CaseResult(id="a", result=FAIL)]], ["a"])
-    assert summary[0].result == ADVISORY
+def test_an_even_k_is_refused_outright():
+    """**A bend path, closed rather than documented.**
+
+    An even k has ties, a tie records ADVISORY, and ADVISORY was not in `tally`'s
+    counts — so `emit_verdict` read it as PASS. An operator whose sample 2 had one
+    INFRA case could therefore pass samples 1 and 3 only, and every case where the
+    two disagreed would become a non-blocking ADVISORY. The answer to a bad sample
+    is a full re-run, which is the INFRA rule; an even k was a way around it."""
+    with pytest.raises(SystemExit, match="is even"):
+        summarise(
+            [[CaseResult(id="a", result=PASS)], [CaseResult(id="a", result=PASS)],
+             [CaseResult(id="a", result=FAIL)], [CaseResult(id="a", result=FAIL)]], ["a"])
 
 
 # --- what reaches the history entry ------------------------------------------

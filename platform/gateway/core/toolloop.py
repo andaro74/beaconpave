@@ -40,6 +40,11 @@ from core import guardrail as guardrail_module
 from core import meter
 from core.toolplane import ROUTING, SCHEMA, ToolDecision
 
+
+def _monotonic():
+    import time
+    return time.monotonic()
+
 #: Bedrock's stop reason when the model wants one or more tools.
 STOP_REASON_TOOL_USE = "tool_use"
 
@@ -224,7 +229,12 @@ def _accumulate(totals: dict, usage: dict) -> dict:
     return totals
 
 
-def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool) -> TurnOutcome:
+def _tool_ms(started, ended) -> int:
+    return max(0, int((ended - started) * 1000))
+
+
+def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool,
+             clock=None) -> TurnOutcome:
     """Run one agent turn to completion, to a refusal, or to its bound.
 
     `converse(transcript) -> (response, latency_ms)` and
@@ -235,6 +245,14 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
     It is the Cedar principal, so anything a caller or a model can influence must
     not reach it — see `handler.py`, where it comes from deployment configuration
     rather than from the request."""
+    # **The tool round-trip is measured too.** `latency_ms` came only from the
+    # `converse` timer, so the summed latency of a tools-arm turn was model time
+    # while the real turn included n tool invocations. The budget axis would have
+    # under-reported exactly the component the tool plane adds — and SPEC/02
+    # pre-registers a p95 breach as an expected finding, so the number is going to
+    # be read. Injected rather than imported: `core/` stays free of the clock, and
+    # a test can hand it a deterministic one.
+    clock = clock or _monotonic
     transcript: list[dict] = [dict(message) for message in messages]
     turn = plane.begin_turn()
     calls: list[ToolCall] = []
@@ -303,7 +321,9 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
             withheld = False
 
             if decision.allowed:
+                started = clock()
                 reply = call_tool(tool_id, args)
+                totals["tool_ms"] = totals.get("tool_ms", 0) + _tool_ms(started, clock())
                 if reply.error is not None:
                     withheld = True
                     decision = ToolDecision(

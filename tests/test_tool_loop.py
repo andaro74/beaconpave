@@ -139,6 +139,34 @@ def test_the_turn_sums_what_every_round_spent():
     assert outcome.usage["latency_ms"] == 360
 
 
+def test_the_tool_round_trip_is_measured_separately_from_the_model():
+    """`latency_ms` came only from the `converse` timer, so a tools-arm turn
+    reported model time while the real turn included n tool invocations — the
+    budget axis under-reporting exactly the component the tool plane adds.
+
+    **Kept as its own field rather than folded into `latency_ms`.** The `max_ms`
+    ceiling was re-derived in PR #17 from a measurement whose harness called the
+    tool in-process; the deployed tool is a Lambda invoke, so folding its network
+    time into `latency_ms` would compare a number against a ceiling derived
+    without it. Reported beside it, and SPEC/02 names the gap."""
+    ticks = iter([0.0, 0.5, 10.0, 10.25])
+    converse, tool = Converse(tool_use(), tool_use(use_id="tu-2"), final()), Tool()
+    outcome = toolloop.run_turn(
+        plane=plane(), principal=PRINCIPAL,
+        messages=[{"role": "user", "content": [{"text": "x"}]}],
+        converse=converse, call_tool=tool, clock=lambda: next(ticks))
+
+    assert outcome.usage["tool_ms"] == 500 + 250
+    assert outcome.usage["latency_ms"] == 360, "model time must stay comparable to the ceiling"
+
+
+def test_a_turn_with_no_tools_reports_no_tool_time():
+    """So the control arm's usage shape is unchanged: `tool_ms` is absent, not
+    zero, on a turn that called nothing."""
+    outcome = run(Converse(final()), Tool())
+    assert "tool_ms" not in outcome.usage
+
+
 # --- authorize BEFORE the tool runs ------------------------------------------
 
 def test_an_unregistered_tool_is_denied_and_never_reaches_a_tool():

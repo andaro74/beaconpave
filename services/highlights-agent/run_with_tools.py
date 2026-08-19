@@ -113,13 +113,22 @@ def main(argv=None) -> int:
                             response.get("assessed") or response.get("reasons")))
             answers[case["id"]] = {
                 "answer": {"refused_by_gateway": mechanism, "record_id": response.get("record_id")},
-                # Zeros, deliberately, and SPEC/02 pre-registers why: a refused
-                # case already scores FAIL on its content asserts, so charging it a
-                # budget failure double-counts one event — and scoring refusals
-                # differently from the control arm would put the instrument inside
-                # the delta this milestone exists to measure. What the turn really
-                # spent is on its audit record.
-                "usage": {"tokens_in": 0, "tokens_out": 0, "latency_ms": 0},
+                # Token zeros, deliberately, and SPEC/02 pre-registers why: a
+                # refused case already scores FAIL on its content asserts, so
+                # charging it a budget failure double-counts one event — and
+                # scoring refusals differently from the control arm would put the
+                # instrument inside the delta this milestone exists to measure.
+                # What the turn really spent is on its audit record.
+                #
+                # **`latency_ms` is null, not zero**, and that is a different
+                # argument. `suite_latency` filters on `is not None`, so a zero is
+                # a SAMPLE in the p95 population rather than an omission — a
+                # refusal at round four took real wall-clock, and recording 0 ms is
+                # a positive falsehood in a distribution. SPEC/02 pre-registers
+                # more refusals for this arm than for the control, so the arm with
+                # more refusals would have got more artificial zeros and a
+                # flattering p95. Abstaining is the honest form of not counting it.
+                "usage": {"tokens_in": 0, "tokens_out": 0, "latency_ms": None},
             }
             calls = len(trajectories[case["id"]]["trajectory"])
             print(f"[{index}/{len(cases)}] {case['id']}: REFUSED by {mechanism} "
@@ -134,6 +143,24 @@ def main(argv=None) -> int:
         print(f"[{index}/{len(cases)}] {case['id']}: {usage['tokens_in']}in/"
               f"{usage['tokens_out']}out {usage['latency_ms']}ms "
               f"tools {allowed}/{calls} [audit {response.get('record_id')}]")
+
+    # **Pre-flight, before anything is written.** The gateway now refuses to start
+    # with an empty routing table, so this cannot fire for that reason — but the
+    # failure it guards against is a RUN that measured something else, and a run
+    # is cheap to repeat and expensive to misread. A tools arm in which the plane
+    # authorized nothing is indistinguishable, in the committed evidence, from a
+    # model that chose never to search: both leave an empty trajectory file and a
+    # complete set of plausible answers.
+    authorized = sum(1 for t in trajectories.values()
+                     for step in t["trajectory"] if step.get("decision") == "allowed")
+    if answers and not authorized:
+        sys.exit(
+            "error: no tool call was authorized in the whole run, so this is not a "
+            "measurement of the tool plane. Nothing has been written. Check that the "
+            "gateway was deployed with a routing table and that the request asked for "
+            "tools — a run like this one lands inside the predicted band and cannot be "
+            "told apart from a real one afterwards."
+        )
 
     out = pathlib.Path(args.out)
     out.write_text(json.dumps(answers, indent=2, ensure_ascii=False), encoding="utf-8")

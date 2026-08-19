@@ -41,6 +41,7 @@ from evals.deterministic import (
     DEFERRED_ASSERTS,
     FAIL,
     INFRA,
+    PASS,
     Scorer,
     suite_latency,
     tally,
@@ -91,15 +92,42 @@ def dryrun(cases: list) -> int:
     return 0
 
 
+def _sources(paths) -> list[dict]:
+    """Name and hash every answer file an entry was summarised from."""
+    import hashlib
+    found = []
+    for path in paths:
+        raw = pathlib.Path(path).read_bytes()
+        found.append({"path": str(path).replace(chr(92), "/"),
+                      "sha256": hashlib.sha256(raw).hexdigest()})
+    return found
+
+
 def summarise(per_sample: list[list], ids: list[str]) -> tuple[list, dict]:
     """Per-case majority across k independently scored samples.
 
     **The sampling lives here and not in the instrument.** `evals/deterministic.py`
     is untouched, no scoring rule changes, and each sample is scored by exactly the
-    code path a single run uses. This function only decides which of k already-made
-    verdicts the entry records — which is a reporting discipline, not a new scorer.
-    M01's third owed tightening (sample k times *or* report the paired diff)
-    remains owed; this is the second half of that "or".
+    code path a single run uses. M01's third owed tightening (sample k times *or*
+    report the paired diff) remains owed; this is the second half of that "or".
+
+    **But majority-of-k is a new suite-level estimator, and saying otherwise was
+    wrong.** The first version of this docstring claimed "a reporting discipline,
+    not a new scorer". That is true per case and false per suite: majority-of-3 is
+    nonlinear. For a case with per-sample pass probability p, the recorded
+    probability is 3p^2 - 2p^3, which *polarizes* rather than averages — it pushes
+    p > 0.5 up and p < 0.5 down.
+
+    On this milestone's own numbers (control 19/25 = 0.76, tools predicted
+    10/25 = 0.40) that widens the expected delta from -9.0 to -12.6, toward the far
+    end of a band this milestone pre-registered, and it makes the stated falsifier
+    harder to trigger. The estimator did not exist when m01's 19/25 was recorded.
+
+    So `pooled_pass_rate` is computed and recorded beside the majority, and the
+    journal reports the paired delta both ways. If they agree the finding is
+    robust; if they diverge, the divergence is the finding. Choosing which is the
+    headline is a two-key call and it is made before the run, not after seeing
+    which way it cut.
 
     **A representative sample carries the detail.** The recorded `CaseResult` is
     the first sample that agreed with the majority, so the failures printed and
@@ -131,6 +159,18 @@ def summarise(per_sample: list[list], ids: list[str]) -> tuple[list, dict]:
             by_case.setdefault(result.id, []).append(result)
 
     k = len(per_sample)
+    if k % 2 == 0:
+        # **An even k has no strict majority, and that is a bend path.** A 2-2 split
+        # records ADVISORY, which `tally` does not count and `emit_verdict` turns
+        # into PASS — so an operator whose sample 2 had one INFRA case could pass
+        # samples 1 and 3 only, and every case where the pair disagreed would become
+        # a non-blocking ADVISORY. Refused rather than documented, because the whole
+        # point of the INFRA rule is that the answer to a bad sample is a full re-run.
+        raise SystemExit(
+            f"error: k={k} is even, so a tie has no strict majority. Use an odd k "
+            "(SPEC/02 pre-registers k=3). Passing an even number of samples is how a "
+            "discarded run becomes an ADVISORY that does not block."
+        )
     needed = k // 2 + 1
     summary, samples = [], {}
     for case_id in ids:
@@ -149,6 +189,21 @@ def summarise(per_sample: list[list], ids: list[str]) -> tuple[list, dict]:
             # PASS/FAIL, and reachable once the judge adds ADVISORY at M03.
             summary.append(replace(outcomes[0], result=ADVISORY))
     return summary, samples
+
+
+def pooled_pass_rate(per_sample: list[list]) -> float:
+    """Passes over every sample of every case, divided by k x cases.
+
+    The linear counterpart to the majority, and the reason it is recorded: a
+    majority polarizes and a mean does not, so reporting both says whether a
+    reported delta is a property of the system or of the summariser. Recorded, not
+    scored — `scores` in the history schema is `{string: number}`, so it needs no
+    schema change, and nothing gates on it."""
+    total = sum(len(sample) for sample in per_sample)
+    if not total:
+        return 0.0
+    passed = sum(1 for sample in per_sample for result in sample if result.result == PASS)
+    return round(passed / total, 4)
 
 
 def run(args) -> int:
@@ -200,6 +255,11 @@ def run(args) -> int:
         ]
 
     scores = tally(results)
+    if len(per_sample) > 1:
+        # Recorded beside the majority, never instead of it. A majority polarizes
+        # and a mean does not, so the two together say whether a reported delta is
+        # a property of the system or of the summariser (see `summarise`).
+        scores["pooled_pass_rate"] = pooled_pass_rate(per_sample)
 
     width = max(len(r.id) for r in results)
     for r in results:
@@ -231,7 +291,8 @@ def run(args) -> int:
             print(f"  {r.id}: {r.unearned_reason}")
 
     if args.record:
-        path = record(results, scores, args, len(per_sample), samples)
+        path = record(results, scores, args, len(per_sample), samples,
+                      sources=_sources(paths) if len(per_sample) > 1 else None)
         print(f"recorded: {path.relative_to(ROOT)}")
 
     if args.out:
@@ -243,7 +304,7 @@ def run(args) -> int:
     return 0
 
 
-def record(results, scores, args, k=1, samples=None) -> pathlib.Path:
+def record(results, scores, args, k=1, samples=None, sources=None) -> pathlib.Path:
     """Append a history entry. Never edits: a correction is a new entry carrying
     `supersedes`, because the value of this file is that every row came from a
     real execution.
@@ -272,6 +333,15 @@ def record(results, scores, args, k=1, samples=None) -> pathlib.Path:
     }
     if k > 1:
         entry["k"] = k
+    if sources:
+        # **What `k` alone could not say.** `k` is the number of files the operator
+        # passed, not the number of runs that happened: running five and passing the
+        # best three produced an entry byte-indistinguishable from an honest one,
+        # and nothing tied a recorded score to a committed run file. Naming and
+        # hashing them does not stop a cherry-pick — nothing here can — but it makes
+        # one leave a trace, which is the difference between a social protection and
+        # a legible one.
+        entry["samples_from"] = sources
     if args.arm:
         entry["arm"] = args.arm
     if args.tag:
@@ -302,12 +372,20 @@ def record(results, scores, args, k=1, samples=None) -> pathlib.Path:
 def emit_verdict(results, scores, out: str) -> None:
     from pave import verdict as verdict_mod
     blocked = any(r.result == INFRA for r in results)
+    unresolved = any(r.result == ADVISORY for r in results)
     verdict_mod.write(out, verdict_mod.build(
         service="highlights-agent",
         surface="agent",
         suite="goldens",
         layer="L2",
-        verdict=INFRA if blocked else (FAIL if scores["failed"] else "PASS"),
+        # **ADVISORY blocks.** It is not in `tally`'s passed/failed/infra counts, so
+        # `FAIL if scores["failed"]` read an unresolved case as a clean PASS. A case
+        # with no strict majority is a case the suite could not decide, and a gate
+        # that waves those through is a gate that fails open on exactly the results
+        # nobody understands yet. Unreachable at k=3 over PASS/FAIL; written while
+        # nothing is riding on it, because the judge makes it reachable at M03.
+        verdict=INFRA if blocked else (
+            FAIL if (scores["failed"] or unresolved) else "PASS"),
         fail_closed=True,
         scores={k: v for k, v in scores.items()},
     ))
