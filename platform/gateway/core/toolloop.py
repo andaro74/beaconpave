@@ -93,6 +93,27 @@ class ToolCall:
     payload: object | None = None
 
 
+class TurnFailed(Exception):
+    """A turn that could not be completed, carrying what it had already done.
+
+    **The records for the calls that already happened must survive the failure.**
+    `run_turn` reaches the model once per round, and only the first of those was
+    ever inside the handler's `try`. A throttle on round two propagated out of the
+    loop, out of the handler, and past the only code that writes tool-call records
+    — so a tool call that was authorized and executed left nothing in the lake. At
+    M01 the exposure did not exist, because a turn was one call.
+
+    G4's second half is that a record exists. A run of 25 cases at k=3 across two
+    arms is roughly 450 model calls in one sitting, and a throttle is an ordinary
+    event; its consequence must not be a silently incomplete audit trail."""
+
+    def __init__(self, cause: BaseException, calls, usage):
+        super().__init__(str(cause))
+        self.cause = cause
+        self.calls = tuple(calls)
+        self.usage = dict(usage)
+
+
 @dataclass(frozen=True)
 class TurnOutcome:
     status: str
@@ -166,6 +187,18 @@ def _tool_result_block(tool_use_id, decision: ToolDecision, payload, withheld: b
     if decision.allowed:
         content = [{"json": payload if isinstance(payload, dict) else {"result": payload}}]
         status = "success"
+    elif withheld and decision.mechanism == ROUTING:
+        # **Not the same sentence as a contract failure.** The first version sent
+        # the withheld-result text for this branch too, so a throttle or a missing
+        # invoke grant was reported to the model as "it did not conform to the
+        # output contract" and told not to retry. The lake got the distinction
+        # right and the model was handed the schema story — which is the same
+        # misattribution `ROUTING` exists to prevent, arriving on the one channel
+        # nobody was asserting about.
+        content = [{"text": (
+            "the platform could not reach this tool. Nothing was withheld and nothing "
+            "about the request was wrong. See the audit record.")}]
+        status = "error"
     elif withheld:
         content = [{"text": (
             f"the platform withheld this tool's result ({decision.mechanism}): it did not "
@@ -208,10 +241,31 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
     totals: dict = {}
 
     while True:
-        response, latency_ms = converse(transcript)
-        _accumulate(totals, meter.usage_from_response(response, latency_ms))
+        try:
+            response, latency_ms = converse(transcript)
+        except Exception as exc:  # noqa: BLE001 — re-raised, with the calls attached
+            raise TurnFailed(exc, calls, totals) from exc
 
         outcome = guardrail_module.interpret(response)
+
+        # **Metered after the guardrail is read, not before.** `usage_from_response`
+        # raises when a response carries no usage, and it was running first — so a
+        # guardrail intervention that came back without usage would have raised
+        # instead of recording a block, on the path where recording it is the whole
+        # of G4. The meter's rule was written for the allowed path and is kept
+        # there; a refusal reports what the turn had already spent.
+        try:
+            _accumulate(totals, meter.usage_from_response(response, latency_ms))
+        except ValueError as exc:
+            if not outcome.intervened:
+                # Still a metering failure on the allowed path — the meter's rule
+                # is unchanged there. Wrapped, not re-raised bare, so the calls
+                # this turn already made still reach the lake.
+                raise TurnFailed(exc, calls, totals) from exc
+            totals.setdefault("tokens_in", 0)
+            totals.setdefault("tokens_out", 0)
+            totals["latency_ms"] = totals.get("latency_ms", 0) + latency_ms
+
         if outcome.intervened:
             # The guardrail assesses the model's own intermediate reasoning on
             # every round, so a turn that took four rounds handed it four more

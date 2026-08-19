@@ -63,13 +63,21 @@ GUARDRAIL_VERSION = os.environ["GUARDRAIL_VERSION"]
 #: way — a gateway per service, or a caller identity the platform can verify
 #: rather than receive. `service` in the event stays what it was at M01: a label
 #: on the record.
-SERVICE_PRINCIPAL = os.environ.get("SERVICE_PRINCIPAL", "highlights-agent")
+#:
+#: Read without a default, exactly as `GUARDRAIL_VERSION` is, and for the same
+#: reason. The first version defaulted to `"highlights-agent"` four lines below a
+#: comment explaining why a missing guardrail version must fail loudly rather
+#: than fall back to something servable. A stack that dropped this variable would
+#: have authorized as `highlights-agent` anyway, and nothing would have printed
+#: differently — a docstring arguing the principal is deployment configuration,
+#: over code that did not require the deployment to supply it.
+SERVICE_PRINCIPAL = os.environ["SERVICE_PRINCIPAL"]
 
 #: Tool id -> deployed function name, from the stack. **The offered set is derived
 #: from this**, so the gateway cannot advertise a tool it has no way to call: a
 #: model handed a tool that 404s spends its turn retrying and the loop bound takes
 #: the blame for a deployment gap.
-TOOL_FUNCTIONS = json.loads(os.environ.get("TOOL_FUNCTIONS") or "{}")
+TOOL_FUNCTIONS = json.loads(os.environ["TOOL_FUNCTIONS"])
 
 #: Generated from `platform/registry/tools.yaml` and committed into this bundle,
 #: the way `platform/infra/tests/fixtures/*.template.json` is (ADR-004, ADR-017).
@@ -89,6 +97,22 @@ if _unknown:
         f"TOOL_FUNCTIONS routes {_unknown}, which the committed contract set does not "
         "carry. The registry generates both; a disagreement is drift, and the gateway "
         "refuses to serve rather than guess which side is right."
+    )
+if not TOOL_FUNCTIONS:
+    # **The other direction, which is the one that failed open.** The check above
+    # only caught a routing table naming too much. An EMPTY one is the likelier
+    # deployment gap and it was silent: `offered` becomes `[]`, `toolConfig` is
+    # omitted, and the turn runs the catalog-less prompt with no tools at all.
+    # Every case answers plausibly, the trajectory file is empty, the harness exits
+    # 0, and the number goes into history as the M02 arm while measuring the
+    # control prompt with the catalog deleted — a fifth loss mechanism nobody
+    # registered, landing inside the predicted band and unfalsifiable afterwards.
+    raise RuntimeError(
+        "TOOL_FUNCTIONS is empty. A gateway with no tools is a supportable thing to "
+        "deploy and an unsupportable thing to deploy BY ACCIDENT: it produces a "
+        "complete, plausible run of the M02 arm that measures something else. If a "
+        "tool-less gateway is what you want, deploy it deliberately with a routing "
+        "table that says so."
     )
 
 PLANE = toolplane.ToolPlane(policies=POLICIES, contracts=CONTRACTS)
@@ -166,13 +190,24 @@ def _call_tool(tool_id, args):
         # the failure a deploy is most likely to produce.
         return toolloop.ToolReply(error=f"{type(exc).__name__}: {exc}", unreachable=True)
 
+    # **The line is whether the tool answered, not whether the answer was good.**
+    #
+    # A fault or a JSON-RPC `error` means no answer came back: the bundle is
+    # broken, the catalog is not where the stack said, the server could not
+    # start. Those are deployment faults and they belong to `routing`. An
+    # `isError` *result* means the tool answered and its answer is a failure —
+    # that is the tool, and it belongs to `schema`.
+    #
+    # The first version put all three on `schema`, so a missing `BEACONPAVE_CATALOG`
+    # would have recorded a contract violation on every case of every arm, and the
+    # score would have collapsed with the lake pointing at an output schema that
+    # was fine.
     if "FunctionError" in response:
-        # The function ran and raised. That is the tool failing, not the platform
-        # failing to reach it — `server.handler` catches its own exceptions, so an
-        # unhandled fault here means the bundle is broken rather than absent.
-        return toolloop.ToolReply(error=f"the tool function faulted: {body}")
+        return toolloop.ToolReply(
+            error=f"the tool function faulted: {body}", unreachable=True)
     if not isinstance(body, dict) or "error" in body:
-        return toolloop.ToolReply(error=f"the tool returned a JSON-RPC error: {body}")
+        return toolloop.ToolReply(
+            error=f"the tool could not answer: {body}", unreachable=True)
 
     result = body.get("result") or {}
     if result.get("isError"):
@@ -219,7 +254,8 @@ def _tool_records(outcome, common, classification):
     ids = []
     for call in outcome.calls:
         decision = call.decision
-        fragment = decision.as_record_fragment(round_number=call.round_number, args=call.args)
+        fragment = decision.as_record_fragment(
+            round_number=call.round_number, args=call.args, principal=SERVICE_PRINCIPAL)
         record = audit.build_record(
             classification=classification,
             decision="allowed" if decision.allowed else "denied",
@@ -292,17 +328,33 @@ def handler(event, context):
             converse=_converse(system, tool_config(offered)),
             call_tool=_call_tool,
         )
-    except _bedrock.exceptions.AccessDeniedException as exc:
-        # G1's runtime face. The gateway is a courier for the AWS error here, not
-        # its author — the message is recorded verbatim rather than summarised.
-        record = audit.build_record(
-            classification=routing.classification,
-            decision="denied",
-            mechanism="iam",
-            error={"code": "AccessDeniedException", "message": str(exc)},
-            **common,
-        )
-        return {"decision": "denied", "mechanism": "iam", "record_id": _write(record)}
+    except toolloop.TurnFailed as failure:
+        # The turn died partway. Write the records for the calls that already
+        # happened BEFORE reporting the failure — they are the evidence that those
+        # calls were authorized, and G4's second half is that a record exists. A
+        # partial turn is not an excuse for a partial audit trail.
+        partial = _tool_records(
+            toolloop.TurnOutcome("failed", None, failure.calls, failure.usage),
+            common, routing.classification)
+
+        if isinstance(failure.cause, _bedrock.exceptions.AccessDeniedException):
+            # G1's runtime face. The gateway is a courier for the AWS error here,
+            # not its author — recorded verbatim rather than summarised.
+            record = audit.build_record(
+                classification=routing.classification, decision="denied", mechanism="iam",
+                error={"code": "AccessDeniedException", "message": str(failure.cause)},
+                **common)
+            return {"decision": "denied", "mechanism": "iam",
+                    "record_id": _write(record), "tool_records": partial}
+
+        # Anything else — a throttle, a validation error, a service fault. The
+        # harness must see this as INFRA rather than as a decision: the gateway
+        # established nothing, and dressing a broken call as a refusal would
+        # attribute a service outage to the system under test.
+        raise RuntimeError(
+            f"turn failed after {len(partial)} recorded tool call(s): "
+            f"{type(failure.cause).__name__}: {failure.cause}"
+        ) from failure.cause
 
     tool_record_ids = _tool_records(outcome, common, routing.classification)
     fragment = (outcome.guardrail or guardrail.GuardrailOutcome(False)).as_record_fragment(
@@ -370,7 +422,8 @@ def _tool_probe(probe, common, classification):
         classification=classification,
         decision="allowed" if decision.allowed else "denied",
         mechanism="none" if decision.allowed else decision.mechanism,
-        tool=decision.as_record_fragment(round_number=1, args=args),
+        tool=decision.as_record_fragment(
+            round_number=1, args=args, principal=SERVICE_PRINCIPAL),
         seq=turn.calls,
         **common,
     )

@@ -189,6 +189,10 @@
           },
           "description": "Why it was refused. A refusal nobody can account for is indistinguishable from a bug, and it is the kind teams learn to route around."
         },
+        "principal": {
+          "type": "string",
+          "description": "The Cedar principal this call was authorized against. Deployment configuration, never the caller's `service` field (ADR-023) — and recorded here because the top-level `principal` is the gateway's own ARN and `service` is a claim, so without this an ALLOWED tool call could not evidence which identity permitted it."
+        },
         "args": {
           "type": "object",
           "description": "The arguments as received, so a denial can be reconstructed rather than re-guessed."

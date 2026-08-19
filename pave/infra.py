@@ -138,6 +138,18 @@ def statements(template: dict) -> Iterator[dict]:
             for statement in _as_list(properties.get("PolicyDocument", {}).get("Statement")):
                 yield {"policy": logical_id, "roles": roles, "statement": statement}
 
+        elif kind == "AWS::IAM::ManagedPolicy":
+            # **A third shape, and it was invisible.** A managed policy names its
+            # roles the same way a standalone policy does, and CDK emits one for
+            # `addManagedPolicy` and for any grant made through a shared policy.
+            # Until this branch existed, a `bedrock:InvokeModel` grant delivered
+            # this way passed every G1 assertion in the repo — the invariant
+            # CLAUDE.md calls non-negotiable, defeated by choosing a different
+            # construct. Found by the Security seat planting it.
+            roles = _referenced_roles(properties.get("Roles"))
+            for statement in _as_list(properties.get("PolicyDocument", {}).get("Statement")):
+                yield {"policy": logical_id, "roles": roles, "statement": statement}
+
         elif kind == "AWS::IAM::Role":
             for policy in _as_list(properties.get("Policies")):
                 for statement in _as_list(policy.get("PolicyDocument", {}).get("Statement")):
@@ -148,6 +160,30 @@ def actions_of(statement: dict) -> set[str]:
     return set(_as_list(statement.get("Action")))
 
 
+def grants_any(statement: dict, wanted: frozenset) -> bool:
+    """Does this statement's `Action` cover any of `wanted`, wildcards included?
+
+    **A set intersection is not action matching.** `Action: "*"` and
+    `Action: "bedrock:*"` reach every model action and match no literal string, so
+    a plain intersection reported them as granting nothing at all. Both G1 and
+    G3's new infra assertion read through here, and both were blind to the
+    broadest possible grant while catching the narrow ones.
+
+    The `MODEL_INVOKE_ACTIONS` docstring argues that naming more than the minimum
+    protects against a provider *adding* an action. It does. It says nothing about
+    a grant that names none of them by naming all of them."""
+    for action in _as_list(statement.get("Action")):
+        if not isinstance(action, str):
+            continue
+        if action == "*":
+            return True
+        if action.endswith(":*") and any(w.startswith(action[:-1]) for w in wanted):
+            return True
+        if action in wanted:
+            return True
+    return False
+
+
 def model_invoke_grants(template: dict) -> list[dict]:
     """Every statement that ALLOWS a model-invoke action."""
     found = []
@@ -155,7 +191,7 @@ def model_invoke_grants(template: dict) -> list[dict]:
         statement = entry["statement"]
         if statement.get("Effect") != "Allow":
             continue
-        if actions_of(statement) & MODEL_INVOKE_ACTIONS:
+        if grants_any(statement, MODEL_INVOKE_ACTIONS):
             found.append(entry)
     return found
 
@@ -171,7 +207,7 @@ def model_invoke_denials(template: dict) -> list[dict]:
         statement = entry["statement"]
         if statement.get("Effect") != "Deny":
             continue
-        if actions_of(statement) & MODEL_INVOKE_ACTIONS:
+        if grants_any(statement, MODEL_INVOKE_ACTIONS):
             found.append(entry)
     return found
 
@@ -288,16 +324,78 @@ def tool_invoke_grants(template: dict) -> list[dict]:
         statement = entry["statement"]
         if statement.get("Effect") != "Allow":
             continue
-        if actions_of(statement) & TOOL_INVOKE_ACTIONS:
+        if grants_any(statement, TOOL_INVOKE_ACTIONS):
             found.append(entry)
     return found
 
 
-def invoke_targets(statement: dict) -> set[str]:
-    """Logical ids an invoke grant names. Empty means it names none — which for a
-    grant that is not a wildcard is the interesting case, and for one that is, see
-    `wildcard_invoke_grants`."""
-    return referenced_logical_ids(_as_list(statement.get("Resource")))
+def _resource_text(value: Any) -> str:
+    """Every string anywhere inside a `Resource`, concatenated.
+
+    `Fn::Sub` and `Fn::Join` hide an ARN inside a structure, so a check that only
+    looked at top-level strings saw a wildcard grant as naming nothing."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return " ".join(_resource_text(v) for v in value.values())
+    if isinstance(value, list):
+        return " ".join(_resource_text(v) for v in value)
+    return ""
+
+
+def invoke_targets(statement: dict, functions_by_name: dict[str, str] | None = None) -> set[str]:
+    """Logical ids an invoke grant names, through references **or** through text.
+
+    **A grant does not have to use `Fn::GetAtt` to name a function.** The first
+    version read only `Ref`/`Fn::GetAtt`, so a statement naming the tool by literal
+    ARN string resolved to the empty set and dropped straight out of the
+    intersection the assertion is built on — a smuggler role could be handed
+    `lambda:InvokeFunction` on the tool and every test stayed green. Found by the
+    Security seat planting exactly that.
+
+    `functions_by_name` maps a deployed function name to its logical id, so an ARN
+    ending in that name resolves. It is optional because the reference path needs
+    no such map."""
+    found = referenced_logical_ids(_as_list(statement.get("Resource")))
+    text = _resource_text(_as_list(statement.get("Resource")))
+    for name, logical_id in (functions_by_name or {}).items():
+        if name and name in text:
+            found.add(logical_id)
+    return found
+
+
+#: The segment of a Lambda ARN after which the function name begins.
+FUNCTION_MARKER = ":function:"
+
+
+def _names_a_wildcard_function(resource: Any) -> bool:
+    """Does this `Resource` name an unbounded set of functions?
+
+    Evaluated **per element**, and a reference wins. `Fn::Join["", [GetAtt(Arn),
+    ":*"]]` is CDK's own `grantInvoke` shape: it points at one specific function
+    and permits any version or alias of it. Narrow, correct, and what this repo
+    deploys — so a text scan for `*` flagged the grant the check exists to bless,
+    which is how a check gets deleted rather than fixed.
+
+    What matters is an element that names no function and still carries a `*`, or
+    an ARN whose function-name segment is a wildcard. Either covers functions
+    nobody has written yet, which is how a tool added to the registry later
+    becomes reachable with no IAM change to review."""
+    for element in _as_list(resource):
+        if referenced_logical_ids(element):
+            continue                                  # points at a named resource
+        text = _resource_text(element)
+        if not text:
+            continue
+        if FUNCTION_MARKER in text:
+            before, after = text.split(FUNCTION_MARKER, 1)
+            if "*" in before or "*" in after.split(":")[0]:
+                return True
+        elif "*" in text:
+            # Not an ARN shape at all — a bare `*`, or a name pattern. Nothing in
+            # the structure bounds it.
+            return True
+    return False
 
 
 def wildcard_invoke_grants(template: dict) -> list[dict]:
@@ -308,10 +406,12 @@ def wildcard_invoke_grants(template: dict) -> list[dict]:
     was written before it existed."""
     found = []
     for entry in tool_invoke_grants(template):
-        for resource in _as_list(entry["statement"].get("Resource")):
-            if isinstance(resource, str) and "*" in resource.split(":")[-1].strip("/"):
-                found.append(entry)
-                break
+        # Read as TEXT, not as top-level strings. `{"Fn::Sub":
+        # "arn:...:function:*"}` is a wildcard grant that the string-only check
+        # skipped entirely — and `invoke_targets` did not see it either, so
+        # neither detector caught it. Two blind checks agreeing is not coverage.
+        if _names_a_wildcard_function(_as_list(entry["statement"].get("Resource"))):
+            found.append(entry)
     return found
 
 
@@ -326,18 +426,20 @@ def function_urls(template: dict) -> list[str]:
     ]
 
 
-def open_invoke_permissions(template: dict) -> list[str]:
-    """`AWS::Lambda::Permission` resources whose principal is a wildcard.
+def invoke_permissions(template: dict) -> list[dict]:
+    """Every `AWS::Lambda::Permission` — a resource policy granting invoke from the
+    *other* side, invisible to every check that reads role policies.
 
-    A resource policy grants invoke from the *other* side, so it is invisible to
-    every check that reads role policies — and `Principal: "*"` on a tool would
-    make it callable by anyone, with the gateway's own narrow grant still looking
-    correct."""
-    found = []
-    for logical_id, resource in template.get("Resources", {}).items():
-        if resource.get("Type") != "AWS::Lambda::Permission":
-            continue
-        principal = resource.get("Properties", {}).get("Principal")
-        if isinstance(principal, str) and "*" in principal:
-            found.append(logical_id)
-    return found
+    **The assertion is "only the gateway", not "no wildcard".** The first version
+    flagged only `Principal: "*"`, so `Principal: "apigateway.amazonaws.com"` or a
+    specific foreign account id passed — and either is precisely "G3 held in the
+    code and lost at the network", with the gateway's own narrow grant still
+    reading as correct beside it. The test file claimed the broad property and the
+    code delivered the narrow one."""
+    return [
+        {"id": logical_id,
+         "principal": resource.get("Properties", {}).get("Principal"),
+         "function": resource.get("Properties", {}).get("FunctionName")}
+        for logical_id, resource in template.get("Resources", {}).items()
+        if resource.get("Type") == "AWS::Lambda::Permission"
+    ]

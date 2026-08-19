@@ -125,10 +125,17 @@ def test_a_refusal_that_happened_after_the_model_may_record_what_it_spent():
 def test_the_spend_rule_names_every_mechanism_that_can_follow_a_model_call():
     """A list of names is only a boundary if something checks it against reality.
 
-    `SPENDING_MECHANISMS` is the set of refusals that can happen *after* the model
-    was reached. Every other mechanism refuses before it, so the two sets must
-    partition `MECHANISMS` — a mechanism in neither would be one nobody decided
-    about, and the decision would fall out of whichever branch ran first."""
+    `SPENDING_MECHANISMS` is the set of mechanisms a **turn-level** record may
+    carry usage with. The partition is over that record, not over when a mechanism
+    can fire: `schema` and `routing` fire mid-turn, after model calls have
+    happened, but they appear on per-tool-call records which never carry a turn's
+    usage. The first version of this docstring said "every other mechanism refuses
+    before the model", which is false for both — and an M03 author adding a
+    "spend on refused turns" axis would have read it as true.
+
+    What the test holds is that every mechanism is on one side or the other. A
+    mechanism in neither would be one nobody decided about, and the decision would
+    fall out of whichever branch ran first."""
     assert audit.SPENDING_MECHANISMS <= audit.MECHANISMS
     pre_model = audit.MECHANISMS - audit.SPENDING_MECHANISMS
     assert pre_model == {"classification", "policy", "schema", "routing", "iam"}

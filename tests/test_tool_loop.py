@@ -360,6 +360,77 @@ def test_a_blocked_turn_still_reports_what_it_spent():
     assert outcome.usage["tokens_in"] == USAGE["inputTokens"] * 3
 
 
+# --- a turn that dies keeps the evidence it already made ----------------------
+
+def test_a_converse_that_raises_mid_loop_keeps_the_calls_it_already_made():
+    """G4's second half is that a record exists.
+
+    `run_turn` reaches the model once per round, and only the first of those was
+    ever inside the handler's `try`. A throttle on round two propagated past the
+    only code that writes tool-call records, so a call that was authorized and
+    executed left nothing in the lake. At M01 the exposure did not exist, because
+    a turn was one call; a 25-case k=3 run across two arms is roughly 450 model
+    calls in one sitting, and a throttle is an ordinary event."""
+    class Flaky(Converse):
+        def __call__(self, transcript):
+            if self.transcripts:
+                self.transcripts.append(transcript)
+                raise RuntimeError("ThrottlingException: rate exceeded")
+            return super().__call__(transcript)
+
+    converse, tool = Flaky(tool_use()), Tool()
+    with pytest.raises(toolloop.TurnFailed) as raised:
+        run(converse, tool)
+
+    failure = raised.value
+    assert len(failure.calls) == 1, "the authorized call was lost with the exception"
+    assert failure.calls[0].decision.allowed
+    assert failure.usage["tokens_in"] == USAGE["inputTokens"]
+    assert isinstance(failure.cause, RuntimeError)
+
+
+def test_a_first_round_failure_still_carries_an_empty_turn_rather_than_raising_raw():
+    """The handler distinguishes an AccessDenied from everything else by reading
+    `TurnFailed.cause`, so the wrapper has to be there even when there is nothing
+    to carry."""
+    class Dead(Converse):
+        def __call__(self, transcript):
+            raise RuntimeError("boom")
+
+    with pytest.raises(toolloop.TurnFailed) as raised:
+        run(Dead(), Tool())
+    assert raised.value.calls == ()
+
+
+def test_a_guardrail_block_without_usage_records_the_block_rather_than_raising():
+    """`usage_from_response` raises when a response reports no usage, and it was
+    running BEFORE the guardrail was read — so an intervention that came back
+    without usage would have raised instead of recording a block, on the one path
+    where recording it is the whole of G4.
+
+    The meter's rule ("a call that reached the model but reported no usage is a
+    metering failure") was written for the allowed path and still holds there."""
+    response = blocked()
+    del response["usage"]
+    outcome = run(Converse(response), Tool())
+
+    assert outcome.status == toolloop.BLOCKED
+    assert outcome.guardrail.assessed == ("PROMPT_ATTACK",)
+    assert outcome.usage["tokens_in"] == 0
+    assert outcome.usage["latency_ms"] == 120
+
+
+def test_an_allowed_turn_without_usage_is_still_a_metering_failure():
+    """The counterweight. Relaxing the meter on the blocked path must not relax it
+    where the budget axis reads it."""
+    response = final()
+    del response["usage"]
+    with pytest.raises(toolloop.TurnFailed) as raised:
+        run(Converse(response), Tool())
+    assert isinstance(raised.value.cause, ValueError)
+    assert "must report what it spent" in str(raised.value.cause)
+
+
 # --- the records a turn produces ---------------------------------------------
 
 def test_every_call_gets_a_record_and_no_two_share_a_key():
@@ -459,5 +530,11 @@ def test_no_loop_mechanism_can_satisfy_a_probe_naming_cedar(mechanism):
     none of them may count as one. `loop` in particular fires when the *model*
     flails — counting it would make a probe satisfiable by the attack being
     incompetent."""
+    # `CEDAR_MECHANISMS` is the set `score_probe` actually reads for that
+    # semantics. Asserting `POLICY_MECHANISMS` held transitively and named the
+    # wrong guard — a test whose subject is "cannot satisfy a probe naming Cedar"
+    # should assert against the set the scorer consults, not one next to it.
+    from evals.adversarial import CEDAR_MECHANISMS
+    assert mechanism not in CEDAR_MECHANISMS
     assert mechanism not in audit.POLICY_MECHANISMS
     assert mechanism in audit.MECHANISMS

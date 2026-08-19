@@ -85,13 +85,32 @@ def test_every_routed_tool_resolves_to_a_function_in_this_stack():
 
 # --- only the gateway may invoke a tool --------------------------------------
 
+def function_names(template):
+    """Deployed function name -> logical id, so a grant naming a tool by literal
+    ARN string resolves. Without this, `invoke_targets` saw only `Ref`/`GetAtt`
+    and a smuggler role granted invoke by ARN string dropped out of the
+    intersection entirely — the Security seat planted exactly that and the whole
+    suite stayed green."""
+    names = {}
+    for logical_id, resource in infra.functions(template).items():
+        name = resource.get("Properties", {}).get("FunctionName")
+        if isinstance(name, str):
+            names[name] = logical_id
+        # CDK usually leaves FunctionName unset (CloudFormation generates it), so
+        # the logical id is also matched as text — a hand-written ARN in a review
+        # is far more likely to carry a readable name than a generated one.
+        names[logical_id] = logical_id
+    return names
+
+
 def invokers_of_tools(template):
     """Roles holding an invoke grant on a routed tool function."""
     targets = set(infra.routed_tools(template).values())
+    by_name = function_names(template)
     return {
         (role, logical)
         for grant in infra.tool_invoke_grants(template)
-        for logical in infra.invoke_targets(grant["statement"]) & targets
+        for logical in infra.invoke_targets(grant["statement"], by_name) & targets
         for role in grant["roles"]
     }
 
@@ -154,11 +173,25 @@ def test_no_function_in_the_stack_has_a_public_url():
     assert infra.function_urls(load()) == []
 
 
-def test_no_resource_policy_opens_a_function_to_a_wildcard_principal():
-    """A resource policy grants invoke from the *other* side, so it does not
-    appear in any role's policy — the gateway's narrow grant would still read as
-    correct beside a `Principal: "*"` that lets in the world."""
-    assert infra.open_invoke_permissions(load()) == []
+def test_no_resource_policy_lets_anything_but_the_gateway_in():
+    """A resource policy grants invoke from the *other* side, so it does not appear
+    in any role's policy — the gateway's narrow grant reads as correct beside it.
+
+    **The assertion is "only the gateway", not "no wildcard".** The first version
+    flagged only `Principal: "*"`, so `apigateway.amazonaws.com` or a specific
+    foreign account id passed — and either is exactly "G3 held in the code and lost
+    at the network". The file's own docstring claimed the broad property while the
+    code delivered the narrow one, which is this repo's named worst failure mode
+    appearing in the test that exists to prevent it."""
+    template = load()
+    gateway, _ = infra.gateway_function(template)
+    offenders = [
+        entry for entry in infra.invoke_permissions(template)
+        if gateway not in infra.referenced_logical_ids(entry["principal"])
+    ]
+    assert offenders == [], (
+        f"resource policy grants invoke to something other than the gateway: {offenders}"
+    )
 
 
 # --- the assertions can actually fail ----------------------------------------
@@ -190,6 +223,125 @@ def test_the_assertion_catches_a_second_role_granted_invoke():
     assert planted == {"SmugglerRole"}
 
 
+def test_the_assertion_catches_a_grant_naming_the_tool_by_literal_arn():
+    """**The one that got through.** `invoke_targets` read only `Ref` and
+    `Fn::GetAtt`, so a statement naming the function by ARN string resolved to the
+    empty set and dropped out of the intersection the assertion is built on. The
+    original negative controls planted `Fn::GetAtt` only — they proved the detector
+    against its own happy path, which is the failure PR #13 taught and this file's
+    own comment claims to have learned."""
+    template = copy.deepcopy(load())
+    before = invokers_of_tools(template)
+    target = next(iter(infra.routed_tools(template).values()))
+
+    template["Resources"]["ArnSmugglerRole"] = {"Type": "AWS::IAM::Role", "Properties": {}}
+    template["Resources"]["ArnSmugglerPolicy"] = {
+        "Type": "AWS::IAM::Policy",
+        "Properties": {
+            "Roles": [{"Ref": "ArnSmugglerRole"}],
+            "PolicyDocument": {"Statement": [{
+                "Effect": "Allow",
+                "Action": "lambda:InvokeFunction",
+                # Account-less on purpose. `tests/test_no_account_identifiers.py`
+                # rejects a redacted account field as firmly as a real one — the
+                # redaction habit is what lets a real one through later — and this
+                # detector matches on the function name, not the account.
+                "Resource": f"arn:aws:lambda:us-west-2::function:{target}",
+            }]},
+        },
+    }
+    planted = {role for role, _ in invokers_of_tools(template)} - {r for r, _ in before}
+    assert planted == {"ArnSmugglerRole"}
+
+
+def test_the_assertion_catches_a_grant_through_a_managed_policy():
+    """The third construct CDK emits, and it was invisible to `statements()`.
+
+    **This is a G1 hole as much as a G3 one**: a `bedrock:InvokeModel` grant
+    delivered through an `AWS::IAM::ManagedPolicy` passed every assertion in
+    `test_iam_assertions.py` too. The invariant CLAUDE.md calls non-negotiable was
+    defeated by choosing a different construct."""
+    template = copy.deepcopy(load())
+    before = invokers_of_tools(template)
+    target = next(iter(infra.routed_tools(template).values()))
+
+    template["Resources"]["ManagedSmugglerRole"] = {"Type": "AWS::IAM::Role", "Properties": {}}
+    template["Resources"]["ManagedSmugglerPolicy"] = {
+        "Type": "AWS::IAM::ManagedPolicy",
+        "Properties": {
+            "Roles": [{"Ref": "ManagedSmugglerRole"}],
+            "PolicyDocument": {"Statement": [{
+                "Effect": "Allow",
+                "Action": "lambda:InvokeFunction",
+                "Resource": {"Fn::GetAtt": [target, "Arn"]},
+            }]},
+        },
+    }
+    planted = {role for role, _ in invokers_of_tools(template)} - {r for r, _ in before}
+    assert planted == {"ManagedSmugglerRole"}
+
+
+def test_the_g1_assertion_catches_a_model_grant_through_a_managed_policy():
+    """The same hole, on the invariant that matters most. Kept here rather than in
+    `test_iam_assertions.py` because this is where it was found and this is the
+    commit that closed it; that file's own negative controls should grow one too."""
+    template = copy.deepcopy(load())
+    before = {role for grant in infra.model_invoke_grants(template) for role in grant["roles"]}
+
+    template["Resources"]["ModelSmugglerRole"] = {"Type": "AWS::IAM::Role", "Properties": {}}
+    template["Resources"]["ModelSmugglerPolicy"] = {
+        "Type": "AWS::IAM::ManagedPolicy",
+        "Properties": {
+            "Roles": [{"Ref": "ModelSmugglerRole"}],
+            "PolicyDocument": {"Statement": [
+                {"Effect": "Allow", "Action": "bedrock:InvokeModel", "Resource": "*"}]},
+        },
+    }
+    after = {role for grant in infra.model_invoke_grants(template) for role in grant["roles"]}
+    assert after - before == {"ModelSmugglerRole"}
+
+
+@pytest.mark.parametrize("action", ["*", "lambda:*"])
+def test_the_assertion_catches_a_wildcard_action(action):
+    """`Action: "*"` reaches every action and matches no literal string, so a plain
+    set intersection reported the broadest possible grant as granting nothing."""
+    template = copy.deepcopy(load())
+    before = invokers_of_tools(template)
+    target = next(iter(infra.routed_tools(template).values()))
+
+    template["Resources"]["StarRole"] = {
+        "Type": "AWS::IAM::Role",
+        "Properties": {"Policies": [{"PolicyDocument": {"Statement": [
+            {"Effect": "Allow", "Action": action,
+             "Resource": {"Fn::GetAtt": [target, "Arn"]}}]}}]},
+    }
+    planted = {role for role, _ in invokers_of_tools(template)} - {r for r, _ in before}
+    assert planted == {"StarRole"}
+
+
+def test_the_assertion_catches_a_wildcard_hidden_in_a_sub():
+    """`{"Fn::Sub": "arn:...:function:*"}` was skipped by the string-only wildcard
+    check *and* invisible to `invoke_targets`. Two blind checks agreeing is not
+    coverage."""
+    template = copy.deepcopy(load())
+    before = len(infra.wildcard_invoke_grants(template))
+    template["Resources"]["SubRole"] = {
+        "Type": "AWS::IAM::Role",
+        "Properties": {"Policies": [{"PolicyDocument": {"Statement": [
+            {"Effect": "Allow", "Action": "lambda:InvokeFunction",
+             "Resource": {"Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*"}}
+        ]}}]},
+    }
+    assert len(infra.wildcard_invoke_grants(template)) - before == 1
+
+
+def test_the_version_qualifier_wildcard_is_not_flagged():
+    """The counterweight, and the reason the check is per-element. CDK's own
+    `grantInvoke` emits `<arn>` and `<arn>:*` — one function, any version. A check
+    that fired on the grant it exists to bless is a check somebody deletes."""
+    assert infra.wildcard_invoke_grants(load()) == []
+
+
 def test_the_assertion_catches_a_wildcard_invoke_grant():
     template = copy.deepcopy(load())
     before = len(infra.wildcard_invoke_grants(template))
@@ -213,14 +365,32 @@ def test_the_assertion_catches_a_function_url():
     assert set(infra.function_urls(template)) - before == {"ToolUrl"}
 
 
-def test_the_assertion_catches_an_open_resource_policy():
+# The third case is a specific foreign account, written without digits:
+# `tests/test_no_account_identifiers.py` rejects any 12-digit run in a committed
+# file, including AWS's own documentation example, and it is right to — a detector
+# cannot tell a doc example from a real one, and the redaction habit is what lets
+# a real one through later. The assertion under test reads whether the principal
+# references the gateway, not what shape it is.
+@pytest.mark.parametrize("principal", ["*", "apigateway.amazonaws.com", "another-account"])
+def test_the_assertion_catches_any_foreign_resource_policy(principal):
+    """All three passed the first version, which looked only for a literal `*`. A
+    service principal and a specific foreign account are the two that would
+    actually be written by someone adding a front door."""
     template = copy.deepcopy(load())
-    before = set(infra.open_invoke_permissions(template))
+    before = {entry["id"] for entry in infra.invoke_permissions(template)}
     template["Resources"]["OpenDoor"] = {
         "Type": "AWS::Lambda::Permission",
-        "Properties": {"Action": "lambda:InvokeFunction", "Principal": "*"},
+        "Properties": {"Action": "lambda:InvokeFunction", "Principal": principal},
     }
-    assert set(infra.open_invoke_permissions(template)) - before == {"OpenDoor"}
+    planted = {entry["id"] for entry in infra.invoke_permissions(template)} - before
+    assert planted == {"OpenDoor"}
+
+    gateway, _ = infra.gateway_function(template)
+    offenders = [
+        entry["id"] for entry in infra.invoke_permissions(template)
+        if gateway not in infra.referenced_logical_ids(entry["principal"])
+    ]
+    assert "OpenDoor" in offenders
 
 
 def test_the_assertion_catches_an_unregistered_routed_tool():

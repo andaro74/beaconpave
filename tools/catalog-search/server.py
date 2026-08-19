@@ -55,7 +55,25 @@ PROTOCOL_VERSION = "2024-11-05"
 #: move silently is an instrument that can move silently (ADR-018's rule, applied
 #: one component over).
 CATALOG_ENV = "BEACONPAVE_CATALOG"
-DEFAULT_CATALOG = ROOT / "data" / "catalog.json"
+
+#: Where the catalog is looked for when the environment does not say.
+#:
+#: **Two candidates, bundle first, and the order is the fix.** `ROOT` is
+#: `HERE.parents[1]`, which is the repo root only because the source tree has the
+#: tool two levels down. The deployed bundle flattens that: `HERE` is
+#: `/var/task`, so `ROOT` is `/` and the old default pointed at
+#: `/data/catalog.json` — a path that exists nowhere. The deployed tool worked
+#: solely because a literal in the CDK stack and a literal in the handler happened
+#: to agree, with no test between them.
+#:
+#: When it stopped working it failed *softly*: a missing file raised `OSError`,
+#: `dispatch` turned it into `isError`, and the tool plane recorded the whole
+#: thing as `mechanism: schema` — a deployment fault filed as a contract
+#: violation, on every case, which is exactly the misattribution `ROUTING` was
+#: added to prevent. So the bundle's own copy is tried first and the source-tree
+#: path second, and `catalog_path` refuses rather than returning something that
+#: is not there.
+CATALOG_CANDIDATES = (HERE / "catalog.json", ROOT / "data" / "catalog.json")
 
 PARSE_ERROR = -32700
 INVALID_REQUEST = -32600
@@ -66,8 +84,30 @@ INTERNAL_ERROR = -32603
 
 def catalog_path() -> pathlib.Path:
     """Resolved per call rather than at import, so a test or a probe run can point
-    the server somewhere else without reloading the module."""
-    return pathlib.Path(os.environ.get(CATALOG_ENV) or DEFAULT_CATALOG)
+    the server somewhere else without reloading the module.
+
+    **Raises when the catalog is not there, and names every place it looked.**
+    Returning a path that does not resolve pushed the failure one layer out, where
+    it arrived as an ordinary `isError` and was recorded as a contract violation.
+    A tool that cannot find the data it exists to serve is broken, not
+    misconfigured by the caller, and it should say which of the two it is."""
+    declared = os.environ.get(CATALOG_ENV)
+    if declared:
+        path = pathlib.Path(declared)
+        if not path.is_file():
+            raise FileNotFoundError(
+                f"{CATALOG_ENV}={declared!r} does not resolve. This is deployment "
+                "configuration, not a request parameter, so a wrong value is a broken "
+                "deployment rather than a bad call."
+            )
+        return path
+    for candidate in CATALOG_CANDIDATES:
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(
+        f"no catalog found. Set {CATALOG_ENV}, or place one at "
+        + " or ".join(str(c) for c in CATALOG_CANDIDATES)
+    )
 
 
 def _schema(name: str) -> dict:
@@ -129,14 +169,18 @@ def dispatch(request: dict) -> dict | None:
         return _error(request_id, INVALID_PARAMS, "this server takes named params only")
 
     if method == "initialize":
+        try:
+            catalog = str(catalog_path().name)
+        except OSError as exc:
+            # `serverInfo.catalog` is provenance: it is how a recorded run says
+            # which fixture produced it (ADR-018's rule, one component over). A
+            # server that cannot name its data source must not report a plausible
+            # one, so this fails rather than defaulting.
+            return _error(request_id, INTERNAL_ERROR, f"catalog unavailable: {exc}")
         return _result(request_id, {
             "protocolVersion": PROTOCOL_VERSION,
             "capabilities": {"tools": {}},
-            "serverInfo": {
-                "name": TOOL_NAME,
-                "version": "0.1.0",
-                "catalog": str(catalog_path().name),
-            },
+            "serverInfo": {"name": TOOL_NAME, "version": "0.1.0", "catalog": catalog},
         })
 
     if method == "tools/list":
@@ -164,21 +208,38 @@ def dispatch(request: dict) -> dict | None:
         # This is not the plane's contract validation moved into the transport:
         # it is the one distinction `search` already knows and discards, reported
         # through the error channel the protocol provides.
-        if not str(arguments.get("query") or "").strip():
+        # `minLength: 1` is what the published contract says, so that is what is
+        # enforced. The first version rejected anything blank after `.strip()`,
+        # which made the server STRICTER than the schema it publishes: `" "` is a
+        # contract-valid query, and the plane had just validated it. `toolplane`
+        # states the governing rule twice — "a validator stricter than its schema
+        # is as wrong as a lax one, and harder to notice because it only ever
+        # refuses" — and this was that, one component over.
+        if not str(arguments.get("query") or ""):
             return _result(request_id, {
                 "content": [{"type": "text",
                              "text": "catalog-search requires a non-empty `query`"}],
                 "isError": True,
             })
 
+        # **A broken deployment and a bad call take different channels**, and the
+        # difference decides how the tool plane records it. A JSON-RPC `error` says
+        # the server could not answer at all; an `isError` *result* says the tool
+        # answered and the answer is a failure. `handler._call_tool` maps the first
+        # to `routing` and the second to `schema`, so a missing catalog stops being
+        # filed as a contract violation on every case.
         try:
-            result = search.search(arguments, search.load_catalog(catalog_path()))
-        except (OSError, ValueError, TypeError) as exc:
-            # A missing or malformed catalog fixture, or an argument the tool
-            # cannot use. Reported through the protocol's own error channel: an
-            # uncaught exception here kills the stdio session outright and
-            # surfaces from Lambda as an unhandled fault, leaving no JSON-RPC
-            # record of what was asked.
+            catalog = search.load_catalog(catalog_path())
+        except OSError as exc:
+            return _error(request_id, INTERNAL_ERROR, f"catalog unavailable: {exc}")
+
+        try:
+            result = search.search(arguments, catalog)
+        except (ValueError, TypeError) as exc:
+            # An argument the tool cannot use, or a malformed fixture row. The call
+            # was answered; the answer is a failure. Reported through the protocol
+            # rather than raised, because an uncaught exception kills the stdio
+            # session outright and leaves no record of what was asked.
             return _result(request_id, {
                 "content": [{"type": "text", "text": f"catalog-search failed: {exc}"}],
                 "isError": True,

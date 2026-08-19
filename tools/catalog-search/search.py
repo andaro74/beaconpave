@@ -95,8 +95,30 @@ def _limit(value) -> int:
     return max(1, min(requested, MAX_LIMIT))
 
 
+#: Characters stripped from the edges of a term before it is matched.
+#:
+#: **`split()` alone was a retrieval bug, and a dangerous one.** `derby` retrieved
+#: `t001`; `derby.` retrieved nothing, because the term the model sent was
+#: `"derby."` and no title contains that string. The golden inputs are questions
+#: and a model echoes the viewer's phrasing, so a trailing `?` silently deleted
+#: the only useful term in the query.
+#:
+#: What made it dangerous is where the loss would have landed. SPEC/02
+#: pre-registers "retrieval misses" as a loss mechanism, so every case this cost
+#: would have been booked against a mechanism registered before the run whose real
+#: cause was tokenization — the system moving under a fixed instrument with the
+#: label already written. That is the same failure the retrieval narrowing caused
+#: one commit earlier, and it is why the loop-shape measurement had to be retaken.
+#:
+#: Stripped from the edges only. An interior punctuation mark is part of the term:
+#: `meridian-sports` and `co-op` are one word each, and splitting them would trade
+#: this bug for its mirror image.
+TERM_PUNCTUATION = ".,;:!?\"'()[]{}"
+
+
 def _terms(query: str) -> list[str]:
-    return [t for t in str(query or "").lower().split() if len(t) >= MIN_TERM_LENGTH]
+    stripped = (token.strip(TERM_PUNCTUATION) for token in str(query or "").lower().split())
+    return [term for term in stripped if len(term) >= MIN_TERM_LENGTH]
 
 
 def _haystack(title: dict) -> str:

@@ -116,10 +116,26 @@ class ToolDecision:
     mechanism: str = "none"
     reasons: tuple[str, ...] = ()
 
-    def as_record_fragment(self, *, round_number: int, args: dict | None = None) -> dict:
+    def as_record_fragment(self, *, round_number: int, args: dict | None = None,
+                           principal: str | None = None,
+                           exemptions: list[str] | None = None) -> dict:
         """The `tool` object in an audit record. Carries the arguments so a denial
         can be reconstructed later — a refusal nobody can account for is
-        indistinguishable from a bug."""
+        indistinguishable from a bug.
+
+        **`principal` is the identity Cedar authorized against**, and it was
+        missing. ADR-023 makes the principal the identity half of G3 and its
+        Consequences section says "the record carries the label and the deployment
+        carries the principal" — but the record's top-level `principal` is the
+        gateway's own ARN and `service` is the caller's claim, so an ALLOWED tool
+        call could not evidence which identity permitted it. It was recoverable
+        from a no-permit denial only by accident, because that reason string
+        interpolates the principal; a `forbid` denial does not.
+
+        **`exemptions` is the interlock's evidence**, and it had a schema slot, a
+        producer (`Approval.as_exemptions`) and no wire between them. Wired now,
+        while the slot is new, rather than discovered at M06 when a released
+        publish records `allowed`/`none` and looks like an ungated read."""
         fragment = {
             "id": self.tool_id,
             "round": round_number,
@@ -129,6 +145,10 @@ class ToolDecision:
         }
         if args is not None:
             fragment["args"] = args
+        if principal is not None:
+            fragment["principal"] = principal
+        if exemptions:
+            fragment["exemptions"] = list(exemptions)
         return fragment
 
 
@@ -157,6 +177,32 @@ def unsupported_keywords(schema: dict) -> set[str]:
         for name in ([declared] if isinstance(declared, str) else list(declared)):
             if name not in _TYPES:
                 found.add(f"type:{name}")
+
+    # A `pattern` this validator cannot compile, or a bound it cannot compare
+    # against. Both were accepted by NAME and then raised out of `validate` — and
+    # `validate` is called from inside `_authorize`, so the exception left the
+    # authorization path rather than producing a decision.
+    #
+    # This is the third instance of one defect: `additionalProperties`, tuple-form
+    # `items`, boolean subschemas under `properties`. Each time the lesson written
+    # down was "a keyword name is not a boundary", and each time the fix was
+    # applied to the keywords in front of it. `pattern` is ECMA-262 in JSON Schema
+    # and Python `re` here, so a legal schema can be an uncompilable one.
+    if "pattern" in schema:
+        if not isinstance(schema["pattern"], str):
+            found.add("pattern:not-a-string")
+        else:
+            try:
+                re.compile(schema["pattern"])
+            except re.error:
+                found.add("pattern:uncompilable")
+    for bound in ("minLength", "maxLength", "minItems", "maxItems"):
+        if bound in schema and not isinstance(schema[bound], int):
+            found.add(f"{bound}:not-an-integer")
+    for bound in ("minimum", "maximum"):
+        if bound in schema and (not isinstance(schema[bound], (int, float))
+                                or isinstance(schema[bound], bool)):
+            found.add(f"{bound}:not-a-number")
 
     for key, value in schema.items():
         if key == "properties":
@@ -199,6 +245,15 @@ def unsupported_keywords(schema: dict) -> set[str]:
     return found
 
 
+def _is_int(value) -> bool:
+    """A JSON integer. `bool` is excluded for the reason `_TYPES` excludes it."""
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_number(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def validate(instance, schema: dict, path: str = "<root>") -> list[str]:
     """Validate against the supported subset. Returns a list of problems, empty
     when the instance conforms.
@@ -230,28 +285,46 @@ def validate(instance, schema: dict, path: str = "<root>") -> list[str]:
     ):
         problems.append(f"{path}: {instance!r} is not one of {schema['enum']}")
 
+    # **Nothing below may raise.** `validate` is called from inside `_authorize`,
+    # so an exception here is not a bad schema being caught, it is the
+    # authorization path failing open into a 500 — a tool call with no decision and
+    # no audit record. `unsupported_keywords` is supposed to stop a schema like
+    # that reaching the gateway; this is the second line, because that check ran at
+    # test time and this runs on every call.
     if isinstance(instance, str):
-        if "minLength" in schema and len(instance) < schema["minLength"]:
+        if _is_int(schema.get("minLength")) and len(instance) < schema["minLength"]:
             problems.append(f"{path}: shorter than minLength {schema['minLength']}")
-        if "maxLength" in schema and len(instance) > schema["maxLength"]:
+        if _is_int(schema.get("maxLength")) and len(instance) > schema["maxLength"]:
             problems.append(f"{path}: longer than maxLength {schema['maxLength']}")
         # `re.search`, not `re.match`: JSON Schema's `pattern` is an unanchored
         # search, and using `match` here would silently reject values the contract
         # permits — a validator stricter than its schema is as wrong as a lax one,
         # and harder to notice because it only ever refuses.
-        if "pattern" in schema and not re.search(schema["pattern"], instance):
-            problems.append(f"{path}: {instance!r} does not match pattern {schema['pattern']!r}")
+        if "pattern" in schema:
+            try:
+                matched = re.search(schema["pattern"], instance)
+            except (re.error, TypeError):
+                # Deny, and say the schema is at fault rather than the value. A
+                # contract this validator cannot evaluate is one it cannot enforce,
+                # and an unenforceable contract must not authorize a call.
+                problems.append(
+                    f"{path}: the contract's pattern {schema['pattern']!r} cannot be "
+                    "evaluated by this validator (ADR-022)")
+            else:
+                if not matched:
+                    problems.append(
+                        f"{path}: {instance!r} does not match pattern {schema['pattern']!r}")
 
     if isinstance(instance, (int, float)) and not isinstance(instance, bool):
-        if "minimum" in schema and instance < schema["minimum"]:
+        if _is_number(schema.get("minimum")) and instance < schema["minimum"]:
             problems.append(f"{path}: below minimum {schema['minimum']}")
-        if "maximum" in schema and instance > schema["maximum"]:
+        if _is_number(schema.get("maximum")) and instance > schema["maximum"]:
             problems.append(f"{path}: above maximum {schema['maximum']}")
 
     if isinstance(instance, list):
-        if "maxItems" in schema and len(instance) > schema["maxItems"]:
+        if _is_int(schema.get("maxItems")) and len(instance) > schema["maxItems"]:
             problems.append(f"{path}: more than maxItems {schema['maxItems']}")
-        if "minItems" in schema and len(instance) < schema["minItems"]:
+        if _is_int(schema.get("minItems")) and len(instance) < schema["minItems"]:
             problems.append(f"{path}: fewer than minItems {schema['minItems']}")
         if "items" in schema:
             for index, item in enumerate(instance):
@@ -430,7 +503,7 @@ class Turn:
         **The round count is still the caller's to advance**, so `max_rounds` alone
         would be the old `round_number` parameter wearing a method. What actually
         bounds a turn is `max_calls`, which `authorize` increments unconditionally
-        — a caller that never calls this still stops at eight. Said plainly because
+        — a caller that never calls this still stops at `max_calls`. Said plainly because
         the first version of these docstrings credited the round counter with a
         guarantee the call counter provides, and the wiring commit owes a test that
         the handler calls this once per model turn."""

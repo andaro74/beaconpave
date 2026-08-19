@@ -212,6 +212,34 @@ def test_the_limit_constants_agree_with_the_committed_schema():
     assert OUT_SCHEMA["properties"]["results"]["maxItems"] == MAX_LIMIT
 
 
+def test_punctuation_does_not_delete_a_search_term():
+    """`split()` alone was a retrieval bug, and a dangerous one.
+
+    `derby` retrieved t001; `derby.` retrieved nothing. The golden inputs are
+    questions and a model echoes the viewer's phrasing, so a trailing `?` silently
+    deleted the only useful term — and the loss would have landed in SPEC/02's
+    pre-registered "retrieval misses" bucket with tokenization as the actual
+    cause. That is the system moving under a fixed instrument with the label
+    already written, which is the failure the loop-shape measurement had to be
+    retaken for one commit earlier."""
+    for query in ["derby.", "derby?", "derby,", "(derby)", "'derby'"]:
+        assert [r["id"] for r in search({"query": query}, CATALOG)["results"]] == ["t001"], query
+    assert [r["id"] for r in search({"query": "is the derby on?"}, CATALOG)["results"]] == ["t001"]
+
+
+def test_interior_punctuation_is_part_of_the_term():
+    """The counterweight, and the reason the strip is edges-only. `meridian-sports`
+    is one word; splitting on the hyphen would trade the bug above for its mirror
+    image, and a term that fragments matches more rather than less."""
+    # `meridian-sports` is a brand, and brand stopped being searchable free text
+    # in d0dee23 — so it must return nothing. If the hyphen were split, `sports`
+    # would survive as a term and this would start matching titles again, which is
+    # the wildcard behaviour `test_the_brand_name_is_not_a_wildcard` exists to
+    # forbid. Same for a hyphenated event slug, which IS searchable.
+    assert search({"query": "meridian-sports"}, CATALOG)["results"] == []
+    assert [r["id"] for r in search({"query": "jefferson-derby"}, CATALOG)["results"]] == ["t001"]
+
+
 # --- the adversarial fixture ----------------------------------------------------
 
 def test_the_poisoned_catalog_is_served_verbatim_and_not_sanitised():
