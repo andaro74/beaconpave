@@ -1,0 +1,41 @@
+{
+  "label": "m02-tools-3",
+  "sample": 1,
+  "answers_file": "milestones/M02/runs/m02-tools-3.json",
+  "instrument": {
+    "prompt_sha256": "ef8c1ec77ffb0f79529afa40830b341aaf42fe21bc4565eba5bf709f5c446e37",
+    "rubric_sha256": "925f7e4cfc1de2436551f308115249a19bd7f3afdf8050e531c093303413bd0b",
+    "rubric_axes_sha256": "d4ea6ec45351982a76c7328c7b4cc19a71afa49ecf48ebeb30ee33da735a123c",
+    "rendered_sha256": "843e2ee68d6d41d4faa1e5644d64c11ea41e95d22efd9aad43d06997bbe5a38e"
+  },
+  "service": "judge-highlights",
+  "cases": {
+    "edge-024": {
+      "axes": {
+        "brand_tone:meridian-sports": 0.5,
+        "completeness": 0.5,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"groundedness\": {\n      \"band\": 1.0,\n      \"why\": \"Every factual claim (Cedar Point Rowing Finals requires sports-tier, base plan lacks sports-tier access) traces directly to the cited catalog entry t005.\"\n    },\n    \"completeness\": {\n      \"band\": 0.5,\n      \"why\": \"Answers the direct question (no, you can't watch) but omits the obvious follow-up: when the event starts, whether a replay will be available, or what an upgrade costs.\"\n    },\n    \"brand_tone:meridian-sports\": {\n      \"band\": 0.5,\n      \"why\": \"Accurate and knowledgeable but reads as a hard sell on the upgrade; lacks warmth and the fan-to-fan energy that would acknowledge the viewer's local enthusiasm.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1605,
+        "tokens_out": 214,
+        "latency_ms": 3607
+      },
+      "record_id": "2026-08-19/judge-highlights/judge-m02-tools-3-edge-024-s1.json"
+    },
+    "headroom-005": {
+      "axes": {
+        "brand_tone:meridian-sports": 1.0,
+        "concision": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"brand_tone:meridian-sports\": {\n      \"band\": 1.0,\n      \"why\": \"Warm, knowledgeable fan voice celebrating both the immediacy of live sport and the reverence of classic rivalry; enthusiastic about the sport itself, not a paywall.\"\n    },\n    \"concision\": {\n      \"band\": 1.0,\n      \"why\": \"Tight, vivid comparison that answers the question in four sentences without padding.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1651,
+        "tokens_out": 131,
+        "latency_ms": 2641
+      },
+      "record_id": "2026-08-19/judge-highlights/judge-m02-tools-3-headroom-005-s1.json"
+    }
+  }
+}
