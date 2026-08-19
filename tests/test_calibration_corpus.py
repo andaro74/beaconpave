@@ -325,3 +325,29 @@ def test_the_band_summary_still_matches_the_rubric():
     for axis, bands in BANDS.items():
         for phrase in bands:
             assert phrase in rubric, f"{axis}: {phrase!r} is no longer the rubric's wording"
+
+
+def test_the_correction_rate_is_zero_and_that_is_a_recorded_finding(labels):
+    """SPEC/03 pre-registered a correction rate of 15–35%, with **0 corrections as
+    a falsifier**: it means the disposition did not happen independently, and the
+    agreement number is a model agreeing with a model.
+
+    The seat disposed all 30 labels as `agreed`. The prediction is falsified, in
+    the direction that flatters the instrument, and the prediction in SPEC/03 is
+    **not edited** — a prediction revised after the fact is not a prediction.
+
+    This constant is here so that a later relabel cannot happen quietly: changing
+    any label changes this number, and changing this number is a diff somebody has
+    to write and a seat has to approve. That is the whole mechanism — the rate
+    cannot tell a correct draft from a rubber stamp, but it can make either one
+    visible.
+
+    See `quality/judge/calibration/README.md` for what the published agreement
+    number must carry as a result."""
+    from evals.calibration import correction_rate
+
+    assert labels["provenance"]["disposed"] is True
+    assert labels["provenance"]["curated_by"] == "ai-quality"
+    assert correction_rate(labels) == {
+        "disposed": 30, "changed": 0, "changed_items": [], "rate": 0.0,
+    }

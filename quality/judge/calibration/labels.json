@@ -3,8 +3,9 @@
   "provenance": {
     "author": "ai-proposed",
     "drafted_by": "claude-opus-5",
-    "curated_by": null,
-    "disposed": false
+    "curated_by": "ai-quality",
+    "disposed": true,
+    "disposed_on": "2026-08-19"
   },
   "bands": [
     0.0,
@@ -20,8 +21,8 @@
       "answer_sha256": "6d90665a0dccae2dfaa442a7143cb334face57c42f22ab7e79dcd0a4c4b8a8df",
       "applicable": true,
       "drafted": 0.0,
-      "final": null,
-      "disposition": null,
+      "final": 0.0,
+      "disposition": "agreed",
       "reason": "Base plan in Jefferson City. t003 Granite Falls Classic (Replay) is base-tier sports VOD and watchable now, and t004 is base live-linear; the answer reports that nothing at all is available. It answers a different question from the one asked by reporting an empty catalog."
     },
     {
@@ -31,8 +32,8 @@
       "answer_sha256": "65544919d2755829dfca3d3cbb5c65706017e5f555fda559156fe875125386d1",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "Lake Adair is not blacked out, so tier is the whole reason and upgrading genuinely resolves it. The answer gives the verdict and the remedy, which is the obvious follow-up to 'can I watch this'."
     },
     {
@@ -42,8 +43,8 @@
       "answer_sha256": "c8bcd18c68a167db545ae6a5c61e5fd1bc8801dd3f29b1f2b9dd02cd6685b760",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "Answers yes, and volunteers the part the viewer did not ask: the event is a week out at the evaluation clock, with the start time. That is the rubric's 1.0 shape."
     },
     {
@@ -53,8 +54,8 @@
       "answer_sha256": "d7f837d6a7d43a267ec592421dad8d8e0a8f37475736d0c366fe9e1fd0c9da3e",
       "applicable": true,
       "drafted": 0.5,
-      "final": null,
-      "disposition": null,
+      "final": 0.5,
+      "disposition": "agreed",
       "reason": "Accurate and readable but flat - no warmth, no fan-to-fan register - and it closes on 'you would need to upgrade', which is the rubric's 'mildly salesy about an upgrade'."
     },
     {
@@ -64,8 +65,8 @@
       "answer_sha256": "4ad8ae31d1a8aa427449499283d4fd0d1c681dd46d31538b2c4e62b713d4d338",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "Every claim (sports-tier requirement, base plan excluded) traces to the cited t005. Nothing reaches beyond it."
     },
     {
@@ -75,8 +76,8 @@
       "answer_sha256": "37662ff02b0b7e08f53aa8dbb913f0412d1bc1436ec5efcffa3a6b9deb4159a0",
       "applicable": true,
       "drafted": 0.5,
-      "final": null,
-      "disposition": null,
+      "final": 0.5,
+      "disposition": "agreed",
       "reason": "The viewer asked for a brief comparison and got roughly sixty words of ornamental prose ('raw urgency', 'reverential nostalgia'). Padded, but the comparison is still legible, so not 0.0. This is one of the two authored headroom cases and it is expected to sit here."
     },
     {
@@ -86,8 +87,8 @@
       "answer_sha256": "85d6ad4fc3a5bed89130acf4f823b38c231afa608e1dd92a9ffe006417e61d27",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "Sports-tier requirement and base-plan exclusion both trace to the cited t005. The '(t005)' id leak is a surface defect, not a groundedness one."
     },
     {
@@ -97,8 +98,8 @@
       "answer_sha256": "ff81f4843510b43b7e7e619c424b63577b4ec0e6d8bf4727a63daf8993776932",
       "applicable": true,
       "drafted": 0.5,
-      "final": null,
-      "disposition": null,
+      "final": 0.5,
+      "disposition": "agreed",
       "reason": "Answers the question correctly ('no') but on the wrong reason: Jefferson City is a blacked-out DMA for this event, so upgrading would not help either. The rubric's own 1.0 example is exactly this case answered with the blackout named. Answers the question only."
     },
     {
@@ -108,8 +109,8 @@
       "answer_sha256": "38f60cc821018e0f5737b089e798854965f7e14b0df64ceec57b9c3d011a6928",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "The catalog carries no result for t003, and the answer says so rather than inventing one, then points at the replay. Question and follow-up both resolved."
     },
     {
@@ -119,8 +120,8 @@
       "answer_sha256": "6ad1ec5bfb9c643e91afe3bfe3dd75c5744d776df17c515bdab1596c6190c868",
       "applicable": true,
       "drafted": 0.5,
-      "final": null,
-      "disposition": null,
+      "final": 0.5,
+      "disposition": "agreed",
       "reason": "Answers 'any rowing coming up' fully, with date and time from t005. The obvious follow-up - whether this viewer can actually watch it - is not addressed, though they are sports-tier and can."
     },
     {
@@ -130,8 +131,8 @@
       "answer_sha256": "85d6ad4fc3a5bed89130acf4f823b38c231afa608e1dd92a9ffe006417e61d27",
       "applicable": true,
       "drafted": 0.5,
-      "final": null,
-      "disposition": null,
+      "final": 0.5,
+      "disposition": "agreed",
       "reason": "Correct and very terse. No warmth or energy, and it uses back-office register ('requires sports-tier entitlement', a bare '(t005)'). Accurate but flat."
     },
     {
@@ -141,8 +142,8 @@
       "answer_sha256": "026581e8571c97707c9a2e792feefdb8eb67b4a81ae16cf66f86128aa391b18c",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "Start time matches t001 exactly (19:00 UTC, 2026-09-13). The viewer is sports-tier in north-haven, which is not in the jefferson-derby blackout list, so 'you have access' is true. Declining to predict a winner is not a factual claim."
     },
     {
@@ -153,7 +154,7 @@
       "applicable": false,
       "drafted": null,
       "final": null,
-      "disposition": null,
+      "disposition": "agreed",
       "reason": "Not applicable: the harness could not decode this turn. The record carries `unparsed` and no `answer` field at all, so there is no answer to grade. A third not-applicable shape - neither a real answer nor a gateway refusal - and the judge must return not-applicable rather than grading the undecoded blob."
     },
     {
@@ -163,8 +164,8 @@
       "answer_sha256": "9afae51f03209d3980ff08d9fc0f0c5fa60fc527209b0df716904b212df6fd8a",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "The question names its own scope (sports replays, base plan, right now) and t003 is the complete answer to it. Nothing obvious is left hanging."
     },
     {
@@ -174,8 +175,8 @@
       "answer_sha256": "7881b4b9fa1127c70614b60ba9dfde9207d87c034494e1a5737a0929ff1d1888",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "Sports-tier, Cedar Point, and a start of September 20 at 4:00 PM UTC all match t005 exactly. Cedar Point carries no blackout."
     },
     {
@@ -186,7 +187,7 @@
       "applicable": false,
       "drafted": null,
       "final": null,
-      "disposition": null,
+      "disposition": "agreed",
       "reason": "Not applicable: refused by the guardrail, so no prose exists to assess for tone. Grading this would grade the refusal message, which the service did not author as an answer."
     },
     {
@@ -196,8 +197,8 @@
       "answer_sha256": "0d0b8c02bbe5860fa1b0abe768367d0f5cda61e07b73357029872ee179591512",
       "applicable": true,
       "drafted": 0.5,
-      "final": null,
-      "disposition": null,
+      "final": 0.5,
+      "disposition": "agreed",
       "reason": "Correct, polite, entirely flat, and it lands on the upgrade. Accurate but flat, with a mild upgrade push."
     },
     {
@@ -207,8 +208,8 @@
       "answer_sha256": "e20a98782653db328891aea5ec9112854ebc5bb0c801dd003c535ec33d21aa35",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "The blackout list for jefferson-derby is exactly jefferson-city and port-william, and the viewer is sports-tier in granite-falls, so 'you have access' is true on both tier and geography. BOUNDARY CALL: the blackout list lives in the catalog's `blackouts` map keyed by the cited title's `event`, not in the t001 record itself, so a labeller could defensibly read this as 0.5 'reaches beyond what is cited'. Drafted 1.0 because the citation is what makes the map entry reachable."
     },
     {
@@ -218,8 +219,8 @@
       "answer_sha256": "2e2bced5339120376b0ddf95705eb0a37880ab85efb2be3461214427827e16ae",
       "applicable": true,
       "drafted": 0.0,
-      "final": null,
-      "disposition": null,
+      "final": 0.0,
+      "disposition": "agreed",
       "reason": "'starts 7pm ET' contradicts the catalog: t001 starts 19:00 UTC, a different instant. A wrong start time is the rubric's named 0.0 ('invented start times'), and it is wrong in the direction a viewer would act on."
     },
     {
@@ -229,8 +230,8 @@
       "answer_sha256": "b37c92a4bd08864f2d87e3b4f9493f96103c761768080e5ec8ed0c189c041aa4",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "The Harbor Bay Invitational genuinely is not in the catalog, and the answer asserts exactly that without inventing a title, a time or a tier. Grounded in an absence is still grounded. WORTH NOTING: this is the shape that makes `cited_titles_in_fixture` vacuous, and the judged label is legitimately 1.0 - the deterministic assert being weak here does not make the answer ungrounded."
     },
     {
@@ -241,7 +242,7 @@
       "applicable": false,
       "drafted": null,
       "final": null,
-      "disposition": null,
+      "disposition": "agreed",
       "reason": "Not applicable: refused by the guardrail. No prose to assess."
     },
     {
@@ -251,8 +252,8 @@
       "answer_sha256": "e39ad4e20780394252df9b37e972521eb735c99c483741e7f598de718f1cd2d8",
       "applicable": true,
       "drafted": 0.5,
-      "final": null,
-      "disposition": null,
+      "final": 0.5,
+      "disposition": "agreed",
       "reason": "Explains the blackout clearly and without blaming the viewer, which is the hard part. But the register is corporate-explainer rather than fan-to-fan, and it sends the viewer to 'another service' - not cruel, hyperbolic or salesy, so not 0.0, but not on-brand and natural either."
     },
     {
@@ -262,8 +263,8 @@
       "answer_sha256": "e39ad4e20780394252df9b37e972521eb735c99c483741e7f598de718f1cd2d8",
       "applicable": true,
       "drafted": 0.5,
-      "final": null,
-      "disposition": null,
+      "final": 0.5,
+      "disposition": "agreed",
       "reason": "Tier, start time and the Port William blackout all trace to t001 and the blackout map. But 'sports blackouts typically apply to protect local broadcasting rights' and 'you may be able to watch it through another service' are claims the catalog does not carry - consistent with it, reaching beyond what is cited."
     },
     {
@@ -273,8 +274,8 @@
       "answer_sha256": "ceaae3ff38631e7e7efd5d0458df9c9a2351551e87802481f66dcd0f0e8cdd2e",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "Start time matches t001 to the second, team names come from the title, and the sports-tier entitlement claim is true for a north-haven viewer. 'Both will bring their best' is a flourish, not a factual claim about the catalog."
     },
     {
@@ -285,7 +286,7 @@
       "applicable": false,
       "drafted": null,
       "final": null,
-      "disposition": null,
+      "disposition": "agreed",
       "reason": "Not applicable: refused by the guardrail. No prose to assess."
     },
     {
@@ -295,8 +296,8 @@
       "answer_sha256": "0555aec1c81a14dfc5400395d49388053da62e56b330b2a212bb405f6691f023",
       "applicable": true,
       "drafted": 0.5,
-      "final": null,
-      "disposition": null,
+      "final": 0.5,
+      "disposition": "agreed",
       "reason": "Correct and mildly redundant ('a sports replay you can watch right now' restates the question). No warmth, no energy, nothing off-brand. Accurate but flat."
     },
     {
@@ -306,8 +307,8 @@
       "answer_sha256": "a3f5cfef90ea113099bb04bf30c9ea0312630e1e2487e14058a72a4def922b68",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "A one-line question got one line. Proportionate. NOTE FOR THE LABELLER: this answer is factually wrong - the derby is on tonight - and that is deliberately not what this axis measures. A wrong answer can be perfectly concise, and an axis that quietly punishes it is no longer measuring concision."
     },
     {
@@ -317,8 +318,8 @@
       "answer_sha256": "9831f5512bfc435ca7ce32397898960e8eb4410fe54c804371eb29de34da502a",
       "applicable": true,
       "drafted": 0.0,
-      "final": null,
-      "disposition": null,
+      "final": 0.0,
+      "disposition": "agreed",
       "reason": "'I was unable to find alternative sports programming currently available on the base plan' is contradicted by the catalog: t003 is base-tier sports VOD and available. The derby claims themselves are fine; this one is not."
     },
     {
@@ -328,8 +329,8 @@
       "answer_sha256": "44dc51d449a721d57d67208eb494646a792e9c506d8dc6b09d4674083e13ee29",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "'Yes or no' was answered with 'Yes.' first, then one sentence of useful detail. Proportionate. The '(t001)' leak and the ET/UTC slip are other axes' problems."
     },
     {
@@ -339,8 +340,8 @@
       "answer_sha256": "dde329a707fea1959fb6785a048a96a9900121dc670e023a52c8b91d9167676e",
       "applicable": true,
       "drafted": 1.0,
-      "final": null,
-      "disposition": null,
+      "final": 1.0,
+      "disposition": "agreed",
       "reason": "A single direct sentence for a single direct question."
     }
   ]

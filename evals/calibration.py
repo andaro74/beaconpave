@@ -367,3 +367,27 @@ def worksheet(cases: list, labels: dict) -> str:
             "",
         ]
     return "\n".join(out) + "\n"
+
+
+def correction_rate(labels: dict) -> dict:
+    """What the AI Quality seat's disposition changed.
+
+    **Derived, never written down by hand.** The correction rate is the only
+    quantitative protection on an agreement number measured against ai-proposed
+    labels (SPEC/03's amendment), so a hand-entered figure would be the one number
+    in this milestone that nothing checks.
+
+    It is a weak protection and the direction of its weakness is asymmetric. A
+    **high** rate is informative: the seat read the drafts and disagreed, so the
+    labels carry human judgement. A rate near **zero** is not: it cannot
+    distinguish drafts that were right from a disposition that did not look hard,
+    and no computation here can tell them apart. It is therefore published as a
+    limitation of the measurement rather than as a property of the judge."""
+    rows = labels["labels"]
+    changed = [r["item"] for r in rows if r["disposition"] == "changed"]
+    return {
+        "disposed": len(rows),
+        "changed": len(changed),
+        "changed_items": changed,
+        "rate": round(len(changed) / len(rows), 4) if rows else 0.0,
+    }

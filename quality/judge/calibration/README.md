@@ -116,3 +116,36 @@ costs and why the correction rate is a weak protection rather than a validation.
 
 Relabelling to recover agreement is prohibited (`rubric-sports.md`) and would be
 visible in git as a commit touching labels after a judge run.
+
+### Disposition: 30 of 30 agreed, correction rate 0%
+
+The AI Quality seat disposed every label on 2026-08-19 and changed none.
+
+**SPEC/03 pre-registered 15–35%, with 0 corrections named as a falsifier** — the
+reading being that the disposition did not happen independently and the agreement
+number is a model agreeing with a model. The prediction is falsified, in the
+direction that flatters the instrument, and it is **not edited**: a prediction
+revised after the fact is not a prediction.
+
+**Both readings remain open and no computation here can separate them.** Either
+the drafts were right, or the disposition did not look hard. That is exactly the
+asymmetry the spec's amendment warned about: a high correction rate is
+informative, and a near-zero one is not.
+
+**What it costs, concretely.** Every published agreement figure must carry the
+phrase in the same sentence — *"against ai-proposed labels disposed by the AI
+Quality seat, correction rate 0%"* — and the journal reports the falsified
+prediction beside it. The number is a measurement of judge-versus-drafter
+concordance with a human sign-off, and it must not be read as judge-versus-human
+agreement. κ will not detect the difference, because κ corrects for chance
+agreement and not for correlated error between two models from the same family.
+
+**Not fixed here, and the reason is the same one that governs a recorded score.**
+Re-drafting the labels with a different model, or having them written from scratch
+by hand, would be a better instrument — and doing it now, after the first
+distribution is known, would be choosing labels with the result in view. It is
+owed to AI Quality and named for M04, alongside the `brand_tone` stratum.
+
+The rate is **derived** by `evals.calibration.correction_rate` and pinned by a
+contract test, never written down by hand: it is the only quantitative protection
+on the agreement number, so it is the last thing that should be a typed constant.
