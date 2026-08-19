@@ -65,6 +65,14 @@ M01_AS_RECORDED = 7
 
 #: The m00b answers under the *current* instrument. M01's progression row reads
 #: its 19/25 against this, and SPEC/01 pre-registered 18/25 +/- 2 against it.
+#:
+#: **Unmoved by the vacuous-groundedness tightening, and that is the point.** The
+#: naive form of that fix — an empty citation list simply fails — dropped this to
+#: 17 and m01 to 17, because two cases ask about a title the catalog does not
+#: contain and citing nothing is their correct answer. The additive form asserts
+#: the three citation intents separately and costs these answers nothing. A
+#: tightening that moves every comparator is not a tightening; it is a re-scoring
+#: wearing one's clothes, and this constant is what tells them apart.
 M00B_UNDER_CURRENT_INSTRUMENT = 18
 
 #: What was measured on the day. Never changes: it is not wrong, it is historical.

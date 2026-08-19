@@ -65,10 +65,52 @@ assert key fails the build instead of silently never running.
 | `must_mention: <str>` | case-insensitive substring present in `answer` |
 | `must_not_claim: <str>` | substring **absent** from `answer` |
 | `must_cite: [<id>…]` | every id listed appears in `cited_titles` |
-| `cited_titles_in_fixture: true` | **every** cited id exists in the fixture catalog |
+| `cited_titles_in_fixture: true` | **every** cited id exists in the fixture catalog. Vacuously true on an empty citation list — pair it with one of the next two |
+| `cites_at_least_one: true` | the answer cites **something**. The half `cited_titles_in_fixture` cannot express: an answer that cites nothing confabulates nothing |
+| `cited_titles_empty: true` | the answer cites **nothing**, because the subject is deliberately absent from the catalog. Fails if the model invents a citation |
 | `entitlement: {entitled, reason}` | the structured verdict matches exactly |
 | `entitlement_source: entitlement-check` | the verdict came from the tool, not the model. **Recorded, not scored, until M06** — the control claimed the tool it does not have in 10 of 11 cases (ADR-016) |
 | `budget: {model, tokens_in, tokens_out, max_ms}` | per-model token ceiling (ADR-014 — **not** dollars) plus a per-request hang guard. Latency percentiles are suite-level, in the manifest (ADR-016) |
+
+### The vacuous groundedness pass, and why the fix is additive
+
+`cited_titles_in_fixture` computes `set(cited) - known`. On an **empty** citation
+list that set is empty, so the assert passes: an answer that cites nothing
+confabulates nothing, and it clears a groundedness check by not attempting to be
+grounded.
+
+SPEC/02 pre-registered this for `grounded-019` and marked the pass unearned. M02
+then found the same shape doing real damage on `edge-025`: PASS in both arms and
+recorded as *unchanged* by the paired diff, while the control cited `t001` and the
+tools arm cited nothing. The true loss count was 4, not the 3 the diff showed —
+and no check reading verdicts alone could see it.
+
+**Three intents, so three keys rather than one redefined key.**
+
+| the case expects | assert |
+|---|---|
+| specific titles | `must_cite: [t001, …]` |
+| some title, unspecified | `cites_at_least_one: true` |
+| no title, because the subject is not in the catalog | `cited_titles_empty: true` |
+
+`cited_titles_in_fixture` is **not** redefined. It is referenced by all 25 cases
+and by recorded history, and an assert key whose meaning changes underneath a
+recorded score is ADR-016's hazard in its purest form. Each key means what its
+name says, and `test_no_case_can_pass_groundedness_by_citing_nothing` fails any
+case that carries the vacuous shape alone.
+
+**The obvious fix would have been wrong.** Making an empty citation list simply
+fail punishes `grounded-019` and `entitlement-012`, where the subject — the Harbor
+Bay Invitational — is not in the catalog and citing nothing *is* the correct
+answer. Measured on the committed runs, that version dropped `m00b` 18 → 17 and
+`m01` 19 → 17, moving both comparator pins for no gain. The additive version moves
+neither: it costs only `edge-025` in the M02 tools arm and `brand-021` in one
+control sample, which is exactly what it was aimed at.
+
+**What it does to two recorded unearned marks**, in opposite directions.
+`grounded-019`'s pass becomes *earned* — it now clears `cited_titles_empty`, a
+check that can fail — while `edge-025`'s becomes a FAIL in the tools arm. The
+recorded entries are untouched; history is append-only.
 
 ### Asserts a correct answer fails
 

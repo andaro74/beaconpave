@@ -141,6 +141,8 @@ ASSERT_KEYS = {
     "must_not_claim",
     "must_cite",
     "cited_titles_in_fixture",
+    "cites_at_least_one",
+    "cited_titles_empty",
     "entitlement",
     "entitlement_source",
     "budget",
@@ -167,10 +169,50 @@ def test_every_case_validates_its_answer_against_the_schema():
 
 def test_every_case_checks_groundedness():
     """`cited_titles_in_fixture` is the deterministic groundedness check. Omitting
-    it leaves confabulation to a judge that does not exist until M03."""
+    it leaves confabulation to a judge whose axes are advisory until it publishes
+    an agreement number."""
     for case in load_yaml(GOLDENS):
         keys = {k for a in case.get("asserts", []) for k in a}
         assert "cited_titles_in_fixture" in keys, f"{case['id']}: groundedness unchecked"
+
+
+def test_no_case_can_pass_groundedness_by_citing_nothing():
+    """The vacuity guard.
+
+    `cited_titles_in_fixture` computes `set(cited) - known` and is **vacuously
+    true on an empty list** — an answer that cites nothing confabulates nothing.
+    Every case must therefore also say which of the two things it expects: that a
+    citation exists (`must_cite` names specific ids, `cites_at_least_one` requires
+    any), or that none does (`cited_titles_empty`, for a subject the catalog does
+    not contain).
+
+    Without this, a new case can be authored with the vacuous shape and nothing
+    notices — which is how M02's `edge-025` recorded a real regression as
+    *unchanged*."""
+    for case in load_yaml(GOLDENS):
+        keys = {k for a in case.get("asserts", []) for k in a}
+        decisive = keys & {"must_cite", "cites_at_least_one", "cited_titles_empty"}
+        assert decisive, (
+            f"{case['id']}: asserts cited_titles_in_fixture and nothing else about "
+            "citations, so it passes groundedness on an empty citation list. Add "
+            "`cites_at_least_one: true`, or `cited_titles_empty: true` if the "
+            "subject is deliberately absent from the catalog."
+        )
+
+
+def test_the_two_citation_expectations_are_never_both_asserted():
+    """`cites_at_least_one` and `cited_titles_empty` are contradictory. A case
+    carrying both can never pass, and would read as a defect in the service rather
+    than in the case."""
+    for case in load_yaml(GOLDENS):
+        keys = {k for a in case.get("asserts", []) for k in a}
+        assert not ({"cites_at_least_one", "cited_titles_empty"} <= keys), (
+            f"{case['id']}: asserts both that it cites something and that it cites nothing"
+        )
+        if "cited_titles_empty" in keys:
+            assert "must_cite" not in keys, (
+                f"{case['id']}: asserts cited_titles_empty and must_cite together"
+            )
 
 
 def test_cited_and_expected_titles_exist_in_the_catalog():
