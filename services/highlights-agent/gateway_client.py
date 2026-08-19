@@ -58,6 +58,50 @@ CATALOG:
 """
 
 
+# The M02 arm's prompt. NOT byte-identical to the control's, and that is the
+# milestone: `tests/test_gateway_run_parity.py` splits here rather than being
+# edited, and ADR-021 records the lineage break.
+#
+# **Two changes, both forced, and nothing else.** The catalog block is gone,
+# and "the catalog below" became "returned by the catalog-search tool" because
+# the first sentence would otherwise point at nothing. Everything else is
+# byte-identical to `SYSTEM`, including the JSON instruction and the schema block,
+# because every word that changes for any other reason is a word the delta cannot
+# be attributed away from.
+#
+# **No tool-use coaching.** No "search before answering", no "try a broader query
+# if you get no rows", no worked example. Every one of those would raise the M02
+# score, and every one would be tuning the system to the golden set with the
+# result already predicted — the milestone would then measure how well the prompt
+# was written to the cases rather than what a tool plane costs. The four loss
+# mechanisms are pre-registered; coaching around them after predicting them is how
+# a prediction stops being a prediction.
+#
+# **The blackout table leaves with the catalog and nothing replaces it** until
+# entitlement-check lands at M06. SPEC/02 rejects both available substitutes on
+# the record, so neither returns later as an obvious improvement.
+TOOL_SYSTEM = """You are the Meridian Sports highlights agent. Answer the viewer's question using \
+only catalog titles returned by the catalog-search tool. Cite the ids of any titles you rely on.
+
+Respond with a single JSON object conforming to this schema, and nothing else. \
+No prose outside the JSON. Do not wrap the JSON in markdown code fences.
+
+SCHEMA:
+{schema}
+"""
+
+
+def build_tool_prompt() -> str:
+    """The M02 arm's system prompt. **No catalog**, and no substitute for one.
+
+    `build_prompt` takes a `catalog_path` because the adversarial run points it at
+    the poisoned fixture. This one takes nothing, and the absence is the point: at
+    M02 the catalog reaches the model only through a tool the plane authorized, so
+    a fixture argument here would be a second, unauthorized way in — the caller
+    choosing what the model reads, which is the shape M02 exists to remove."""
+    return TOOL_SYSTEM.format(schema=ANSWER_SCHEMA.read_text(encoding="utf-8"))
+
+
 def resources() -> dict:
     """Deployed resource names, read from the gateway stack's outputs."""
     client = boto3.client("cloudformation")

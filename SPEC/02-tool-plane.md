@@ -203,10 +203,31 @@ where it belongs.
   cover of a prompt rewrite. A prompt change is the ideal camouflage for an
   answer repair.
 - **`test_the_model_id_is_the_same_pinned_profile` stays.** ADR-015.
-- **Only the `SYSTEM` byte-identity assertion ends**, and its successor asserts
-  the *replacement* rather than merely permitting it: the catalog fixture's bytes
-  must **not** appear in the M02 prompt, and the new prompt is hash-pinned so the
-  next drift is a deliberate diff rather than an accident.
+- ~~**Only the `SYSTEM` byte-identity assertion ends**~~, and its successor
+  asserts the *replacement* rather than merely permitting it: the catalog
+  fixture's bytes must **not** appear in the M02 prompt, and the new prompt is
+  hash-pinned so the next drift is a deliberate diff rather than an accident.
+
+  > **Amended in place: the `SYSTEM` pin did not end, and keeping it is the
+  > stronger outcome.** This paragraph assumed the governed caller's prompt would
+  > be *replaced*. It is not — a second prompt is added — because two sections up,
+  > this same spec requires `run_via_gateway.py` and the M01 prompt to freeze as
+  > the control arm. `SYSTEM` is therefore now the **control arm's** prompt in
+  > both files, and pinning it byte-identical matters more than it did rather than
+  > less: a drift would no longer blur M01's delta, it would blur M02's, because
+  > the control arm is the thing being re-measured today.
+  >
+  > Everything the sentence asked for still lands, on `TOOL_SYSTEM`: the catalog
+  > fixture's own bytes are asserted absent — every title id, every title string,
+  > and the blackout vocabulary — and the prompt is hash-pinned. Two assertions
+  > were added that the plan did not anticipate: the two prompts are compared
+  > line by line so the diff is exactly the catalog block plus the one sentence
+  > that pointed at it, and the two arms are checked to differ in the prompt they
+  > build and in asking for tools and in nothing else. See ADR-021.
+  >
+  > Recorded here rather than left as a plan that reads as though it had been
+  > followed. A spec that quietly comes out differently is the same failure as an
+  > ADR describing a deployment that has not happened.
 
 ## The instrument the tool loop breaks, and the only honest time to fix it
 
@@ -634,8 +655,10 @@ recorded in the entry is what already said so.
       back from the lake**
 - [ ] `exhibit` PR naming an unregistered tool blocked by the gate, closed
       unmerged, branch preserved
-- [ ] The catalog is gone from the prompt — asserted, not merely permitted — and
-      the new prompt is hash-pinned
+- [x] The catalog is gone from the prompt — asserted against the fixture's own
+      bytes, not merely permitted — and the new prompt is hash-pinned. The parity
+      test split; the `SYSTEM` pin was kept rather than ended, because the control
+      arm freezing means it now pins that arm (amended above, ADR-021)
 - [ ] `run_via_gateway.py` frozen as the M01 control arm; both arms run k = 3 the
       same day; both summarised by per-case majority, with `k` and `arm` recorded
       and all six runs committed
@@ -643,7 +666,7 @@ recorded in the entry is what already said so.
 - [ ] Tool trajectories recorded; none scored
 - [ ] `entitlement_source` and `expect_tool_before_answer` still deferred
 - [ ] Scores recorded — two-key, disposition and rationale in the PR body
-- [ ] ADR-019 (MCP transport, amended in place once the tool actually deployed),
+- [x] ADR-019 (MCP transport, amended in place once the tool actually deployed),
       ADR-020 (Cedar evaluation), ADR-021 (the prompt lineage break and the
       re-measured comparator), ADR-022 (no third-party deps in the gateway
       bundle), ADR-023 (the Cedar principal is deployment configuration, never
