@@ -77,14 +77,35 @@ def test_the_committed_corpus_is_what_the_rule_draws(cases, frozen):
     )
 
 
-def test_the_salt_is_the_commit_that_fixed_the_thresholds(frozen):
-    """Choosing a salt after seeing which items it selects is re-rolling.
+def test_the_salt_is_unchanged(frozen):
+    """Choosing a salt after seeing which items it selects is re-rolling, and the
+    salt's value *is* the draw — every item's sort key is
+    `sha256(SALT|run|case|axis)`, so a changed salt selects thirty different items.
 
-    The salt is the SHA of `SPEC/03-evals.md`'s own commit, which fixed the
-    thresholds, the corpus size and the split before a single item was drawn. It
-    cannot be changed without rewriting that commit."""
+    The salt was fixed before the draw, in the commit that pre-registered the
+    thresholds. **It no longer names a reachable commit**: the rebase onto #21
+    moved that commit and this SHA was never pushed. It is not updated to match,
+    because updating it would redraw a corpus whose labels are already written —
+    see the corpus README for what survives the rebase and what does not.
+
+    This test therefore pins the value and nothing about its provenance. The
+    provenance is carried by the commit history and by the spec blob, neither of
+    which a unit test can honestly assert."""
     assert frozen["salt"] == SALT
     assert len(SALT) == 40 and all(c in "0123456789abcdef" for c in SALT)
+
+
+def test_the_rebase_hazard_is_recorded_where_a_reader_will_hit_it():
+    """A stale identifier that nobody wrote down reads as a mistake; one that is
+    written down reads as a decision. The claim being corrected appeared in three
+    places, and a reader arriving at any of them must find the correction."""
+    for path in (
+        ROOT / "quality" / "judge" / "calibration" / "README.md",
+        ROOT / "evals" / "calibration.py",
+    ):
+        text = path.read_text(encoding="utf-8")
+        assert "815b172" in text, f"{path.name} does not name the rebased spec commit"
+        assert "not reachable" in text or "no longer names a reachable" in text
 
 
 def test_the_corpus_is_the_size_the_spec_pre_registered(frozen):

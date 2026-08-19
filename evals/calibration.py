@@ -7,13 +7,39 @@ not chosen to produce it. "We picked 30 representative items" is unfalsifiable;
 "these 30 are what this function returns" is checkable by anyone, and
 `tests/test_calibration_corpus.py` checks it on every run.
 
-**The salt is the SHA of the commit that fixed the rules** —
-`SPEC/03-evals.md`'s own commit, which existed before any item was drawn. That
-closes the obvious cherry-pick door: choosing a salt after seeing which items it
-selects is re-rolling, and here the salt cannot be changed without rewriting the
-commit that pre-registered the thresholds. The draw was run once. If its output
-had looked awkward it would have been recorded as-drawn, which is the same rule
-that governs a run of the golden set.
+**The salt was fixed before any item was drawn.** It is the SHA the commit
+carrying `SPEC/03-evals.md` had at the moment of the draw — the same commit that
+pre-registered the thresholds, the corpus size and the split. That closes the
+obvious cherry-pick door: choosing a salt after seeing which items it selects is
+re-rolling. The draw was run once. If its output had looked awkward it would have
+been recorded as-drawn, which is the same rule that governs a run of the golden
+set.
+
+**Corrected after the rebase: a commit SHA is not a stable name for a commit.**
+The branch was rebased onto `main` when the account-ID guard fix (#21) merged, and
+the spec commit's SHA moved from `6a851c0…` to `815b172…`. The salt still reads
+`6a851c0…`, which now names a commit that is **not reachable from this branch and
+was never pushed** — so no reader can look it up. That is not a value to quietly
+update: changing the salt redraws the corpus, and redrawing after the items and
+their labels are written is precisely the re-roll this device exists to prevent.
+
+What survives is the part that was load-bearing. The spec content that fixed the
+thresholds is verifiable at the rebased commit, byte-identical, because a rebase
+changes a commit's parents and not its patch:
+
+    git rev-parse 815b172:SPEC/03-evals.md
+    9f8212c731e52fcc27e1420257fe312a79faa34a
+
+So the pre-registration is still checkable by anyone with the branch; only the
+name it was recorded under is stale. **The general lesson, worth more than this
+instance: a commit SHA identifies a commit only on a branch that will never be
+rebased, which is not a branch this repo has.** A content hash — of the spec file,
+or of the thresholds themselves — would have survived. That is the shape to reach
+for next time and it is written up in the corpus README.
+
+**At scale, replace with:** a salt derived from the pre-registration's content
+hash rather than from its commit SHA. The interface already matches — a fixed
+string committed before the draw — and only its derivation changes.
 
 **What an item is.** A (run, case-id, axis) triple pointing at an answer that was
 already committed by an earlier milestone — never a fresh model call, never an
@@ -39,9 +65,16 @@ from dataclasses import asdict, dataclass
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "quality" / "judge" / "calibration" / "items.json"
 
-#: The commit that fixed this milestone's thresholds, corpus size and split —
-#: `SPEC/03-evals.md`, the branch's first commit. Chosen because it predates
-#: every item below and cannot be moved without rewriting history.
+#: Fixed before the draw: the SHA that the commit carrying `SPEC/03-evals.md` —
+#: the branch's first commit, which pre-registered every threshold below — held at
+#: the moment the items were drawn.
+#:
+#: **It no longer names a reachable commit.** The rebase onto #21 moved the spec
+#: commit to `815b172…`, and this SHA was never pushed. It is deliberately not
+#: updated: the salt's value *is* the draw, so changing it redraws a corpus whose
+#: labels are already written. The spec content it pinned is still verifiable —
+#: `git rev-parse 815b172:SPEC/03-evals.md` is `9f8212c7…`, byte-identical,
+#: because a rebase changes parents and not patches. See the module docstring.
 SALT = "6a851c0e876b90d19184ea7ca3ea6b9aea5e63a5"
 
 #: Every committed answer file, in a fixed order. `m01` is here even though

@@ -46,17 +46,47 @@ computed.** That is the insufficient-evidence rule working as written. The rule
 was fixed in the spec before these counts were known, and the counts are what the
 proportional strata produced — neither was adjusted to meet the other.
 
-### The salt is the spec commit
+### The salt was fixed before the draw
 
-`SALT` is `6a851c0e876b90d19184ea7ca3ea6b9aea5e63a5` — the SHA of the commit that
-fixed this milestone's thresholds, corpus size and split, which existed before a
-single item was drawn.
+`SALT` is `6a851c0e876b90d19184ea7ca3ea6b9aea5e63a5` — the SHA that the commit
+carrying `SPEC/03-evals.md` held when the items were drawn. That commit fixed this
+milestone's thresholds, corpus size and split, and it existed before a single item
+was selected.
 
-Choosing a salt after seeing which items it selects is re-rolling. Here the salt
-cannot be changed without rewriting the commit that pre-registered the
-thresholds, so the draw is checkable rather than merely asserted. **The draw was
-run once.** Had it produced an awkward corpus it would have been recorded
-as-drawn, under the same rule that governs a run of the golden set.
+Choosing a salt after seeing which items it selects is re-rolling, so the draw is
+checkable rather than merely asserted. **The draw was run once.** Had it produced
+an awkward corpus it would have been recorded as-drawn, under the same rule that
+governs a run of the golden set.
+
+#### Corrected after the rebase, and the correction is the more useful half
+
+The branch was rebased onto `main` when #21 merged, and **the spec commit's SHA
+moved to `815b172…`**. The salt still reads `6a851c0…`, which now names a commit
+that is not reachable from this branch and was never pushed. No reader can look it
+up.
+
+It is deliberately **not** updated. The salt's value *is* the draw — every item's
+sort key is `sha256(SALT|run|case|axis)` — so changing it selects thirty different
+items, and redrawing after the corpus and its labels are written is exactly the
+re-roll this device exists to prevent.
+
+What was load-bearing survives. A rebase changes a commit's parents, not its
+patch, so the spec content that fixed the thresholds is verifiable at the rebased
+commit and is byte-identical:
+
+```bash
+git rev-parse 815b172:SPEC/03-evals.md
+# 9f8212c731e52fcc27e1420257fe312a79faa34a
+```
+
+**The general lesson is worth more than this instance: a commit SHA names a commit
+only on a branch that will never be rebased, and this repo has no such branch.** A
+content hash — of the spec file, or of the thresholds themselves — would have
+survived untouched. That is the shape to reach for next time.
+
+**At scale, replace with:** a salt derived from the pre-registration's content
+hash rather than its commit SHA. The interface already matches — a fixed string
+committed before the draw — and only its derivation changes.
 
 ## The freeze rule (ADR-009's shape)
 
