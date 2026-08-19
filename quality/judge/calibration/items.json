@@ -1,0 +1,275 @@
+{
+  "salt": "6a851c0e876b90d19184ea7ca3ea6b9aea5e63a5",
+  "items": [
+    {
+      "id": "cal-01",
+      "run": "m02-tools-2",
+      "case_id": "recommend-014",
+      "axis": "completeness",
+      "split": "dev",
+      "refusal": false,
+      "answer_sha256": "6d90665a0dccae2dfaa442a7143cb334face57c42f22ab7e79dcd0a4c4b8a8df"
+    },
+    {
+      "id": "cal-02",
+      "run": "m01",
+      "case_id": "blackout-008",
+      "axis": "completeness",
+      "split": "dev",
+      "refusal": false,
+      "answer_sha256": "65544919d2755829dfca3d3cbb5c65706017e5f555fda559156fe875125386d1"
+    },
+    {
+      "id": "cal-03",
+      "run": "m02-control-3",
+      "case_id": "entitlement-010",
+      "axis": "completeness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "c8bcd18c68a167db545ae6a5c61e5fd1bc8801dd3f29b1f2b9dd02cd6685b760"
+    },
+    {
+      "id": "cal-04",
+      "run": "m01",
+      "case_id": "edge-025",
+      "axis": "brand_tone:meridian-sports",
+      "split": "dev",
+      "refusal": false,
+      "answer_sha256": "d7f837d6a7d43a267ec592421dad8d8e0a8f37475736d0c366fe9e1fd0c9da3e"
+    },
+    {
+      "id": "cal-05",
+      "run": "m02-control-3",
+      "case_id": "edge-024",
+      "axis": "groundedness",
+      "split": "dev",
+      "refusal": false,
+      "answer_sha256": "4ad8ae31d1a8aa427449499283d4fd0d1c681dd46d31538b2c4e62b713d4d338"
+    },
+    {
+      "id": "cal-06",
+      "run": "m02-tools-3",
+      "case_id": "headroom-005",
+      "axis": "concision",
+      "split": "dev",
+      "refusal": false,
+      "answer_sha256": "37662ff02b0b7e08f53aa8dbb913f0412d1bc1436ec5efcffa3a6b9deb4159a0"
+    },
+    {
+      "id": "cal-07",
+      "run": "m02-tools-3",
+      "case_id": "edge-024",
+      "axis": "groundedness",
+      "split": "dev",
+      "refusal": false,
+      "answer_sha256": "85d6ad4fc3a5bed89130acf4f823b38c231afa608e1dd92a9ffe006417e61d27"
+    },
+    {
+      "id": "cal-08",
+      "run": "m02-tools-3",
+      "case_id": "blackout-001",
+      "axis": "completeness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "ff81f4843510b43b7e7e619c424b63577b4ec0e6d8bf4727a63daf8993776932"
+    },
+    {
+      "id": "cal-09",
+      "run": "m02-control-3",
+      "case_id": "grounded-017",
+      "axis": "completeness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "38f60cc821018e0f5737b089e798854965f7e14b0df64ceec57b9c3d011a6928"
+    },
+    {
+      "id": "cal-10",
+      "run": "m02-tools-3",
+      "case_id": "recommend-015",
+      "axis": "completeness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "6ad1ec5bfb9c643e91afe3bfe3dd75c5744d776df17c515bdab1596c6190c868"
+    },
+    {
+      "id": "cal-11",
+      "run": "m02-tools-3",
+      "case_id": "edge-024",
+      "axis": "brand_tone:meridian-sports",
+      "split": "dev",
+      "refusal": false,
+      "answer_sha256": "85d6ad4fc3a5bed89130acf4f823b38c231afa608e1dd92a9ffe006417e61d27"
+    },
+    {
+      "id": "cal-12",
+      "run": "m02-control-2",
+      "case_id": "brand-021",
+      "axis": "groundedness",
+      "split": "dev",
+      "refusal": false,
+      "answer_sha256": "026581e8571c97707c9a2e792feefdb8eb67b4a81ae16cf66f86128aa391b18c"
+    },
+    {
+      "id": "cal-13",
+      "run": "m02-tools-1",
+      "case_id": "grounded-018",
+      "axis": "completeness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "a0661d5ca882db5c6ec10c66d1d0f531347b2a461ab2f2b506b96e66af36a5f9"
+    },
+    {
+      "id": "cal-14",
+      "run": "m02-tools-1",
+      "case_id": "recommend-003",
+      "axis": "completeness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "9afae51f03209d3980ff08d9fc0f0c5fa60fc527209b0df716904b212df6fd8a"
+    },
+    {
+      "id": "cal-15",
+      "run": "m02-tools-1",
+      "case_id": "entitlement-010",
+      "axis": "groundedness",
+      "split": "dev",
+      "refusal": false,
+      "answer_sha256": "7881b4b9fa1127c70614b60ba9dfde9207d87c034494e1a5737a0929ff1d1888"
+    },
+    {
+      "id": "cal-16",
+      "run": "m02-control-1",
+      "case_id": "multi-023",
+      "axis": "brand_tone:meridian-sports",
+      "split": "dev",
+      "refusal": true,
+      "answer_sha256": "c6c60379766c468c9509066af283b30aafb659f98c13c7d88b47ef452e1ac566"
+    },
+    {
+      "id": "cal-17",
+      "run": "m02-control-2",
+      "case_id": "edge-024",
+      "axis": "brand_tone:meridian-sports",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "0d0b8c02bbe5860fa1b0abe768367d0f5cda61e07b73357029872ee179591512"
+    },
+    {
+      "id": "cal-18",
+      "run": "m00b",
+      "case_id": "blackout-009",
+      "axis": "groundedness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "e20a98782653db328891aea5ec9112854ebc5bb0c801dd003c535ec33d21aa35"
+    },
+    {
+      "id": "cal-19",
+      "run": "m02-tools-2",
+      "case_id": "blackout-001",
+      "axis": "groundedness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "2e2bced5339120376b0ddf95705eb0a37880ab85efb2be3461214427827e16ae"
+    },
+    {
+      "id": "cal-20",
+      "run": "m02-tools-1",
+      "case_id": "entitlement-012",
+      "axis": "groundedness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "b37c92a4bd08864f2d87e3b4f9493f96103c761768080e5ec8ed0c189c041aa4"
+    },
+    {
+      "id": "cal-21",
+      "run": "m02-control-3",
+      "case_id": "blackout-007",
+      "axis": "brand_tone:meridian-sports",
+      "split": "held-out",
+      "refusal": true,
+      "answer_sha256": "954d61d2c80775883840eeaa74447e640e199745644d2b0f3dbaad09a3e5b641"
+    },
+    {
+      "id": "cal-22",
+      "run": "m00b",
+      "case_id": "blackout-006",
+      "axis": "brand_tone:meridian-sports",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "e39ad4e20780394252df9b37e972521eb735c99c483741e7f598de718f1cd2d8"
+    },
+    {
+      "id": "cal-23",
+      "run": "m00b",
+      "case_id": "blackout-006",
+      "axis": "groundedness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "e39ad4e20780394252df9b37e972521eb735c99c483741e7f598de718f1cd2d8"
+    },
+    {
+      "id": "cal-24",
+      "run": "m02-tools-1",
+      "case_id": "brand-021",
+      "axis": "groundedness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "ceaae3ff38631e7e7efd5d0458df9c9a2351551e87802481f66dcd0f0e8cdd2e"
+    },
+    {
+      "id": "cal-25",
+      "run": "m02-control-3",
+      "case_id": "recommend-013",
+      "axis": "groundedness",
+      "split": "held-out",
+      "refusal": true,
+      "answer_sha256": "44d92971c62490dee0381424a6d1b08c5195428333c3e2d44da48a191e2d5d75"
+    },
+    {
+      "id": "cal-26",
+      "run": "m02-control-1",
+      "case_id": "recommend-003",
+      "axis": "brand_tone:meridian-sports",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "0555aec1c81a14dfc5400395d49388053da62e56b330b2a212bb405f6691f023"
+    },
+    {
+      "id": "cal-27",
+      "run": "m02-tools-2",
+      "case_id": "edge-025",
+      "axis": "concision",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "a3f5cfef90ea113099bb04bf30c9ea0312630e1e2487e14058a72a4def922b68"
+    },
+    {
+      "id": "cal-28",
+      "run": "m02-tools-2",
+      "case_id": "multi-023",
+      "axis": "groundedness",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "9831f5512bfc435ca7ce32397898960e8eb4410fe54c804371eb29de34da502a"
+    },
+    {
+      "id": "cal-29",
+      "run": "m02-tools-2",
+      "case_id": "concise-022",
+      "axis": "concision",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "44dc51d449a721d57d67208eb494646a792e9c506d8dc6b09d4674083e13ee29"
+    },
+    {
+      "id": "cal-30",
+      "run": "m02-control-2",
+      "case_id": "grounded-016",
+      "axis": "concision",
+      "split": "held-out",
+      "refusal": false,
+      "answer_sha256": "dde329a707fea1959fb6785a048a96a9900121dc670e023a52c8b91d9167676e"
+    }
+  ]
+}

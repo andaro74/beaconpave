@@ -233,9 +233,10 @@ nothing. The protection is ordering, and the ordering is visible in git:
 - **Commit 1:** this spec.
 - **Commit 2:** the selection rule, the 30 selected items, and the dev/held-out
   split — with **no labels**.
-- **Commit 3:** the hand labels, written by the operator wearing the AI Quality
-  seat, against the rubric alone. At this point **no judge prompt exists in the
-  tree**.
+- **Commit 3:** the labels — ~~written by the operator wearing the AI Quality
+  seat~~ **drafted by the assistant and disposed by the operator wearing the AI
+  Quality seat** (amended in place below) — against the rubric alone. At this
+  point **no judge prompt exists in the tree**.
 - **Commit 4 and after:** the judge prompt, iterated **only against the 10 dev
   items**, never against the 20 held-out.
 
@@ -243,6 +244,58 @@ The DoD records those SHAs. No test can prove label independence — but the rep
 premise is that its history is legible, and this is a case where the history is
 the evidence. Relabelling to recover agreement is prohibited by the rubric and
 would be visible as a commit touching labels after a judge run.
+
+### Amendment (2026-08-19, before the corpus was selected): the labels are drafted, and what that costs
+
+**The operator asked for the labels to be drafted rather than written from
+scratch.** That is a legitimate request and it is how the rest of this repo
+works — but it changes what the published agreement number is, so it is recorded
+here, before selection, rather than discovered in the journal.
+
+**What it costs, stated plainly.** An agreement number between a judge and labels
+drafted by another model is not the number this spec originally promised. The
+drafter (Claude Opus 5) and the judge (Claude Haiku 4.5) are both Anthropic
+models. Shared priors are the *expected* failure mode, not a remote one, and they
+inflate agreement in a way **κ cannot detect** — κ corrects for chance agreement,
+not for correlated error. Two instruments that are wrong in the same direction
+agree perfectly and κ rewards them for it.
+
+**What makes it legitimate anyway: G6, which this repo already runs on.** AI
+proposes, a human seat disposes, and the curation rate is published. That is the
+same mechanism as the role subagents in `.claude/agents/`, whose output ROLES.md
+calls advisory input to a human and never an approval. So:
+
+- every label carries `provenance: {author: ai-proposed, curated_by: ai-quality}`
+- every label carries both `drafted` and `final`
+- **the correction rate is published beside every agreement figure**, in the same
+  sentence, not as a footnote: *"agreement N against ai-proposed labels disposed
+  by the AI Quality seat, correction rate M%"*
+
+**The correction rate is the whole protection, and it is a weak one.** A rate near
+zero means either the drafts were right or the disposition was a rubber stamp, and
+**the number cannot tell you which**. It is therefore reported as a limitation of
+the measurement, never as a validation of it.
+
+**Two hard rules.**
+
+- **The operator disposes before the judge runs.** A label changed after seeing a
+  judge output is relabelling, which the rubric prohibits outright, and it would
+  be visible in git as a commit touching labels after a judge run.
+- **A drafted label is not a label until it is disposed.** If the operator does
+  not review all 30, M03 publishes agreement against the subset that was disposed
+  and says so, rather than counting undisposed drafts as labels.
+
+**Pre-registered, since this is now part of the instrument:**
+
+| Dimension | Prediction | What falsifies it |
+|---|---|---|
+| Correction rate | **15–35%** (5–11 of 30 labels changed on disposition) | **0 corrections** — the disposition did not happen independently, and the agreement number is model-agrees-with-model; or **> 50%** — the drafts were not usable and the labels should have been written from scratch |
+| Where corrections land | concentrated in `brand_tone` and `completeness` — the two axes whose bands turn on judgement rather than on a checkable fact | corrections concentrated in `groundedness`, which is checkable against the catalog and where a drafted label being wrong means the drafter could not do the easy axis |
+
+**At scale, replace with:** labels from two independent human annotators with
+inter-annotator agreement published before the judge is measured against either.
+The interface already matches — `provenance` and the correction rate are the
+one-annotator version of it, and only the annotator count changes.
 
 ## Thresholds, fixed here, before any run
 
@@ -478,8 +531,8 @@ and the weaker one is not allowed to hide behind the stronger:
 
 1. **`milestones/M03/judge-agreement.json`** — the published number. Per axis,
    with item counts, raw and κ, the label distribution, the undecided fraction,
-   and each axis's resulting status (`calibrated` / `demoted`) beside the rule
-   that decided it.
+   the **label correction rate**, and each axis's resulting status
+   (`calibrated` / `demoted`) beside the rule that decided it.
 2. **`tests/test_judge_demotion.py`** — the enforced consequence, run in
    `make check` and watchable by a stranger with no AWS account. Above threshold
    the veto turns a deterministic PASS into a judged FAIL; below it the axis stops
@@ -498,8 +551,13 @@ mechanism with nothing calibrating it.
       attributed to that PR and not to M03
 - [ ] Calibration corpus: 30 items, committed deterministic selection rule, 10/20
       split — committed **with no labels**, as its own commit
-- [ ] Hand labels committed as their own commit, **before any judge prompt exists
-      in the tree**; both SHAs recorded here at close
+- [ ] Labels committed as their own commit, **before any judge prompt exists in
+      the tree**, carrying `drafted`, `final` and `provenance: ai-proposed`; both
+      SHAs recorded here at close
+- [ ] **All 30 labels disposed by the AI Quality seat before the judge runs**, and
+      the correction rate published beside every agreement figure in the same
+      sentence. Undisposed drafts are not labels and are excluded from the
+      published number
 - [ ] Judge prompt written and iterated **against the 10 dev items only**;
       hash-pinned; the rubric hash-pinned with it
 - [ ] `evals/judge.py` is a pure function of committed judge output, inside
@@ -568,6 +626,9 @@ drift into this branch.
   this document.
 - **Do not relabel the calibration set to recover agreement.** Prohibited by the
   rubric, and visible in git as a commit touching labels after a judge run.
+- **Do not run the judge before the drafted labels are disposed.** A draft the
+  operator has not looked at is a model's opinion, and measuring a model against
+  it measures nothing.
 - **Do not edit a golden case**, and do not add an assert to make a judged case
   behave.
 - **Do not retune the guardrail topic.** Measure it, record it, hand it to Security

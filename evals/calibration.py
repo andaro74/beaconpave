@@ -1,0 +1,223 @@
+"""
+The calibration corpus selection rule (SPEC/03).
+
+**Why this is a committed, deterministic rule and not a hand-picked list.**
+An agreement number is only worth reading if the items it was measured on were
+not chosen to produce it. "We picked 30 representative items" is unfalsifiable;
+"these 30 are what this function returns" is checkable by anyone, and
+`tests/test_calibration_corpus.py` checks it on every run.
+
+**The salt is the SHA of the commit that fixed the rules** —
+`SPEC/03-evals.md`'s own commit, which existed before any item was drawn. That
+closes the obvious cherry-pick door: choosing a salt after seeing which items it
+selects is re-rolling, and here the salt cannot be changed without rewriting the
+commit that pre-registered the thresholds. The draw was run once. If its output
+had looked awkward it would have been recorded as-drawn, which is the same rule
+that governs a run of the golden set.
+
+**What an item is.** A (run, case-id, axis) triple pointing at an answer that was
+already committed by an earlier milestone — never a fresh model call, never an
+authored answer. Authored band anchors sit where their author put them; real
+answers bring the awkward cases with them, which is why the corpus is drawn from
+`milestones/M00b`, `milestones/M01` and M02's six run files.
+
+Hermetic (G8): committed answers, no model, no network. The *rule* lives here so
+it can be tested; its frozen *output* lives in `quality/judge/calibration/`,
+which is a two-key path (AI Quality). Changing this file without regenerating
+that one fails the contract test, and regenerating it changes a two-key file —
+so the corpus cannot move quietly in either direction.
+
+Owning seat: AI Quality.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import pathlib
+from dataclasses import asdict, dataclass
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+CORPUS = ROOT / "quality" / "judge" / "calibration" / "items.json"
+
+#: The commit that fixed this milestone's thresholds, corpus size and split —
+#: `SPEC/03-evals.md`, the branch's first commit. Chosen because it predates
+#: every item below and cannot be moved without rewriting history.
+SALT = "6a851c0e876b90d19184ea7ca3ea6b9aea5e63a5"
+
+#: Every committed answer file, in a fixed order. `m01` is here even though
+#: SPEC/03 cuts it from the *judged re-score* — being disqualified as a
+#: comparator (n = 1, ADR-021) says nothing about whether its answers are useful
+#: material for calibrating a judge, and excluding them would narrow the corpus
+#: for a reason that does not apply to it.
+RUNS: tuple[tuple[str, str], ...] = (
+    ("m00b", "milestones/M00b/goldens-run.json"),
+    ("m01", "milestones/M01/goldens-run.json"),
+    ("m02-control-1", "milestones/M02/runs/m02-control-1.json"),
+    ("m02-control-2", "milestones/M02/runs/m02-control-2.json"),
+    ("m02-control-3", "milestones/M02/runs/m02-control-3.json"),
+    ("m02-tools-1", "milestones/M02/runs/m02-tools-1.json"),
+    ("m02-tools-2", "milestones/M02/runs/m02-tools-2.json"),
+    ("m02-tools-3", "milestones/M02/runs/m02-tools-3.json"),
+)
+
+#: Items per axis, stratified in proportion to the golden set's own axis
+#: frequency (groundedness 23, completeness 16, brand_tone 14, concision 7 —
+#: 60 axis-instances over 25 cases, halved to 30). Held-out counts are the ones
+#: the demotion thresholds key on, so they are named rather than derived.
+#:
+#: `brand_tone` (4) and `concision` (3) fall below SPEC/03's five-held-out-item
+#: floor and are therefore demoted before their agreement is computed. That is
+#: the insufficient-evidence rule working as written, not a defect in the draw:
+#: the rule was fixed before these counts were known.
+QUOTAS: tuple[tuple[str, int, int], ...] = (
+    # axis, total, held-out
+    ("groundedness", 11, 7),
+    ("completeness", 8, 6),
+    ("brand_tone:meridian-sports", 7, 4),
+    ("concision", 4, 3),
+)
+
+#: Refusal items, drawn deliberately. A refused answer carries no prose, so the
+#: judge must return *not-applicable* rather than a band — and the only way to
+#: know it does is to have some in the corpus. They already FAIL deterministically,
+#: so they never reach the veto; they are here to pin behaviour, not to score it.
+REFUSAL_ITEMS = 3
+
+#: No more than this many items may share one (run, case-id), or one run. A draw
+#: that concentrated on a handful of answers would measure the judge's opinion of
+#: those answers rather than of the corpus.
+MAX_PER_ANSWER = 2
+MAX_PER_RUN = 5
+
+
+@dataclass(frozen=True)
+class Item:
+    id: str
+    run: str
+    case_id: str
+    axis: str
+    split: str
+    refusal: bool
+    answer_sha256: str
+
+
+def _load(rel: str):
+    return json.loads((ROOT / rel).read_text(encoding="utf-8"))
+
+
+def answer_digest(answer) -> str:
+    """Pins the exact bytes an item refers to.
+
+    Without it a label points at a case id, and a case id points at whatever the
+    answer file says today. The label would then survive an edit to the thing it
+    was a label *of*, which is the quiet version of relabelling."""
+    return hashlib.sha256(
+        json.dumps(answer, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _draw(run: str, case_id: str, axis: str) -> str:
+    return hashlib.sha256(f"{SALT}|{run}|{case_id}|{axis}".encode()).hexdigest()
+
+
+def candidates(cases: list) -> list[dict]:
+    """Every (run, case, axis) triple, in canonical order with its draw value.
+
+    Canonical means: runs in `RUNS` order, cases in `cases.yaml` order, axes
+    sorted. The golden set lists axes inconsistently — `[groundedness,
+    completeness, brand_tone]` in one case and `[brand_tone, groundedness]` in
+    another — so sorting is what stops the corpus depending on the order somebody
+    happened to type."""
+    found = []
+    for run, rel in RUNS:
+        answers = _load(rel)
+        for case in cases:
+            record = answers.get(case["id"])
+            if not isinstance(record, dict) or not isinstance(record.get("answer"), dict):
+                continue
+            answer = record["answer"]
+            for axis in sorted(set(case.get("judge", {}).get("axes", ()))):
+                found.append({
+                    "run": run,
+                    "case_id": case["id"],
+                    "axis": axis,
+                    "refusal": "refused_by_gateway" in answer,
+                    "answer_sha256": answer_digest(answer),
+                    "draw": _draw(run, case["id"], axis),
+                })
+    return found
+
+
+def select(cases: list) -> list[Item]:
+    """The 30 items, drawn once and reproducible forever.
+
+    Two passes, and the order matters. Refusals are drawn **first**, against the
+    same quotas, because drawing them last would mean taking them only from
+    whatever the axis quotas had left over — which would make "the corpus
+    contains refusals" true by luck rather than by rule."""
+    pool = candidates(cases)
+    quota = {axis: total for axis, total, _ in QUOTAS}
+    taken: list[dict] = []
+    per_answer: dict[tuple[str, str], int] = {}
+    per_run: dict[str, int] = {}
+
+    def accept(item) -> bool:
+        key = (item["run"], item["case_id"])
+        if quota.get(item["axis"], 0) <= 0:
+            return False
+        if per_answer.get(key, 0) >= MAX_PER_ANSWER or per_run.get(item["run"], 0) >= MAX_PER_RUN:
+            return False
+        quota[item["axis"]] -= 1
+        per_answer[key] = per_answer.get(key, 0) + 1
+        per_run[item["run"]] = per_run.get(item["run"], 0) + 1
+        taken.append(item)
+        return True
+
+    for item in sorted((c for c in pool if c["refusal"]), key=lambda c: c["draw"]):
+        if sum(1 for t in taken if t["refusal"]) >= REFUSAL_ITEMS:
+            break
+        accept(item)
+
+    for item in sorted((c for c in pool if not c["refusal"]), key=lambda c: c["draw"]):
+        accept(item)
+
+    short = {axis: n for axis, n in quota.items() if n > 0}
+    if short:
+        # Recorded as a failure rather than quietly returning a smaller corpus.
+        # A corpus that silently shrinks is the exact direction ADR-009 says
+        # matters, and it would show up later as a better agreement from a
+        # narrower measurement.
+        raise SystemExit(f"error: the draw could not fill every stratum: {short}")
+
+    items: list[Item] = []
+    for axis, _total, held in QUOTAS:
+        stratum = sorted((t for t in taken if t["axis"] == axis), key=lambda c: c["draw"])
+        dev = len(stratum) - held
+        for n, entry in enumerate(stratum):
+            items.append(Item(
+                id="",
+                run=entry["run"],
+                case_id=entry["case_id"],
+                axis=axis,
+                split="dev" if n < dev else "held-out",
+                refusal=entry["refusal"],
+                answer_sha256=entry["answer_sha256"],
+            ))
+    # Ids are assigned last, over the whole corpus in a stable order, so that an
+    # item's id never encodes which stratum or split it landed in. A labeller
+    # reading `cal-07` should not be able to infer that it is held-out.
+    ordered = sorted(items, key=lambda i: _draw(i.run, i.case_id, i.axis))
+    return [
+        Item(f"cal-{n:02d}", i.run, i.case_id, i.axis, i.split, i.refusal, i.answer_sha256)
+        for n, i in enumerate(ordered, 1)
+    ]
+
+
+def as_json(items: list[Item]) -> str:
+    return json.dumps(
+        {"salt": SALT, "items": [asdict(i) for i in items]}, indent=2
+    ) + "\n"
+
+
+def committed() -> dict:
+    return json.loads(CORPUS.read_text(encoding="utf-8"))
