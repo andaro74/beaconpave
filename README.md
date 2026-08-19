@@ -88,6 +88,17 @@ recorded 19.** Read the paired diff, not the total: **3 lost, 2 gained, net −1
 gateway and the same pinned guardrail version; the M01 prompt is frozen as the
 control arm and re-measured rather than read off its row (ADR-021).
 
+**The instrument has since moved, and only this row moves with it.** The vacuous
+groundedness assert was tightened after the tag. Re-scoring M02's own committed
+answers under it: the control arm is unchanged at **17/25**, the tools arm falls
+to **15/25**, and the paired diff becomes **4 lost, 2 gained, net −2** —
+`edge-025` joins the losses. That is the regression M02's journal could only argue
+in prose: the case was PASS in both arms and showed as *unchanged* while the tools
+arm cited nothing at all. The recorded 16/25 stays as-run; it is what the
+instrument reported on the day. **The `m00b` and `m01` rows above do not move at
+all** under this change, which is the evidence that it tightened an assert rather
+than re-scored a suite.
+
 Three things this row needs said before the number is read.
 
 **SPEC/02 predicted 10/25 ± 4 and the prediction is falsified, in the direction

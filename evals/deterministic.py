@@ -133,6 +133,52 @@ class Scorer:
             "" if not invented else f"cited ids absent from catalog (confabulated): {invented}",
         )
 
+    def cites_at_least_one(self, answer: dict, _v) -> AssertResult:
+        """The half of groundedness `cited_titles_in_fixture` cannot express.
+
+        `cited_titles_in_fixture` computes `set(cited) - known`, which is
+        **vacuously true on an empty citation list**: an answer that cites nothing
+        confabulates nothing, so it passes a groundedness check by not attempting
+        to be grounded. SPEC/02 pre-registered that for `grounded-019`; M02 then
+        found the same shape hiding a real regression on `edge-025`, where the
+        control cited `t001`, the tools arm cited nothing, and the paired diff
+        recorded the case as *unchanged*.
+
+        **This is additive on purpose.** `cited_titles_in_fixture` keeps its exact
+        meaning — every cited id is real — because it is referenced by 25 cases and
+        by recorded history, and an assert key whose meaning changes underneath a
+        recorded score is ADR-016's hazard in its purest form. The missing
+        requirement gets its own key instead, so each one means what its name says.
+
+        Applied only where a citation is what grounding *means* for the case. Two
+        cases ask about a subject the catalog does not contain, where citing
+        nothing is the correct answer; they carry `cited_titles_empty` instead."""
+        cited = answer.get("cited_titles") or []
+        return AssertResult(
+            "cites_at_least_one", bool(cited),
+            "" if cited else "no title cited: an ungrounded answer passes "
+                             "cited_titles_in_fixture vacuously",
+        )
+
+    def cited_titles_empty(self, answer: dict, _v) -> AssertResult:
+        """The mirror, for a subject the catalog does not contain.
+
+        `grounded-019` and `entitlement-012` both ask about the Harbor Bay
+        Invitational, which is not in the catalog. The correct answer cites
+        nothing — so requiring a citation would punish a right answer, and leaving
+        `cited_titles_in_fixture` alone would credit a vacuous one.
+
+        Stating it positively makes the same behaviour **falsifiable**: an answer
+        that invents a citation for a title that does not exist now fails an assert
+        that names exactly that failure, instead of passing one that could not
+        detect it."""
+        cited = answer.get("cited_titles") or []
+        return AssertResult(
+            "cited_titles_empty", not cited,
+            "" if not cited else
+            f"cited {sorted(cited)} for a subject absent from the catalog",
+        )
+
     def entitlement(self, answer: dict, expected: dict) -> AssertResult:
         got = answer.get("entitlement")
         if not isinstance(got, dict):
@@ -226,6 +272,10 @@ class Scorer:
                     results.append(self.must_cite(answer, value))
                 elif key == "cited_titles_in_fixture":
                     results.append(self.cited_titles_in_fixture(answer, catalog, value))
+                elif key == "cites_at_least_one":
+                    results.append(self.cites_at_least_one(answer, value))
+                elif key == "cited_titles_empty":
+                    results.append(self.cited_titles_empty(answer, value))
                 elif key == "entitlement":
                     results.append(self.entitlement(answer, value))
                 elif key == "entitlement_source":

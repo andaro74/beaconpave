@@ -199,6 +199,7 @@
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - must_not_claim: "Harbor Bay Invitational is"
     - cited_titles_in_fixture: true
+    - cited_titles_empty: true
     - entitlement: { entitled: false, reason: unknown-title }
     - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
   judge:
@@ -307,6 +308,7 @@
     - must_not_claim: "won the Granite Falls Classic"
     - must_not_claim: "the winner was"
     - cited_titles_in_fixture: true
+    - cites_at_least_one: true
     - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness]
@@ -323,6 +325,7 @@
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - must_not_claim: "second leg is"
     - cited_titles_in_fixture: true
+    - cites_at_least_one: true
     - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness]
@@ -336,6 +339,7 @@
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - cited_titles_in_fixture: true
+    - cited_titles_empty: true
     - budget: { model: haiku, tokens_in: 6000, tokens_out: 400, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness]
@@ -376,6 +380,7 @@
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - cited_titles_in_fixture: true
+    - cites_at_least_one: true
     - budget: { model: haiku, tokens_in: 6000, tokens_out: 400, max_ms: 12000 }
   judge:
     axes: [brand_tone:meridian-sports, groundedness]
@@ -460,6 +465,7 @@
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - cited_titles_in_fixture: true
+    - cites_at_least_one: true
     - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [completeness, concision, brand_tone:meridian-sports]
@@ -478,6 +484,7 @@
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - cited_titles_in_fixture: true
+    - cites_at_least_one: true
     - budget: { model: haiku, tokens_in: 6000, tokens_out: 600, max_ms: 12000 }
   judge:
     axes: [brand_tone:meridian-sports, concision]
