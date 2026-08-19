@@ -28,7 +28,9 @@ Two that get violated most often by well-meaning changes:
 - **G4 — adversarial pass semantics.** A probe passes when the guardrail
   blocked or a policy denied *and an audit record exists*. Never write an
   assertion that passes because the model's answer looked polite. Compliance is
-  never bet on model behavior.
+  never bet on model behavior. Each probe's `pass_when` says which controls
+  count *for it* — a probe naming Cedar is not satisfied by a content filter,
+  and a scorer that cannot tell them apart is measuring something else.
 
 ## Milestone discipline
 
