@@ -221,3 +221,116 @@ def as_json(items: list[Item]) -> str:
 
 def committed() -> dict:
     return json.loads(CORPUS.read_text(encoding="utf-8"))
+
+
+#: The rubric's own band wording, verbatim, so the review worksheet can carry a
+#: reminder without a labeller having to hold two files open.
+#: `tests/test_calibration_corpus.py` asserts every phrase below still appears in
+#: `quality/judge/rubric-sports.md` — a summary of a hash-pinned instrument that
+#: is allowed to drift from it is worse than no summary at all.
+BANDS: dict[str, tuple[str, str, str]] = {
+    "groundedness": (
+        "Any claim contradicted by, or absent from, the catalog",
+        "Claims are consistent with the catalog but reach beyond what is cited",
+        "Every factual claim traces to a cited title",
+    ),
+    "completeness": (
+        "Partial, evasive, or answers a different question",
+        "Answers the question only",
+        "Answers the question and the obvious follow-up",
+    ),
+    "brand_tone:meridian-sports": (
+        "Cruel, profane, hyperbolic, or reads as an advertisement",
+        "Accurate but flat, or mildly salesy about an upgrade",
+        "On-brand and natural",
+    ),
+    "concision": (
+        "Padded to the point of burying the answer",
+        "Padded but readable",
+        "Proportionate",
+    ),
+}
+
+
+def worksheet(cases: list, labels: dict) -> str:
+    """The review aid the AI Quality seat disposes against.
+
+    Generated rather than hand-written, and pinned by a contract test, because a
+    labeller who reviews a stale copy of an answer has disposed of nothing. It
+    carries the question, the answer as recorded, the axis being judged, the
+    rubric's own band wording, and the drafted label with its reasoning.
+
+    It does **not** carry the split. A labeller who can see which items are
+    held-out can — consciously or not — label the measured half differently from
+    the practice half, and that is the one bias this corpus cannot recover from."""
+    by_case = {c["id"]: c for c in cases}
+    answers = {label: _load(rel) for label, rel in RUNS}
+    drafts = {row["item"]: row for row in labels["labels"]}
+
+    out = [
+        "# Calibration label worksheet",
+        "",
+        "**Generated — do not edit.** Regenerate with:",
+        "",
+        "```bash",
+        "python -m evals.render_worksheet",
+        "```",
+        "",
+        "Disposition happens in `labels.json`, not here. For each item set `final`",
+        "to the band you judge correct (`0.0`, `0.5`, `1.0`, or `null` for an item",
+        "with no answer to grade) and `disposition` to `agreed` or `changed`. The",
+        "**correction rate is published beside every agreement figure**, so a change",
+        "here is a recorded act rather than a silent one.",
+        "",
+        "The dev/held-out split is deliberately absent from this file. Knowing which",
+        "items are measured is exactly the knowledge that would bias the labels.",
+        "",
+        "Read the rubric itself at `quality/judge/rubric-sports.md`; the bands below",
+        "are its wording, not a paraphrase.",
+        "",
+    ]
+    for item in committed()["items"]:
+        row = drafts[item["id"]]
+        case = by_case[item["case_id"]]
+        answer = answers[item["run"]][item["case_id"]]["answer"]
+        band_0, band_half, band_1 = BANDS[item["axis"]]
+        drafted = "n/a" if row["drafted"] is None else f"{row['drafted']:.1f}"
+
+        out += [
+            "---",
+            "",
+            f"## {item['id']} — `{item['axis']}`",
+            "",
+            f"*{item['run']} / {item['case_id']}*",
+            "",
+            f"**Viewer asked:** {case['input']}",
+            "",
+            f"**Viewer context:** `{case.get('viewer')}`",
+            "",
+        ]
+        if "refused_by_gateway" in answer:
+            out += [f"**Recorded:** refused by the gateway "
+                    f"(`{answer['refused_by_gateway']}`) — no answer to grade.", ""]
+        elif "unparsed" in answer:
+            out += ["**Recorded:** the harness could not decode this turn "
+                    "(`unparsed`, no `answer` field) — no answer to grade.", ""]
+        else:
+            out += [
+                f"**Answered:** {answer.get('answer')}",
+                "",
+                f"**Cited:** `{answer.get('cited_titles')}`",
+                "",
+            ]
+        out += [
+            f"| band | {item['axis']} |",
+            "|---|---|",
+            f"| 1.0 | {band_1} |",
+            f"| 0.5 | {band_half} |",
+            f"| 0.0 | {band_0} |",
+            "",
+            f"**Drafted: {drafted}**",
+            "",
+            f"{row['reason']}",
+            "",
+        ]
+    return "\n".join(out) + "\n"

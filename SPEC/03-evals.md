@@ -309,6 +309,20 @@ the failure this section exists to prevent.
   is not calibration. On the strata above this starts `concision` (3) and
   `brand_tone` (4) demoted, which means the demotion mechanism is exercised on day
   one without the judge having to be bad at anything.
+
+  > **Clarified at drafting, and it tightens rather than loosens.** The floor
+  > counts **scorable** held-out items — those with an answer to grade. Four
+  > drawn items carry no answer at all (three gateway refusals and one turn the
+  > harness could not decode), so the scorable held-out counts are
+  > `groundedness` **6**, `completeness` **5**, `brand_tone` **3**,
+  > `concision` **3**. An item that cannot be labelled contributes no agreement
+  > evidence, and counting it toward an evidence floor would be counting a blank.
+  >
+  > This is recorded here because it was forced by a shape the spec did not
+  > anticipate, and because the direction matters: **it makes the floor stricter,
+  > not weaker**, and it was written before any label was disposed and before any
+  > agreement number existed. `completeness` now sits exactly on the boundary at 5.
+  > It is not moved to accommodate that.
 - **Undecided fraction: above `0.20` of an axis's judged items with no majority at
   `k_judge = 3` demotes that axis**, whatever its agreement on the ones it did
   decide. A judge that cannot repeat itself is not calibrated by the subset of
@@ -480,6 +494,43 @@ Answers with an empty `cited_titles`: `m00b` 2, `m01` 5, `m02` 7–10 per run. T
 groundedness on an answer that cited nothing will invent a band unless told what to
 do. Pre-registered as a judge-prompt requirement and as a hazard below.
 
+### 5. The drafted label distribution, and an axis that cannot be measured
+
+Drafted 2026-08-19, against the rubric alone, with no judge prompt in the tree.
+Awaiting disposition by the AI Quality seat.
+
+| axis | items | scorable held-out | drafted bands |
+|---|---|---|---|
+| `groundedness` | 11 | 6 | 0.0 ×2, 0.5 ×1, 1.0 ×7 |
+| `completeness` | 8 | 5 | 0.0 ×1, 0.5 ×2, 1.0 ×4 |
+| `brand_tone:meridian-sports` | 7 | 3 | **0.5 ×5 — and nothing else** |
+| `concision` | 4 | 3 | 0.5 ×1, 1.0 ×3 |
+
+**`brand_tone` has zero label variance, and that is a finding about the corpus
+rather than about the judge.** Every applicable item drew the same band. An axis
+whose labels are all one value cannot produce a meaningful agreement number: a
+judge that answers `0.5` to everything scores **1.00 raw**, and κ is undefined or
+zero because there is no expected-agreement baseline to correct against. It is the
+inflation hazard this spec predicted for `brand_tone`, arriving one step earlier
+than predicted — in the labels rather than in the agreement.
+
+It is also *not* a labelling failure. The rubric's `0.0` band for tone is "cruel,
+profane, hyperbolic, or reads as an advertisement" and its `1.0` is "on-brand and
+natural". Three milestones of a governed sports agent produced neither: every
+answer is correct, polite and flat. The corpus is representative, and what it
+represents is a service with no tonal range.
+
+**Consequence, taken now rather than after the run.** `brand_tone` is demoted on
+the insufficient-evidence rule regardless, so nothing about the published number
+changes. But the corpus limitation is recorded as an **owed tightening for AI
+Quality, named for M04**: a `brand_tone` stratum needs items that actually differ,
+which means either answers this platform has not yet produced or a deliberate
+selection across the band. It is not fixed here — widening a stratum after seeing
+its label distribution is choosing items to change a number.
+
+**`groundedness` and `completeness` both carry all three bands**, which is what
+makes them the two axes worth measuring.
+
 ## Pre-registered hypothesis (written before the run)
 
 > **This one is blind.** No judge has been invoked, no pilot has been run, and no
@@ -514,6 +565,15 @@ headline error, and the rule this milestone inherits.
   A judge that scores tone on a refusal is scoring the refusal message. Those cases
   already FAIL deterministically so the veto never reaches them — but the corpus
   deliberately includes refusals so the behaviour is pinned rather than assumed.
+- **There is a third not-applicable shape, and this spec named only two.** Drafting
+  the labels found `m02-tools-1 / grounded-018`: a turn the harness could not
+  decode, recorded as `{"unparsed": "…"}` with no `answer` field at all. It is
+  neither an answer nor a refusal. The model did reply, and its reply was even
+  correct — but what the service emitted was undecodable, and grading the blob
+  would grade something the service never produced as an answer. **The judge
+  returns not-applicable on all three shapes: refusal, unparsed, and a missing
+  `answer` object.** One such item is in the corpus (`cal-13`), so the behaviour is
+  pinned rather than assumed.
 - **Empty citation lists.** The judge must not read "cited nothing" as "grounded".
   That is the same defect as the vacuous assert, one layer up, and a judge
   inheriting it would make the tightening pointless.

@@ -187,3 +187,120 @@ def test_the_spec_and_the_rule_agree_on_the_numbers():
     spec = SPEC.read_text(encoding="utf-8")
     assert "**30 items, frozen before labelling, split 10 dev / 20 held-out" in spec
     assert "fewer than 5 held-out items" in spec
+
+
+# --- labels ------------------------------------------------------------------
+#
+# Drafted by the assistant, disposed by the AI Quality seat (SPEC/03's amendment).
+# These tests pin the integrity of that arrangement: that every item has exactly
+# one label, that each label is still bound to the bytes it was written against,
+# and that a disposition cannot be half-recorded. They do **not** assert that
+# disposition has happened — `run_judge.py` refuses to run until it has, which is
+# the right enforcement point: a red `main` would push toward disposing quickly
+# rather than carefully.
+
+
+@pytest.fixture(scope="module")
+def labels():
+    return json.loads(
+        (ROOT / "quality" / "judge" / "calibration" / "labels.json").read_text(encoding="utf-8")
+    )
+
+
+def test_every_item_has_exactly_one_label(frozen, labels):
+    assert [row["item"] for row in labels["labels"]] == [i["id"] for i in frozen["items"]]
+
+
+def test_a_label_is_bound_to_the_bytes_it_was_written_against(frozen, labels):
+    """The same protection the corpus has, applied one file over. A label that
+    survives an edit to its answer is a label of something else."""
+    digests = {i["id"]: i["answer_sha256"] for i in frozen["items"]}
+    for row in labels["labels"]:
+        assert row["answer_sha256"] == digests[row["item"]]
+
+
+def test_bands_are_the_three_the_rubric_defines(labels):
+    for row in labels["labels"]:
+        assert row["drafted"] in (0.0, 0.5, 1.0, None)
+        assert row["final"] in (0.0, 0.5, 1.0, None)
+        assert row["applicable"] is (row["drafted"] is not None)
+
+
+def test_the_labels_declare_themselves_ai_proposed(labels):
+    """G6, made legible. The published agreement number is measured against labels
+    a model drafted, and the correction rate is the only thing that says how much
+    of them survived a human seat. A provenance block that quietly said `human`
+    would make the number look like something it is not."""
+    assert labels["provenance"]["author"] == "ai-proposed"
+    assert labels["provenance"]["drafted_by"]
+
+
+def test_a_disposition_is_all_or_nothing(labels):
+    """Half a disposition is the failure mode worth blocking: 30 drafts, six
+    reviewed, and a correction rate computed over the six that were looked at
+    hardest. Either every label carries a `final` and the seat is named, or the
+    corpus is still undisposed."""
+    finals = [row for row in labels["labels"] if row["disposition"] is not None]
+    if not labels["provenance"]["disposed"]:
+        assert not finals, (
+            "labels carry dispositions but the corpus is not marked disposed. Set "
+            "provenance.disposed and provenance.curated_by, or clear them."
+        )
+        return
+    assert labels["provenance"]["curated_by"], "a disposed corpus names the seat that disposed it"
+    assert len(finals) == len(labels["labels"]), (
+        "a disposed corpus disposes every label. Agreement measured over a "
+        "hand-picked subset is agreement over the items somebody chose to check."
+    )
+    for row in labels["labels"]:
+        assert row["disposition"] in ("agreed", "changed")
+        assert (row["final"] == row["drafted"]) is (row["disposition"] == "agreed")
+
+
+def test_no_axis_has_a_single_label_value_without_the_spec_saying_so():
+    """SPEC/03's fifth pre-flight finding, kept executable.
+
+    `brand_tone` drew the same band on every applicable item. An axis whose labels
+    are all one value cannot produce a meaningful agreement number — a judge that
+    answers that value to everything scores 1.00 raw, and κ has no baseline to
+    correct against. It is demoted on the insufficient-evidence rule anyway, so
+    nothing published changes; this test exists so that the day the stratum is
+    widened, the finding is re-read rather than forgotten."""
+    spec = SPEC.read_text(encoding="utf-8")
+    assert "zero label variance" in spec
+
+
+def test_the_worksheet_is_what_the_generator_renders(labels):
+    """The worksheet is what the seat actually reads while disposing. A stale copy
+    means the seat disposed of an answer that is no longer there."""
+    from evals.render_worksheet import OUT, render
+
+    assert OUT.read_text(encoding="utf-8") == render(), (
+        "the committed worksheet is not what evals/render_worksheet.py produces. "
+        "Regenerate it with `python -m evals.render_worksheet`."
+    )
+
+
+def test_the_worksheet_does_not_leak_the_split():
+    """A labeller who can see which items are measured can label the measured half
+    differently from the practice half. That is the one bias this corpus has no
+    way to recover from, so the worksheet omits the split entirely."""
+    from evals.render_worksheet import OUT
+
+    # Only the body is checked. The preamble says the split is deliberately
+    # absent, which is the one place those words are allowed to appear.
+    body = OUT.read_text(encoding="utf-8").split("## cal-01", 1)[1]
+    for word in ("held-out", "dev ", "split"):
+        assert word not in body, f"the worksheet body names an item's split ({word!r})"
+
+
+def test_the_band_summary_still_matches_the_rubric():
+    """The worksheet carries the rubric's band wording so a labeller need not hold
+    two files open. A summary of a hash-pinned instrument that is allowed to drift
+    from it is worse than no summary at all."""
+    from evals.calibration import BANDS
+
+    rubric = (ROOT / "quality" / "judge" / "rubric-sports.md").read_text(encoding="utf-8")
+    for axis, bands in BANDS.items():
+        for phrase in bands:
+            assert phrase in rubric, f"{axis}: {phrase!r} is no longer the rubric's wording"
