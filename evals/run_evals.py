@@ -206,6 +206,55 @@ def pooled_pass_rate(per_sample: list[list]) -> float:
     return round(passed / total, 4)
 
 
+def paired_diff(control: list, tools: list) -> dict:
+    """The per-case diff between two arms, which ADR-021 designates as **the
+    result, not the total**.
+
+    It had no harness. `run_evals.py` could print a total and nothing else, so
+    "the diff is the result" was a sentence rather than a number — and whatever
+    the tool prints is what gets reported.
+
+    **Why the total is not enough**, in this repo's own evidence: M01's close
+    showed three cases lost to the gateway and four gained by noise, and the
+    headline +1 concealed a real −3. A net figure is the sum of two findings that
+    point in opposite directions, and only one of them is usually the interesting
+    one.
+
+    Both arms must already be summarised the same way — same `k`, same majority
+    rule — or the diff compares an estimate to a sample."""
+    by_id = {r.id: r.result for r in control}
+    other = {r.id: r.result for r in tools}
+    missing = sorted(set(by_id) ^ set(other))
+    if missing:
+        raise SystemExit(
+            f"error: the two arms do not cover the same cases: {missing}. A paired diff "
+            "over a partial pairing is not a paired diff."
+        )
+
+    lost, gained, held = [], [], []
+    for case_id in by_id:
+        before, after = by_id[case_id], other[case_id]
+        if before == after:
+            held.append({"id": case_id, "result": before})
+        elif before == PASS:
+            lost.append({"id": case_id, "from": before, "to": after})
+        elif after == PASS:
+            gained.append({"id": case_id, "from": before, "to": after})
+        else:
+            held.append({"id": case_id, "result": f"{before}->{after}"})
+    return {"lost": lost, "gained": gained, "unchanged": held,
+            "net": len(gained) - len(lost)}
+
+
+def print_diff(diff: dict, control_label: str, tools_label: str) -> None:
+    print(f"\npaired per-case diff: {control_label} -> {tools_label}")
+    print(f"  lost   {len(diff['lost'])}: " + ", ".join(c["id"] for c in diff["lost"]))
+    print(f"  gained {len(diff['gained'])}: " + ", ".join(c["id"] for c in diff["gained"]))
+    print(f"  net    {diff['net']:+d}")
+    print("  The net is the sum of two findings that point in opposite directions. "
+          "M01's headline +1 concealed a real -3 (ADR-021).")
+
+
 def run(args) -> int:
     cases = _load(GOLDENS)
     if args.dryrun:
@@ -294,6 +343,29 @@ def run(args) -> int:
         path = record(results, scores, args, len(per_sample), samples,
                       sources=_sources(paths) if len(per_sample) > 1 else None)
         print(f"recorded: {path.relative_to(ROOT)}")
+
+    if args.against:
+        # The other arm, scored and summarised by the identical path — never read
+        # from a recorded row. A diff between a fresh summary and a history entry
+        # would compare today's instrument against whatever produced that row,
+        # which is the comparison ADR-016 exists to forbid.
+        against_paths = args.against
+        against_loaded = [_load(pathlib.Path(path)) for path in against_paths]
+        against_samples = [scorer.score_suite(cases, a, catalog) for a in against_loaded]
+        if len(against_samples) != len(per_sample):
+            raise SystemExit(
+                f"error: {len(per_sample)} sample(s) for this arm and {len(against_samples)} "
+                "for the other. Both arms are summarised the same way or the diff compares "
+                "an estimate to a sample (ADR-021)."
+            )
+        against_results = (against_samples[0] if len(against_samples) == 1
+                           else summarise(against_samples, [c["id"] for c in cases])[0])
+        diff = paired_diff(against_results, results)
+        print_diff(diff, args.against_arm or "other arm", args.arm or "this arm")
+        if args.diff_out:
+            pathlib.Path(args.diff_out).write_text(
+                json.dumps(diff, indent=2), encoding="utf-8")
+            print(f"wrote paired diff: {args.diff_out}")
 
     if args.out:
         emit_verdict(results, scores, args.out)
@@ -398,6 +470,12 @@ def main(argv=None) -> int:
                    help="JSON produced by the agent under test; repeat for k samples")
     p.add_argument("--arm", help="which system produced these answers, when a milestone "
                                  "runs more than one (e.g. control | tools)")
+    p.add_argument("--against", action="append",
+                   help="answers from the OTHER arm; repeat for its k samples. Both arms are "
+                        "summarised the same way and the paired per-case diff is reported, "
+                        "which ADR-021 designates as the result rather than the total")
+    p.add_argument("--diff-out", help="write the paired diff here as JSON")
+    p.add_argument("--against-arm", help="label for the other arm in the diff output")
     p.add_argument("--record", action="store_true", help="append an entry to evals/history/")
     p.add_argument("--tag", help="milestone tag, e.g. m00b")
     p.add_argument("--target", default="baseline", help="baseline | <service-name>")

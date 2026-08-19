@@ -605,6 +605,32 @@ retrieves that title** for that intent unless the model already knows the catalo
 — which is exactly what M02 takes away. The same holds for `recommend-003` and
 `recommend-014`.
 
+> **The falsifier fired, on a smoke sample, before the run. Recorded, and the
+> prediction is NOT revised.**
+>
+> The row above names its own falsifier: *"any of them passing — which would mean
+> retrieval is broader than the contract says."* Smoke-testing the deployed stack
+> on 2026-08-19, `recommend-003` **answered and cited `t003`**. The model combined
+> `query: "replay"` with the structured filters — `brand: meridian-sports`,
+> `type: vod` — and `replay` is a substring of *Granite Falls Classic (Replay)*.
+>
+> So the claim "no legal input retrieves those titles for those intents" is **too
+> strong for `recommend-003`**. What the narrowing removed was free-text matching
+> on `brand` and `type`; it did not remove them as *filters*, and a query term that
+> happens to appear in a title still retrieves through them. The pilot measured
+> the queries the model sent then, not the ones it can send.
+>
+> **The prediction stays at 10/25 ± 4.** Revising it upward now would be revising
+> after seeing data, which is the whole thing a pre-registration exists to
+> prevent — and the fact that the revision would be *toward* a better score is
+> exactly why it must not happen. If `recommend-003` passes in the recorded run it
+> is **not** an unexpected win: it is this observation, and the journal says so.
+>
+> `recommend-013` is untouched by this. *"What sport is on live tonight?"* still
+> contains no term that appears in `t001`'s searchable text, with or without
+> filters, so the mechanism holds for it. `recommend-014` and `multi-023` are
+> unmeasured either way and stay named as written.
+
 **This is not a retrieval miss and must not be booked as one.** The model queried
 sensibly and the tool behaved exactly as specified; the contract cannot express
 the request. A retrieval miss is fixed by better ranking; this is fixed by a
@@ -730,10 +756,11 @@ recorded in the entry is what already said so.
       `--answers` and an `--arm`, scores each sample independently through the
       unchanged scorer, and records the majority plus the per-sample verdicts;
       the runs themselves are owed)*
-- [ ] Paired per-case diff recorded; both arms' raw answers committed.
-      **ADR-021 designates the paired diff as "the result, not the total" and only
-      the total has a harness** — `run_evals.py` has no diff mode. Whatever the
-      tool prints is what gets reported, so the diff needs code before the run
+- [ ] Paired per-case diff recorded; both arms' raw answers committed *(harness
+      landed before the run: `run_evals.py --against` re-scores the other arm
+      through the identical path, requires the same `k` on both sides, refuses an
+      unpaired case, and writes the diff with `--diff-out`. It reports lost,
+      gained and net separately, because M01's headline +1 concealed a real −3)*
 - [ ] Tool trajectories recorded; none scored
 - [ ] `entitlement_source` and `expect_tool_before_answer` still deferred
 - [ ] Scores recorded — two-key, disposition and rationale in the PR body
