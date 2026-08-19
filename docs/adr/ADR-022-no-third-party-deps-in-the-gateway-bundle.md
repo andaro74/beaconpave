@@ -57,6 +57,37 @@ One detail is worth recording because getting it backwards is easy and silent:
 `re.search` rather than `re.match`. A validator stricter than its schema is as
 wrong as a lax one and harder to notice, because it only ever refuses.
 
+### And then the check itself turned out not to bound the subset
+
+Three seats independently found the same hole in the first draft: **the coverage
+check tested keyword *names*, not shapes.** `additionalProperties` was a supported
+name, but only its `false` form was implemented — so a schema-valued one reported
+"fully covered" and its subschema was then silently unenforced. Tuple-form `items`
+did the same and afterwards raised an `AttributeError` out of the authorization
+path, where `validate` is documented to return decisions rather than raise.
+
+So "bounded by a check rather than by a promise" was not true when it was written.
+It is now: shapes are checked, and type *values* are checked too, because
+`{"type": "str"}` passed as covered and then rejected every instance at run time
+with a message that read like a validator bug rather than a schema typo.
+
+The lesson is narrower than "we missed a case". A boundary expressed as a list of
+names bounds the vocabulary and not the language — and it is the second time in
+this milestone that a check has been weaker than the sentence describing it.
+
+### A divergence from the JSON Schema spec that is deliberately not fixed
+
+`^…$` is anchored per line in Python's `re`, so `"t001\n"` matches
+`^t[0-9]{3}$`. Under the ECMA regex grammar the spec names, it does not.
+
+**This is not corrected here**, because `jsonschema` shares Python's `re` and
+therefore shares the behaviour: "fixing" it would make this validator *stricter
+than its reference* and break the differential test, which is the mechanism the
+whole subset rests on. The divergence is from the spec, not from the library, and
+the scale-up does not close it either — a bundled `jsonschema` behaves the same
+way. Recorded rather than silently carried, since it is exactly the sort of thing
+a later reader would otherwise find and assume was an oversight.
+
 ## Consequences
 
 **This does not generalize to arbitrary libraries.** The argument works because

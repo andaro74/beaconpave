@@ -72,6 +72,36 @@ rest. At production scale that trade reverses — the policies get hand-written,
 grammar opens up, and a real engine is the only defensible answer, which is
 precisely what the scale-up path says.
 
+### Two things the first draft got wrong, found by seat review before anything ran
+
+**The policies were not portable, and they failed open.** The generator emitted
+`forbid ... unless { context.approval_granted }`. In Cedar, reading an attribute
+the context does not carry is an *evaluation error*, and an erroring policy is
+dropped from the decision — so on AVP the `forbid` would have vanished, the
+surviving `permit` would have governed, and a publish-class call would have been
+**allowed**. The in-process evaluator said DENY, because a Python dict miss is not
+an attribute error. That is the one direction a divergence must never run, and it
+falsified this ADR's load-bearing claim in the same document that makes it.
+
+Now emitted as `unless { context has approval_granted && context.approval_granted
+== true }`, and `parse` rejects a forbid whose `has` guard and equality name
+different attributes — a broken guard is not a subset gap, it is a policy that
+would error and disappear.
+
+**The input space was not closed.** `generate` interpolated registry strings into
+policy text unescaped, so an `id` carrying a quote could close the statement and
+open a new one. The injected `permit` parsed cleanly, and **neither drift gate
+could see it**: the committed artifact really was what the registry generated.
+Review of the small readable YAML had stopped implying review of what it
+authorizes — the exact property ADR-004 is bought for. Identifiers are validated
+now, and `generate` raises rather than escaping, because an escaped identifier
+would still be a policy nobody reading the registry expected.
+
+Both claims in this ADR — verbatim portability, and a closed input space — were
+aspirational when written and are true now. They are recorded here rather than
+quietly corrected upstream, because an ADR that reads as though it had always been
+right is worth less than one that shows where it was caught.
+
 ### The risk this accepts, stated plainly
 
 **It is an authorization engine written for this repo, and that is the kind of

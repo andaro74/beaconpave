@@ -42,6 +42,16 @@
 /quality/adversarial/     @andaro74
 /platform/gateway/guardrail_config.yaml   @andaro74
 
+# ...and the authorization path, which M02 created. Both modules name this seat as
+# a co-owner in their docstrings; without these entries a PR relaxing the publish
+# interlock, widening GATED_CONSEQUENCES, or loosening the identifier validation
+# in the generator would never request it. The Security seat found this itself,
+# reviewing the diff that created the decision point.
+/platform/gateway/core/cedar.py       @andaro74
+/platform/gateway/core/toolplane.py   @andaro74
+/platform/policy/                     @andaro74
+/platform/gateway/policy/             @andaro74
+
 # Legal / Standards & Practices owns the rules registry
 /rules/                   @andaro74
 

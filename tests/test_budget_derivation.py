@@ -118,6 +118,24 @@ def test_the_output_ceilings_were_left_alone_and_still_hold():
         )
 
 
+def test_the_manifest_ceilings_that_moved_are_pinned_too():
+    """The test below pins `p95_ms` and its name made the manifest look guarded —
+    while the two numbers that actually *did* move in the same block were unpinned
+    and, at first, underived. `gates.budgets` is a two-key path; a number that
+    moves there without a written derivation is the change this rule exists to
+    make visible."""
+    gates = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))["gates"]["budgets"]
+    per_case = {field: ceiling for _, budget in budgets() for field, ceiling in budget.items()}
+    assert gates["max_tokens_in"] == 6500
+    assert gates["max_ms"] == 12000
+    assert gates["max_tokens_out"] == 800, "output ceilings did not move; nor should the manifest"
+    assert gates["max_tokens_in"] > per_case["tokens_in"], (
+        "the service ceiling must sit above the per-case one, or a case can pass its own budget "
+        "and blow the service's"
+    )
+    assert gates["max_ms"] >= per_case["max_ms"]
+
+
 def test_the_suite_percentile_budget_was_not_raised():
     """M01 breached `p95_ms` at 3194 ms against 2500 and declined to raise it. M02
     breaches it further and declines again.

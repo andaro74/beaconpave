@@ -4,35 +4,109 @@
   "title": "Eval History Entry",
   "description": "Append-only. Keyed by git SHA + suite. Never edited; corrections arrive as a new entry with `supersedes`.",
   "type": "object",
-  "required": ["sha", "suite", "recorded_at", "target", "scores"],
+  "required": [
+    "sha",
+    "suite",
+    "recorded_at",
+    "target",
+    "scores"
+  ],
   "properties": {
-    "sha": { "type": "string", "description": "git commit under test" },
-    "tag": { "type": "string", "description": "milestone tag if recorded at close, e.g. m00b" },
-    "suite": { "type": "string", "enum": ["goldens", "adversarial", "contract", "playwright", "k6", "drill"] },
-    "target": { "type": "string", "description": "baseline | <service-name>" },
-    "recorded_at": { "type": "string", "format": "date-time" },
-    "scores": { "type": "object", "additionalProperties": { "type": "number" } },
+    "sha": {
+      "type": "string",
+      "description": "git commit under test"
+    },
+    "tag": {
+      "type": "string",
+      "description": "milestone tag if recorded at close, e.g. m00b"
+    },
+    "suite": {
+      "type": "string",
+      "enum": [
+        "goldens",
+        "adversarial",
+        "contract",
+        "playwright",
+        "k6",
+        "drill"
+      ]
+    },
+    "target": {
+      "type": "string",
+      "description": "baseline | <service-name>"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
     "cases": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "result"],
+        "required": [
+          "id",
+          "result"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "result": { "type": "string", "enum": ["PASS", "FAIL", "ADVISORY", "INFRA"] },
+          "id": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "ADVISORY",
+              "INFRA"
+            ]
+          },
           "unearned": {
             "type": "boolean",
             "description": "True when a pass is not credited to the system: the probe telegraphs its refusal, the expected string appears in the prompt, or the assertion cannot fail by construction. Recorded as-run per SPEC/00b."
           },
-          "unearned_reason": { "type": "string" },
-          "tightening_pr": { "type": "string" }
+          "unearned_reason": {
+            "type": "string"
+          },
+          "tightening_pr": {
+            "type": "string"
+          }
         }
       }
     },
-    "judge_agreement": { "type": "number", "description": "Agreement with hand labels; below threshold the judge is advisory only" },
-    "tokens_in": { "type": "number", "description": "Input tokens; comparable across milestones because it does not move with a price list (ADR-014)" },
-    "tokens_out": { "type": "number", "description": "Output tokens; see tokens_in" },
-    "cost_usd": { "type": "number", "description": "Rendered from tokens at the pinned regional rate. Never compare two entries on this field alone — the rate may differ between them." },
-    "supersedes": { "type": "string", "description": "SHA of an entry this corrects. Corrections append; they never edit." }
+    "judge_agreement": {
+      "type": "number",
+      "description": "Agreement with hand labels; below threshold the judge is advisory only"
+    },
+    "tokens_in": {
+      "type": "number",
+      "description": "Input tokens; comparable across milestones because it does not move with a price list (ADR-014)"
+    },
+    "tokens_out": {
+      "type": "number",
+      "description": "Output tokens; see tokens_in"
+    },
+    "cost_usd": {
+      "type": "number",
+      "description": "Rendered from tokens at the pinned regional rate. Never compare two entries on this field alone \u2014 the rate may differ between them."
+    },
+    "supersedes": {
+      "type": "string",
+      "description": "SHA of an entry this corrects. Corrections append; they never edit."
+    },
+    "k": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "How many samples per case the entry is derived from, and how. k=1 (or absent) is a single run, which is what m00b and m01 hold. k>1 means each case's result is the majority verdict across k samples of the same commit \u2014 introduced at M02, where the tool loop made per-case outcomes non-deterministic (the same request was refused on one sample and answered on another). Without this field, a reader cannot tell a single sample from a summarised one, and 'we designated the run in advance' is a social protection rather than a legible one."
+    },
+    "arm": {
+      "type": "string",
+      "description": "Which system produced the entry when a milestone runs more than one. M02 runs a frozen M01 arm beside the M02 arm on the same day under the same instrument, and reports the paired per-case diff between them; both arms are recorded so the comparison is in the history rather than only in the journal."
+    }
   }
 }

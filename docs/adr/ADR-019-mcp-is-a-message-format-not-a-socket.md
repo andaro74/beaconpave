@@ -71,10 +71,21 @@ stdio path is what an outside MCP client would use. It is exercised by tests
 rather than by production, and this sentence is here so that fact is recorded
 rather than discovered.
 
-**The tool deploys as its own function**, so the process boundary that matters —
-the one that keeps the tool's role separate from the gateway's, and lets the
-gateway hold `lambda:InvokeFunction` on exactly the tools the registry names —
-exists where it does work, rather than around a subprocess where it would not.
+**The tool will deploy as its own function, later in M02** — the process boundary
+that matters is the one keeping the tool's role separate from the gateway's, and
+letting the gateway hold `lambda:InvokeFunction` on exactly the tools the registry
+names. That belongs where it does work, rather than around a subprocess where it
+would not.
+
+> **Stated as intent, because it has not happened yet.** The first draft of this
+> section wrote it in the present tense, as accomplished fact, while the diff
+> contained no `platform/infra/` change and no such grant existed. An ADR that
+> describes deployment which has not occurred is the drift ADR-017 spends a page
+> on, arriving in the document that is supposed to prevent it. Until the wiring
+> commit lands, `handler` is exercised by tests and by nothing else, and **G3
+> rests on the plane rather than on IAM** — which is exactly why the Security seat
+> pre-registered a direct-tool-invocation probe for M04 and a synth-time assertion
+> for the deploy commit.
 
 **A second tool at M06 inherits all of this** by implementing three methods. If it
 does not, the shape was wrong here.
