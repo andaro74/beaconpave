@@ -282,7 +282,7 @@ def test_a_tool_denial_record_conforms_to_the_audit_schema():
     decision = authorize(tool_id="catalog-purge")
     record = audit.build_record(
         request_id="probe-1", ts="2026-08-18T00:00:00Z",
-        principal="arn:aws:lambda:us-west-2:function:GatewayFn",
+        principal="role/highlights-agent",
         service="highlights-agent", classification="internal",
         decision="denied", mechanism=decision.mechanism,
         model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
