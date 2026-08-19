@@ -770,7 +770,7 @@
     },
     "GuardrailVersion": {
       "Properties": {
-        "Description": "Pinned for M01 probe and golden runs.",
+        "Description": "Pinned to policy 4e94ddd79fb8.",
         "GuardrailIdentifier": {
           "Fn::GetAtt": [
             "Guardrail",

@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
@@ -226,13 +227,54 @@ export class GatewayStack extends cdk.Stack {
       },
     });
 
+    // A digest of everything the guardrail actually enforces. It exists to force
+    // a NEW published version whenever the policy changes — see below for the
+    // deploy that proved why.
+    //
+    // Not a hash of the whole construct: the id and the ARN move for reasons that
+    // are not policy changes, and a version that churned on those would defeat
+    // the pin from the other side.
+    const policyDigest = crypto
+      .createHash('sha256')
+      .update(
+        JSON.stringify({
+          content: guardrail.contentPolicyConfig,
+          topics: guardrail.topicPolicyConfig,
+          pii: guardrail.sensitiveInformationPolicyConfig,
+          blockedInput: guardrail.blockedInputMessaging,
+          blockedOutput: guardrail.blockedOutputsMessaging,
+        }),
+      )
+      .digest('hex')
+      .slice(0, 12);
+
     // Pinned. The gateway refuses to start without a version and never uses
     // DRAFT: a DRAFT guardrail can be edited outside a commit and silently
     // change every recorded probe result, and nothing would print differently
     // when it happened.
+    //
+    // **The pin worked in the direction nobody tested, and it cost a deploy.**
+    // The description used to be a fixed string. A guardrail version is an
+    // immutable snapshot, so CloudFormation had no reason to replace the version
+    // resource when the policy underneath it changed: ADR-024 narrowed a topic,
+    // `cdk deploy` reported UPDATE_COMPLETE, DRAFT carried the new definition —
+    // and the gateway went on enforcing version 1, which carried the old one.
+    // Nothing failed. Nothing printed differently. The stack was green and the
+    // change was live nowhere.
+    //
+    // That is the same failure ADR-018 was written to prevent, with the sign
+    // reversed. ADR-018 stopped the enforced policy drifting away from the
+    // committed one; this stops the committed policy failing to reach the
+    // enforced one. A pin that only holds in the direction you happened to test
+    // is not a pin, and the untested direction is the one where a security
+    // control silently does not change.
+    //
+    // Putting the digest in the description makes the version resource replace
+    // itself exactly when the policy changes, and never otherwise — so a version
+    // number is once again a name for a specific enforced policy.
     const guardrailVersion = new bedrock.CfnGuardrailVersion(this, 'GuardrailVersion', {
       guardrailIdentifier: guardrail.attrGuardrailId,
-      description: 'Pinned for M01 probe and golden runs.',
+      description: `Pinned to policy ${policyDigest}.`,
     });
 
     // --- the gateway -------------------------------------------------------

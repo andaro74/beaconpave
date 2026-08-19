@@ -18,6 +18,7 @@ Hermetic. Owning seat: Platform Engineering, with Security on the invariant.
 import copy
 import json
 import pathlib
+import re
 
 import pytest
 
@@ -287,3 +288,46 @@ def test_normalize_keeps_everything_the_assertion_reads():
         assert required in kinds, f"normalization removed {required}"
     assert infra.model_invoke_grants(template), "no grant survives normalization to assert against"
     assert infra.model_invoke_denials(template), "no Deny survives normalization to assert against"
+
+
+#: The version resource's description carries a digest of the policy it pins, so
+#: CloudFormation replaces it exactly when the policy changes. A fixed string here
+#: is the defect this pattern exists to prevent — see the test below.
+POLICY_PIN = re.compile(r"^Pinned to policy [0-9a-f]{12}\.$")
+
+
+def test_the_guardrail_version_follows_the_policy_it_pins():
+    """**The pin worked in the direction nobody tested, and it cost a deploy.**
+
+    A guardrail version is an immutable snapshot. With a fixed description on the
+    version resource, CloudFormation had no reason to replace it when the policy
+    underneath changed — so ADR-024 narrowed a topic, `cdk deploy` reported
+    UPDATE_COMPLETE, DRAFT carried the new definition, and the gateway went on
+    enforcing version 1 with the old one. Nothing failed. Nothing printed
+    differently. The stack was green and the change was live nowhere.
+
+    That is ADR-018's failure with the sign reversed. ADR-018 stopped the enforced
+    policy drifting away from the committed one; this stops the committed policy
+    failing to reach the enforced one. **A pin that only holds in the direction you
+    happened to test is not a pin**, and the untested direction is the one where a
+    security control silently does not change.
+
+    This checks the shape at synth time. It cannot check that the deployed version
+    matches — that needs the account, and
+    `services/highlights-agent/verify_guardrail_pin.py` is what does it after a
+    deploy, by fetching the policy back rather than trusting the stack's status.
+    """
+    template = load(GATEWAY_SNAPSHOT)
+    versions = [
+        r for r in template["Resources"].values()
+        if r.get("Type") == "AWS::Bedrock::GuardrailVersion"
+    ]
+    assert versions, "no published guardrail version in the stack — see ADR-018"
+    for version in versions:
+        description = version["Properties"].get("Description", "")
+        assert POLICY_PIN.match(description), (
+            f"the guardrail version description is {description!r}. It must carry a digest "
+            "of the policy it pins, or CloudFormation will not replace the version when the "
+            "policy changes — and the gateway will go on enforcing the old one with the "
+            "stack reporting success."
+        )
