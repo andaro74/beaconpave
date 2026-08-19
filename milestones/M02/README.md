@@ -10,6 +10,13 @@ enforces.
 
 Four things, in the order that makes the point.
 
+> **Recorded artifacts:** `g3-runtime-denial.json` (the runtime half, with the
+> record fetched back out of the lake) and `exhibit-unregistered-tool.md` (the
+> static half — PR #19, deliberately red, closed unmerged, branch preserved).
+> Both, because a gate that blocks a manifest and a plane that denies a call are
+> different guarantees and the weaker one is not allowed to hide behind the
+> stronger.
+
 **1. An unregistered tool is unreachable, at runtime, and the refusal is
 evidenced.**
 

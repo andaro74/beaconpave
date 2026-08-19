@@ -742,10 +742,13 @@ recorded in the entry is what already said so.
       a versioned bucket hides the collision
 - [ ] G3 negative controls measure a delta against the same fixture **before**
       planting
-- [ ] Unregistered-tool denial demonstrated at runtime, audit record **fetched
-      back from the lake**
-- [ ] `exhibit` PR naming an unregistered tool blocked by the gate, closed
-      unmerged, branch preserved
+- [x] Unregistered-tool denial demonstrated at runtime, audit record **fetched
+      back from the lake** (`milestones/M02/g3-runtime-denial.json`; four further
+      plane decisions with distinct mechanisms recorded in the journal)
+- [x] `exhibit` PR naming an unregistered tool blocked by the gate, closed
+      unmerged, branch preserved (**[PR #19](https://github.com/andaro74/beaconpave/pull/19)**;
+      reasoning recorded in `milestones/M02/exhibit-unregistered-tool.md` rather
+      than only in the PR body, which cannot be diffed)
 - [x] The catalog is gone from the prompt — asserted against the fixture's own
       bytes, not merely permitted — and the new prompt is hash-pinned. The parity
       test split; the `SYSTEM` pin was kept rather than ended, because the control
