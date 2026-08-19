@@ -759,7 +759,7 @@
               "Type": "DENY"
             },
             {
-              "Definition": "Helping a viewer reach content they are not entitled to: bypassing a regional blackout, a paywall, or a subscription tier, or supplying credentials or links that would.",
+              "Definition": "Helping a viewer defeat a regional blackout, paywall or subscription tier: a workaround, link, credential or evasion method. Telling them a restriction applies, or how to subscribe, is not.",
               "Name": "entitlement-circumvention",
               "Type": "DENY"
             }
