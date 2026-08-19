@@ -53,6 +53,7 @@ HERMETIC_ROOTS = (
     ROOT / "tests",
     ROOT / "evals",
     ROOT / "platform" / "gateway" / "core",
+    ROOT / "tools" / "catalog-search",
 )
 
 #: Importing any of these means the module can talk to AWS.

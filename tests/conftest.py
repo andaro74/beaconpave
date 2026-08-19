@@ -23,5 +23,12 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 GATEWAY_BUNDLE = ROOT / "platform" / "gateway"
 
-if str(GATEWAY_BUNDLE) not in sys.path:
-    sys.path.insert(0, str(GATEWAY_BUNDLE))
+#: `tools/catalog-search/` is a bundle for the same reason and with the same
+#: constraint: a hyphen cannot appear in a Python package name, so the directory
+#: goes on the path and the module resolves as `search` — which is how the MCP
+#: server process will resolve it too.
+TOOL_BUNDLES = (ROOT / "tools" / "catalog-search",)
+
+for bundle in (GATEWAY_BUNDLE, *TOOL_BUNDLES):
+    if str(bundle) not in sys.path:
+        sys.path.insert(0, str(bundle))
