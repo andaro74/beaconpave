@@ -4,35 +4,131 @@
   "title": "Eval History Entry",
   "description": "Append-only. Keyed by git SHA + suite. Never edited; corrections arrive as a new entry with `supersedes`.",
   "type": "object",
-  "required": ["sha", "suite", "recorded_at", "target", "scores"],
+  "required": [
+    "sha",
+    "suite",
+    "recorded_at",
+    "target",
+    "scores"
+  ],
   "properties": {
-    "sha": { "type": "string", "description": "git commit under test" },
-    "tag": { "type": "string", "description": "milestone tag if recorded at close, e.g. m00b" },
-    "suite": { "type": "string", "enum": ["goldens", "adversarial", "contract", "playwright", "k6", "drill"] },
-    "target": { "type": "string", "description": "baseline | <service-name>" },
-    "recorded_at": { "type": "string", "format": "date-time" },
-    "scores": { "type": "object", "additionalProperties": { "type": "number" } },
+    "sha": {
+      "type": "string",
+      "description": "git commit under test"
+    },
+    "tag": {
+      "type": "string",
+      "description": "milestone tag if recorded at close, e.g. m00b"
+    },
+    "suite": {
+      "type": "string",
+      "enum": [
+        "goldens",
+        "adversarial",
+        "contract",
+        "playwright",
+        "k6",
+        "drill"
+      ]
+    },
+    "target": {
+      "type": "string",
+      "description": "baseline | <service-name>"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
     "cases": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "result"],
+        "required": [
+          "id",
+          "result"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "result": { "type": "string", "enum": ["PASS", "FAIL", "ADVISORY", "INFRA"] },
+          "id": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "ADVISORY",
+              "INFRA"
+            ]
+          },
           "unearned": {
             "type": "boolean",
             "description": "True when a pass is not credited to the system: the probe telegraphs its refusal, the expected string appears in the prompt, or the assertion cannot fail by construction. Recorded as-run per SPEC/00b."
           },
-          "unearned_reason": { "type": "string" },
-          "tightening_pr": { "type": "string" }
+          "unearned_reason": {
+            "type": "string"
+          },
+          "tightening_pr": {
+            "type": "string"
+          },
+          "samples": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string",
+              "enum": ["PASS", "FAIL", "ADVISORY", "INFRA"]
+            },
+            "description": "The per-sample verdicts this case's `result` was summarised from, in run order. Present only when `k` > 1. It exists so a 2-1 majority is checkable in the entry rather than asserted by whoever ran it \u2014 `k` alone says a summary happened and not what it summarised, and PASS/FAIL/PASS and PASS/PASS/PASS record the same verdict from very different evidence. INFRA never appears here: a sample that established nothing triggers a full re-run rather than entering the pool."
+          }
         }
       }
     },
-    "judge_agreement": { "type": "number", "description": "Agreement with hand labels; below threshold the judge is advisory only" },
-    "tokens_in": { "type": "number", "description": "Input tokens; comparable across milestones because it does not move with a price list (ADR-014)" },
-    "tokens_out": { "type": "number", "description": "Output tokens; see tokens_in" },
-    "cost_usd": { "type": "number", "description": "Rendered from tokens at the pinned regional rate. Never compare two entries on this field alone — the rate may differ between them." },
-    "supersedes": { "type": "string", "description": "SHA of an entry this corrects. Corrections append; they never edit." }
+    "judge_agreement": {
+      "type": "number",
+      "description": "Agreement with hand labels; below threshold the judge is advisory only"
+    },
+    "tokens_in": {
+      "type": "number",
+      "description": "Input tokens; comparable across milestones because it does not move with a price list (ADR-014)"
+    },
+    "tokens_out": {
+      "type": "number",
+      "description": "Output tokens; see tokens_in"
+    },
+    "cost_usd": {
+      "type": "number",
+      "description": "Rendered from tokens at the pinned regional rate. Never compare two entries on this field alone \u2014 the rate may differ between them."
+    },
+    "supersedes": {
+      "type": "string",
+      "description": "SHA of an entry this corrects. Corrections append; they never edit."
+    },
+    "k": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "How many samples per case the entry is derived from, and how. k=1 (or absent) is a single run, which is what m00b and m01 hold. k>1 means each case's result is the majority verdict across k samples of the same commit \u2014 introduced at M02, where the tool loop made per-case outcomes non-deterministic (the same request was refused on one sample and answered on another). Without this field, a reader cannot tell a single sample from a summarised one, and 'we designated the run in advance' is a social protection rather than a legible one. **Ties:** with k=3 over PASS/FAIL a strict majority always exists, and an INFRA result triggers a full re-run rather than entering the pool \u2014 so no tie is reachable at M02. ADVISORY arrives with the judge at M03 and makes a 1-1-1 split possible; the rule is that a case with no strict majority records ADVISORY and is named in the journal, never rounded toward the flattering verdict. Written now, while nothing is riding on it."
+    },
+    "samples_from": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": { "type": "string" },
+          "sha256": { "type": "string" }
+        }
+      },
+      "description": "The answer files this entry was summarised from, with a sha256 of each. It exists because `k` is otherwise the number of files the operator chose to pass, not the number of runs that happened \u2014 running five and passing the best three produced an entry byte-indistinguishable from an honest one, and nothing tied a recorded score to a committed run file. `close-milestone` checks that the named files are committed and that their hashes still match."
+    },
+    "arm": {
+      "type": "string",
+      "description": "Which system produced the entry when a milestone runs more than one. M02 runs a frozen M01 arm beside the M02 arm on the same day under the same instrument, and reports the paired per-case diff between them; both arms are recorded so the comparison is in the history rather than only in the journal."
+    }
   }
 }

@@ -2,54 +2,100 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://beaconpave/platform/gateway/audit.schema.json",
   "title": "Gateway Audit Record",
-  "description": "One record per attempt to reach a model, written by the gateway to the audit lake. Written for BLOCKED and DENIED attempts exactly as for allowed ones — a control that only records its successes cannot evidence a refusal, and the refusal is the half G4 asks for. The gateway writes; the caller cannot. A record is the second half of an adversarial pass (G4): `blocked` alone is an assertion, `blocked` plus a resolvable record is evidence.",
+  "description": "One record per attempt to reach a model, written by the gateway to the audit lake. Written for BLOCKED and DENIED attempts exactly as for allowed ones \u2014 a control that only records its successes cannot evidence a refusal, and the refusal is the half G4 asks for. The gateway writes; the caller cannot. A record is the second half of an adversarial pass (G4): `blocked` alone is an assertion, `blocked` plus a resolvable record is evidence.",
   "type": "object",
-  "required": ["record_id", "ts", "principal", "service", "classification", "decision", "mechanism", "model_id"],
+  "required": [
+    "record_id",
+    "ts",
+    "principal",
+    "service",
+    "classification",
+    "decision",
+    "mechanism",
+    "model_id"
+  ],
   "additionalProperties": false,
   "properties": {
     "record_id": {
       "type": "string",
-      "description": "The lake key. Must resolve: the probe harness fetches the record by this id rather than trusting the gateway response that named it. An unresolvable id is not a pass."
+      "description": "The lake key. Must resolve: the probe harness fetches the record by this id rather than trusting the gateway response that named it. An unresolvable id is not a pass. A turn that used tools writes several records under one request_id, so those carry a three-digit call ordinal before the .json suffix \u2014 without it they would share a key, and on a versioned bucket that collision is silent: every record is still there, and every one of them is behind the last."
     },
-    "ts": { "type": "string", "format": "date-time" },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
     "request_id": {
       "type": "string",
       "description": "Correlates the record with the caller's request and with the CloudTrail event for the same attempt."
     },
     "principal": {
       "type": "string",
-      "description": "The calling role. At runtime this is the invoked function's ARN. Committed fixtures use an account-less form instead: this repo is public, and tests/test_no_account_identifiers.py rejects an account-qualified ARN even when the account field is redacted — the redaction habit is what lets a real one through later."
+      "description": "The calling role. At runtime this is the invoked function's ARN. Committed fixtures use an account-less form instead: this repo is public, and tests/test_no_account_identifiers.py rejects an account-qualified ARN even when the account field is redacted \u2014 the redaction habit is what lets a real one through later."
     },
-    "service": { "type": "string", "description": "e.g. highlights-agent, direct-call-probe" },
+    "service": {
+      "type": "string",
+      "description": "e.g. highlights-agent, direct-call-probe"
+    },
     "classification": {
       "type": "string",
-      "enum": ["public", "internal", "confidential", "sensitive"],
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "sensitive"
+      ],
       "description": "G5 routes on this. `sensitive` is refused by design, so a record carrying it must also carry decision=denied."
     },
     "decision": {
       "type": "string",
-      "enum": ["allowed", "blocked", "denied"],
+      "enum": [
+        "allowed",
+        "blocked",
+        "denied"
+      ],
       "description": "blocked = a guardrail stopped it. denied = a policy or classification refused it before any model was reached. allowed = it transited to the model."
     },
     "mechanism": {
       "type": "string",
-      "enum": ["classification", "guardrail", "policy", "iam", "none"],
-      "description": "What made the decision. `none` is only valid with decision=allowed. `iam` records a direct-call attempt refused by an identity policy — claim 4's runtime artifact."
+      "enum": [
+        "classification",
+        "guardrail",
+        "policy",
+        "schema",
+        "loop",
+        "routing",
+        "iam",
+        "none"
+      ],
+      "description": "What made the decision. `none` is only valid with decision=allowed. `routing` means a tool the policy permits has no endpoint in this deployment \u2014 a deployment gap, named rather than folded into `schema`, and deliberately outside POLICY_MECHANISMS so that it can never satisfy a probe. `iam` records a direct-call attempt refused by an identity policy \u2014 claim 4's runtime artifact. `policy` means Cedar and only Cedar: a probe declaring `cedar_denied_or_approval_required_and_logged` is satisfiable by this value and by no other, so a contract violation (`schema`) and a turn that ran past its round bound (`loop`) are named separately rather than folded into it. Both are still platform refusals and both count for the broad G4 semantics; neither is an authorization decision."
     },
     "guardrail": {
       "type": "object",
       "description": "Present whenever a guardrail was consulted, whether or not it blocked.",
-      "required": ["id", "version"],
+      "required": [
+        "id",
+        "version"
+      ],
       "properties": {
-        "id": { "type": "string" },
+        "id": {
+          "type": "string"
+        },
         "version": {
           "type": "string",
           "description": "A published version, never DRAFT. A DRAFT guardrail can be edited outside a commit and silently change every recorded probe result; pinning it is what makes two runs comparable (ADR-018)."
         },
-        "action": { "type": "string", "enum": ["NONE", "GUARDRAIL_INTERVENED"] },
+        "action": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "GUARDRAIL_INTERVENED"
+          ]
+        },
         "assessed": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Policy types that fired, e.g. PROMPT_ATTACK. Recorded so a pass can be attributed to a mechanism rather than to an aggregate."
         }
       }
@@ -60,19 +106,30 @@
     },
     "usage": {
       "type": "object",
-      "description": "Absent on a denial — nothing was spent. Token-denominated per ADR-014; dollars are rendered at report time and never stored here.",
+      "description": "What the turn spent, summed across its rounds. Present on `guardrail` and `loop` refusals too: a turn blocked at round four had already paid for three, and recording zero would understate a runaway turn by exactly the amount that makes it worth catching. Absent when the refusal landed before any model call \u2014 classification, IAM, and every tool-plane decision. Token-denominated per ADR-014; dollars are rendered at report time and never stored here.",
       "properties": {
-        "tokens_in": { "type": "number" },
-        "tokens_out": { "type": "number" },
-        "latency_ms": { "type": "number" }
+        "tokens_in": {
+          "type": "number"
+        },
+        "tokens_out": {
+          "type": "number"
+        },
+        "latency_ms": {
+          "type": "number"
+        }
       }
     },
     "error": {
       "type": "object",
       "description": "The refusal as the platform received it. On an IAM denial this carries the AWS error verbatim: the gateway is a courier for it, not its author.",
       "properties": {
-        "code": { "type": "string", "description": "e.g. AccessDeniedException" },
-        "message": { "type": "string" }
+        "code": {
+          "type": "string",
+          "description": "e.g. AccessDeniedException"
+        },
+        "message": {
+          "type": "string"
+        }
       }
     },
     "probe_id": {
@@ -81,8 +138,73 @@
     },
     "witness": {
       "type": "string",
-      "enum": ["gateway", "cloudtrail", "couriered"],
-      "description": "Who observed the event. `gateway` and `cloudtrail` are independent of the caller. `couriered` means the attempting principal reported its own refusal — weaker, permitted only where no independent witness exists, and it must be named as a limitation in the milestone journal rather than counted as equivalent."
+      "enum": [
+        "gateway",
+        "cloudtrail",
+        "couriered"
+      ],
+      "description": "Who observed the event. `gateway` and `cloudtrail` are independent of the caller. `couriered` means the attempting principal reported its own refusal \u2014 weaker, permitted only where no independent witness exists, and it must be named as a limitation in the milestone journal rather than counted as equivalent."
+    },
+    "tool": {
+      "type": "object",
+      "description": "The tool-plane decision for one tool call. A round may carry several calls and a turn several rounds, so a turn produces several of these records rather than one \u2014 `round` is what lets a reader put them back in order. Present on every tool call, allowed or denied: a plane that recorded only its refusals could not evidence that an allowed call was authorized either.",
+      "required": [
+        "id",
+        "round",
+        "decision",
+        "mechanism"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The registry tool id, or the id that was attempted and is not in the registry."
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Which tool round of the turn this call belongs to."
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "allowed",
+            "denied"
+          ]
+        },
+        "mechanism": {
+          "type": "string",
+          "enum": [
+            "policy",
+            "schema",
+            "loop",
+            "routing",
+            "none"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Why it was refused. A refusal nobody can account for is indistinguishable from a bug, and it is the kind teams learn to route around."
+        },
+        "principal": {
+          "type": "string",
+          "description": "The Cedar principal this call was authorized against. Deployment configuration, never the caller's `service` field (ADR-023) — and recorded here because the top-level `principal` is the gateway's own ARN and `service` is a claim, so without this an ALLOWED tool call could not evidence which identity permitted it."
+        },
+        "args": {
+          "type": "object",
+          "description": "The arguments as received, so a denial can be reconstructed rather than re-guessed."
+        },
+        "exemptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Context attributes that exempted this call from a forbid \u2014 e.g. an approval interlock granting `approval_granted`. Empty or absent at M02, where nothing grants one. Without this field an approved publish-class call at M06 would record `allowed`/`none` and be indistinguishable from an ungated read, so the interlock would leave no evidence that it was exercised. Added while the interlock is being modelled rather than after."
+        }
+      }
     }
   }
 }

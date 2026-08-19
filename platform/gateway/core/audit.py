@@ -21,19 +21,60 @@ Owning seat: Platform Engineering (record shape) · Security (G4 semantics).
 """
 from __future__ import annotations
 
-#: Mechanisms that mean a policy — rather than a content guardrail — refused the
-#: request. `iam` belongs here: a direct-call attempt refused by an identity
-#: policy is a policy denial, and it is claim 4's runtime artifact.
+#: Mechanisms that mean a *policy* refused the request, in G4's sense. `iam`
+#: belongs here: a direct-call attempt refused by an identity policy is a policy
+#: denial, and it is claim 4's runtime artifact. This set is
+#: the adversarial suite's pass condition, not a description of the gateway:
+#: `observation_from_record` computes `policy_denied` from it and `score_probe`
+#: passes nine of the ten probes on `guardrail_blocked or policy_denied`.
+#:
+#: **`schema` and `loop` are deliberately NOT here**, and the first draft of the
+#: tool plane had them. A contract violation is the platform refusing, and a loop
+#: bound is the platform stopping — but neither is a guardrail blocking or a policy
+#: denying, and `loop` in particular fires when the *model* flails. Counting either
+#: as a policy denial would make a probe satisfiable by the attack being
+#: incompetent, which is the exact thing G4 exists to forbid. Widening this set is
+#: a change to what the adversarial suite measures and belongs in its own two-key
+#: PR, never inside the branch that will record a score against it.
 POLICY_MECHANISMS = frozenset({"classification", "policy", "iam"})
 
 DECISIONS = frozenset({"allowed", "blocked", "denied"})
-MECHANISMS = frozenset({"classification", "guardrail", "policy", "iam", "none"})
+MECHANISMS = frozenset({
+    "classification", "guardrail", "policy", "schema", "loop", "routing", "iam", "none",
+})
+
+#: Mechanisms that can honestly accompany recorded spend, because by the time they
+#: refused, the model had already been reached.
+#:
+#: **This replaces a flat "no usage on a refusal" rule, and the replacement is a
+#: correction rather than a relaxation.** That rule encoded "nothing was spent",
+#: which was true when a turn was one `converse` call. A turn now runs several
+#: rounds, so a guardrail block at round four has spent three full rounds and a
+#: `loop` denial has spent all of them — and recording zero would understate a
+#: runaway turn by exactly the amount that makes it worth catching. The invariant
+#: being protected is *the record must not claim spend that did not happen*; a
+#: rule that also forbids recording spend that did happen protects nothing.
+#:
+#: It is stricter in the other direction: a `policy`, `schema`, `routing` or
+#: `classification` refusal carrying usage is now refused outright, where the old
+#: rule only looked at `decision`.
+SPENDING_MECHANISMS = frozenset({"none", "guardrail", "loop"})
 
 
-def record_key(ts: str, service: str, request_id: str) -> str:
+def record_key(ts: str, service: str, request_id: str, seq: int | None = None) -> str:
     """The lake key. Date-partitioned so a probe run can be found by when it ran
-    without listing the whole bucket."""
-    return f"{ts[:10]}/{service}/{request_id}.json"
+    without listing the whole bucket.
+
+    **`seq` exists because a turn writes several records that share a
+    `request_id`.** A round carries n tool calls and a turn carries n rounds, so
+    the tool-plane records and the turn's own record would otherwise collide on
+    one key — and with a versioned bucket the collision is silent: every record is
+    still there, and every one of them is behind the last. An audit trail whose
+    records overwrite each other is the failure mode `versioned: true` was chosen
+    to prevent, arriving through the key instead of through the object."""
+    if seq is None:
+        return f"{ts[:10]}/{service}/{request_id}.json"
+    return f"{ts[:10]}/{service}/{request_id}.{seq:03d}.json"
 
 
 def build_record(
@@ -50,6 +91,8 @@ def build_record(
     usage: dict | None = None,
     error: dict | None = None,
     probe_id: str | None = None,
+    tool: dict | None = None,
+    seq: int | None = None,
     witness: str = "gateway",
 ) -> dict:
     """Build one audit record conforming to `platform/gateway/audit.schema.json`.
@@ -67,11 +110,19 @@ def build_record(
         raise ValueError(f"decision='allowed' with mechanism={mechanism!r} — an allowed call was not refused")
     if classification == "sensitive" and decision != "denied":
         raise ValueError("classification='sensitive' must be denied — G5 refuses it by design")
-    if decision != "allowed" and usage:
-        raise ValueError("usage on a refused call — nothing was spent, and recording spend implies it was")
+    if usage and mechanism not in SPENDING_MECHANISMS:
+        raise ValueError(
+            f"usage recorded with mechanism={mechanism!r} — nothing had been spent when it "
+            "refused, and recording spend implies it was"
+        )
+    if tool is not None and seq is None:
+        raise ValueError(
+            "a tool-call record needs a `seq` — a turn writes several records under one "
+            "request_id, and without an ordinal they share a lake key and hide each other"
+        )
 
     record = {
-        "record_id": record_key(ts, service, request_id),
+        "record_id": record_key(ts, service, request_id, seq),
         "ts": ts,
         "request_id": request_id,
         "principal": principal,
@@ -90,6 +141,31 @@ def build_record(
         record["error"] = error
     if probe_id is not None:
         record["probe_id"] = probe_id
+    if tool is not None:
+        # Cross-checked rather than trusted. A record saying the turn was denied
+        # while its tool fragment says the call was allowed is the kind of
+        # self-contradiction this function exists to refuse to write: a lake full
+        # of them looks like evidence, so nobody goes looking for the gap.
+        if tool.get("decision") == "denied" and decision == "allowed":
+            raise ValueError("tool call denied but the record says the request was allowed")
+        if tool.get("decision") == "allowed" and tool.get("mechanism") != "none":
+            raise ValueError(
+                f"tool decision='allowed' with mechanism={tool.get('mechanism')!r} — "
+                "an allowed call was not refused"
+            )
+        # The joint that decides an adversarial score. `observation_from_record`
+        # reads the TOP-LEVEL mechanism, so a tool denial recorded with a
+        # top-level `policy` would satisfy a probe naming Cedar however the tool
+        # fragment described it. Requiring the two to agree is what stops a
+        # malformed-argument rejection scoring as an authorization decision — the
+        # M01 fault one layer up, closed before anything can write such a record.
+        if tool.get("decision") == "denied" and tool.get("mechanism") != mechanism:
+            raise ValueError(
+                f"tool refused by {tool.get('mechanism')!r} but the record says {mechanism!r}. "
+                "The record's mechanism is what the adversarial scorer reads; the two must agree "
+                "or a contract failure can be recorded as a policy denial."
+            )
+        record["tool"] = tool
     return record
 
 

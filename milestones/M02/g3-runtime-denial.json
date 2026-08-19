@@ -1,0 +1,41 @@
+{
+  "_what": "G3's RUNTIME half. The deployed gateway was asked to invoke a tool id that exists nowhere in platform/registry/tools.yaml. It was denied with mechanism 'policy' — Cedar, and only Cedar — and nothing was executed. The static half is the exhibit PR, which is a different claim: a gate that blocks a manifest does not help against a caller who never reads one.",
+  "_how_it_was_produced": "A tool_probe event, which runs the same plane the agent loop runs, in the same order, with no model in it. Routing the proof through the model would make an invariant depend on a sampling decision. The path executes nothing even when the plane ALLOWS: a probe that could execute a tool would be a second route to one, which is what the plane exists to prevent.",
+  "_provenance": "`record` was fetched back OUT of the audit lake by key, not read off the gateway's response. That is the half of G4 a well-meaning simplification drops first: a gateway reporting 'I logged it' is the system under test attesting to its own compliance (ADR-016). The response is included beside it so a reader can check the two agree.",
+  "_redaction": "The record's `principal` is the invoked function's ARN at runtime and is replaced here with an account-less form, and any 12-digit run elsewhere is masked. This repo is public and tests/test_no_account_identifiers.py rejects an account-qualified ARN even when the account field is redacted — the redaction habit is what lets a real one through later. Nothing else is altered; the decision, the mechanism and the reasons are as written.",
+  "_also_recorded": "Four further plane decisions from the same session, each with a distinct mechanism, are described in milestones/M02/README.md: a permitted and deployed tool (allowed/none), a permitted but undeployed one (denied/routing), a publish-class tool with no approver deployed (denied/policy, on the forbid rather than the absent permit), and bad arguments (denied/schema).",
+  "response": {
+    "decision": "denied",
+    "mechanism": "policy",
+    "record_id": "2026-08-19/highlights-agent/m02-g3-runtime-artifact.001.json",
+    "reasons": [
+      "no policy permits highlights-agent to invoke catalog-purge — an unregistered or uninvited caller is denied by default (G3)"
+    ],
+    "executed": false
+  },
+  "record": {
+    "record_id": "2026-08-19/highlights-agent/m02-g3-runtime-artifact.001.json",
+    "ts": "2026-08-19T12:32:52Z",
+    "request_id": "m02-g3-runtime-artifact",
+    "principal": "function BeaconpaveGateway-GatewayFn (gateway execution role)",
+    "service": "highlights-agent",
+    "classification": "internal",
+    "decision": "denied",
+    "mechanism": "policy",
+    "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "witness": "gateway",
+    "tool": {
+      "id": "catalog-purge",
+      "round": 1,
+      "decision": "denied",
+      "mechanism": "policy",
+      "reasons": [
+        "no policy permits highlights-agent to invoke catalog-purge — an unregistered or uninvited caller is denied by default (G3)"
+      ],
+      "args": {
+        "query": "everything"
+      },
+      "principal": "highlights-agent"
+    }
+  }
+}

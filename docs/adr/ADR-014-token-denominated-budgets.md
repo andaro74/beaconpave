@@ -203,6 +203,16 @@ degenerates here, because at n=13 the nearest-rank p95 *is* the maximum, so the
 multiple is taken against the maximum instead and the difference is recorded
 rather than hidden behind the same sentence.
 
+**The manifest's service-level ceilings move with the per-case ones**, and the
+numbers are recorded here because they moved on a two-key path with no written
+derivation the first time. `max_tokens_in: 2000 → 6500` keeps the manifest above
+the per-case 6000 by roughly the margin it always had (the original pair was
+1500/2000), so a case that passes its own budget cannot blow the service's;
+`max_ms: 5000 → 12000` tracks the per-case hang guard exactly, since a per-request
+guard above the service's declared maximum would be unenforceable.
+`max_tokens_out` is unchanged at 800, for the same reason the per-case output
+ceilings are.
+
 **`gates.budgets.p95_ms` is not touched and stays breached at 2500 ms.** It is a
 suite-level statistic computed separately from case scoring, so the breach costs
 no golden case and hides no signal. M01 declined to raise it and M02 declines

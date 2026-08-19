@@ -272,6 +272,11 @@
         "Ref": "AuditLake1BF36E0E"
       }
     },
+    "CatalogSearchFunctionName": {
+      "Value": {
+        "Ref": "CatalogSearchFn5CC7AE21"
+      }
+    },
     "DirectCallProbeFunctionName": {
       "Value": {
         "Ref": "DirectCallProbeFn1E627152"
@@ -379,6 +384,93 @@
       },
       "Type": "AWS::S3::BucketPolicy"
     },
+    "CatalogSearchFn5CC7AE21": {
+      "DependsOn": [
+        "CatalogSearchFnServiceRoleDefaultPolicyA7F877E1",
+        "CatalogSearchFnServiceRoleA25015E6"
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+          },
+          "S3Key": "<ASSET_HASH>.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "BEACONPAVE_CATALOG": "/var/task/catalog.json"
+          }
+        },
+        "Handler": "server.handler",
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "CatalogSearchFnServiceRoleA25015E6",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 10
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "CatalogSearchFnServiceRoleA25015E6": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "CatalogSearchFnServiceRoleDefaultPolicyA7F877E1": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "bedrock:Converse",
+                "bedrock:ConverseStream",
+                "bedrock:InvokeModel",
+                "bedrock:InvokeModelWithResponseStream"
+              ],
+              "Effect": "Deny",
+              "Resource": "*"
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "CatalogSearchFnServiceRoleDefaultPolicyA7F877E1",
+        "Roles": [
+          {
+            "Ref": "CatalogSearchFnServiceRoleA25015E6"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Policy"
+    },
     "DirectCallProbeFn1E627152": {
       "DependsOn": [
         "HighlightsAgentRoleDefaultPolicy79D05276",
@@ -437,7 +529,20 @@
                 "Version"
               ]
             },
-            "MODEL_ID": "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+            "MODEL_ID": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "SERVICE_PRINCIPAL": "highlights-agent",
+            "TOOL_FUNCTIONS": {
+              "Fn::Join": [
+                "",
+                [
+                  "{\"catalog-search\":\"",
+                  {
+                    "Ref": "CatalogSearchFn5CC7AE21"
+                  },
+                  "\"}"
+                ]
+              ]
+            }
           }
         },
         "Handler": "handler.handler",
@@ -547,6 +652,32 @@
                   ]
                 ]
               }
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "CatalogSearchFn5CC7AE21",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "CatalogSearchFn5CC7AE21",
+                          "Arn"
+                        ]
+                      },
+                      ":*"
+                    ]
+                  ]
+                }
+              ]
             }
           ],
           "Version": "2012-10-17"

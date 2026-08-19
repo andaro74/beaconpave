@@ -47,6 +47,7 @@ from evals.deterministic import Scorer, tally
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 M00B_ANSWERS = ROOT / "milestones" / "M00b" / "goldens-run.json"
+M01_ANSWERS = ROOT / "milestones" / "M01" / "goldens-run.json"
 M00B_RECORDED = ROOT / "evals" / "history" / "m00b-goldens.json"
 
 PROBES = ROOT / "quality" / "adversarial" / "probes.yaml"
@@ -68,6 +69,13 @@ M00B_UNDER_CURRENT_INSTRUMENT = 18
 
 #: What was measured on the day. Never changes: it is not wrong, it is historical.
 M00B_AS_RECORDED = 15
+
+#: The m01 answers under the current instrument. Free to derive — the answers are
+#: committed, so everything downstream is a pure function — and missing until the
+#: AI Quality seat pointed out that the goldens side had no pin while the
+#: adversarial side did. M02's golden arm is a fresh run rather than a re-score,
+#: but this is what says the *instrument* has not moved underneath it.
+M01_UNDER_CURRENT_INSTRUMENT = 19
 
 
 def rescore_m00b():
@@ -220,3 +228,23 @@ def test_the_instrument_change_is_worth_three_points():
     as a difference rather than two constants so that the gap itself is the thing
     under test — that gap is what a reader mistakes for progress."""
     assert M00B_UNDER_CURRENT_INSTRUMENT - M00B_AS_RECORDED == 3
+
+
+def test_the_m01_goldens_still_score_19_under_the_current_instrument():
+    """The pin the goldens side was missing.
+
+    If this fails, the instrument moved between M01 and now — which is allowed,
+    and is never allowed to happen quietly. M02's comparator is a re-measured arm
+    rather than this number, but a re-measured arm only means anything if the
+    scorer it runs under is the one M01 was scored by."""
+    cases = yaml.safe_load(
+        (ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml")
+        .read_text(encoding="utf-8"))
+    catalog = json.loads((ROOT / "data" / "catalog.json").read_text(encoding="utf-8"))
+    answers = json.loads(M01_ANSWERS.read_text(encoding="utf-8"))
+    scores = tally(Scorer(root=ROOT).score_suite(cases, answers, catalog))
+    assert scores["passed"] == M01_UNDER_CURRENT_INSTRUMENT, (
+        f"the m01 answers now score {scores['passed']}/25 under the current runner, not "
+        f"{M01_UNDER_CURRENT_INSTRUMENT}/25 — including under the re-derived budget ceilings. "
+        "Any progression row comparing golden scores across that change needs a footnote."
+    )

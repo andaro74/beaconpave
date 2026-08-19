@@ -22,7 +22,7 @@ and rename it for yours.
 | 00a | Foundation: a gate that can fail | `m00a-foundation` | `m00a` | n/a ‡ | n/a ‡ | ✅ |
 | 00b | Ungoverned agent (**the control**) | `m00b-ungoverned-baseline` | `m00b` | **15/25** †§ | **0/10** ¶ | ✅ |
 | 01 | Gateway + audit lake + IAM assertions | `m01-gateway` | `m01` | **19/25** ‖ | **7/10** ✽ | ✅ |
-| 02 | Tool registry + Cedar + catalog-search | `m02-tool-plane` | `m02` | – | – | ⬜ |
+| 02 | Tool registry + Cedar + catalog-search | `m02-tool-plane` | `m02` | **16/25** ✾ | not run ✿ | ✅ |
 | 03 | Eval harness + judge calibration | `m03-evals` | `m03` | –/25 | – | ⬜ |
 | 04 | Fail-closed gate + adversarial suite | `m04-gate` | `m04` | –/25 | –/10 | ⬜ |
 | 05 | `pave new` scaffold + manifest verify | `m05-paved-road` | `m05` | – | – | ⬜ |
@@ -81,6 +81,50 @@ tightening is drafted and lands after the tag. The other six are earned, and eve
 one of the ten audit records was fetched back out of the lake before its
 observation was built — that second half of G4 is what made a non-zero score
 possible at all. See `milestones/M01/README.md`.
+
+✾ **16/25 is a majority across k = 3, and the comparator is 17/25 — not the
+recorded 19.** Read the paired diff, not the total: **3 lost, 2 gained, net −1**
+(`milestones/M02/runs/`). Both arms ran the same day against the same deployed
+gateway and the same pinned guardrail version; the M01 prompt is frozen as the
+control arm and re-measured rather than read off its row (ADR-021).
+
+Three things this row needs said before the number is read.
+
+**SPEC/02 predicted 10/25 ± 4 and the prediction is falsified, in the direction
+that flatters the platform.** The largest reason is a pre-registered loss
+mechanism that ran backwards: "mid-loop guardrail refusals rise" was derived by
+measuring the tools arm *twice* and never measuring the control's refusal rate on
+the same cases. Refusals **fell**, 19/75 → 7/75, because the control inlines the
+whole catalog and `TOPIC:entitlement-circumvention` fires on it. A loss mechanism
+stated as a difference between two systems has to be measured across both of them;
+that rule is now an owed tightening rather than a patch.
+
+**An identical system sampled three times returned 18, 16 and 14.** The control
+arm's four-point spread on one day is why 19/25 was disqualified as a comparator
+and why `k` and `arm` are in the history schema. A single sample of either arm
+could have produced a headline anywhere from −4 to +1.
+
+**The majority (16) is above every individual tools sample (14, 15, 14).** That is
+arithmetic — the majority is per case — and it is why `pooled_pass_rate` is
+recorded beside it: pooled says 14.3/25, and the two answer different questions.
+Suite p95 breaches again at 8437 ms against 2500 ms, a third consecutive
+milestone, recorded rather than accommodated, and the figure **excludes** the tool
+round-trip because `max_ms` was derived from a harness that called the tool
+in-process. See `milestones/M02/README.md`.
+
+✿ **No adversarial run at M02, and that is a recorded cut rather than an
+omission.** SPEC/02 committed ADV-002 to run *through the tool plane*, showing the
+poisoned title reaching the model as an unassessed tool result. Nothing committed
+can produce that: the probe harness sends no tools and still inlines the poisoned
+catalog into the prompt, and the stack stages only the clean fixture by design.
+Running the corpus unchanged would have recorded a number describing the **M01**
+threat model under an M02 row, so the obligation is struck in the spec and the
+run is not made. The `toolResult` channel, the per-round guardrail exposure, the
+`tool_probe` path and tool-output indirect injection are therefore **unprobed**,
+and four probes are named for M04 against the frozen corpus. The hermetic evidence
+that the path is open — the tool serving the injected title verbatim and the
+plane's output contract accepting it — is committed as
+`test_the_poisoned_catalog_is_served_verbatim_and_not_sanitised`.
 
 ‡ M00a scores nothing: it precedes the eval harness and builds the enforcement
 the later scores depend on. No entry was written to `evals/history/` — a

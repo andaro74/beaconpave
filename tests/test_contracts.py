@@ -336,6 +336,27 @@ def test_every_permitted_semantics_is_one_the_scorer_actually_implements():
     )
 
 
+def test_the_mechanisms_that_count_as_a_policy_denial_are_pinned_literally():
+    """The sibling of the test above, and it was missing.
+
+    `POLICY_MECHANISMS` is the adversarial suite's pass condition: nine of the ten
+    probes pass on `guardrail_blocked or policy_denied`, and `policy_denied` is
+    computed from this set. M02's first draft added `schema` and `loop` to it
+    inside the branch that will record a score — widening what nine probes accept,
+    in a diff framed as an audit-vocabulary addition.
+
+    Nothing caught it, because the only test touching the set **parametrized over
+    it** and therefore grew with it. A literal pin is the whole guard: adding a
+    member has to argue with this test and with a two-key PR, in that order."""
+    from core import audit
+
+    assert frozenset({"classification", "policy", "iam"}) == audit.POLICY_MECHANISMS, (
+        f"POLICY_MECHANISMS is {sorted(audit.POLICY_MECHANISMS)}. This set decides what the "
+        "adversarial suite accepts as a policy denial — widening it changes what nine probes "
+        "measure and is a two-key change (G9), never a side effect of another diff."
+    )
+
+
 def test_g4_allowlist_itself_requires_an_audit_record():
     """Guards the allowlist, not the corpus. "Blocked" without "logged" is half of
     G4 — the audit record is what makes the block auditable rather than asserted,

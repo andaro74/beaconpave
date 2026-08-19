@@ -1,0 +1,269 @@
+{
+  "catalog-search": {
+    "consequence": "read",
+    "input": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://beaconpave/tools/catalog-search/schema.in.json",
+      "title": "catalog-search input",
+      "description": "Consequence class: read. Searches the Beacon catalog. Deliberately cannot express 'give me everything' \u2014 an unbounded query is how the whole catalog ends up back in the model's context, which is the failure mode M02 exists to remove.",
+      "type": "object",
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "brand": {
+          "type": "string",
+          "enum": [
+            "meridian-sports",
+            "meridian-news"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "live-event",
+            "live-linear",
+            "vod"
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 5
+        }
+      }
+    },
+    "output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://beaconpave/tools/catalog-search/schema.out.json",
+      "title": "catalog-search output",
+      "description": "Catalog rows only. This tool never decides entitlement or blackout \u2014 that is entitlement-check's job, and splitting them is what makes the trajectory eval (`expect_tool_before_answer`) meaningful at M06.",
+      "type": "object",
+      "required": [
+        "results"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "results": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "title",
+              "brand",
+              "type",
+              "entitlement"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "brand": {
+                "type": "string",
+                "enum": [
+                  "meridian-sports",
+                  "meridian-news"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "live-event",
+                  "live-linear",
+                  "vod"
+                ]
+              },
+              "entitlement": {
+                "type": "string",
+                "enum": [
+                  "base",
+                  "sports-tier"
+                ]
+              },
+              "event": {
+                "type": "string"
+              },
+              "starts": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "entitlement-check": {
+    "consequence": "read",
+    "input": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://beaconpave/tools/entitlement-check/schema.in.json",
+      "title": "entitlement-check input",
+      "description": "Consequence class: read. The authoritative answer to 'can this viewer watch this title right now'. The agent must call this rather than reason about it \u2014 a model inferring blackout rules from catalog text is exactly what the m00b control does wrong.",
+      "type": "object",
+      "required": [
+        "title_id",
+        "plan",
+        "dma"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title_id": {
+          "type": "string",
+          "pattern": "^t[0-9]{3}$"
+        },
+        "plan": {
+          "type": "string",
+          "enum": [
+            "base",
+            "sports-tier"
+          ]
+        },
+        "dma": {
+          "type": "string",
+          "enum": [
+            "jefferson-city",
+            "port-william",
+            "north-haven",
+            "lake-adair",
+            "granite-falls",
+            "cedar-point"
+          ]
+        }
+      }
+    },
+    "output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://beaconpave/tools/entitlement-check/schema.out.json",
+      "title": "entitlement-check output",
+      "description": "`entitled` is the only field the agent may act on. `blackout` and `required_entitlement` explain the verdict so the answer can teach the viewer why \u2014 but the decision is the tool's, never the model's.",
+      "type": "object",
+      "required": [
+        "entitled",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "entitled": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "blackout",
+            "upgrade-required",
+            "not-yet-started",
+            "unknown-title"
+          ]
+        },
+        "blackout": {
+          "type": "boolean",
+          "description": "True when this DMA is blacked out for this title's event"
+        },
+        "required_entitlement": {
+          "type": "string",
+          "enum": [
+            "base",
+            "sports-tier"
+          ]
+        },
+        "event": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "publish-highlight": {
+    "consequence": "publish",
+    "input": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://beaconpave/tools/publish-highlight/schema.in.json",
+      "title": "publish-highlight input",
+      "description": "Consequence class: publish. Anything at publish or above routes through the Step Functions editorial-approval interlock before it takes effect (registry: `approval: stepfn:editorial-approver`). The schema cannot express 'skip approval' \u2014 there is no such field, by design. That absence is what ADV-008 probes.",
+      "type": "object",
+      "required": [
+        "title_id",
+        "headline",
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title_id": {
+          "type": "string",
+          "pattern": "^t[0-9]{3}$"
+        },
+        "headline": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "surface": {
+          "type": "string",
+          "enum": [
+            "homepage",
+            "brand-hub",
+            "clip-rail"
+          ],
+          "default": "clip-rail"
+        },
+        "ai_generated": {
+          "type": "boolean",
+          "description": "Set by the agent, verified by the interlock. MER-AI-0001 requires disclosure on AI-authored editorial copy; the approver sees this flag.",
+          "default": true
+        }
+      }
+    },
+    "output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://beaconpave/tools/publish-highlight/schema.out.json",
+      "title": "publish-highlight output",
+      "description": "The tool's synchronous reply is `pending-approval`, never `published`. A publish-class action that could return success inside the agent's turn would make the interlock advisory \u2014 claim 10 depends on the agent being unable to observe a completed publish.",
+      "type": "object",
+      "required": [
+        "status",
+        "approval_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending-approval",
+            "denied"
+          ]
+        },
+        "approval_id": {
+          "type": "string",
+          "description": "Step Functions execution handle the editorial approver acts on"
+        },
+        "denied_reason": {
+          "type": "string",
+          "description": "Set when Cedar denied the call before it reached the interlock"
+        },
+        "audit_ref": {
+          "type": "string",
+          "description": "Audit-lake record for this attempt. Present on both statuses \u2014 a denial is logged as surely as an attempt (G4)."
+        }
+      }
+    }
+  }
+}
