@@ -227,6 +227,7 @@ SNAPSHOT_DIR = ROOT / "platform" / "infra" / "tests" / "fixtures"
 #: The registry Cedar is generated from, and the generated set the gateway reads.
 REGISTRY = ROOT / "platform" / "registry" / "tools.yaml"
 POLICY_SET = ROOT / "platform" / "gateway" / "policy" / "tools.cedar"
+CONTRACT_SET = ROOT / "platform" / "gateway" / "policy" / "tools.contracts.json"
 
 
 def policy_generate(argv):
@@ -245,29 +246,42 @@ def policy_generate(argv):
     import yaml
 
     sys.path.insert(0, str(ROOT / "platform" / "gateway"))
-    from core import cedar
+    from core import cedar, toolplane
 
     registry = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
     generated = cedar.generate(registry)
 
+    # The contract set travels with the policy set because the plane needs both at
+    # run time and the Lambda bundle is what deploys. Same source, same drift
+    # check: the registry decides, and these are build products that happen to be
+    # committed.
+    schemas = {}
+    for tool in registry:
+        for rel in tool["schemas"].values():
+            schemas[rel] = json.loads((ROOT / rel).read_text(encoding="utf-8"))
+    contracts = json.dumps(toolplane.generate_contracts(registry, schemas), indent=2) + "\n"
+
     if "--check" in argv:
         committed = POLICY_SET.read_text(encoding="utf-8") if POLICY_SET.is_file() else ""
-        if committed != generated:
+        committed_contracts = (CONTRACT_SET.read_text(encoding="utf-8")
+                               if CONTRACT_SET.is_file() else "")
+        if committed != generated or committed_contracts != contracts:
             _die(
-                "the committed Cedar policy set is not what the registry generates. "
+                "the committed tool-plane set is not what the registry generates. "
                 "Run `python -m pave.cli policy generate` and commit the result. "
                 "A policy set that disagrees with the registry makes the registry look "
                 "authoritative while something else decides (ADR-004).",
                 gate_mod.EXIT_CONTRACT,
             )
-        print(f"cedar policy set current: {len(cedar.parse(generated))} policies from "
-              f"{len(registry)} registered tool(s)")
+        print(f"tool plane current: {len(cedar.parse(generated))} policies and "
+              f"{len(registry)} contract(s) from {len(registry)} registered tool(s)")
         return
 
     POLICY_SET.parent.mkdir(parents=True, exist_ok=True)
     POLICY_SET.write_text(generated, encoding="utf-8")
-    print(f"wrote {POLICY_SET.relative_to(ROOT)}: "
-          f"{len(cedar.parse(generated))} policies from {len(registry)} registered tool(s)")
+    CONTRACT_SET.write_text(contracts, encoding="utf-8")
+    print(f"wrote {POLICY_SET.relative_to(ROOT)} and {CONTRACT_SET.relative_to(ROOT)}: "
+          f"{len(cedar.parse(generated))} policies, {len(registry)} contracts")
 
 
 def infra_snapshot(argv):

@@ -24,10 +24,16 @@ from __future__ import annotations
 #: Mechanisms that mean a policy — rather than a content guardrail — refused the
 #: request. `iam` belongs here: a direct-call attempt refused by an identity
 #: policy is a policy denial, and it is claim 4's runtime artifact.
-POLICY_MECHANISMS = frozenset({"classification", "policy", "iam"})
+#: `schema` and `loop` join at M02 with the tool plane. Both are the platform
+#: refusing rather than the model behaving, which is what this set is for — but
+#: neither is an authorization decision, and `evals.adversarial.CEDAR_MECHANISMS`
+#: stays narrower still. A probe naming Cedar must not be satisfiable by a
+#: malformed argument or by a loop bound, which is the same over-broad-check fault
+#: that let a content filter satisfy one at M01, one level down.
+POLICY_MECHANISMS = frozenset({"classification", "policy", "schema", "loop", "iam"})
 
 DECISIONS = frozenset({"allowed", "blocked", "denied"})
-MECHANISMS = frozenset({"classification", "guardrail", "policy", "iam", "none"})
+MECHANISMS = frozenset({"classification", "guardrail", "policy", "schema", "loop", "iam", "none"})
 
 
 def record_key(ts: str, service: str, request_id: str) -> str:
@@ -50,6 +56,7 @@ def build_record(
     usage: dict | None = None,
     error: dict | None = None,
     probe_id: str | None = None,
+    tool: dict | None = None,
     witness: str = "gateway",
 ) -> dict:
     """Build one audit record conforming to `platform/gateway/audit.schema.json`.
@@ -90,6 +97,19 @@ def build_record(
         record["error"] = error
     if probe_id is not None:
         record["probe_id"] = probe_id
+    if tool is not None:
+        # Cross-checked rather than trusted. A record saying the turn was denied
+        # while its tool fragment says the call was allowed is the kind of
+        # self-contradiction this function exists to refuse to write: a lake full
+        # of them looks like evidence, so nobody goes looking for the gap.
+        if tool.get("decision") == "denied" and decision == "allowed":
+            raise ValueError("tool call denied but the record says the request was allowed")
+        if tool.get("decision") == "allowed" and tool.get("mechanism") != "none":
+            raise ValueError(
+                f"tool decision='allowed' with mechanism={tool.get('mechanism')!r} — "
+                "an allowed call was not refused"
+            )
+        record["tool"] = tool
     return record
 
 
