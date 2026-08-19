@@ -28,6 +28,36 @@ is least inclined to argue with it — and a guard that everyone expects to
 weaken is not a guard. Widening this to all `arn:aws:` strings is a Data
 Governance decision and wants an ADR, not a quiet edit here.
 
+**Second narrowing (M03): twelve digits inside a hash are part of the hash.**
+
+A sha256 is 64 hex characters, and roughly **17% of them contain a run of
+twelve or more decimal digits** — `(10/16)^12` over 53 starting positions. This
+repo commits digests on purpose: `evals/history/schema.json` has required
+`samples_from[].sha256` since M02, and six were committed at that tag. Their
+longest digit runs were 8, 8, 7, 7, 4 and 8, so **M02 had about a two-in-three
+chance of hitting this and did not**. M03 commits thirty digests binding each
+calibration label to the answer bytes it was written against, which made it a
+certainty rather than a gamble.
+
+That is a false positive of exactly the kind the decimal-fraction lookbehind
+above was already written to prevent, arriving from a source nobody had listed. Left
+alone, it reds `main` for a reason nobody can act on — the digest is not
+editable, it is what the bytes hash to — and the guard's own message tells the
+next person to narrow it under deadline. So it is narrowed here, deliberately,
+in its own PR.
+
+**The rule: a twelve-digit run wholly inside an unbroken hex token of 32 or more
+characters is a hash, not an account ID.** Thirty-two is md5; sha1 is 40 and
+sha256 is 64. An account ID is never embedded inside a longer hex token — it is
+preceded by `:`, `/`, `-`, whitespace, or nothing, and a twelve-digit account ID
+is itself a hex run of length twelve, far below the floor.
+
+**What this does not defend against, stated rather than implied:** an account ID
+deliberately padded with hex letters to 32 characters would now pass. This guard
+prevents an accidental paste — from a console, a journal, a captured command —
+and it has never claimed to stop someone who is trying. Widening it to that
+threat model is a different guard and a different decision.
+
 This module is excluded from its own scan: it has to spell out the patterns it
 searches for.
 
@@ -49,6 +79,35 @@ SELF = pathlib.Path(__file__).resolve()
 #: which is how a guard gets deleted. A real account ID is preceded by `:`, `/`,
 #: whitespace, or nothing; never by a decimal point.
 ACCOUNT_ID = re.compile(r"(?<![\d.])\d{12}(?!\d)")
+
+#: An unbroken hex token. A twelve-digit run wholly inside one of these, at or
+#: above `HASH_MIN_HEX`, is part of a digest — see the module docstring for the
+#: arithmetic that makes this inevitable rather than unlucky.
+HEX_TOKEN = re.compile(r"[0-9a-fA-F]+")
+
+#: md5 is 32, sha1 40, sha256 64. Below this a hex token is short enough that a
+#: twelve-digit run inside it is most of the token, which is what an account ID
+#: written in a hex-ish context actually looks like.
+HASH_MIN_HEX = 32
+
+
+def account_id_hits(text: str) -> list[str]:
+    """Account-ID-shaped strings in `text`, excluding those inside a digest.
+
+    Kept as a function rather than a cleverer regex because the containment test
+    is the part a reader has to be able to check. A lookaround expressing "not
+    inside a 32-character hex run" is writable and nobody would ever verify it."""
+    digests = [
+        (m.start(), m.end())
+        for m in HEX_TOKEN.finditer(text)
+        if m.end() - m.start() >= HASH_MIN_HEX
+    ]
+    hits = [
+        m.group(0)
+        for m in ACCOUNT_ID.finditer(text)
+        if not any(start <= m.start() and m.end() <= end for start, end in digests)
+    ]
+    return sorted(set(hits))
 
 #: `arn:<partition>:<service>:<region>:<account>:...` with a non-empty account
 #: field. The empty-account form is deliberately not matched — see the module
@@ -125,7 +184,7 @@ def test_no_committed_file_contains_an_aws_account_id(path):
     text = read_text(path)
     if text is None:
         pytest.skip("not decodable as text")
-    hits = sorted(set(ACCOUNT_ID.findall(text)))
+    hits = account_id_hits(text)
     assert not hits, (
         f"{path.relative_to(ROOT)} contains {len(hits)} account-ID-shaped string(s). "
         "Redact to <ACCOUNT_ID> before committing. If this is a false positive on a "
@@ -148,4 +207,90 @@ def test_no_committed_file_contains_an_account_qualified_arn(path):
         f"{path.relative_to(ROOT)} contains account-qualified ARN(s): {hits}. "
         "Use the account-less form (`arn:aws:service:region::resource`) where the resource "
         "is service-owned, or a CDK token where it is ours."
+    )
+
+
+# --- the narrowing, and its negative controls --------------------------------
+#
+# This module is excluded from its own scan (see `committed_files`), which is why
+# these fixtures can spell out an account-ID-shaped string at all. Every one below
+# is fictional.
+#
+# The controls come first and matter more than the narrowing they justify: a
+# guard is only narrowed safely if the shapes it was built to catch are shown to
+# still be caught, in the same commit, by tests that would fail if they were not.
+
+#: Fictional, and never a real account. Twelve digits in the shapes an accidental
+#: paste actually takes.
+FAKE_ACCOUNT = "427449499283"
+
+#: The digest that made this narrowing necessary: the sha256 of the answer M03's
+#: calibration item `cal-05` binds its label to. It contains `FAKE_ACCOUNT` at
+#: offset 14, purely by arithmetic. Used as the fixture rather than a hand-built
+#: lookalike, because the collision that forced this change is the thing worth
+#: pinning — M02 planted only shapes it already detected, and that is the lesson.
+#:
+#: It is not committed anywhere on this branch. It cannot be: the file carrying it
+#: is blocked by the guard until this lands, which is the whole reason this PR is
+#: separate and first.
+DIGEST_WITH_A_TWELVE_DIGIT_RUN = (
+    "4ad8ae31d1a8aa427449499283d4fd0d1c681dd46d31538b2c4e62b713d4d338"
+)
+
+
+@pytest.mark.parametrize("sample", [
+    FAKE_ACCOUNT,
+    f"arn:aws:s3:::bucket-{FAKE_ACCOUNT}-audit",
+    f"arn:aws:iam::{FAKE_ACCOUNT}:role/GatewayRole",
+    f"deployed to {FAKE_ACCOUNT} in us-west-2",
+    f"{FAKE_ACCOUNT}.dkr.ecr.us-west-2.amazonaws.com",
+    f"beaconpavegateway-auditlake-{FAKE_ACCOUNT}",
+    f'{{"Account": "{FAKE_ACCOUNT}"}}',
+])
+def test_the_shapes_an_accidental_paste_takes_are_still_caught(sample):
+    """The negative controls for the narrowing.
+
+    M02's lesson, applied here: planting only shapes that are already detected
+    proves nothing. These are the contexts an account ID actually arrives in —
+    an ARN, a bucket name, an ECR host, a journal sentence, a captured JSON key —
+    and none of them is inside a hex token long enough to be a digest."""
+    assert account_id_hits(sample) == [FAKE_ACCOUNT]
+
+
+def test_a_twelve_digit_run_inside_a_sha256_is_not_an_account_id():
+    """The narrowing itself. The digest is not editable — it is what the bytes
+    hash to — so a guard that fires here can only be satisfied by deleting the
+    digest, which is the thing the digest exists to prevent."""
+    assert FAKE_ACCOUNT in DIGEST_WITH_A_TWELVE_DIGIT_RUN
+    assert account_id_hits(DIGEST_WITH_A_TWELVE_DIGIT_RUN) == []
+    assert account_id_hits(f'{{"sha256": "{DIGEST_WITH_A_TWELVE_DIGIT_RUN}"}}') == []
+
+
+def test_an_account_id_beside_a_digest_is_still_caught():
+    """The failure mode that would make the narrowing worthless: a real ID in the
+    same file, or the same line, as a digest."""
+    line = f'{{"sha256": "{DIGEST_WITH_A_TWELVE_DIGIT_RUN}", "account": "{FAKE_ACCOUNT}"}}'
+    assert account_id_hits(line) == [FAKE_ACCOUNT]
+
+
+def test_a_short_hex_token_does_not_launder_an_account_id():
+    """Only tokens at or above `HASH_MIN_HEX` are treated as digests. A short
+    hex-ish context — a colour, a git short SHA, an id fragment — must not."""
+    assert account_id_hits(f"ab{FAKE_ACCOUNT}cd") == [FAKE_ACCOUNT]
+    assert account_id_hits(f"deadbeef{FAKE_ACCOUNT}") == [FAKE_ACCOUNT]
+
+
+def test_the_decimal_narrowing_still_holds():
+    """The first narrowing, unchanged. A duration is not an account ID."""
+    assert account_id_hits("elapsed 0.123456789012 s") == []
+
+
+def test_the_repo_actually_commits_digests():
+    """The narrowing is justified by a real, recurring source of false positives
+    rather than by one awkward file. If this ever finds no digests, the reasoning
+    in the module docstring has gone stale and the narrowing should be re-argued."""
+    schema = (ROOT / "evals" / "history" / "schema.json").read_text(encoding="utf-8")
+    assert "sha256" in schema, (
+        "the history schema no longer records digests; re-read the docstring's "
+        "argument for this narrowing before keeping it"
     )
