@@ -14,6 +14,13 @@ exists.
   python -m evals.run_evals --answers run.json [--record --tag m00b] [--out verdict.json]
       Score, and optionally append a history entry and emit a gate verdict.
 
+  python -m evals.run_evals --answers r1.json --answers r2.json --answers r3.json \
+                            --arm tools --record --tag m02
+      Score each sample INDEPENDENTLY through the same scorer, then record the
+      per-case majority. `k` and `arm` go into the history entry, and the
+      per-sample verdicts go in beside them so the majority is checkable rather
+      than asserted.
+
 The answers file is `{"<case-id>": {"answer": {...}, "usage": {...}}}`. A case
 with no entry scores INFRA — absence blocks, exactly as it does in
 `pave gate decide`.
@@ -41,6 +48,11 @@ from evals.deterministic import (
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 HISTORY = ROOT / "evals" / "history"
+#: Read from its own constant rather than from `HISTORY`, so that pointing the
+#: entries somewhere else does not also point the validator somewhere it will
+#: not find a schema. A validation step that silently stops running is worse
+#: than one that was never there.
+HISTORY_SCHEMA = ROOT / "evals" / "history" / "schema.json"
 GOLDENS = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
 MANIFEST = ROOT / "services" / "highlights-agent" / "pave.manifest.yaml"
 CATALOG = ROOT / "data" / "catalog.json"
@@ -79,6 +91,66 @@ def dryrun(cases: list) -> int:
     return 0
 
 
+def summarise(per_sample: list[list], ids: list[str]) -> tuple[list, dict]:
+    """Per-case majority across k independently scored samples.
+
+    **The sampling lives here and not in the instrument.** `evals/deterministic.py`
+    is untouched, no scoring rule changes, and each sample is scored by exactly the
+    code path a single run uses. This function only decides which of k already-made
+    verdicts the entry records — which is a reporting discipline, not a new scorer.
+    M01's third owed tightening (sample k times *or* report the paired diff)
+    remains owed; this is the second half of that "or".
+
+    **A representative sample carries the detail.** The recorded `CaseResult` is
+    the first sample that agreed with the majority, so the failures printed and
+    stored come from a run that actually happened rather than from a synthesised
+    one. Averaging failure lists across samples would produce a case nobody ran.
+
+    **INFRA does not enter the pool.** It means the harness could not establish
+    anything, so summarising around it would let a network hiccup silently become
+    a 2-of-2. The whole run is re-run and both runs are committed — the rule is
+    written before the run, because an undesignated re-run is a cherry-pick door
+    that opens the moment something times out."""
+    infra = sorted({
+        result.id
+        for sample in per_sample
+        for result in sample
+        if result.result == INFRA
+    })
+    if infra:
+        raise SystemExit(
+            f"error: INFRA in one or more samples for {infra}. A sample that established "
+            "nothing does not enter the majority pool: re-run the arm in full and commit "
+            "both the discarded and the replacement run (SPEC/02). Summarising around it "
+            "would let a network hiccup become a 2-of-2."
+        )
+
+    by_case: dict[str, list] = {}
+    for sample in per_sample:
+        for result in sample:
+            by_case.setdefault(result.id, []).append(result)
+
+    k = len(per_sample)
+    needed = k // 2 + 1
+    summary, samples = [], {}
+    for case_id in ids:
+        outcomes = by_case.get(case_id, [])
+        verdicts = [r.result for r in outcomes]
+        samples[case_id] = verdicts
+        winner, count = "", 0
+        for verdict in set(verdicts):
+            if verdicts.count(verdict) > count:
+                winner, count = verdict, verdicts.count(verdict)
+        if count >= needed:
+            summary.append(next(r for r in outcomes if r.result == winner))
+        else:
+            # No strict majority. Recorded as ADVISORY and named, never rounded
+            # toward the flattering verdict — unreachable at M02 with k=3 over
+            # PASS/FAIL, and reachable once the judge adds ADVISORY at M03.
+            summary.append(replace(outcomes[0], result=ADVISORY))
+    return summary, samples
+
+
 def run(args) -> int:
     cases = _load(GOLDENS)
     if args.dryrun:
@@ -89,8 +161,23 @@ def run(args) -> int:
         return 2
 
     catalog = _load(CATALOG)
-    answers = _load(pathlib.Path(args.answers))
-    results = Scorer(root=ROOT).score_suite(cases, answers, catalog)
+    paths = args.answers if isinstance(args.answers, list) else [args.answers]
+    scorer = Scorer(root=ROOT)
+    loaded = [_load(pathlib.Path(path)) for path in paths]
+    per_sample = [scorer.score_suite(cases, answers, catalog) for answers in loaded]
+
+    samples: dict[str, list[str]] = {}
+    if len(per_sample) == 1:
+        results, answers = per_sample[0], loaded[0]
+    else:
+        results, samples = summarise(per_sample, [case["id"] for case in cases])
+        # Latency is pooled across every sample rather than taken from one. A p95
+        # over one of three runs is a p95 over a third of the evidence, chosen
+        # after the fact.
+        answers = {f"{cid}#{n}": entry
+                   for n, sample in enumerate(loaded, 1) for cid, entry in sample.items()}
+        print(f"summarised {len(per_sample)} samples by per-case majority "
+              f"(arm={args.arm or 'unnamed'})\n")
 
     # SPEC/00b's honesty clause, machine-recorded. The history schema has carried
     # `unearned` / `unearned_reason` since the starter and nothing populated them,
@@ -116,7 +203,11 @@ def run(args) -> int:
 
     width = max(len(r.id) for r in results)
     for r in results:
-        print(f"{r.id:<{width}}  {r.result}")
+        # With k > 1 the per-sample verdicts print beside the majority, because
+        # "PASS FAIL PASS -> PASS" and "PASS PASS PASS -> PASS" are different
+        # findings and only one of them is stable.
+        spread = f"  [{' '.join(samples[r.id])}]" if samples else ""
+        print(f"{r.id:<{width}}  {r.result}{spread}")
         for failure in r.failures:
             print(f"{'':<{width}}    - {failure.kind}: {failure.detail}")
     print(
@@ -140,7 +231,7 @@ def run(args) -> int:
             print(f"  {r.id}: {r.unearned_reason}")
 
     if args.record:
-        path = record(results, scores, args)
+        path = record(results, scores, args, len(per_sample), samples)
         print(f"recorded: {path.relative_to(ROOT)}")
 
     if args.out:
@@ -152,10 +243,16 @@ def run(args) -> int:
     return 0
 
 
-def record(results, scores, args) -> pathlib.Path:
+def record(results, scores, args, k=1, samples=None) -> pathlib.Path:
     """Append a history entry. Never edits: a correction is a new entry carrying
     `supersedes`, because the value of this file is that every row came from a
-    real execution."""
+    real execution.
+
+    `k` and `arm` are what let a reader six months out tell a single sample from a
+    summarised one. Without them, "we designated the run in advance" is a social
+    protection rather than a legible one — which is the state this repo converts
+    into checks."""
+    samples = samples or {}
     sha = _git_sha()
     entry = {
         "sha": sha,
@@ -166,9 +263,17 @@ def record(results, scores, args) -> pathlib.Path:
         "cases": [
             {"id": r.id, "result": r.result}
             | ({"unearned": True, "unearned_reason": r.unearned_reason} if r.unearned else {})
+            # The per-sample verdicts, so a 2-1 majority is checkable in the entry
+            # rather than asserted by whoever ran it. Omitted at k=1, where the
+            # result is already the only sample there was.
+            | ({"samples": samples[r.id]} if samples.get(r.id) else {})
             for r in results
         ],
     }
+    if k > 1:
+        entry["k"] = k
+    if args.arm:
+        entry["arm"] = args.arm
     if args.tag:
         entry["tag"] = args.tag
     for key in ("tokens_in", "tokens_out"):
@@ -177,10 +282,14 @@ def record(results, scores, args) -> pathlib.Path:
             entry[key] = value
 
     import jsonschema
-    jsonschema.validate(entry, _load(HISTORY / "schema.json"))
+    jsonschema.validate(entry, _load(HISTORY_SCHEMA))
 
     HISTORY.mkdir(parents=True, exist_ok=True)
-    path = HISTORY / f"{args.tag or sha[:7]}-goldens.json"
+    # The arm is in the filename because a milestone that runs two arms writes two
+    # entries under one tag, and the append-only guard below would otherwise read
+    # the second arm as an attempt to rewrite the first.
+    stem = f"{args.tag or sha[:7]}" + (f"-{args.arm}" if args.arm else "")
+    path = HISTORY / f"{stem}-goldens.json"
     if path.exists():
         raise SystemExit(
             f"error: {path.name} already exists. History is append-only — a correction is a new "
@@ -207,7 +316,10 @@ def emit_verdict(results, scores, out: str) -> None:
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="run_evals", description=__doc__)
     p.add_argument("--dryrun", action="store_true", help="load and resolve only; no scoring")
-    p.add_argument("--answers", help="JSON produced by the agent under test")
+    p.add_argument("--answers", action="append",
+                   help="JSON produced by the agent under test; repeat for k samples")
+    p.add_argument("--arm", help="which system produced these answers, when a milestone "
+                                 "runs more than one (e.g. control | tools)")
     p.add_argument("--record", action="store_true", help="append an entry to evals/history/")
     p.add_argument("--tag", help="milestone tag, e.g. m00b")
     p.add_argument("--target", default="baseline", help="baseline | <service-name>")

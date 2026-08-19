@@ -75,6 +75,14 @@
           },
           "tightening_pr": {
             "type": "string"
+          },
+          "samples": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["PASS", "FAIL", "ADVISORY", "INFRA"]
+            },
+            "description": "The per-sample verdicts this case's `result` was summarised from, in run order. Present only when `k` > 1. It exists so a 2-1 majority is checkable in the entry rather than asserted by whoever ran it \u2014 `k` alone says a summary happened and not what it summarised, and PASS/FAIL/PASS and PASS/PASS/PASS record the same verdict from very different evidence. INFRA never appears here: a sample that established nothing triggers a full re-run rather than entering the pool."
           }
         }
       }

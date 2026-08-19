@@ -661,7 +661,10 @@ recorded in the entry is what already said so.
       arm freezing means it now pins that arm (amended above, ADR-021)
 - [ ] `run_via_gateway.py` frozen as the M01 control arm; both arms run k = 3 the
       same day; both summarised by per-case majority, with `k` and `arm` recorded
-      and all six runs committed
+      and all six runs committed *(harness landed: `run_evals.py` takes repeated
+      `--answers` and an `--arm`, scores each sample independently through the
+      unchanged scorer, and records the majority plus the per-sample verdicts;
+      the runs themselves are owed)*
 - [ ] Paired per-case diff recorded; both arms' raw answers committed
 - [ ] Tool trajectories recorded; none scored
 - [ ] `entitlement_source` and `expect_tool_before_answer` still deferred
