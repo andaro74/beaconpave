@@ -82,7 +82,16 @@ one of the ten audit records was fetched back out of the lake before its
 observation was built — that second half of G4 is what made a non-zero score
 possible at all. See `milestones/M01/README.md`.
 
-✾ **16/25 is a majority across k = 3, and the comparator is 17/25 — not the
+✾ **Recorded under guardrail version 1, which no longer exists.** ADR-024
+narrowed `entitlement-circumvention` after this row was filled: the topic
+described subject matter, so a refusal explaining a blackout was denied for
+naming the same things an evasion names. It cost this arm roughly four cases per
+sample. **Nothing at or above this row is comparable to a score recorded under
+version 2 for anything the guardrail can refuse** — a re-run control would score
+higher with no improvement to the system whatsoever, which is exactly the hazard
+ADR-016 exists to footnote. The recorded numbers stay as-run.
+
+**16/25 is a majority across k = 3, and the comparator is 17/25 — not the
 recorded 19.** Read the paired diff, not the total: **3 lost, 2 gained, net −1**
 (`milestones/M02/runs/`). Both arms ran the same day against the same deployed
 gateway and the same pinned guardrail version; the M01 prompt is frozen as the

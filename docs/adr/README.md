@@ -30,13 +30,14 @@ is worth less than one that shows where it was corrected.
 | ADR-021 | The M01 prompt freezes as a control arm; two arms re-measured the same day at k=3, reported as a paired per-case diff | A prompt registry with versioned entries; the comparator selected by version rather than by a parity test |
 | ADR-022 | No third-party dependency in the gateway bundle; subsets bounded by coverage + differential tests | A bundled runtime from a lockfile; the same library validates everywhere and the subsets are deleted |
 | ADR-023 | The Cedar principal is deployment configuration, never the caller's `service` field | A caller identity the platform verifies rather than receives, mapped to the registry's `callers` |
+| ADR-024 | `entitlement-circumvention` names the act, not the subject: a refusal that explains a restriction is not an evasion | Intent classification separated from topic detection, composed by policy rather than one string doing both jobs |
 | ADR-012 | Control scored deterministically; judge arrives at M03 *(amended in place 2026-08-15: M00b builds the runner)* | Sequencing, not a cut — the discipline is the same at scale |
 | ADR-013 | G9 enforced as a checked attestation, not a review | Teams + code-owner review; same path list, check retained as a filter |
 | ADR-014 | Budgets denominated in tokens; dollars rendered at report time *(amended in place at M02: `tokens_in` and `max_ms` re-derived for a tool loop, which makes a turn n model calls; the 891-token governed projection struck as a measurement of the wrong shape)* | Same ceilings per tenant; rate table refreshed on the provider's price feed |
 | ADR-015 | Regional (`us.`) inference profile, at a recorded 10% premium | Per-workload pin driven by each manifest's `classification` |
 | ADR-016 | `entitlement_source` advisory until M06; `p95_ms` moved to suite level *(the `max_ms` figure re-derived at M02; the decision is untouched)* | Per-case latency sampled k times; SLO burn-rate alerting |
 
-Written out in full: **001, 003, 004, 007, 009, 011, 012, 013, 014, 015, 016, 017, 018, 019, 020, 022**.
+Written out in full: **001, 003, 004, 007, 009, 011, 012, 013, 014, 015, 016, 017, 018, 019, 020, 022, 024**.
 The rest are reserved rows you fill as you build each component — the table itself is the
 scaling story.
 
