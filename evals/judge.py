@@ -182,6 +182,84 @@ def held_out_guard() -> None:
         )
 
 
+# --- what the judge is shown, and what it is never asked --------------------
+
+
+def not_applicable(answer) -> str | None:
+    """Which of the three no-answer shapes this record is, or `None`.
+
+    A gateway refusal, a turn the harness could not decode, and a record with no
+    `answer` object all carry nothing to grade. **All three are settled here,
+    deterministically, before any model call** — CLAUDE.md's preference for a
+    deterministic assertion, applied to the instrument itself.
+
+    SPEC/03 named two of these. The third — `unparsed` — was found while drafting
+    the calibration labels: `m02-tools-1 / grounded-018` is a turn whose reply the
+    decoder could not read. The model did answer, and its answer was even correct,
+    but what the service emitted was undecodable, and grading the blob would grade
+    something it never produced as an answer.
+
+    Deciding it here rather than asking the judge also keeps four calibration items
+    from becoming automatic agreements: a judge and a label that both say "not
+    applicable" agree by construction rather than by judgement, which is why those
+    items never enter the agreement figure."""
+    if not isinstance(answer, dict):
+        return "no-answer-object"
+    if "refused_by_gateway" in answer:
+        return f"gateway-refusal:{answer['refused_by_gateway']}"
+    if "unparsed" in answer:
+        return "unparsed-turn"
+    if answer.get("answer") is None:
+        return "no-answer-field"
+    return None
+
+
+def user_turn(case: dict, answer: dict, axes: list) -> str:
+    """What the judge is shown: question, viewer context, answer, citations, axes.
+
+    **Nothing from the case's `asserts` reaches it.** A judge holding the golden
+    expectations is not scoring an answer, it is checking a diff — and it would
+    then agree with the deterministic half by construction, which is the one
+    result that could prove nothing at all.
+
+    This is instrument text, so it lives beside the prompt rather than in the
+    runner: a word changed here changes every band."""
+    viewer = case.get("viewer") or {}
+    return (
+        f"VIEWER QUESTION: {case['input']}\n"
+        f"VIEWER CONTEXT: plan={viewer.get('plan')} dma={viewer.get('dma')}\n\n"
+        f"ANSWER AS RECORDED:\n{answer.get('answer')}\n\n"
+        f"CITED TITLE IDS: {answer.get('cited_titles')}\n\n"
+        f"AXES: {', '.join(axes)}"
+    )
+
+
+def bands_from(parsed: dict, axes: list) -> tuple[dict, list]:
+    """Bands out of one decoded judge reply, and everything unreadable in it.
+
+    **An unreadable band is `None`, never a guess and never a default.** A judge
+    that returned nothing usable for an axis is evidence about the judge; filling
+    it in with the middle band would erase exactly what `k_judge` exists to
+    collect — and would do it in the direction that never vetoes, which is the
+    flattering one.
+
+    An axis the judge returned but was not asked for is recorded as a problem
+    rather than dropped. It means the prompt is not being followed, and a judge
+    that answers a question it was not asked is not obeying the one it was."""
+    reported = (parsed or {}).get("axes") or {}
+    bands, problems = {}, []
+    for axis in axes:
+        entry = reported.get(axis)
+        band = entry.get("band") if isinstance(entry, dict) else entry
+        if band in BANDS:
+            bands[axis] = float(band)
+        else:
+            bands[axis] = None
+            problems.append(f"{axis}={band!r}")
+    problems += [f"unrequested axis {extra!r}" for extra in sorted(set(reported) - set(axes))]
+    return bands, problems
+
+
 # --- bands --------------------------------------------------------------------
 
 

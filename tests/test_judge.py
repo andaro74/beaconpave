@@ -334,3 +334,73 @@ def test_the_slice_carries_every_axis_the_golden_set_asks_for():
     for axis in sorted(asked):
         assert axis in axes, f"the golden set asks for {axis} and the rubric slice omits it"
 
+
+
+# --- what the judge is shown, and what it is never asked ----------------------
+
+
+@pytest.mark.parametrize("answer,expected", [
+    ({"refused_by_gateway": "guardrail"}, "gateway-refusal:guardrail"),
+    ({"refused_by_gateway": "policy"}, "gateway-refusal:policy"),
+    ({"unparsed": "The search found one result..."}, "unparsed-turn"),
+    ({"answer": None}, "no-answer-field"),
+    (None, "no-answer-object"),
+    ("a string", "no-answer-object"),
+    ({"answer": "Yes.", "cited_titles": ["t001"]}, None),
+])
+def test_not_applicable_settles_every_no_answer_shape_without_a_model(answer, expected):
+    """Three shapes carry nothing to grade, and all three are decided here rather
+    than asked of the judge.
+
+    SPEC/03 named two. The third — `unparsed` — was found while drafting the
+    calibration labels: a turn whose reply the decoder could not read. The model
+    answered, and its answer was even correct, but what the service emitted was
+    undecodable and grading the blob would grade something it never produced.
+
+    Deciding these deterministically also keeps four calibration items from
+    becoming automatic agreements: a judge and a label that both say "not
+    applicable" agree by construction rather than by judgement."""
+    assert judge.not_applicable(answer) == expected
+
+
+def test_the_user_turn_shows_the_answer_and_withholds_the_answer_key():
+    """A judge holding the golden expectations is not scoring an answer, it is
+    checking a diff — and it would then agree with the deterministic half by
+    construction, which is the one result that could prove nothing."""
+    case = {
+        "id": "x", "input": "Derby on tonight?",
+        "viewer": {"plan": "base", "dma": "lake-adair"},
+        "asserts": [{"must_mention": "blackout"}, {"must_cite": ["t001"]}],
+    }
+    turn = judge.user_turn(case, {"answer": "Yes.", "cited_titles": ["t001"]}, [GROUND])
+    assert "Derby on tonight?" in turn and "Yes." in turn and "t001" in turn
+    assert "base" in turn and "lake-adair" in turn
+    for leak in ("must_mention", "must_cite", "blackout"):
+        assert leak not in turn, f"the user turn leaks {leak}"
+
+
+@pytest.mark.parametrize("reported,expected_band,expected_problem", [
+    ({"axes": {GROUND: {"band": 1.0}}}, 1.0, False),
+    ({"axes": {GROUND: 0.5}}, 0.5, False),
+    ({"axes": {GROUND: {"band": 0.75}}}, None, True),
+    ({"axes": {GROUND: {"band": "1.0"}}}, None, True),
+    ({"axes": {}}, None, True),
+    ({}, None, True),
+    (None, None, True),
+])
+def test_an_unreadable_band_is_never_guessed(reported, expected_band, expected_problem):
+    """A judge that returned nothing usable for an axis is evidence about the
+    judge. Filling it in with the middle band would erase exactly what `k_judge`
+    exists to collect — and would do it in the direction that never vetoes, which
+    is the flattering one."""
+    bands, problems = judge.bands_from(reported, [GROUND])
+    assert bands[GROUND] == expected_band
+    assert bool(problems) is expected_problem
+
+
+def test_an_axis_the_judge_was_not_asked_for_is_recorded_as_a_problem():
+    """Dropping it silently would hide that the prompt is not being followed. A
+    judge answering a question it was not asked is not obeying the one it was."""
+    _, problems = judge.bands_from(
+        {"axes": {GROUND: {"band": 1.0}, "invented_axis": {"band": 0.0}}}, [GROUND])
+    assert problems == ["unrequested axis 'invented_axis'"]
