@@ -248,13 +248,26 @@ class Scorer:
         must block — the same contract `pave gate decide` enforces on verdicts."""
         advisory = tuple(case.get("judge", {}).get("axes", ()))
 
+        # `advisory_axes=` by keyword, not positionally. Both INFRA returns passed
+        # `advisory` - a tuple of axis-name STRINGS - into the fourth field, which is
+        # `deferred` and holds `AssertResult`s. Any caller reading `.kind` off a
+        # deferred entry then raises AttributeError, so a suite carrying both an
+        # INFRA case and a deferred assert crashed instead of reporting INFRA.
+        # `entitlement_source` is deferred on 11 of the 25 golden cases, so the
+        # second condition is almost always true; it survived because no committed
+        # run has ever had a missing answer.
+        #
+        # Neither field is scored, so no recorded number moves. Found by a test
+        # written to drive the judge veto through the real runner rather than
+        # reimplementing it.
         if record is None:
-            return CaseResult(case["id"], INFRA, (), advisory)
+            return CaseResult(case["id"], INFRA, (), advisory_axes=advisory)
         answer = record.get("answer")
         if not isinstance(answer, dict):
             return CaseResult(
                 case["id"], INFRA,
-                (AssertResult("answer", False, "no answer object recorded"),), advisory,
+                (AssertResult("answer", False, "no answer object recorded"),),
+                advisory_axes=advisory,
             )
 
         usage = record.get("usage") or {}

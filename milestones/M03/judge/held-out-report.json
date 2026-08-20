@@ -11,9 +11,9 @@
   "instrument_name": "A",
   "refusals": {
     "model_eligible_calls": 48,
-    "classification": 3,
+    "served": 17,
     "guardrail": 28,
-    "served": 17
+    "classification": 3
   },
   "correction_rate": {
     "n": 20,

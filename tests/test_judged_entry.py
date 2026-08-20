@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import re
 
 import pytest
 
@@ -98,30 +99,48 @@ def test_an_undecided_band_never_vetoes_even_when_calibrated(tmp_path):
     assert parts["vetoes"] == {}
 
 
-def test_the_veto_reaches_the_recorded_score(tmp_path, monkeypatch):
-    """End to end: a calibrated veto must change `scores`, not merely appear in a
-    note beside them. Applied before `tally`, so the recorded number is the judged
-    one."""
-    results = [CaseResult("blackout-001", "PASS", (), ()),
-               CaseResult("blackout-006", "PASS", (), ())]
-    vetoed = {"blackout-001": ["groundedness"]}
-    from dataclasses import replace as dc_replace
+def test_the_veto_reaches_the_recorded_score(tmp_path, monkeypatch, capsys):
+    """End to end, through `run_evals.run`, on the real production path.
 
-    from evals.deterministic import AssertResult, tally
+    This test used to build the vetoed results with its own inline comprehension
+    duplicating `run_evals.py`. It never called the code it was named for: delete
+    the veto application from `run_evals` entirely and it still passed. That is the
+    third time this branch has recorded a test named for a defect that exercises a
+    different function than the one containing it."""
+    # A real committed answer that PASSES deterministically today, because a veto can
+    # only turn PASS into FAIL. A synthetic answer that already failed would let this
+    # test report "1 case vetoed" while nothing actually moved - which is the shape
+    # of vacuity it was rewritten to escape.
+    committed = json.loads((ROOT / "milestones" / "M00b" / "goldens-run.json")
+                           .read_text(encoding="utf-8"))
+    answers = {"blackout-001": committed["blackout-001"]}
+    answers_file = tmp_path / "answers.json"
+    answers_file.write_text(json.dumps(answers), encoding="utf-8")
+    directory = judge_dir(tmp_path, {"blackout-001": {"axes": {"groundedness": 0.0}}})
+    calibration_file = tmp_path / "calibration.json"
 
-    judged_results = [
-        dc_replace(r, result="FAIL",
-                   asserts=tuple(r.asserts) + tuple(
-                       AssertResult(f"judge:{a}", False, "vetoed by a calibrated axis")
-                       for a in vetoed[r.id]))
-        if r.id in vetoed and r.result == "PASS" else r
-        for r in results
-    ]
-    assert tally(results)["passed"] == 2
-    assert tally(judged_results)["passed"] == 1
-    # The reason survives into the entry rather than the case merely flipping.
-    vetoed_case = next(r for r in judged_results if r.id == "blackout-001")
-    assert [f.kind for f in vetoed_case.failures] == ["judge:groundedness"]
+    def score(status: str) -> str:
+        calibration_file.write_text(json.dumps(calibration(status)), encoding="utf-8")
+        run_evals.main([
+            "--answers", str(answers_file), "--target", "baseline",
+            "--judged", str(directory), "--calibration", str(calibration_file),
+            "--k-judge", "3",
+        ])
+        return capsys.readouterr().out
+
+    calibrated = score("calibrated")
+    demoted = score("demoted")
+
+    assert "1 case(s) vetoed" in calibrated, (
+        "a calibrated 0.0 band did not reach the runner's own veto path")
+    assert "0 case(s) vetoed" in demoted, "a demoted axis subtracted something"
+
+    # The case is actually marked FAIL by the production path, not merely counted.
+    verdict = re.search(r"^blackout-001\s+(\S+)", calibrated, re.M)
+    assert verdict and verdict.group(1) == "FAIL", calibrated
+    assert re.search(r"^blackout-001\s+PASS", demoted, re.M), (
+        "the same judge output with the axis demoted must leave the case alone")
+    assert "judge:groundedness" in calibrated, "the vetoing axis is not named in the output"
 
 
 # --- what the entry must and must not carry -----------------------------------
@@ -249,29 +268,47 @@ def test_the_entry_records_what_scored_the_deterministic_half(tmp_path):
 
 
 def test_the_three_flipped_cases_are_the_deterministic_instrument_not_the_judge():
-    """Pinned against the committed evidence, so the decomposition of 15 -> 18
-    cannot be quietly restated later.
+    """The 15 -> 18 decomposition, pinned hermetically.
 
-    The m00b-era case file is read out of git rather than described."""
-    import subprocess
+    This used to shell out to `git show <m00b_sha>:...` and `pytest.skip` when that
+    failed. The gate checks out at depth 1, so it skipped on **every CI run** and
+    asserted only on a deep clone — the milestone's load-bearing arithmetic,
+    verified nowhere that mattered. The m00b-era budgets are now a committed
+    fixture: a byte is reachable from a shallow clone forever, and a commit is not.
 
-    import yaml as _yaml
-
-    m00b_sha = json.loads(
-        (ROOT / "evals" / "history" / "m00b-goldens.json").read_text(encoding="utf-8"))["sha"]
-    old = subprocess.run(
-        ["git", "show", f"{m00b_sha}:services/highlights-agent/evals/golden/cases.yaml"],
-        cwd=ROOT, capture_output=True, text=True, check=False)
-    if old.returncode != 0:
-        pytest.skip("the m00b commit is not reachable in this clone")
-    old_cases = {c["id"]: c for c in _yaml.safe_load(old.stdout)}
+    It also asserts that **exactly** three cases flipped. Checking only that the
+    three named ones were over budget would let a fourth flip, from an unrelated
+    cause, hide inside the same total."""
+    era = json.loads((ROOT / "tests" / "fixtures" / "m00b-era-budgets.json")
+                     .read_text(encoding="utf-8"))
+    recorded = json.loads((ROOT / "evals" / "history" / "m00b-goldens.json")
+                          .read_text(encoding="utf-8"))
+    judged = json.loads((ROOT / "evals" / "history" / "m00b-judged-B-goldens.json")
+                        .read_text(encoding="utf-8"))
     answers = json.loads((ROOT / "milestones" / "M00b" / "goldens-run.json")
                          .read_text(encoding="utf-8"))
+    assert era["m00b_sha"] == recorded["sha"], (
+        "the fixture was lifted from a different commit than the recorded entry")
 
-    for case_id in ("blackout-001", "blackout-006", "concise-022"):
-        budget = next(a["budget"] for a in old_cases[case_id]["asserts"] if "budget" in a)
+    was = {c["id"]: c["result"] for c in recorded["cases"]}
+    now = {c["id"]: c["result"] for c in judged["cases"]}
+    flipped = sorted(cid for cid in was if was[cid] != now[cid])
+    assert flipped == ["blackout-001", "blackout-006", "concise-022"], (
+        f"exactly three cases flipped between the m00b entry and the judged anchor; "
+        f"found {flipped}. A fourth flip has a different cause and needs its own account")
+
+    for case_id in flipped:
+        budget = era["budgets"][case_id]
         latency = answers[case_id]["usage"]["latency_ms"]
         assert budget["p95_ms"] == 1800
-        assert latency > 1800, (
-            f"{case_id} passed its m00b-era per-case p95; the 15 -> 18 difference is then "
-            "not explained by ADR-016 and needs re-deriving")
+        assert latency > budget["p95_ms"], (
+            f"{case_id} was inside its m00b-era per-case p95, so the 15 -> 18 difference "
+            "is not explained by ADR-016 and needs re-deriving")
+        assert was[case_id] == "FAIL" and now[case_id] == "PASS"
+
+    # And the judge caused none of it.
+    assert judged["scores"]["passed"] - recorded["scores"]["passed"] == len(flipped)
+    assert judged["judge_axes"], "the judged entry records no axes table"
+    assert all(row["status"] == "demoted" for row in judged["judge_axes"].values()), (
+        "an axis is calibrated, so the judge could have moved cases and this "
+        "decomposition no longer holds")

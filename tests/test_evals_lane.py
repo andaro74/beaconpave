@@ -97,16 +97,20 @@ def test_the_lane_fails_on_comparator_drift_in_either_direction(tmp_path, shift,
     honesty rule says a flattering control makes every later milestone
     unfalsifiable. A lane that passed anything at-or-above the comparator would
     wave that through."""
+    # Written to `tmp_path` and passed with `--comparators`. This test used to edit
+    # the tracked, two-key `evals/comparators.json` in the real working tree and
+    # restore it in a `finally` — twice per `make check`, and a killed run left a
+    # live gate criterion modified on disk.
     original = COMPARATORS.read_text(encoding="utf-8")
     entry = comparators()["services"]["highlights-agent"]
     moved = original.replace(f'"expected_passed": {entry["expected_passed"]}',
                              f'"expected_passed": {entry["expected_passed"] + shift}', 1)
     assert moved != original
-    COMPARATORS.write_text(moved, encoding="utf-8")
-    try:
-        result = run_lane("services/highlights-agent")
-    finally:
-        COMPARATORS.write_text(original, encoding="utf-8")
+    copy = tmp_path / "comparators.json"
+    copy.write_text(moved, encoding="utf-8")
+    result = run_lane("services/highlights-agent", "--comparators", str(copy))
+    assert COMPARATORS.read_text(encoding="utf-8") == original, (
+        "the tracked comparator file was modified by a test")
     assert result.returncode == 1, "a moved comparator must fail the lane"
     assert direction in result.stdout
     assert "two-key" in result.stdout
@@ -181,3 +185,46 @@ def test_the_lane_is_uncommented_and_its_verdict_reaches_the_decider():
         step = next(s for s in steps if command in (s.get("run") or ""))
         assert "verdict-evals.json" in step["run"], (
             f"`{command}` does not read the evals verdict, so the lane blocks nothing")
+
+
+def test_the_control_arm_pin_also_fails_the_lane(tmp_path):
+    """The tools arm's pin was the only one proven to block.
+
+    `comparators.json` argues the control arm is pinned *because the paired diff is
+    the result* (ADR-021) — an untested claim is how that pin quietly becomes
+    decoration."""
+    original = COMPARATORS.read_text(encoding="utf-8")
+    moved = original.replace('"expected_passed": 17', '"expected_passed": 16', 1)
+    assert moved != original
+    copy = tmp_path / "comparators.json"
+    copy.write_text(moved, encoding="utf-8")
+    result = run_lane("services/highlights-agent", "--comparators", str(copy))
+    assert result.returncode == 1
+    assert "control" in result.stdout
+
+
+def test_dropping_an_arm_does_not_silently_pass(tmp_path):
+    """Deleting `also_pinned` scored the tools arm alone and passed.
+
+    Truncating the file fails closed (a missing `expected_passed` raises); deleting
+    an arm passed. Silent-pass on deletion and fail-closed on truncation is the
+    wrong way round, and deletion is the easier edit to make by accident."""
+    doc = json.loads(COMPARATORS.read_text(encoding="utf-8"))
+    doc["services"]["highlights-agent"].pop("also_pinned")
+    copy = tmp_path / "comparators.json"
+    copy.write_text(json.dumps(doc), encoding="utf-8")
+    result = run_lane("services/highlights-agent", "--comparators", str(copy))
+    assert result.returncode == 1, "an arm disappearing from the comparator must fail"
+    assert "arm(s) missing" in result.stdout
+
+
+def test_the_comparator_is_two_key():
+    """Three separate places claimed this before it was true: the file's own
+    `_comment`, the lane's failure message, and a PR body. A stated protection is
+    worse than an absent one, because it stops anyone looking for the real one."""
+    from pave import twokey
+
+    rules = twokey.triggered(["evals/comparators.json"])
+    assert rules, "evals/comparators.json is not a two-key path"
+    seats = {seat for rule, _files in rules for seat in rule.seats}
+    assert "ai-quality" in seats and "platform-eng" in seats

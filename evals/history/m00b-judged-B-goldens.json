@@ -2,7 +2,7 @@
   "sha": "515ee7091518650698a66e52cbcf2f9fec4190b8",
   "suite": "goldens",
   "target": "baseline",
-  "recorded_at": "2026-08-20T21:14:48+00:00",
+  "recorded_at": "2026-08-20T23:18:52+00:00",
   "scores": {
     "total": 25,
     "passed": 18,
@@ -219,8 +219,9 @@
   },
   "guardrail_refusals": {
     "model_eligible_calls": 75,
+    "served": 40,
     "guardrail": 35,
-    "served": 40
+    "classification": 0
   },
   "tag": "m00b"
 }

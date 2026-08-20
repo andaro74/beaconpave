@@ -18,7 +18,9 @@
   "instrument_name": "B",
   "refusals": {
     "model_eligible_calls": 3,
-    "served": 3
+    "served": 3,
+    "guardrail": 0,
+    "classification": 0
   },
   "correction_rate": {
     "n": 20,

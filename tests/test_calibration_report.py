@@ -327,7 +327,12 @@ def test_instrument_b_serves_the_item_instrument_a_refused():
 
     scoped = json.loads(
         (HELD_OUT.parent / "held-out-b-scoped-report.json").read_text(encoding="utf-8"))
-    assert scoped["refusals"] == {"model_eligible_calls": 3, "served": 3}
+    # Explicit zeros, not absent keys. An absent `classification` is
+    # indistinguishable from "not measured", and this run exists to resolve exactly
+    # that prediction — SPEC/03 amendment 7 pre-registered it with the falsifier
+    # "any refusal at all".
+    assert scoped["refusals"] == {"model_eligible_calls": 3, "served": 3,
+                                  "guardrail": 0, "classification": 0}
     row = scoped["rows"][0]
     assert row["item"] == "cal-20" and row["case_id"] == "entitlement-012"
     assert row["band"] == row["label"] == 1.0, "the judge's majority agrees with the hand label"

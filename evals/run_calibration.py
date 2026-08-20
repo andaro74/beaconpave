@@ -103,7 +103,13 @@ def refusal_census(samples: dict) -> dict:
             calls += 1
             mechanism = record.get("refused_by_gateway")
             census[mechanism or "served"] += 1
-    return {"model_eligible_calls": calls, **dict(sorted(census.items()))}
+    # Every known mechanism, explicitly, including the ones that fired zero times.
+    # An absent `classification` key is indistinguishable from "not measured", and
+    # SPEC/03 amendment 8 pre-registered "classification refusals: 0 of 75" with the
+    # falsifier "any" - a record that cannot resolve the prediction it was written
+    # to test is not a record of it.
+    zeros = {m: 0 for m in ("served", "guardrail", "classification")}
+    return {"model_eligible_calls": calls, **zeros, **dict(sorted(census.items()))}
 
 
 def assemble(split: str, samples: dict, k: int, only: tuple = ()) -> tuple[list, list]:

@@ -76,6 +76,23 @@ RULES: tuple[Rule, ...] = (
         ("ai-quality",),
     ),
     Rule(
+        # The number the L2 lane actually decides on, and it was the one artifact in
+        # this table's neighbourhood that nothing covered. `evals/history/` is
+        # protected and append-only; the comparator is neither, and it is the live
+        # criterion. Three separate places asserted this rule existed before it did
+        # -- the file's own `_comment`, the lane's failure message, and a PR body --
+        # which is worse than an unguarded path, because a stated protection stops
+        # anyone looking for the real one. Found by three seats independently.
+        #
+        # `evals/deterministic.py` and `data/catalog.json` are the lane's other two
+        # inputs and are deliberately NOT here: a scorer change should be reviewable
+        # as code, and it becomes visible the moment it moves a comparator, which now
+        # needs this key. The point is that the loop cannot be closed unattested.
+        "the L2 comparator — what committed answers score under the current instrument",
+        re.compile(r"^evals/comparators\.json$"),
+        ("ai-quality", "platform-eng"),
+    ),
+    Rule(
         "gate criteria",
         re.compile(r"^\.github/workflows/quality-gate\.yml$"),
         ("ai-quality", "platform-eng"),

@@ -25,7 +25,11 @@
           "expected_passed": 17,
           "why": "The M01 prompt frozen as M02's control arm (ADR-021). Pinned beside the tools arm because the paired diff is the result, not the total — a comparator that moved on only one arm would silently change the delta."
         }
-      }
+      },
+      "arms_expected": [
+        "tools",
+        "control"
+      ]
     }
   }
 }
