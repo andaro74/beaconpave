@@ -198,6 +198,9 @@ Engineering (the gateway path the judge will use) · Security + Data Governance
 (the guardrail refusal finding this milestone measures and does not fix)
 
 Two-Key-Disposition: ai-quality
+Two-Key-Disposition: platform-eng
+Two-Key-Disposition: security
+ADR: docs/adr/ADR-028-a-second-adversarial-corpus-that-scores-nothing.md
 Two-Key-Rationale: The calibration corpus and its labels are the reference every
 published agreement number will be measured against, so both were fixed before any
 judge prompt existed in the tree and the ordering is visible in the commit history
@@ -239,7 +242,30 @@ entry* while a moved instrument corrects nothing. `judge_axes` and
 `guardrail_refusals` are additive and reporting-only — no recorded score changes
 by their presence, and `guardrail_refusals` exists so that the largest
 unexplained cost in the platform is visible in the history rather than only in a
-milestone README. The rubric is edited here
+milestone README. The gate's L2 evals lane
+turns on here and is disposed by Platform Engineering and AI Quality jointly: it
+scores committed answers and calls no model, so it adds no CI credential surface
+and no per-PR cost, and what it decides is that the instrument has not moved
+underneath a published row - `test_instrument_stability.py` pinned m00b and m01
+and nothing pinned either M02 arm. Its comparator lives in
+`evals/comparators.json` and is deliberately NOT the recorded history score: a
+recorded score is what the answers scored on the day and never moves, a comparator
+is what those same answers score now, and a lane comparing against the recorded
+number would fail on every legitimate tightening - which is the pressure that gets
+tightenings reverted. The pinned values are the ones the current instrument
+already produces, pinned for the first time rather than chosen, and deviation in
+EITHER direction fails: a drop is the obvious regression, and a rise is the one
+CLAUDE.md's baseline-honesty rule names, since the m00b control gained three cases
+from ADR-016 with no system improvement at all. `quality/adversarial/phrasings.yaml`
+is disposed by Security and carries ADR-028: it is a second corpus in that
+directory that scores nothing, because two of its five phrasings must be ALLOWED
+and "this request was correctly not blocked" has no G4 answer. It downgrades no
+probe, changes no probe, and blocks nothing; it re-runs the teaching-to-the-test
+evidence that had been frozen in a comment since M01 under a guardrail version
+that no longer exists. SPEC/01's refusal band is asserted at suite level and is
+reporting-only in the enforced sense: no scoring, verdict or gate module may
+import it, and a test fails if `pave check`'s band step ever touches the failure
+list. The rubric is edited here
 and the edit moves no band and no threshold: a seat-boundary note about ADV-005 is
 lifted out of the brand_tone axis into the reviewer-facing half of the file,
 because everything inside an axis is now sent to the model verbatim and that note
