@@ -1,0 +1,10 @@
+{
+  "_comment": "The judge prompt is frozen. held_out_guard() refuses held-out scoring unless the prompt, rubric and rubric axes still hash to these values. Freezing is a recorded act: an agreement number computed on the set the judge was tuned against measures nothing (SPEC/03).",
+  "frozen_at": "2026-08-20",
+  "frozen_after": "the version-2 dev pass at k_judge=3 (milestones/M03/judge/dev-guardrail-2/)",
+  "tuning": "None. The prompt was written once, before the dev pass, and has not been edited since. The dev pass yielded four judged case-instances and two borderline disagreements - too little signal to tune against, and tuning toward labels drafted by this same model family is the circularity the 0% correction rate already flagged. Frozen untuned, and that is recorded rather than claimed as rigour.",
+  "prompt_sha256": "ef8c1ec77ffb0f79529afa40830b341aaf42fe21bc4565eba5bf709f5c446e37",
+  "rubric_sha256": "925f7e4cfc1de2436551f308115249a19bd7f3afdf8050e531c093303413bd0b",
+  "rubric_axes_sha256": "d4ea6ec45351982a76c7328c7b4cc19a71afa49ecf48ebeb30ee33da735a123c",
+  "rendered_sha256": "843e2ee68d6d41d4faa1e5644d64c11ea41e95d22efd9aad43d06997bbe5a38e"
+}
