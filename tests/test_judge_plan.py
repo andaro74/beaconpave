@@ -95,24 +95,37 @@ def test_an_unknown_split_is_refused():
 
 
 def test_argv_round_trips_through_run_judges_own_parser():
-    """The driver must not invent a second way to phrase an invocation. Parsed by
-    the same `argparse` grammar `run_judge.main` uses, so a renamed flag fails here
-    rather than at call time with the run half spent."""
-    import argparse
+    """The driver must not invent a second way to phrase an invocation.
 
-    parser = argparse.ArgumentParser(prog="run_judge")
-    parser.add_argument("--answers", required=True)
-    parser.add_argument("--label", required=True)
-    parser.add_argument("--sample", type=int, required=True)
-    parser.add_argument("--out", required=True)
-    parser.add_argument("--only", action="append")
-
+    This test used to hand-rebuild the parser, which made it a **third** phrasing:
+    rename `--only` to `--case` in `run_judge.main` and it still passed, while
+    `run_split` died on step one with the plan intact and the flag wrong. A test
+    named for a defect that cannot catch it is this branch's recurring shape. The
+    grammar now lives in `evals/plan.py`, hermetic, and `run_judge.main` builds its
+    parser from the same function this parses with."""
     step = plan.judge_plan("held-out", 3, "out")[0]
-    parsed = parser.parse_args(plan.argv_for(step))
+    parsed = plan.judge_parser().parse_args(plan.argv_for(step))
+    assert parsed.answers == step["answers"]
     assert parsed.label == step["label"]
     assert parsed.sample == step["sample"]
     assert parsed.only == step["cases"]
     assert parsed.out == step["out"]
+
+
+def test_run_judge_builds_its_parser_from_the_shared_grammar():
+    """The half of the round-trip a hermetic test cannot reach by importing.
+
+    `run_judge` imports boto3 and `tests/` is a hermetic root, so this reads the
+    source rather than the module. A source check is weaker than an import, and it
+    is what makes the claim above true rather than merely stated."""
+    source = (pathlib.Path(plan.ROOT) / "services" / "highlights-agent" / "run_judge.py"
+              ).read_text(encoding="utf-8")
+    assert "plan.judge_parser(" in source, (
+        "run_judge.main no longer builds its parser from evals.plan.judge_parser, so "
+        "test_argv_round_trips_through_run_judges_own_parser is checking a grammar "
+        "nothing uses")
+    assert "add_argument(\"--only\"" not in source, (
+        "run_judge declares its own --only again; there are two grammars")
 
 
 # --- resume, and the one thing it must never do -------------------------------
@@ -164,3 +177,64 @@ def test_resume_refuses_a_file_with_no_instrument_at_all(tmp_path):
     out = tmp_path / "m00b-1.json"
     out.write_text(json.dumps({"cases": {}}), encoding="utf-8")
     assert not plan.reusable(out, judge.instrument())[0]
+
+
+# --- what a run costs, and what must stop it before it starts -----------------
+
+
+def test_spend_reproduces_the_published_model_eligible_call_count():
+    """The header said "21 invocations"; the run made 48 model calls.
+
+    Checked against the committed report rather than against a number typed here,
+    so the arithmetic is pinned to the run it describes."""
+    report = json.loads((HELD_OUT.parent / "held-out-report.json").read_text(encoding="utf-8"))
+    cost = plan.spend(plan.judge_plan("held-out", 3, "unused"))
+    assert cost["model_eligible_calls"] == report["refusals"]["model_eligible_calls"]
+    assert cost["case_judgements"] == cost["model_eligible_calls"] + cost["not_applicable"]
+    assert cost["invocations"] == 21
+
+
+def test_a_dev_file_in_a_held_out_directory_is_a_stray():
+    """Six of seven run labels appear in both splits and the filename carries only
+    the label, so `m01-1.json` survives from a dev run into a held-out directory.
+    `run_calibration.refusal_census` globs the whole directory, so a same-instrument
+    leftover inflates `model_eligible_calls` and every refusal percentage in the
+    published report. `instruments()` catches cross-instrument leftovers and is
+    blind to this one."""
+    held_out_plan = plan.judge_plan("held-out", 3, "unused")
+    assert plan.strays(str(HELD_OUT), held_out_plan) == []
+    assert "m01-1.json" in plan.strays(str(HELD_OUT.parent / "dev"), held_out_plan)
+
+
+def test_the_committed_instrument_a_directory_is_refused_as_an_output_target():
+    """The one failure here that destroys evidence.
+
+    Pointed at `milestones/M03/judge/held-out/` under instrument B, the driver
+    would overwrite all 21 files the first published number rests on — and
+    `--resume` is no protection, because it correctly decides to re-run them and
+    re-running writes over them."""
+    foreign = plan.foreign_instrument(str(HELD_OUT), judge.instrument())
+    assert len(foreign) == 21, "all 21 instrument-A files must read as foreign under B"
+
+
+def test_a_directory_written_by_the_current_instrument_is_not_foreign(tmp_path):
+    """The other half. Refusing every populated directory would make `--resume`
+    useless, so the check has to pass for a run this instrument is continuing."""
+    marks = judge.instrument()
+    (tmp_path / "m00b-1.json").write_text(
+        json.dumps({"instrument": dict(marks, guardrail_version="2")}), encoding="utf-8")
+    assert plan.foreign_instrument(str(tmp_path), marks) == []
+    assert plan.foreign_instrument(str(tmp_path / "nope"), marks) == []
+
+
+def test_guardrail_versions_are_collected_across_a_directory(tmp_path):
+    """`run_judge` exits if one invocation spans two versions and `run_calibration`
+    exits if a directory does. `reusable` sat between them permitting exactly that,
+    so the operator spent the remaining calls and then found the directory rejected
+    as "the judge moved mid-run" — with `--resume` unable to repair it."""
+    marks = judge.instrument()
+    for name, version in (("a-1.json", "1"), ("a-2.json", "2"), ("a-3.json", "2")):
+        (tmp_path / name).write_text(
+            json.dumps({"instrument": dict(marks, guardrail_version=version)}), encoding="utf-8")
+    assert plan.guardrail_versions(str(tmp_path)) == ["1", "2"]
+    assert plan.guardrail_versions(str(tmp_path / "nope")) == []

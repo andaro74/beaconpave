@@ -37,6 +37,10 @@
 /quality/verdicts/        @andaro74
 /evals/history/           @andaro74
 /services/**/evals/       @andaro74
+# The eval harness itself, not only its recorded history. `/evals/history/` was
+# owned and `/evals/` was not, so `judge.py`, `plan.py` and `run_calibration.py` --
+# the code that decides what a published number is -- matched no rule at all.
+/evals/                   @andaro74
 
 # Security / Red Team owns the adversarial corpus and guardrail configs
 /quality/adversarial/     @andaro74
@@ -72,3 +76,7 @@
 
 # Service teams own their own code and prompts
 /services/highlights-agent/src/   @andaro74
+# The runners beside it were unowned. CLAUDE.md says every path has an owning seat;
+# these matched no rule, including the one that now orchestrates a whole 48-call
+# split. Platform Engineering owns the gateway path they all call through.
+/services/highlights-agent/*.py   @andaro74

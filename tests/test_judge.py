@@ -8,7 +8,6 @@ measured here. Those are different questions and only the second one is a test.
 
 Owning seat: AI Quality.
 """
-import glob
 import json
 import pathlib
 import tempfile
@@ -20,6 +19,28 @@ from core import classify
 from evals import judge
 
 ROOT_TMP = pathlib.Path(tempfile.mkdtemp(prefix="beaconpave-judge-"))
+
+#: The committed agent runs the classification sweep covers, listed rather than
+#: globbed. A glob silently shrinks when a file is renamed, and this sweep's count
+#: is published in `quality/judge/frozen.json` as "9 of 169".
+AGENT_RUNS = (
+    "milestones/M00b/goldens-run.json",
+    "milestones/M01/goldens-run.json",
+    "milestones/M02/runs/m02-control-1.json",
+    "milestones/M02/runs/m02-control-2.json",
+    "milestones/M02/runs/m02-control-3.json",
+    "milestones/M02/runs/m02-tools-1.json",
+    "milestones/M02/runs/m02-tools-2.json",
+    "milestones/M02/runs/m02-tools-3.json",
+)
+
+#: Case-by-answer renderings across `AGENT_RUNS`, and the denominator of the
+#: instrument-A refusal finding.
+RENDERINGS = 169
+
+#: What instrument A refused, published in `quality/judge/frozen.json`.
+INSTRUMENT_A_REFUSALS = 9
+INSTRUMENT_A_REFUSED_CASES = ("entitlement-012", "grounded-019")
 
 GROUND = "groundedness"
 TONE = "brand_tone:meridian-sports"
@@ -489,11 +510,9 @@ def test_every_recorded_answer_survives_classification_as_the_judge_sends_it():
     cases = yaml.safe_load(
         (root / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml")
         .read_text(encoding="utf-8"))
-    runs = [pathlib.Path(p) for p in sorted(glob.glob(str(root / "milestones" / "M0*" / "**" / "*.json"),
-                                                      recursive=True))
-            if "runs" in p or p.endswith("goldens-run.json")]
-    runs = [p for p in runs if "trajectory" not in p.name and "paired-diff" not in p.name]
-    assert runs, "no committed agent runs to check — this test would pass vacuously"
+    runs = [root / p for p in AGENT_RUNS]
+    missing = [str(p) for p in runs if not p.is_file()]
+    assert not missing, f"committed agent runs have moved: {missing}"
 
     refused, checked = [], 0
     for path in runs:
@@ -510,5 +529,98 @@ def test_every_recorded_answer_survives_classification_as_the_judge_sends_it():
             if not routing.allowed:
                 refused.append(f"{path.name}/{case['id']}: {routing.reasons}")
 
-    assert checked > 100, f"only {checked} renderings checked; the corpus sweep is not running"
+    # Pinned, not floored. `frozen.json` publishes "9 of 169" as a finding, so 169 is
+    # the number this sweep has to cover. A `> 100` floor let coverage fall to 101 —
+    # by a run file being renamed out of the glob — while the test still reported
+    # success, which is the vacuity this branch keeps rediscovering.
+    assert checked == RENDERINGS, (
+        f"{checked} renderings, expected {RENDERINGS}. The corpus or the run set moved; "
+        "frozen.json publishes a count derived from this sweep and it must move with it")
     assert refused == [], "\n".join(refused)
+
+
+def test_instrument_as_recorded_reproduces_the_published_refusal_count():
+    """`frozen.json`'s record of instrument A, checked rather than asserted.
+
+    `instruments[0].user_turn_template` is the only thing that makes instrument A
+    re-derivable by a stranger, and the "9 of 169" in `b_differs_from_a_in` is a
+    published finding. Rendering the recorded template over the committed corpus
+    turns both from claims into a check: if the record is wrong, or the corpus
+    moves, or someone edits the finding to a number that was never measured, this
+    fails."""
+    root = pathlib.Path(judge.ROOT)
+    marks = json.loads(judge.FROZEN.read_text(encoding="utf-8"))
+    recorded_a = marks["instruments"][0]
+    assert recorded_a["instrument"] == "A"
+    assert recorded_a["user_turn_sha256"] is None, (
+        "instrument A had no user-turn pin; a digest here would read as one that existed")
+
+    template = recorded_a["user_turn_template"]
+    cases = yaml.safe_load(
+        (root / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml")
+        .read_text(encoding="utf-8"))
+
+    refused, checked = [], 0
+    for name in AGENT_RUNS:
+        answers = json.loads((root / name).read_text(encoding="utf-8"))
+        for case in cases:
+            answer = (answers.get(case["id"]) or {}).get("answer")
+            if judge.not_applicable(answer):
+                continue
+            viewer = case.get("viewer") or {}
+            text = template.format(
+                question=case["input"], plan=viewer.get("plan"), dma=viewer.get("dma"),
+                answer=answer.get("answer"), cited_titles=answer.get("cited_titles"),
+                axes=", ".join(sorted(set(case.get("judge", {}).get("axes", ())))))
+            checked += 1
+            if not classify.route("internal", text).allowed:
+                refused.append(case["id"])
+
+    assert checked == RENDERINGS
+    assert len(refused) == INSTRUMENT_A_REFUSALS, (
+        f"instrument A as recorded refuses {len(refused)} of {checked}; frozen.json "
+        f"publishes {INSTRUMENT_A_REFUSALS}")
+    assert sorted(set(refused)) == sorted(INSTRUMENT_A_REFUSED_CASES)
+
+
+def test_the_freeze_checks_every_digest_the_instrument_records(monkeypatch, tmp_path):
+    """The general property, not one more instance of it.
+
+    `is_frozen` used to re-list the digests it checked, beside a dict literal in
+    `instrument()` that recorded them, and `user_turn_sha256` ended up in one and
+    not the other for an entire milestone — then in `run_calibration.py` for one
+    commit longer, which is the half that publishes the number. A digest added to
+    `instrument()` must be checked without anyone remembering to add it anywhere."""
+    marks = tmp_path / "frozen.json"
+    marks.write_text(json.dumps(judge.instrument()), encoding="utf-8")
+    monkeypatch.setattr(judge, "FROZEN", marks)
+    assert judge.is_frozen()
+
+    real = judge.instrument
+    monkeypatch.setattr(judge, "instrument", lambda: dict(real(), a_new_digest="deadbeef"))
+    assert "a_new_digest" in judge.freeze_keys()
+    assert not judge.is_frozen(), (
+        "a digest recorded by instrument() is not checked by the freeze; the two lists "
+        "have drifted apart again")
+
+
+def test_a_directory_from_an_unrecorded_instrument_is_refused_by_the_scoring_path():
+    """The blind spot that survived one commit longer than the one it was fixed in.
+
+    `is_frozen` blocks a NEW held-out run. `run_calibration` scores a directory of
+    already-committed output, and its drift check enumerated four digests while
+    `instrument()` recorded five — so instrument-A output scored cleanly under the
+    instrument-B freeze, because A and B are byte-identical on the four it looked
+    at. That is the module a stranger runs to reproduce the published number."""
+    assert judge.matching_instrument(judge.instrument()) is not None, (
+        "the current tree matches no recorded instrument; frozen.json is stale")
+
+    committed_a = json.loads(
+        (pathlib.Path(judge.ROOT) / "milestones" / "M03" / "judge" / "held-out" / "m00b-1.json")
+        .read_text(encoding="utf-8"))["instrument"]
+    assert judge.matching_instrument(committed_a) == "A", (
+        "the committed instrument-A output no longer matches its own record, so the first "
+        "published held-out number is not re-derivable")
+
+    invented = dict(judge.instrument(), prompt_sha256="0" * 64)
+    assert judge.matching_instrument(invented) is None

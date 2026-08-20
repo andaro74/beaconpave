@@ -33,7 +33,6 @@ Owning seat: AI Quality (the judge) · Platform Engineering (the gateway path).
 """
 from __future__ import annotations
 
-import argparse
 import json
 import pathlib
 import sys
@@ -44,7 +43,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
 import gateway_client as gw  # noqa: E402  (sibling module, same as the other runners)
 
-from evals import judge  # noqa: E402
+from evals import judge, plan  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 GOLDENS = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
@@ -83,13 +82,9 @@ def judged_split(label: str, case_ids: set) -> str | None:
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(prog="run_judge", description=__doc__)
-    p.add_argument("--answers", required=True, help="an agent run to judge")
-    p.add_argument("--label", required=True, help="which run these answers are, e.g. m02-tools-1")
-    p.add_argument("--sample", type=int, required=True, help="which judge sample, 1..k_judge")
-    p.add_argument("--out", required=True)
-    p.add_argument("--only", action="append", help="judge only these case ids; repeatable")
-    args = p.parse_args(argv)
+    # The grammar lives in `evals/plan.py`, hermetic, so `plan.argv_for` and this
+    # parser cannot drift apart and a test can check that they haven't.
+    args = plan.judge_parser("run_judge", __doc__).parse_args(argv)
 
     cases = yaml.safe_load(GOLDENS.read_text(encoding="utf-8"))
     if args.only:
@@ -128,7 +123,10 @@ def main(argv=None) -> int:
           f"rubric-axes {marks['rubric_axes_sha256'][:12]}")
     print(f"frozen: {judge.is_frozen()}\n")
 
-    deployed = gw.resources()
+    # `deployed` is the same lookup made above. It used to call `gw.resources()` a
+    # second time, which is one extra `DescribeStacks` per invocation — harmless
+    # alone and 42 per split under `run_split.py`, against a low-limit API whose
+    # throttle would land outside the per-case handler as an uncaught exception.
     function_name = deployed["GatewayFunctionName"]
     print(f"gateway: {function_name}\n")
 

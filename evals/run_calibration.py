@@ -233,17 +233,32 @@ def report(split: str, directory: pathlib.Path, k: int) -> dict:
             f"error: {len(marks)} distinct instrument blocks in {directory}. The judge moved "
             "mid-run; no agreement number computed across it means anything."
         )
-    if split == "held-out":
+    # Which RECORDED instrument produced this directory. Not "does it match the
+    # current freeze": a directory legitimately measured under a retired instrument
+    # keeps its published number (ADR-025), and refusing to re-score it would make
+    # the instrument-A figure un-re-derivable by the stranger the whole hermetic
+    # half exists for. What must never happen is scoring output from an instrument
+    # nobody recorded.
+    #
+    # Enumerated from `judge.freeze_keys()` rather than re-listed here. This check
+    # named four digests while `instrument()` recorded five, so instrument-A output
+    # scored cleanly under the instrument-B freeze -- A and B are byte-identical on
+    # the four it looked at and differ only on the one it did not. The guard whose
+    # own message says "checking that the run used ONE instrument is not the same as
+    # checking it used the FROZEN one" could not see the half of the instrument that
+    # was refusing the calls.
+    named = judge.matching_instrument(marks[0])
+    if named is None:
         pinned = judge.frozen()
-        drifted = sorted(k for k in ("prompt_sha256", "rubric_sha256", "rubric_axes_sha256",
-                                     "rendered_sha256")
+        drifted = sorted(k for k in judge.freeze_keys()
                          if pinned.get(k) != marks[0].get(k))
-        if drifted:
-            raise SystemExit(
-                f"error: the committed judge output was produced under a different instrument "
-                f"than quality/judge/frozen.json pins ({', '.join(drifted)}). Checking that the "
-                "run used ONE instrument is not the same as checking it used the FROZEN one."
-            )
+        raise SystemExit(
+            f"error: the committed judge output in {directory} was produced by an instrument "
+            f"no entry in quality/judge/frozen.json records (differs from the current pin on "
+            f"{', '.join(drifted) or 'nothing listed'}). Checking that the run used ONE "
+            "instrument is not the same as checking it used a RECORDED one. Freeze the "
+            "instrument that produced it, or re-run under one that is recorded."
+        )
 
     scorable, dropped = assemble(split, samples, k)
     by_axis = collections.defaultdict(list)
@@ -260,6 +275,10 @@ def report(split: str, directory: pathlib.Path, k: int) -> dict:
         "split": split,
         "k_judge": k,
         "instrument": marks[0],
+        # Which recorded instrument, by name. A report that shows two tables without
+        # saying which instrument produced each invites a reader to read run-to-run
+        # variance as an instrument effect.
+        "instrument_name": named,
         "refusals": refusal_census(samples),
         "correction_rate": correction_rate(split),
         "dropped_not_applicable": [{"item": d["item"], "axis": d["axis"], "reason": d["reason"]}
@@ -276,7 +295,10 @@ def render(result: dict) -> str:
     served = ref.get("served", 0)
     calls = ref["model_eligible_calls"]
     lines.append(f"split: {result['split']}   k_judge: {result['k_judge']}")
-    lines.append(f"instrument: prompt {result['instrument']['prompt_sha256'][:12]} "
+    # Named, not only fingerprinted. Two reports shown side by side without the name
+    # invite a reader to read run-to-run variance as an instrument effect.
+    lines.append(f"instrument: {result.get('instrument_name', '?')} - "
+                 f"prompt {result['instrument']['prompt_sha256'][:12]} "
                  f"rubric-axes {result['instrument']['rubric_axes_sha256'][:12]}")
     lines.append("")
     lines.append(f"model-eligible judge calls: {calls}   served: {served}")

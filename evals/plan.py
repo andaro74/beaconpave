@@ -23,6 +23,7 @@ Owning seat: AI Quality.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import pathlib
 
@@ -124,7 +125,7 @@ def judge_plan(split: str, k: int, outdir: str) -> list[dict]:
     ]
 
 
-def reusable(out: pathlib.Path, marks: dict) -> tuple[bool, str]:
+def reusable(out: pathlib.Path, marks: dict, step: dict | None = None) -> tuple[bool, str]:
     """Whether an output file already on disk may stand in for running a step again.
 
     Resuming is worth having — a plan is 21 model calls and stopping on step
@@ -153,7 +154,152 @@ def reusable(out: pathlib.Path, marks: dict) -> tuple[bool, str]:
     if was != marks:
         moved = sorted(k for k in set(was) | set(marks) if was.get(k) != marks.get(k))
         return False, f"a different instrument wrote it (differs on {', '.join(moved)})"
+    # `run_judge` writes its output file and THEN returns 1 on a harness failure, so a
+    # throttled step leaves a complete, well-formed, current-instrument file on disk
+    # carrying `harness_error` where its bands should be. Comparing only the
+    # instrument accepted it — which means the driver's own recovery instruction
+    # ("re-run with --resume") skipped precisely the step it was telling the operator
+    # to recover, then reported success. `run_calibration` refuses the directory
+    # afterwards, so nothing false is published; the operator simply learns their
+    # recovery did not recover once the other twenty steps are spent.
+    if doc.get("harness_failures"):
+        failed = ", ".join(doc["harness_failures"])
+        return False, f"the run that wrote it failed on {failed}"
+    if any("harness_error" in case for case in (doc.get("cases") or {}).values()):
+        return False, "it carries a harness error in place of bands"
+    if step is not None:
+        if doc.get("label") != step["label"] or doc.get("sample") != step["sample"]:
+            return False, (f"it holds {doc.get('label')} sample {doc.get('sample')}, "
+                           f"not {step['label']} sample {step['sample']}")
+        missing = sorted(set(step["cases"]) - set(doc.get("cases") or {}))
+        if missing:
+            return False, f"it is missing {', '.join(missing)}"
     return True, "same instrument"
+
+
+def spend(steps: list[dict]) -> dict:
+    """What executing `steps` will actually cost, decided offline.
+
+    The driver reported "21 judge invocations" and an operator reads that as 21
+    model calls. It is 57 case judgements, of which the instrument-A run shows 48
+    reached the model — `not_applicable` settles a gateway refusal, an `unparsed`
+    turn and a missing answer object deterministically before any call. The header
+    understated the spend by more than a factor of two, in a tool whose stated
+    purpose is that a stranger can find out what reproducing a number costs.
+
+    Every input is committed, so this is arithmetic rather than an estimate."""
+    from evals import judge
+
+    judgements = sum(len(step["cases"]) for step in steps)
+    eligible = skipped = 0
+    cache: dict = {}
+    for step in steps:
+        path = ROOT / step["answers"]
+        if step["answers"] not in cache:
+            cache[step["answers"]] = json.loads(path.read_text(encoding="utf-8"))
+        answers = cache[step["answers"]]
+        for case_id in step["cases"]:
+            answer = (answers.get(case_id) or {}).get("answer")
+            if judge.not_applicable(answer):
+                skipped += 1
+            else:
+                eligible += 1
+    return {"invocations": len(steps), "case_judgements": judgements,
+            "model_eligible_calls": eligible, "not_applicable": skipped}
+
+
+def strays(outdir: str, steps: list[dict]) -> list[str]:
+    """Files in `outdir` that no step in this plan will write.
+
+    Output names are `{run}-{sample}.json` and six of seven run labels appear in
+    both splits, so `m01-1.json` from a dev run survives into a held-out directory
+    and `run_calibration`'s `refusal_census` globs the whole directory rather than
+    filtering by split — a leftover from the same instrument inflates
+    `model_eligible_calls` and every refusal percentage in the published report.
+    `instruments()` catches a cross-instrument leftover and cannot catch this one."""
+    planned = {pathlib.Path(step["out"]).name for step in steps}
+    directory = pathlib.Path(outdir)
+    if not directory.is_dir():
+        return []
+    return sorted(f.name for f in directory.glob("*.json") if f.name not in planned)
+
+
+def foreign_instrument(outdir: str, marks: dict) -> list[str]:
+    """Files in `outdir` written by an instrument other than the current one.
+
+    A new instrument gets a new directory. `milestones/M03/judge/held-out/` holds
+    the instrument-A output that the first published agreement number rests on and
+    that `tests/test_judge_plan.py` asserts the plan against; pointed at it under
+    instrument B, the driver would have overwritten all 21 files. `--resume` is no
+    protection — it correctly decides to re-run them, and re-running writes over
+    them. Git would notice afterwards. The 48 spent calls would not come back.
+
+    Refusing outright rather than warning: this is the only failure here that
+    destroys evidence, and the recovery for a wrong `--outdir` is to type a
+    different one."""
+    directory = pathlib.Path(outdir)
+    if not directory.is_dir():
+        return []
+    from evals import judge
+
+    keys = judge.freeze_keys()
+    out = []
+    for path in sorted(directory.glob("*.json")):
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        was = doc.get("instrument")
+        if was and any(was.get(k) != marks.get(k) for k in keys):
+            out.append(path.name)
+    return out
+
+
+def guardrail_versions(outdir: str) -> list[str]:
+    """The distinct enforced guardrail versions recorded across a directory.
+
+    `run_judge` exits if one invocation spans two versions; `run_calibration`
+    exits if a directory does. Between them sat `reusable`, which permitted a
+    resume across a guardrail deploy — so the operator spent the remaining calls
+    and then found the directory rejected as "the judge moved mid-run", with
+    `--resume` unable to repair it because it would go on reusing the old-version
+    files forever. Three components, three answers to one question. This is the
+    third answering the same way as the other two, before the calls rather than
+    after."""
+    seen: list[str] = []
+    directory = pathlib.Path(outdir)
+    if not directory.is_dir():
+        return []
+    for path in sorted(directory.glob("*.json")):
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        version = (doc.get("instrument") or {}).get("guardrail_version")
+        if version and str(version) not in seen:
+            seen.append(str(version))
+    return seen
+
+
+def judge_parser(prog: str = "run_judge", description: str | None = None):
+    """The one grammar for a judge invocation.
+
+    `run_judge.main` builds its parser from this, `argv_for` emits arguments for
+    it, and `tests/test_judge_plan.py` round-trips one against the other. The test
+    used to hand-rebuild the parser instead — which made it a *third* phrasing that
+    could disagree with the other two, and it would have passed with `--only`
+    renamed while `run_split` died on step one. It could not import the real one:
+    `run_judge` imports boto3 and `tests/` is a hermetic root. Moving the grammar
+    here is what lets the check be real, and it is the same argument that moved the
+    user-turn template into a file."""
+    parser = argparse.ArgumentParser(prog=prog, description=description)
+    parser.add_argument("--answers", required=True, help="an agent run to judge")
+    parser.add_argument("--label", required=True,
+                        help="which run these answers are, e.g. m02-tools-1")
+    parser.add_argument("--sample", type=int, required=True, help="which judge sample, 1..k_judge")
+    parser.add_argument("--out", required=True)
+    parser.add_argument("--only", action="append", help="judge only these case ids; repeatable")
+    return parser
 
 
 def argv_for(step: dict) -> list[str]:

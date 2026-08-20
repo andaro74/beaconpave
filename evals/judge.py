@@ -174,8 +174,53 @@ def instrument() -> dict:
     }
 
 
+def freeze_keys() -> tuple:
+    """Every digest the freeze covers.
+
+    One source for all three readers — `is_frozen`, `run_calibration`'s held-out
+    drift check, and `plan.reusable`. The alternative is what M03 shipped: three
+    hand-maintained lists that agreed until one of them didn't, and the one that
+    didn't was the one that publishes the number."""
+    return tuple(instrument())
+
+
 def frozen() -> dict:
     return json.loads(FROZEN.read_text(encoding="utf-8")) if FROZEN.is_file() else {}
+
+
+def known_instruments() -> list[dict]:
+    """Every instrument this repo has published a number under, current first.
+
+    `frozen.json` carries the current instrument at top level and each retired one
+    in `instruments`. Both are answers to "was this run produced by an instrument
+    somebody recorded", which is the question the scoring path has to ask — a
+    directory may legitimately have been measured under a retired instrument, and
+    its number stays published (ADR-025)."""
+    marks = frozen()
+    if not marks:
+        return []
+    current = {k: marks.get(k) for k in freeze_keys()}
+    current["instrument"] = marks.get("instrument", "current")
+    out = [current]
+    for past in marks.get("instruments") or []:
+        entry = {k: past.get(k) for k in freeze_keys()}
+        entry["instrument"] = past.get("instrument", "?")
+        out.append(entry)
+    return out
+
+
+def matching_instrument(marks: dict) -> str | None:
+    """Which recorded instrument produced `marks`, or `None` if none did.
+
+    A key absent from a run's recorded block compares equal to a key recorded as
+    `null`, which is how instrument A matches: it never wrote `user_turn_sha256`
+    at all, and `frozen.json` records its value as `null` precisely because there
+    was no pin. That is the whole reason not to back-fill a digest there — a
+    fabricated value would make A's own committed output stop matching A."""
+    for known in known_instruments():
+        if all(known.get(k) == marks.get(k) for k in freeze_keys()):
+            return known["instrument"]
+    return None
 
 
 def is_frozen() -> bool:
@@ -193,9 +238,13 @@ def is_frozen() -> bool:
     # groundedness against. Without it, editing the catalog changes every band the
     # judge would return and the freeze check still passes — the prompt is pinned
     # and the thing it is pinned around is not.
-    return all(marks.get(k) == now[k]
-               for k in ("prompt_sha256", "rubric_sha256", "rubric_axes_sha256",
-                         "rendered_sha256", "user_turn_sha256"))
+    # Derived from `instrument()`, never re-listed. A hand-maintained tuple beside a
+    # hand-maintained dict is how `user_turn_sha256` came to be recorded by one and
+    # checked by neither, and repeating the list a third time in
+    # `run_calibration.py` is how the scoring path kept the blind spot after
+    # `is_frozen` lost it. Adding a digest to `instrument()` now checks it
+    # everywhere, which is the property, not the tuple.
+    return all(marks.get(k) == v for k, v in now.items())
 
 
 def held_out_guard() -> None:

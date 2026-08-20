@@ -88,7 +88,7 @@
                 "INFRA"
               ]
             },
-            "description": "The per-sample verdicts this case's `result` was summarised from, in run order. Present only when `k` > 1. It exists so a 2-1 majority is checkable in the entry rather than asserted by whoever ran it \u2014 `k` alone says a summary happened and not what it summarised, and PASS/FAIL/PASS and PASS/PASS/PASS record the same verdict from very different evidence. INFRA never appears here: a sample that established nothing triggers a full re-run rather than entering the pool."
+            "description": "The per-sample verdicts this case's `result` was summarised from, in run order. Present only when `k` > 1. It exists so a 2-1 majority is checkable in the entry rather than asserted by whoever ran it — `k` alone says a summary happened and not what it summarised, and PASS/FAIL/PASS and PASS/PASS/PASS record the same verdict from very different evidence. INFRA never appears here: a sample that established nothing triggers a full re-run rather than entering the pool."
           }
         }
       }
@@ -107,7 +107,7 @@
     },
     "cost_usd": {
       "type": "number",
-      "description": "Rendered from tokens at the pinned regional rate. Never compare two entries on this field alone \u2014 the rate may differ between them."
+      "description": "Rendered from tokens at the pinned regional rate. Never compare two entries on this field alone — the rate may differ between them."
     },
     "supersedes": {
       "type": "string",
@@ -116,7 +116,7 @@
     "k": {
       "type": "integer",
       "minimum": 1,
-      "description": "How many samples per case the entry is derived from, and how. k=1 (or absent) is a single run, which is what m00b and m01 hold. k>1 means each case's result is the majority verdict across k samples of the same commit \u2014 introduced at M02, where the tool loop made per-case outcomes non-deterministic (the same request was refused on one sample and answered on another). Without this field, a reader cannot tell a single sample from a summarised one, and 'we designated the run in advance' is a social protection rather than a legible one. **Ties:** with k=3 over PASS/FAIL a strict majority always exists, and an INFRA result triggers a full re-run rather than entering the pool \u2014 so no tie is reachable at M02. ADVISORY arrives with the judge at M03 and makes a 1-1-1 split possible; the rule is that a case with no strict majority records ADVISORY and is named in the journal, never rounded toward the flattering verdict. Written now, while nothing is riding on it."
+      "description": "How many samples per case the entry is derived from, and how. k=1 (or absent) is a single run, which is what m00b and m01 hold. k>1 means each case's result is the majority verdict across k samples of the same commit — introduced at M02, where the tool loop made per-case outcomes non-deterministic (the same request was refused on one sample and answered on another). Without this field, a reader cannot tell a single sample from a summarised one, and 'we designated the run in advance' is a social protection rather than a legible one. **Ties:** with k=3 over PASS/FAIL a strict majority always exists, and an INFRA result triggers a full re-run rather than entering the pool — so no tie is reachable at M02. ADVISORY arrives with the judge at M03 and makes a 1-1-1 split possible; the rule is that a case with no strict majority records ADVISORY and is named in the journal, never rounded toward the flattering verdict. Written now, while nothing is riding on it."
     },
     "samples_from": {
       "type": "array",
@@ -136,7 +136,7 @@
           }
         }
       },
-      "description": "The answer files this entry was summarised from, with a sha256 of each. It exists because `k` is otherwise the number of files the operator chose to pass, not the number of runs that happened \u2014 running five and passing the best three produced an entry byte-indistinguishable from an honest one, and nothing tied a recorded score to a committed run file. `close-milestone` checks that the named files are committed and that their hashes still match."
+      "description": "The answer files this entry was summarised from, with a sha256 of each. It exists because `k` is otherwise the number of files the operator chose to pass, not the number of runs that happened — running five and passing the best three produced an entry byte-indistinguishable from an honest one, and nothing tied a recorded score to a committed run file. `close-milestone` checks that the named files are committed and that their hashes still match."
     },
     "arm": {
       "type": "string",
@@ -162,6 +162,13 @@
           "type": "string",
           "description": "The fully rendered prompt, rubric and catalog together - what the model saw."
         },
+        "user_turn_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The user-turn template that frames every case, as frozen in quality/judge/frozen.json. Added at M03 after instrument B. For the whole of instrument A this text was a Python literal that no frozen digest covered, so the two instruments would have recorded identical marks - the exact ambiguity this whole `instrument` object exists to prevent. It is `required` because an entry that omits it is indistinguishable from an instrument-A entry, and append-only history cannot be repaired later. An instrument-A entry records it as null, which is meaningful: there was no pin, and back-filling a digest would read as one that existed at the time."
+        },
         "guardrail_version": {
           "type": "string",
           "description": "The published guardrail version enforcing the call. **Required for any judged entry.** M03 recorded two dev passes under guardrail versions 1 and 2 whose instrument blocks were byte-identical, because the enforced policy was not part of the instrument; the refusal rate differed and nothing in the record said why. ADR-018 pins the version so the enforced policy cannot drift - this makes the pinned version legible in the number it produced."
@@ -178,7 +185,8 @@
       },
       "required": [
         "prompt_sha256",
-        "rubric_axes_sha256"
+        "rubric_axes_sha256",
+        "user_turn_sha256"
       ]
     },
     "judge_axes": {
