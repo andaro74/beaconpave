@@ -271,4 +271,27 @@ lifted out of the brand_tone axis into the reviewer-facing half of the file,
 because everything inside an axis is now sent to the model verbatim and that note
 is written for two seats rather than for a judge. The judge prompt is new, is
 hash-pinned together with the rubric slice it embeds, and cannot score the
-held-out half until those digests are frozen in a commit.
+held-out half until those digests are frozen in a commit. `evals/comparators.json` is
+itself a two-key path and is disposed here by AI Quality and Platform Engineering.
+It was **not** one when the L2 lane landed: three separate places asserted the
+rule existed — the file's own `_comment`, the lane's failure message, and a commit
+message — while `pave/twokey.py` matched only `^evals/history/`, so the immutable
+artifact was protected and the live gate criterion was not, and the remediation
+loop closed unattested. Three seats found it independently in the final review.
+Adding the rule is itself a two-key act on `pave/twokey.py`, and it adds a path
+rather than removing one: no threshold moves and no recorded score changes.
+`evals/deterministic.py` and `data/catalog.json` are deliberately outside it,
+because a scorer change should be reviewable as code and becomes visible the
+moment it moves a comparator, which now needs the second key — the property being
+that the loop cannot be closed unattested rather than that every input is gated.
+The comparator values themselves are pinned for the first time rather than moved:
+they are what the current instrument already produces. ADR-029 records the lane's
+scope decision, which CLAUDE.md requires and which had been living in a docstring.
+ADR-028's conclusion is corrected rather than restated: re-run at `k = 3` with the
+viewer turn the real runners use, four of five phrasings agree and **`PHR-004` —
+the product's most basic question — is blocked by `TOPIC:entitlement-circumvention`
+in 1 of 3 identical calls**, so the narrowing cut past the subject matter without
+cutting past the behaviour and the topic still sometimes swallows the product. The
+finding is recorded in the corpus, pinned by id in a test so it cannot be widened
+or resolved by deleting the phrasing it fails on, and owed to Security as part of
+M01's second tightening.
