@@ -17,38 +17,73 @@ and rename it for yours.
 
 ## Progression
 
-| M | Milestone | Branch | Tag | Goldens | Adversarial | Status |
-|---|---|---|---|---|---|---|
-| 00a | Foundation: a gate that can fail | `m00a-foundation` | `m00a` | n/a ‡ | n/a ‡ | ✅ |
-| 00b | Ungoverned agent (**the control**) | `m00b-ungoverned-baseline` | `m00b` | **15/25** †§ | **0/10** ¶ | ✅ |
-| 01 | Gateway + audit lake + IAM assertions | `m01-gateway` | `m01` | **19/25** ‖ | **7/10** ✽ | ✅ |
-| 02 | Tool registry + Cedar + catalog-search | `m02-tool-plane` | `m02` | **16/25** ✾ | not run ✿ | ✅ |
-| 03 | Eval harness + judge calibration | `m03-evals` | `m03` | –/25 | – | ⬜ |
-| 04 | Fail-closed gate + adversarial suite | `m04-gate` | `m04` | –/25 | –/10 | ⬜ |
-| 05 | `pave new` scaffold + manifest verify | `m05-paved-road` | `m05` | – | – | ⬜ |
-| 06 | 2nd tool + consequence interlock | `m06-consequence` | `m06` | –/25 | –/10 | ⬜ |
-| 07 | Rules registry + regdelta loop | `m07-rules` | `m07` | –/25 | – | ⬜ |
-| 08 | Playwright + k6 on one verdict schema | `m08-surfaces` | `m08` | – | – | ⬜ |
-| 09 | Game-day drill + go/no-go artifact | `m09-drill` | `m09` | – | – | ⬜ |
-| 10 | Self-heal classifier + curation panel | `m10-selfheal` | `m10` | –/25 | –/10 | ⬜ |
+| M | Milestone | Branch | Tag | Goldens | Judged ✧ | Adversarial | Status |
+|---|---|---|---|---|---|---|---|
+| 00a | Foundation: a gate that can fail | `m00a-foundation` | `m00a` | n/a ‡ | n/a ‡ | n/a ‡ | ✅ |
+| 00b | Ungoverned agent (**the control**) | `m00b-ungoverned-baseline` | `m00b` | **15/25** †§ | **−0** ✧ | **0/10** ¶ | ✅ |
+| 01 | Gateway + audit lake + IAM assertions | `m01-gateway` | `m01` | **19/25** ‖ | not judged ✧ | **7/10** ✽ | ✅ |
+| 02 | Tool registry + Cedar + catalog-search | `m02-tool-plane` | `m02` | **16/25** ✾ | not judged ✧ | not run ✿ | ✅ |
+| 03 | Eval harness + judge calibration | `m03-evals` | `m03` | n/a ❂ | **−0** ✧ | not run ❂ | ⬜ |
+| 04 | Fail-closed gate + adversarial suite | `m04-gate` | `m04` | –/25 | – | –/10 | ⬜ |
+| 05 | `pave new` scaffold + manifest verify | `m05-paved-road` | `m05` | – | – | – | ⬜ |
+| 06 | 2nd tool + consequence interlock | `m06-consequence` | `m06` | –/25 | – | –/10 | ⬜ |
+| 07 | Rules registry + regdelta loop | `m07-rules` | `m07` | –/25 | – | – | ⬜ |
+| 08 | Playwright + k6 on one verdict schema | `m08-surfaces` | `m08` | – | – | – | ⬜ |
+| 09 | Game-day drill + go/no-go artifact | `m09-drill` | `m09` | – | – | – | ⬜ |
+| 10 | Self-heal classifier + curation panel | `m10-selfheal` | `m10` | –/25 | – | –/10 | ⬜ |
 
 Fill each row at milestone close (see `.claude/skills/close-milestone`).
+
+✧ **The judged column is what the judge SUBTRACTED, not a re-scored total.** A
+judge in this repo can only subtract: `veto` turns a deterministic PASS into a
+judged FAIL and never the reverse. It is written as a signed count so that a
+reader cannot compare it against the Goldens column and read a difference as an
+improvement.
+
+**It is −0 everywhere, and that is a measurement rather than a default.** M03
+published the judge's per-axis agreement on 20 held-out items at `k_judge = 3` and
+**every axis demoted** on at least two of the three rules SPEC/03 fixed in
+advance. `veto` consults only calibrated axes, the calibrated set is empty, and a
+judged score is therefore identical to its deterministic score for every case, by
+construction. Read it as *the judge was measured and found unfit to move this*,
+never as *the judge concurred* (ADR-012's 2026-08-20 amendment, ADR-025).
+
+**The `m00b` judged entry records 18/25, and none of the difference from 15/25 is
+the judge.** `evals/history/m00b-judged-B-goldens.json` scores the same answers
+under **today's** deterministic instrument, which is the 18/25 comparator footnote
+‖ already describes and `tests/test_instrument_stability.py` re-derives on every
+run. The judge's own contribution to that row is the −0 in this column. The entry
+carries an `instrument.deterministic` block naming what scored the deterministic
+half precisely so the two cannot be confused: without it a reader sees 15 and 18
+under one sha and concludes the judge added three passes, which is the one thing
+it cannot do.
+
+**`m01` and both `m02` arms are cut, with the reason recorded.** A judged re-score
+of either would cost model calls to produce a number already known to equal its
+deterministic score — the judge can move nothing until an axis calibrates. The
+cut is recorded rather than silently skipped, and it reverses the moment any axis
+calibrates. See `SPEC/03-evals.md`.
+
+❂ **M03 changed no system under test.** It built the instrument that reads one.
+There is no new agent run, so there is no golden score and no probe score to
+record: the milestone's artifacts are a published agreement number
+(`milestones/M03/judge/held-out-report.json`), an auto-demotion test, and the
+first judged history entry. Its own row's `−0` is the `m00b` anchor's, and the
+adversarial suite is M04's.
 
 † The `m00b` golden score is **deterministic asserts only** — schema conformance,
 `must_mention` / `must_not_claim`, groundedness via `cited_titles`, budgets. The
 judge does not exist until M03, and a judge with no published agreement number
-cannot produce a blocking score (G9). M03 re-scores the `m00b` commit and appends
+cannot produce a blocking score (G9). M03 re-scored the `m00b` commit and appended
 a second entry under the same sha, distinguished by `instrument` and **not** by
 `supersedes` — 15/25 is a correct measurement under a different instrument, not a
-wrong one. Both numbers stay in the table.
+wrong one, and `supersedes` means *corrects a wrong entry* (ADR-027).
 
-**The two numbers are equal, and that is not agreement.** M03 measured the judge's
-per-axis agreement on 20 held-out items and every axis demoted, so no axis is
-calibrated and `veto` consults only calibrated axes. The judge can subtract
-nothing, and a judged score therefore matches its deterministic score for every
-case by construction. Read the judged column as *the judge was measured and found
-unfit to move this*, never as *the judge concurred*. See ADR-012's 2026-08-20
-amendment and `SPEC/03-evals.md`.
+**This row stays at 15/25: what was known at that milestone, and what every later
+delta was measured against.** Two other numbers exist for the same commit and both
+are footnotes rather than the row — 18/25 under today's deterministic instrument
+(‖) and the judged anchor, which is the same 18/25 because the judge subtracted
+nothing (✧). Three numbers, one commit, and only one of them is the milestone's.
 
 § **Four of the fifteen `m00b` passes are unearned**, and the marks are recorded
 in the history entry itself rather than only in prose. The control claims
@@ -190,7 +225,7 @@ Anything that doesn't serve one is out of scope.
 | 7 | AI proposes, a human disposes, rates published | An `ai-proposed` PR merged; curation panel | 10 |
 | 8 | Self-heal classifies before it repairs | Classifier test suite + one drift-repair PR | 10 |
 | 9 | Judges are calibrated or advisory | Published agreement number; auto-demotion test | 03 |
-| 10 | Consequence classes gate real actions | `publish_highlight` waits on human approval | 06 |
+| 10 | Consequence classes gate real actions | – | `publish_highlight` waits on human approval | 06 |
 | 11 | Readiness drills produce go/no-go artifacts | NO-GO → fix → delta drill → GO | 09 |
 | 12 | Defect leakage is counted honestly | Increments from rollbacks, never gate failures | 10 |
 
