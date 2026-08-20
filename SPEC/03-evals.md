@@ -862,9 +862,16 @@ mechanism with nothing calibrating it.
       never silently skipped
 - [x] Progression table gains a judged column; the deterministic column unmoved and
       still comparable to `m00b`
-- [x] ADRs: the judge as a pinned instrument whose raw output is committed; the
-      calibration corpus size and freeze rule; `instrument` versus `supersedes`;
-      plus the ADR-012 amendment
+- [x] ADRs: the judge as a pinned instrument whose raw output is committed
+      (**ADR-025**); the calibration corpus size and freeze rule (**ADR-026**);
+      `instrument` versus `supersedes` (**ADR-027**, amended the same day with a
+      fifth rule after building the writer found a fact the first four could not
+      express); plus the **ADR-012** amendment.
+      Two more the milestone turned out to owe: **ADR-028**, a second adversarial
+      corpus that scores nothing, and **ADR-029**, the L2 lane's scope decision —
+      both demanded by a check or a seat rather than planned, and both recorded
+      rather than waived. **ADR-024** gained a falsification amendment: the
+      narrowing did not remove the instrument outage
 - [x] `pave evals dryrun` stops being a stub. It currently prints
       *"(stub) would: load goldens, resolve fixtures, validate asserts — without
       calling a model (M03)"* and names this milestone in its own output, while
