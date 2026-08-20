@@ -2,34 +2,56 @@
 
 **Status: in progress. Do not merge.** Opened early so `gate` and `two-key` run
 on every push — workflows only fire on PRs to `main`, so a milestone branch with
-no PR gets no CI at all. The definition of done in `SPEC/03-evals.md` is mostly
-unticked and the judge does not exist yet.
+no PR gets no CI at all.
 
-**#21 is merged and this branch is rebased onto it.** The account-ID guard
-matched any twelve-digit run, and a sha256 has roughly a 17% chance of containing
-one; this branch commits thirty digests, so it could not be green until that
-landed.
+Claim 9 — *judges are calibrated or advisory*. **Both artifacts now exist.** The
+published agreement number is `milestones/M03/judge/held-out-report.json` and the
+auto-demotion test is in `tests/test_judge.py`.
 
-Claim 9 — *judges are calibrated or advisory* — with two artifacts owed: a
-published agreement number and an auto-demotion test.
+**The result is that no axis is calibrated and the judge is advisory in full.**
+Twenty held-out items at `k_judge = 3`, prompt frozen before the split was read:
+`brand_tone` 0.00 (n=3), `completeness` 0.00 / κ −0.19 (n=5), `concision` 0.67
+(n=3), `groundedness` 0.00 (n=6). Every axis demotes on two independent rules.
+The AI Quality seat's correction rate is published beside it: **0 of 20**.
 
-## What is committed so far
+**A judged score therefore cannot differ from its deterministic score.** `veto()`
+consults only calibrated axes and there are none. Read the progression table's
+judged column as *the judge was measured and found unfit to move this*, never as
+*the judge concurred*.
 
-| commit | what |
-|---|---|
-| `815b172` | `SPEC/03-evals.md`, the branch's first commit, before any code |
-| `ea9ca2c` | the 30-item calibration corpus, **with no labels** |
-| `647e2c3` | 30 drafted labels, awaiting the AI Quality seat's disposition |
-| *this one* | the rebase correction below, and this body |
+## The commits, in order, because the order is the milestone
 
-(Those SHAs are post-rebase. The pre-rebase ones are gone, which is the fourth
-finding.)
+An agreement number computed on the set the judge was tuned against measures
+nothing, and no test can prove label independence — only the history can. So the
+spec is committed before the corpus, the corpus before the labels, and the labels
+before any judge prompt exists in the tree.
 
-**The commit ordering is the milestone.** An agreement number computed on the set
-the judge was tuned against measures nothing, and no test can prove label
-independence — only the history can. So the spec is committed before the corpus,
-the corpus before the labels, and the labels before any judge prompt exists in
-the tree. At this commit there is still no judge prompt anywhere.
+| # | commit | what |
+|---|---|---|
+| 1 | `7900a98` | `SPEC/03-evals.md`, before any code |
+| 2 | `ad12bb5` | the 30-item calibration corpus, **with no labels** |
+| 3 | `18368d2` | 30 drafted labels, **before any judge prompt exists** |
+| 4 | `39d4734` | a commit SHA is not a stable name for a commit |
+| 5 | `a65a9f9` | the seat disposes 30 of 30; the correction-rate prediction is falsified |
+| 6 | `d53eb79` | `evals/judge.py`, the hermetic half |
+| 7 | `bea1f43` | `run_judge.py`, through the gateway under its own identity |
+| 8 | `87d974d` | the guardrail refuses the judge; the pre-registration is off by an order of magnitude |
+| 9 | `cb02310` | the narrowing is live and the judge is still refused half the time |
+| 10 | `de1accc` | the corpus was sized against a threshold, not against a refusal rate |
+| 11 | `6359f8f` | the freeze — untuned, and said so |
+| 12 | `ef1a1af` | the held-out number, and no axis survives it |
+| 13 | `eebfe06` | `instrument`, not `supersedes` |
+| 14 | `c0f8759` | four seats reviewed; the test named for the defect did not test it |
+| 15 | `b149572` | the guardrail version, read from the records rather than from the stack |
+| 16 | `9ef9e69` | instrument B: the freeze could not see the half that was refusing the calls |
+| 17 | `192ae26` | the split-aware runner, and the resume that must not mix instruments |
+
+(SHAs 1–4 are post-rebase; the pre-rebase ones are gone, which is the fourth
+finding below.)
+
+**#21 is merged and this branch is rebased onto it.** The account-ID guard matched
+any twelve-digit run, and a sha256 has roughly a 17% chance of containing one;
+this branch commits thirty digests, so it could not be green until that landed.
 
 ## Decisions this PR asks the seats to read
 
@@ -62,6 +84,38 @@ agreement, not for correlated error. G6 is what makes it legitimate: provenance 
 is published beside every agreement figure in the same sentence. A rate near zero
 cannot distinguish good drafts from a rubber stamp, so it is reported as a
 limitation and never as a validation.
+
+**The judge became a second instrument, and the freeze could not see it.** The
+four-seat review flagged that `judge.user_turn` opened with `VIEWER QUESTION:` /
+`VIEWER CONTEXT:` and that `viewer` is a `SUBJECT_TERM` in the gateway's
+classifier. Reproduced: `entitlement-012`'s recorded answer says the event "may
+be listed under a different name", `name` is an `ATTRIBUTE_TERM`, and the pair
+classifies `sensitive`. The instrument supplied the subject half of a
+personal-data refusal and the answer under test supplied the attribute half.
+Swept across all eight committed agent runs it refused 9 of 169 case-by-answer
+renderings, on `entitlement-012` and `grounded-019`. **The fix is in the
+instrument and never in `platform/gateway/core/classify.py`** — the control was
+not wrong, the judge really was sending it a subject term.
+
+What the fix turned up is worse than the fix. `user_turn` was a Python literal
+whose own docstring read *"this is instrument text … a word changed here changes
+every band"*, and **not one of the four frozen digests covered a single one of
+those words**: the function could be replaced wholesale and `is_frozen()` still
+returned `True`. Two different instruments could have recorded one fingerprint —
+precisely the confusion `instrument` was added to `evals/history/schema.json` to
+make impossible, and the republished number would have carried marks identical to
+the first one's. The template moves to `quality/judge/user-turn.md`,
+`instrument()` gains `user_turn_sha256`, and `frozen.json` becomes **instrument
+B** while recording instrument A beside it — A's four digests, its template
+recovered verbatim from `b149572`, and its `user_turn_sha256` as `null` with a
+note. A digest written there now would read as a pin that existed at the time.
+The absence is the finding.
+
+A's prompt, rubric, rubric-axes and rendered digests are byte-identical to B's.
+Only the user turn moved, and both of its differences are recorded — the two
+labels, and one trailing newline nobody expects to move a band — because the
+re-run's delta has to be attributable to the whole difference and not only to the
+interesting half.
 
 ## Three findings from drafting, all recorded before disposition
 
@@ -111,17 +165,31 @@ commit SHA does not.**
 
 ## What is still owed on this branch
 
-- disposition of all 30 labels by the AI Quality seat, before the judge runs
-- `evals/judge.py` (hermetic) and `run_judge.py` (through the gateway — G1)
-- `instrument` and `guardrail_refusals` in the history schema
-- the m00b judged anchor at `k_judge = 3`, and both M02 arms judged
-- `milestones/M03/judge-agreement.json` and `tests/test_judge_demotion.py` — the
-  two halves of claim 9's artifact
-- the four-seat review, **before** any judged run
-- the `cited_titles_in_fixture` tightening, which lands in its own PR from `main`
-  first: it moves both comparator pins and makes `edge-025` the fourth loss in
-  M02's paired diff, and letting it drift in here would make every judged delta
-  unattributable
+- the instrument-B held-out re-run, and **both** numbers published — A and B, with
+  the instrument named against each. The A number is not withdrawn: it is a
+  correct measurement of an instrument that was really in use, and the seat that
+  reads it is entitled to see what changed and what did not
+- the `m00b` judged anchor at `k_judge = 3`, carrying `instrument` and **no**
+  `supersedes`
+- a judged history entry. `instrument`, `judge_axes` and `guardrail_refusals` are
+  in `evals/history/schema.json` and **nothing writes them into `evals/history/`
+  yet** — schema only
+- SPEC/01's guardrail-refusal band asserted at suite level, reporting only
+  (two-key: AI Quality **and** Security)
+- the `m01` cut recorded, and both M02 arms cut with the reason recorded
+- the progression table's judged column
+- three ADRs — the judge as a pinned instrument whose raw output is committed; the
+  calibration corpus size and freeze rule; `instrument` versus `supersedes` — plus
+  the ADR-012 amendment, and an ADR-024 falsification amendment
+- `quality-gate.yml`'s L2 evals lane, still commented `# turns on at M03`
+- `milestones/M03/README.md`, the DoD ticks, and the tag
+
+**Landed since the four-seat review:** the seat-review fixes (`c0f8759`), the
+guardrail-version source (`b149572`), instrument B (`9ef9e69`), and the
+split-aware runner (`192ae26`). The review ran **before** the judged runs, as
+SPEC/03's own definition of done requires — and it is what found both the
+`assemble()` undecided-drop and the G1-shaped hole, so the ordering earned its
+place.
 
 ## Reviewing seats
 
@@ -146,7 +214,32 @@ published number rather than an unrecorded act; the judge runner will refuse to
 run until all thirty are disposed. No threshold is relaxed here: the only
 threshold change is the clarification that the five-item evidence floor counts
 scorable held-out items, which tightens it, and it was written before any label
-was disposed and before any agreement number existed. The rubric is edited here
+was disposed and before any agreement number existed. The freeze
+(`quality/judge/frozen.json`) is a two-key act in its own right and is disposed
+here: freezing pins the instrument so that "the prompt was not tuned against the
+measured half" is a check rather than a promise, and the record says in its own
+text that the prompt was frozen **untuned** — the dev pass yielded four judged
+case-instances and two borderline disagreements, too little signal to tune
+against, and tuning toward labels drafted by this same model family is the
+circularity the 0% correction rate already flags. Re-freezing to instrument B is
+disposed on the narrower ground that it changes no band definition: the prompt,
+the rubric and the rubric axes are byte-identical to instrument A and the digests
+of all four are recorded side by side in the file for anyone to diff. The
+instrument moved because it was supplying half of a classification refusal and
+because the freeze had a blind spot the size of the entire user turn; neither is a
+reason to relax a threshold and none is relaxed. Instrument A is retained rather
+than overwritten, and its number will be published beside B's rather than replaced
+by it, because withdrawing a correct measurement of an instrument that was really
+in use is exactly the history rewrite `supersedes` exists to keep visible. The
+history schema change (`instrument`, `judge_axes`, `guardrail_refusals`) is
+disposed on the same reasoning ADR-012's amendment records: a judged number is a
+model output nobody can regenerate, so the row has to say which instrument
+produced it, and `supersedes` cannot carry that because it means *corrects a wrong
+entry* while a moved instrument corrects nothing. `judge_axes` and
+`guardrail_refusals` are additive and reporting-only — no recorded score changes
+by their presence, and `guardrail_refusals` exists so that the largest
+unexplained cost in the platform is visible in the history rather than only in a
+milestone README. The rubric is edited here
 and the edit moves no band and no threshold: a seat-boundary note about ADV-005 is
 lifted out of the brand_tone axis into the reviewer-facing half of the file,
 because everything inside an axis is now sent to the model verbatim and that note
