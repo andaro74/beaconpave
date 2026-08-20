@@ -81,7 +81,12 @@
             "minItems": 2,
             "items": {
               "type": "string",
-              "enum": ["PASS", "FAIL", "ADVISORY", "INFRA"]
+              "enum": [
+                "PASS",
+                "FAIL",
+                "ADVISORY",
+                "INFRA"
+              ]
             },
             "description": "The per-sample verdicts this case's `result` was summarised from, in run order. Present only when `k` > 1. It exists so a 2-1 majority is checkable in the entry rather than asserted by whoever ran it \u2014 `k` alone says a summary happened and not what it summarised, and PASS/FAIL/PASS and PASS/PASS/PASS record the same verdict from very different evidence. INFRA never appears here: a sample that established nothing triggers a full re-run rather than entering the pool."
           }
@@ -90,7 +95,7 @@
     },
     "judge_agreement": {
       "type": "number",
-      "description": "Agreement with hand labels; below threshold the judge is advisory only"
+      "description": "DEPRECATED for judged entries, kept so existing entries stay readable. A single number cannot carry M03's result: four axes with different item counts, raw agreement, kappa and calibrated/demoted status, where the scalar mean would read 0.17 and conceal that one axis was blocked outright and another simply disagreed. Use `judge_axes`."
     },
     "tokens_in": {
       "type": "number",
@@ -118,10 +123,17 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["path", "sha256"],
+        "required": [
+          "path",
+          "sha256"
+        ],
         "properties": {
-          "path": { "type": "string" },
-          "sha256": { "type": "string" }
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
         }
       },
       "description": "The answer files this entry was summarised from, with a sha256 of each. It exists because `k` is otherwise the number of files the operator chose to pass, not the number of runs that happened \u2014 running five and passing the best three produced an entry byte-indistinguishable from an honest one, and nothing tied a recorded score to a committed run file. `close-milestone` checks that the named files are committed and that their hashes still match."
@@ -129,6 +141,115 @@
     "arm": {
       "type": "string",
       "description": "Which system produced the entry when a milestone runs more than one. M02 runs a frozen M01 arm beside the M02 arm on the same day under the same instrument, and reports the paired per-case diff between them; both arms are recorded so the comparison is in the history rather than only in the journal."
+    },
+    "instrument": {
+      "type": "object",
+      "description": "What read the answers, when an entry is produced by an instrument that can move without a commit. Absent means the deterministic asserts alone. It exists because `supersedes` is the wrong verb for a re-read: `supersedes` means *corrects a wrong entry*, and m00b's 15/25 is not wrong - it is a correct measurement under a different instrument (ADR-012's 2026-08-20 amendment). `arm` does not close the gap either, since it records which *system* produced an entry and a judged and unjudged m00b are the same system, the same answers and the same bytes. Two entries under one sha with different `instrument` values are two readings; two entries with `supersedes` are a mistake and its correction, and a reader must be able to tell which they are looking at.",
+      "properties": {
+        "prompt_sha256": {
+          "type": "string",
+          "description": "The judge prompt as frozen in quality/judge/frozen.json."
+        },
+        "rubric_sha256": {
+          "type": "string",
+          "description": "The whole rubric file."
+        },
+        "rubric_axes_sha256": {
+          "type": "string",
+          "description": "Only the axis slice the model is actually shown. Pinned separately from the whole file so an edit to the rubric's human-facing half does not read as an instrument change, and an edit to the axes cannot hide inside one."
+        },
+        "rendered_sha256": {
+          "type": "string",
+          "description": "The fully rendered prompt, rubric and catalog together - what the model saw."
+        },
+        "guardrail_version": {
+          "type": "string",
+          "description": "The published guardrail version enforcing the call. **Required for any judged entry.** M03 recorded two dev passes under guardrail versions 1 and 2 whose instrument blocks were byte-identical, because the enforced policy was not part of the instrument; the refusal rate differed and nothing in the record said why. ADR-018 pins the version so the enforced policy cannot drift - this makes the pinned version legible in the number it produced."
+        },
+        "guardrail_policy_sha256": {
+          "type": "string",
+          "description": "Digest of the policy that version pins, as verify_guardrail_pin.py fetches it back from the deployed guardrail. The version number alone is a name; this is what the name referred to."
+        },
+        "k_judge": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Judge samples per case, distinct from `k`, which counts agent samples. Both can exceed 1 in the same entry and they summarise different things - `k` over the system under test, `k_judge` over the instrument reading it. An even value is refused: a strict majority would not always be reachable and `undecided` would mean two different things."
+        }
+      },
+      "required": [
+        "prompt_sha256",
+        "rubric_axes_sha256"
+      ]
+    },
+    "judge_axes": {
+      "type": "object",
+      "description": "Per-axis agreement and demotion status, as evals/run_calibration.py publishes it. Item counts travel with every figure: an axis demoted for having three items and an axis demoted for disagreeing are different findings owed to different seats, and a bare agreement number cannot tell them apart.",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "n",
+          "raw",
+          "undecided",
+          "status"
+        ],
+        "properties": {
+          "n": {
+            "type": "integer",
+            "description": "Scorable held-out items for this axis. Items with no answer to grade never enter it."
+          },
+          "exact": {
+            "type": "integer"
+          },
+          "raw": {
+            "type": "number",
+            "description": "Exact-band agreement. An undecided item counts as a disagreement here, deliberately."
+          },
+          "kappa": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Null when a rater used a single category, which is undefined rather than perfect."
+          },
+          "undecided": {
+            "type": "integer",
+            "description": "No strict majority at k_judge. Counted inside `n`, never beside it."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "calibrated",
+              "demoted"
+            ]
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Why an axis demoted. Required in practice for a demoted axis: 'demoted' without a reason is unactionable, and the three rules fail for different owners."
+          }
+        }
+      }
+    },
+    "guardrail_refusals": {
+      "type": "object",
+      "description": "How many calls each control refused, split by mechanism. Split deliberately: M03's held-out run found the guardrail refusing 28 calls and *classification* refusing 3, and a single `refused` count would have let the unpredicted control hide inside the predicted one. SPEC/01 pre-registered a band of 0-2 golden-case refusals per run, with >=3 a miscalibrated guardrail; the band is asserted at suite level and reports only - it never blocks.",
+      "properties": {
+        "model_eligible_calls": {
+          "type": "integer",
+          "description": "Calls that reached a control. A record with no answer to grade is settled before any call and is not counted here."
+        },
+        "served": {
+          "type": "integer"
+        },
+        "guardrail": {
+          "type": "integer"
+        },
+        "classification": {
+          "type": "integer"
+        }
+      }
     }
   }
 }

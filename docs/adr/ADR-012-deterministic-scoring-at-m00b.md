@@ -117,6 +117,66 @@ Nothing else moves. The re-score-appends rule, the ADVISORY treatment of judge
 axes, and the mandatory footnote distinguishing m00b's two numbers all stand as
 originally written.
 
+## Amendment (2026-08-20): `supersedes` is the wrong verb, and the judged column is empty-handed
+
+Two things this ADR committed M03 to are amended. The split it records —
+deterministic at M00b, judge at M03 — is untouched and stands as written.
+
+### The verb
+
+The Decision above says M03 appends the re-scored `m00b` entry "with `supersedes`
+pointing at the deterministic-only one." **That is wrong, and the entry is still
+warranted.**
+
+`supersedes` means *corrects a wrong entry*. 15/25 is not wrong. It is a correct
+measurement taken with a different instrument, and
+`tests/test_instrument_stability.py` already asserts the m00b entry carries no
+`supersedes` and says why. Marking a correct number as corrected misleads every
+later reader working out which figure was real.
+
+`k` and `arm` do not close the gap either. `arm` records *which system* produced
+an entry, and the judged and deterministic `m00b` numbers are the same system, the
+same answers, the same bytes — read by different instruments.
+
+**So M03 adds an `instrument` field** to `evals/history/schema.json`, and the
+anchor is appended under the `m00b` sha with a new `instrument`, **no
+`supersedes`**, and `k_judge = 3`. A judged anchor at k = 1 would reproduce at the
+instrument level the same n = 1 error ADR-021 disqualified M01's 19/25 for.
+
+Every "point `supersedes` back at that entry" in the 2026-08-15 amendment reads
+"carry a distinguishing `instrument`" instead.
+
+### What M03 actually measured, and what it does to the judged column
+
+This ADR was written expecting the judge to *change* the control's score. It does
+not, and cannot.
+
+M03 published the judge's agreement on 20 held-out items at `k_judge = 3` and
+**every axis demoted** — `groundedness`, `completeness`, `brand_tone` and
+`concision` all fail on at least two of the three rules SPEC/03 fixed in advance.
+No axis is calibrated. `evals/judge.py:veto` consults **only** calibrated axes, so
+with the calibrated set empty the judge can subtract nothing:
+
+> **The judged score of any run is identical to its deterministic score, for
+> every case, by construction.**
+
+That is not a defect and not a null result. It is precisely what "advisory" means
+made arithmetic, and it is the honest state of claim 9 — *judges are calibrated or
+advisory* — with the second disjunct selected by measurement rather than by
+choice.
+
+**The consequence for the table is the opposite of what this ADR feared.** The
+worry recorded below is that a reader compares a judged score against an unjudged
+one and reads a platform improvement that is really a change in what was measured.
+At M03 there is no such gap to fall into, because the two columns are equal. The
+footnote is still mandatory, and it now has to say something harder: the columns
+match because the judge was measured and found unfit to move them, **not** because
+the judge agreed with the deterministic result. Those are very different facts and
+identical numbers.
+
+The footnote in `README.md` marked † is amended with this ADR, since it currently
+promises a "superseding history entry" that will not exist.
+
 ## Consequences
 
 The m00b row in the progression table carries two numbers over the project's

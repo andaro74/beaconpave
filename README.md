@@ -38,9 +38,17 @@ Fill each row at milestone close (see `.claude/skills/close-milestone`).
 `must_mention` / `must_not_claim`, groundedness via `cited_titles`, budgets. The
 judge does not exist until M03, and a judge with no published agreement number
 cannot produce a blocking score (G9). M03 re-scores the `m00b` commit and appends
-a superseding history entry; both numbers stay in the table. Do not compare a
-judged score against an unjudged one and read the difference as improvement —
-see ADR-012.
+a second entry under the same sha, distinguished by `instrument` and **not** by
+`supersedes` — 15/25 is a correct measurement under a different instrument, not a
+wrong one. Both numbers stay in the table.
+
+**The two numbers are equal, and that is not agreement.** M03 measured the judge's
+per-axis agreement on 20 held-out items and every axis demoted, so no axis is
+calibrated and `veto` consults only calibrated axes. The judge can subtract
+nothing, and a judged score therefore matches its deterministic score for every
+case by construction. Read the judged column as *the judge was measured and found
+unfit to move this*, never as *the judge concurred*. See ADR-012's 2026-08-20
+amendment and `SPEC/03-evals.md`.
 
 § **Four of the fifteen `m00b` passes are unearned**, and the marks are recorded
 in the history entry itself rather than only in prose. The control claims

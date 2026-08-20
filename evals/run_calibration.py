@@ -110,6 +110,8 @@ def assemble(split: str, samples: dict, k: int) -> tuple[list, list]:
             continue
 
         bands = [by_sample.get(s, {}).get("axes", {}).get(label["axis"]) for s in range(1, k + 1)]
+        if judge.majority_band(bands) is None:
+            continue
         scorable.append({
             "item": label["item"],
             "axis": label["axis"],
