@@ -112,14 +112,18 @@ def main(argv=None) -> int:
         judge.held_out_guard()
 
     deployed = gw.resources()
-    deployed_version = deployed["PinnedGuardrailVersion"]
+    bucket = deployed["AuditLakeBucket"]
 
     system = judge.render_prompt()
     marks = judge.instrument()
-    # The enforced policy is part of what read the answers. M03 ran two dev passes
-    # under guardrail versions 1 and 2 whose instrument blocks were byte-identical
-    # while the refusal rate differed, and nothing in the record said why.
-    marks["guardrail_version"] = deployed_version
+    # `guardrail_version` is stamped at the END of the run, from the audit records
+    # the gateway actually wrote. It is
+    # deliberately NOT read from the CloudFormation output `PinnedGuardrailVersion`.
+    # That is the stack's word about itself, and c5312a8 exists because the stack
+    # reported UPDATE_COMPLETE while the version resource was never replaced and the
+    # gateway went on enforcing the old policy. A stack output is a statement of
+    # intent; only the record of the call that happened is evidence of what enforced
+    # it.
     print(f"judge instrument: prompt {marks['prompt_sha256'][:12]} "
           f"rubric-axes {marks['rubric_axes_sha256'][:12]}")
     print(f"frozen: {judge.is_frozen()}\n")
@@ -129,6 +133,8 @@ def main(argv=None) -> int:
     print(f"gateway: {function_name}\n")
 
     out, skipped, refused = {}, 0, []
+    observed: set = set()
+    failures: list = []
     for index, case in enumerate(cases, 1):
         axes = sorted(set(case.get("judge", {}).get("axes", ())))
         record = answers.get(case["id"]) or {}
@@ -150,8 +156,27 @@ def main(argv=None) -> int:
                 "classification": "internal",
             })
         except Exception as exc:  # noqa: BLE001
+            # Recorded, never skipped. A case omitted from the file is not missing
+            # downstream — `assemble` sees the other samples and `majority_band` can
+            # still find a 2-of-3 majority, so a throttle silently degrades k_judge
+            # from 3 to 2 and the result is indistinguishable from a decided item.
+            # Where it does produce an undecided, `diagnostics` files it under
+            # "the controls refused the call", which sends the finding to the wrong
+            # seat. The refusal branch below already records rather than skips; a
+            # harness error gets the same treatment, for the same reason.
+            out[case["id"]] = {"harness_error": str(exc), "axes": dict.fromkeys(axes)}
+            failures.append(case["id"])
             print(f"[{index}/{len(cases)}] {case['id']}: HARNESS FAILED: {exc}", file=sys.stderr)
             continue
+
+        # What actually enforced this call, fetched back rather than assumed. Every
+        # judge call passes through the guardrail whether it is served or refused,
+        # so the version is observable on both branches.
+        if response.get("record_id"):
+            fetched = gw.fetch_record(bucket, response["record_id"])
+            version = (fetched or {}).get("guardrail", {}).get("version")
+            if version:
+                observed.add(str(version))
 
         if response.get("decision") != "allowed":
             # Pre-registered: the judge reads answers about blackouts and
@@ -190,17 +215,37 @@ def main(argv=None) -> int:
         "service": JUDGE_SERVICE,
         "cases": out,
     }
+    if failures:
+        payload["harness_failures"] = failures
+    if len(observed) > 1:
+        sys.exit(
+            f"error: this run was assessed under more than one guardrail version {sorted(observed)}. "
+            "Bands produced under different enforced policies are not one measurement."
+        )
+    if observed:
+        marks["guardrail_version"] = observed.pop()
+    else:
+        marks["guardrail_version"] = "unobserved"
+
     pathlib.Path(args.out).write_text(
         json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    judged = len(out) - skipped - len(refused)
+    judged = len(out) - skipped - len(refused) - len(failures)
     print(f"\nwrote {args.out}: {judged} judged, {skipped} not applicable, "
           f"{len(refused)} refused by the gateway")
+    print(f"guardrail version observed on the records: {marks['guardrail_version']}")
     if refused:
         print("guardrail refused the JUDGE's own call on: "
               + ", ".join(f"{c} ({m})" for c, m in refused))
         print("SPEC/03 pre-registered 0-3 of 75 per arm; 4 or more is a finding about "
               "the gateway rather than about the judge.")
+    if failures:
+        # Non-zero. A harness failure is not a result, and a run that half-happened
+        # must not be mistaken for a run that happened.
+        print(f"HARNESS FAILED on {len(failures)} case(s): {', '.join(failures)}. "
+              "These are recorded in the output as `harness_error`, not as bands. "
+              "Re-run this sample before scoring it.", file=sys.stderr)
+        return 1
     return 0
 
 

@@ -203,6 +203,21 @@ def check(argv=()):
         if exc.code:
             failures.append(f"rules validation failed (exit {exc.code})")
 
+    print("==> style (ruff)")
+    try:
+        lint = subprocess.run([sys.executable, "-m", "ruff", "check", "."], cwd=ROOT)
+        if lint.returncode != 0:
+            failures.append(f"ruff failed (exit {lint.returncode})")
+    except FileNotFoundError:
+        # Loud, not skipped. `ruff.toml` selects six rule families, `pyproject.toml`
+        # declares the dev dependency and CLAUDE.md names it as the Python style
+        # rule — and nothing invoked it: not the Makefile, not this function, not
+        # the gate workflow. A linter nobody runs is a linter that has been wrong,
+        # silently, since the first commit that broke it. The same shape as the
+        # Makefile's old `|| echo`, which reported green over zero tests for the
+        # repo's whole life. Absent tooling is a failure, never a pass.
+        failures.append("ruff is not installed — `pip install -e .` (it is a declared dev dep)")
+
     print("==> L0 unit + L1 contract (hermetic)")
     proc = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=ROOT)
     if proc.returncode == 5:
@@ -211,7 +226,18 @@ def check(argv=()):
         failures.append(f"pytest failed (exit {proc.returncode})")
 
     print("==> eval dry-run (no model calls)")
-    _stub("evals dryrun", "load goldens, resolve fixtures, validate asserts — without calling a model (M03)")
+    try:
+        # Was a `_stub` that printed a `==>` header in the same format as the three
+        # real steps above it, so a skimmed green run read as four phases when three
+        # ran — and it named M03 in its own output, which is how it became M03's.
+        # `run_evals.dryrun` already did the work.
+        from evals.run_evals import GOLDENS, _load
+        from evals.run_evals import dryrun as evals_dryrun
+        if evals_dryrun(_load(GOLDENS)):
+            failures.append("eval dry-run failed — fixtures or cases do not resolve")
+    except SystemExit as exc:
+        if exc.code:
+            failures.append(f"eval dry-run failed (exit {exc.code})")
 
     if out:
         verdict_mod.write(out[0], verdict_mod.build(

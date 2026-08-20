@@ -45,7 +45,18 @@ def load_samples(directory: pathlib.Path) -> dict:
     for path in sorted(directory.glob("*.json")):
         doc = json.loads(path.read_text(encoding="utf-8"))
         if "cases" not in doc:
-            continue
+            raise SystemExit(
+                f"error: {path.name} carries no `cases`. A truncated or half-written judge "
+                "output must not be skipped — skipping it removes samples from the majority "
+                "and refusals from the census with nothing to show for it."
+            )
+        if doc.get("harness_failures"):
+            raise SystemExit(
+                f"error: {path.name} records harness failures on "
+                f"{', '.join(doc['harness_failures'])}. Those cases produced no band because "
+                "the harness broke, not because a control refused or the judge disagreed. "
+                "Scoring them would demote an axis for the harness's fault. Re-run the sample."
+            )
         key = (doc["label"], doc["sample"])
         if key in seen:
             raise SystemExit(
@@ -66,7 +77,12 @@ def instruments(directory: pathlib.Path) -> list[dict]:
     seen = []
     for path in sorted(directory.glob("*.json")):
         doc = json.loads(path.read_text(encoding="utf-8"))
-        if "instrument" in doc and doc["instrument"] not in seen:
+        if "instrument" not in doc:
+            raise SystemExit(
+                f"error: {path.name} carries no `instrument`. Skipping it would let the "
+                "moved-instrument guard report one distinct block about a run it never read."
+            )
+        if doc["instrument"] not in seen:
             seen.append(doc["instrument"])
     return seen
 

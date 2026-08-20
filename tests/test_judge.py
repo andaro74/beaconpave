@@ -232,14 +232,19 @@ def test_the_prompt_tells_the_judge_that_citing_nothing_is_not_grounded():
 # --- the freeze ---------------------------------------------------------------
 
 
-def test_held_out_is_refused_until_the_prompt_is_frozen():
+def test_held_out_is_refused_until_the_prompt_is_frozen(monkeypatch, tmp_path):
     """The spec's central discipline, enforced rather than promised.
 
     Iterating the prompt against the 10 dev items is allowed for as long as it
     takes. Computing a number on the other 20 before the prompt stops moving is
     the thing that makes an agreement figure meaningless, so it raises."""
-    if judge.is_frozen():
-        pytest.skip("prompt is frozen; the guard's refusal path is exercised before freezing")
+    # Previously this skipped whenever the prompt was frozen — which, from the
+    # commit that froze it onward, is always. The guard's refusal path had no
+    # coverage in `make check` and never would again, which is how a guard with
+    # zero callers survived review. Point FROZEN at a path that does not exist and
+    # the refusal path is exercised unconditionally.
+    monkeypatch.setattr(judge, "FROZEN", tmp_path / "no-such-freeze.json")
+    assert not judge.is_frozen()
     with pytest.raises(SystemExit) as excinfo:
         judge.held_out_guard()
     assert "not frozen" in str(excinfo.value)
