@@ -107,8 +107,12 @@ def test_the_band_blocks_nothing():
     # What it must never do is let that number reach `failures`, which is the list
     # `check` turns into an exit code.
     cli = (ROOT / "pave" / "cli.py").read_text(encoding="utf-8")
-    block_start = cli.index("guardrail-refusal band")
-    block_end = cli.index("eval dry-run (no model calls)", block_start)
+    # Anchored on the step's own printed marker, not on the phrase. `evals_run`'s
+    # docstring also mentions the band — to say it must never reach a gate decision
+    # — and a bare phrase match swept that up and then read all of `check` as the
+    # step's body.
+    block_start = cli.index('print("==> guardrail-refusal band')
+    block_end = cli.index('print("==> eval dry-run', block_start)
     # Comments stripped before the check. The block's own comment explains that it
     # does not touch `failures`, and matching that sentence would make this test
     # fail on the prose that describes the property it is asserting.
