@@ -1,0 +1,35 @@
+{
+  "_comment": "What each service's committed answers score UNDER THE CURRENT INSTRUMENT, pinned so the instrument cannot move underneath a published row. This is the comparator the L2 gate lane decides on, and it is deliberately not the recorded history number: a recorded score is what was measured on the day and never changes, while a comparator is what those same answers score today. ADR-016 is the reason the two differ at all. Changing a value here is a two-key act (AI Quality) and must state, in the PR body, which instrument change moved it and in which direction.",
+  "_why_deviation_in_either_direction_fails": "A drop is the obvious regression. A RISE is the one this repo exists to catch: the m00b control gained three cases when ADR-016 moved p95 to suite level, with no improvement to any system, and a flattering control makes every later milestone unfalsifiable (CLAUDE.md). So the lane fails on any deviation and names the direction, rather than passing anything at-or-above.",
+  "services": {
+    "highlights-agent": {
+      "arm": "tools",
+      "tag": "m02",
+      "k": 3,
+      "runs": [
+        "milestones/M02/runs/m02-tools-1.json",
+        "milestones/M02/runs/m02-tools-2.json",
+        "milestones/M02/runs/m02-tools-3.json"
+      ],
+      "recorded_passed": 16,
+      "expected_passed": 15,
+      "why_they_differ": "The `cited_titles_in_fixture` tightening (PR #23) landed after m02 was tagged. It closed a vacuous groundedness pass — an empty citation list satisfied the assert — and cost the tools arm one case. The recorded 16/25 is what the instrument reported on the day and does not move; 15/25 is what these same answers score now. The control arm is unchanged at 17/25 under the same tightening, which is what makes it a tightening rather than a re-scoring.",
+      "also_pinned": {
+        "control": {
+          "runs": [
+            "milestones/M02/runs/m02-control-1.json",
+            "milestones/M02/runs/m02-control-2.json",
+            "milestones/M02/runs/m02-control-3.json"
+          ],
+          "recorded_passed": 17,
+          "expected_passed": 17,
+          "why": "The M01 prompt frozen as M02's control arm (ADR-021). Pinned beside the tools arm because the paired diff is the result, not the total — a comparator that moved on only one arm would silently change the delta."
+        }
+      },
+      "arms_expected": [
+        "tools",
+        "control"
+      ]
+    }
+  }
+}

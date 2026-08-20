@@ -81,16 +81,21 @@
             "minItems": 2,
             "items": {
               "type": "string",
-              "enum": ["PASS", "FAIL", "ADVISORY", "INFRA"]
+              "enum": [
+                "PASS",
+                "FAIL",
+                "ADVISORY",
+                "INFRA"
+              ]
             },
-            "description": "The per-sample verdicts this case's `result` was summarised from, in run order. Present only when `k` > 1. It exists so a 2-1 majority is checkable in the entry rather than asserted by whoever ran it \u2014 `k` alone says a summary happened and not what it summarised, and PASS/FAIL/PASS and PASS/PASS/PASS record the same verdict from very different evidence. INFRA never appears here: a sample that established nothing triggers a full re-run rather than entering the pool."
+            "description": "The per-sample verdicts this case's `result` was summarised from, in run order. Present only when `k` > 1. It exists so a 2-1 majority is checkable in the entry rather than asserted by whoever ran it — `k` alone says a summary happened and not what it summarised, and PASS/FAIL/PASS and PASS/PASS/PASS record the same verdict from very different evidence. INFRA never appears here: a sample that established nothing triggers a full re-run rather than entering the pool."
           }
         }
       }
     },
     "judge_agreement": {
       "type": "number",
-      "description": "Agreement with hand labels; below threshold the judge is advisory only"
+      "description": "DEPRECATED for judged entries, kept so existing entries stay readable. A single number cannot carry M03's result: four axes with different item counts, raw agreement, kappa and calibrated/demoted status, where the scalar mean would read 0.17 and conceal that one axis was blocked outright and another simply disagreed. Use `judge_axes`."
     },
     "tokens_in": {
       "type": "number",
@@ -102,7 +107,7 @@
     },
     "cost_usd": {
       "type": "number",
-      "description": "Rendered from tokens at the pinned regional rate. Never compare two entries on this field alone \u2014 the rate may differ between them."
+      "description": "Rendered from tokens at the pinned regional rate. Never compare two entries on this field alone — the rate may differ between them."
     },
     "supersedes": {
       "type": "string",
@@ -111,24 +116,188 @@
     "k": {
       "type": "integer",
       "minimum": 1,
-      "description": "How many samples per case the entry is derived from, and how. k=1 (or absent) is a single run, which is what m00b and m01 hold. k>1 means each case's result is the majority verdict across k samples of the same commit \u2014 introduced at M02, where the tool loop made per-case outcomes non-deterministic (the same request was refused on one sample and answered on another). Without this field, a reader cannot tell a single sample from a summarised one, and 'we designated the run in advance' is a social protection rather than a legible one. **Ties:** with k=3 over PASS/FAIL a strict majority always exists, and an INFRA result triggers a full re-run rather than entering the pool \u2014 so no tie is reachable at M02. ADVISORY arrives with the judge at M03 and makes a 1-1-1 split possible; the rule is that a case with no strict majority records ADVISORY and is named in the journal, never rounded toward the flattering verdict. Written now, while nothing is riding on it."
+      "description": "How many samples per case the entry is derived from, and how. k=1 (or absent) is a single run, which is what m00b and m01 hold. k>1 means each case's result is the majority verdict across k samples of the same commit — introduced at M02, where the tool loop made per-case outcomes non-deterministic (the same request was refused on one sample and answered on another). Without this field, a reader cannot tell a single sample from a summarised one, and 'we designated the run in advance' is a social protection rather than a legible one. **Ties:** with k=3 over PASS/FAIL a strict majority always exists, and an INFRA result triggers a full re-run rather than entering the pool — so no tie is reachable at M02. ADVISORY arrives with the judge at M03 and makes a 1-1-1 split possible; the rule is that a case with no strict majority records ADVISORY and is named in the journal, never rounded toward the flattering verdict. Written now, while nothing is riding on it."
     },
     "samples_from": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["path", "sha256"],
+        "required": [
+          "path",
+          "sha256"
+        ],
         "properties": {
-          "path": { "type": "string" },
-          "sha256": { "type": "string" }
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
         }
       },
-      "description": "The answer files this entry was summarised from, with a sha256 of each. It exists because `k` is otherwise the number of files the operator chose to pass, not the number of runs that happened \u2014 running five and passing the best three produced an entry byte-indistinguishable from an honest one, and nothing tied a recorded score to a committed run file. `close-milestone` checks that the named files are committed and that their hashes still match."
+      "description": "The answer files this entry was summarised from, with a sha256 of each. It exists because `k` is otherwise the number of files the operator chose to pass, not the number of runs that happened — running five and passing the best three produced an entry byte-indistinguishable from an honest one, and nothing tied a recorded score to a committed run file. `close-milestone` checks that the named files are committed and that their hashes still match."
     },
     "arm": {
       "type": "string",
       "description": "Which system produced the entry when a milestone runs more than one. M02 runs a frozen M01 arm beside the M02 arm on the same day under the same instrument, and reports the paired per-case diff between them; both arms are recorded so the comparison is in the history rather than only in the journal."
+    },
+    "instrument": {
+      "type": "object",
+      "description": "What read the answers, when an entry is produced by an instrument that can move without a commit. Absent means the deterministic asserts alone. It exists because `supersedes` is the wrong verb for a re-read: `supersedes` means *corrects a wrong entry*, and m00b's 15/25 is not wrong - it is a correct measurement under a different instrument (ADR-012's 2026-08-20 amendment). `arm` does not close the gap either, since it records which *system* produced an entry and a judged and unjudged m00b are the same system, the same answers and the same bytes. Two entries under one sha with different `instrument` values are two readings; two entries with `supersedes` are a mistake and its correction, and a reader must be able to tell which they are looking at.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Which recorded instrument this is, by the name quality/judge/frozen.json gives it. The digests are the identity; this is the handle a human uses. Every name here must be recorded in frozen.json - a row naming an instrument nobody can look up is a fingerprint of an object that does not exist (ADR-027, rule 4)."
+        },
+        "prompt_sha256": {
+          "type": "string",
+          "description": "The judge prompt as frozen in quality/judge/frozen.json."
+        },
+        "rubric_sha256": {
+          "type": "string",
+          "description": "The whole rubric file."
+        },
+        "rubric_axes_sha256": {
+          "type": "string",
+          "description": "Only the axis slice the model is actually shown. Pinned separately from the whole file so an edit to the rubric's human-facing half does not read as an instrument change, and an edit to the axes cannot hide inside one."
+        },
+        "rendered_sha256": {
+          "type": "string",
+          "description": "The fully rendered prompt, rubric and catalog together - what the model saw."
+        },
+        "user_turn_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The user-turn template that frames every case, as frozen in quality/judge/frozen.json. Added at M03 after instrument B. For the whole of instrument A this text was a Python literal that no frozen digest covered, so the two instruments would have recorded identical marks - the exact ambiguity this whole `instrument` object exists to prevent. It is `required` because an entry that omits it is indistinguishable from an instrument-A entry, and append-only history cannot be repaired later. An instrument-A entry records it as null, which is meaningful: there was no pin, and back-filling a digest would read as one that existed at the time."
+        },
+        "guardrail_version": {
+          "type": "string",
+          "description": "The published guardrail version enforcing the call. **Required for any judged entry.** M03 recorded two dev passes under guardrail versions 1 and 2 whose instrument blocks were byte-identical, because the enforced policy was not part of the instrument; the refusal rate differed and nothing in the record said why. ADR-018 pins the version so the enforced policy cannot drift - this makes the pinned version legible in the number it produced."
+        },
+        "guardrail_policy_sha256": {
+          "type": "string",
+          "description": "Digest of the policy that version pins, as verify_guardrail_pin.py fetches it back from the deployed guardrail. The version number alone is a name; this is what the name referred to."
+        },
+        "k_judge": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Judge samples per case, distinct from `k`, which counts agent samples. Both can exceed 1 in the same entry and they summarise different things - `k` over the system under test, `k_judge` over the instrument reading it. An even value is refused: a strict majority would not always be reachable and `undecided` would mean two different things."
+        },
+        "calibrated_by": {
+          "type": "string",
+          "description": "Which instrument produced the calibration in `judge_axes`. NOT necessarily the instrument that read these answers. `judge_axes` is a property of the judge - the held-out agreement that decides whether any band may veto - while `instrument` is what read this run, and at M03 they differ: the anchor ran under instrument B while the published calibration was measured under A, with B measured only on the single held-out item A's defect touched. Recorded even when it equals `name`, because otherwise its absence would have to mean 'the same one' and absence already means 'not recorded'."
+        },
+        "deterministic": {
+          "type": "object",
+          "description": "What scored the DETERMINISTIC half. The judge is not the only instrument in a judged entry. M03's m00b anchor scores 18/25 against the 15/25 the deterministic entry records for the same answers at the same commit, and none of that difference is the judge - it vetoed nothing, because no axis is calibrated. All three flipped cases carried p95_ms: 1800 and ran between 1862 and 2017 ms; ADR-016 moved the percentile to suite level. Without this block a reader sees two numbers under one SHA differing by three cases and concludes the judge added three passes, when a judge can only subtract.",
+          "required": [
+            "cases_sha256",
+            "scored",
+            "deferred"
+          ],
+          "properties": {
+            "cases_sha256": {
+              "type": "string",
+              "description": "The golden cases file: per-case asserts and thresholds."
+            },
+            "scored": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Assert kinds that contribute to the score."
+            },
+            "deferred": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Assert kinds evaluated and NOT scored. ADR-016 moved entitlement_source here, which is exactly the kind of change a bare digest would record without explaining."
+            }
+          }
+        }
+      },
+      "required": [
+        "prompt_sha256",
+        "rubric_axes_sha256",
+        "user_turn_sha256",
+        "name",
+        "calibrated_by",
+        "deterministic"
+      ]
+    },
+    "judge_axes": {
+      "type": "object",
+      "description": "Per-axis agreement and demotion status, as evals/run_calibration.py publishes it. Item counts travel with every figure: an axis demoted for having three items and an axis demoted for disagreeing are different findings owed to different seats, and a bare agreement number cannot tell them apart.",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "n",
+          "raw",
+          "undecided",
+          "status"
+        ],
+        "properties": {
+          "n": {
+            "type": "integer",
+            "description": "Scorable held-out items for this axis. Items with no answer to grade never enter it."
+          },
+          "exact": {
+            "type": "integer"
+          },
+          "raw": {
+            "type": "number",
+            "description": "Exact-band agreement. An undecided item counts as a disagreement here, deliberately."
+          },
+          "kappa": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Null when a rater used a single category, which is undefined rather than perfect."
+          },
+          "undecided": {
+            "type": "integer",
+            "description": "No strict majority at k_judge. Counted inside `n`, never beside it."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "calibrated",
+              "demoted"
+            ]
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Why an axis demoted. Required in practice for a demoted axis: 'demoted' without a reason is unactionable, and the three rules fail for different owners."
+          }
+        }
+      }
+    },
+    "guardrail_refusals": {
+      "type": "object",
+      "description": "How many calls each control refused, split by mechanism. Split deliberately: M03's held-out run found the guardrail refusing 28 calls and *classification* refusing 3, and a single `refused` count would have let the unpredicted control hide inside the predicted one. SPEC/01 pre-registered a band of 0-2 golden-case refusals per run, with >=3 a miscalibrated guardrail; the band is asserted at suite level and reports only - it never blocks.",
+      "properties": {
+        "model_eligible_calls": {
+          "type": "integer",
+          "description": "Calls that reached a control. A record with no answer to grade is settled before any call and is not counted here."
+        },
+        "served": {
+          "type": "integer"
+        },
+        "guardrail": {
+          "type": "integer"
+        },
+        "classification": {
+          "type": "integer"
+        }
+      }
     }
   }
 }

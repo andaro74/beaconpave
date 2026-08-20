@@ -169,6 +169,139 @@ def gate_two_key(argv):
         sys.exit(gate_mod.EXIT_QUALITY)
 
 
+def evals_dryrun_cmd(argv=()):
+    """`pave evals dryrun` — load and resolve, call nothing."""
+    from evals.run_evals import GOLDENS, _load
+    from evals.run_evals import dryrun as _dryrun
+    return _dryrun(_load(GOLDENS))
+
+
+def evals_run(argv=()):
+    """`pave evals run <service> [--out verdict.json]` — the L2 lane.
+
+    **It scores committed answers and calls no model.** A lane that ran the agent
+    per pull request would need model access in CI, which G1 and G8 both refuse,
+    and would make every PR cost money and return a different number. What it can
+    decide hermetically is the thing nothing else decides: **that the instrument
+    has not moved underneath a published row.**
+
+    The comparator is `evals/comparators.json` — what the committed answers score
+    *today* — and never the recorded history number, which is what they scored on
+    the day and does not move (ADR-016). Deviation in **either** direction fails.
+    A drop is the obvious regression; a rise is the one this repo exists to catch,
+    because the m00b control gained three cases from an instrument change with no
+    system improvement at all, and a flattering control makes every later
+    milestone unfalsifiable.
+
+    Nothing here reads `evals/refusals.py`: the guardrail-refusal band is
+    reporting-only and must never reach a gate decision."""
+    import yaml as _yaml
+
+    from evals.deterministic import Scorer, tally
+    from evals.run_evals import summarise
+    from pave import verdict as verdict_mod
+
+    out = _flag_values(argv, "--out")
+    # `--comparators` exists so a test can point at a copy. Without it
+    # `tests/test_evals_lane.py` had to edit the tracked, two-key
+    # `evals/comparators.json` in the real working tree and restore it in a
+    # `finally` - twice per `make check`, with a killed run leaving a gate criterion
+    # modified on disk. Against this repo's own history of a file changing between
+    # being written and being committed, that is not a theoretical exposure.
+    override = _flag_values(argv, "--comparators")
+    consumed = {out[0] if out else None, override[0] if override else None}
+    services = [a for a in argv if not a.startswith("--") and a not in consumed]
+    service = pathlib.Path(services[0]).name if services else "highlights-agent"
+
+    comparators = pathlib.Path(override[0]) if override else ROOT / "evals" / "comparators.json"
+    pinned = json.loads(comparators.read_text(encoding="utf-8"))
+    entry = pinned["services"].get(service)
+    if entry is None:
+        # ABSENT, not PASS. The gate's own rule: a suite with nothing to decide on
+        # is missing from the verdict list rather than reporting success.
+        # Names what IS pinned. A typo'd service path was indistinguishable from a
+        # service nobody has onboarded, and in CI both become an absent verdict that
+        # pages the platform for a service-team typo.
+        _emit(f"[pave evals] no comparator pinned for {service!r}; emitting nothing. "
+              f"Pinned services: {', '.join(sorted(pinned['services'])) or 'none'}")
+        return 0
+
+    cases = _yaml.safe_load(
+        (ROOT / "services" / service / "evals" / "golden" / "cases.yaml").read_text(encoding="utf-8"))
+    catalog = json.loads((ROOT / "data" / "catalog.json").read_text(encoding="utf-8"))
+    scorer = Scorer(root=ROOT)
+
+    failures, scores = [], {}
+    arms = {entry["arm"]: entry}
+    for name, other in (entry.get("also_pinned") or {}).items():
+        arms[name] = other
+
+    # An arm disappearing from the comparator scored the remaining arm alone and
+    # PASSED. Truncating the file fails closed - a missing `expected_passed` raises -
+    # so deletion passing while truncation blocked was exactly the wrong way round,
+    # and deletion is the easier edit to make by accident. The expected set is
+    # declared beside the arms rather than inferred from them, because inferring it
+    # from the file being checked is how a deletion becomes self-justifying.
+    expected_arms = set(entry.get("arms_expected") or ["tools", "control"])
+    dropped = sorted(expected_arms - set(arms))
+    if dropped:
+        failures.append(
+            f"arm(s) missing from the comparator: {dropped}. M02's result is the paired "
+            "diff, not the total (ADR-021); scoring one arm alone is a different "
+            "measurement wearing the same number.")
+
+    for arm, spec in arms.items():
+        # Checked BEFORE loading. Reversed, the comprehension raised
+        # `FileNotFoundError` first and this branch was unreachable dead code - so a
+        # missing run produced a traceback, no verdict file, and an ABSENT evals
+        # verdict that pages the platform, on a lane declaring `fail_closed=True`.
+        # The designed behaviour is a FAIL naming which run vanished.
+        missing = [r for r in spec["runs"] if not (ROOT / r).is_file()]
+        if missing:
+            failures.append(f"{arm}: committed run(s) missing {missing}")
+            continue
+        try:
+            loaded = [json.loads((ROOT / r).read_text(encoding="utf-8")) for r in spec["runs"]]
+        except json.JSONDecodeError as exc:
+            failures.append(f"{arm}: a committed run is unreadable ({exc})")
+            continue
+        per_sample = [scorer.score_suite(cases, answers, catalog) for answers in loaded]
+        results, _ = summarise(per_sample, [c["id"] for c in cases]) if len(per_sample) > 1             else (per_sample[0], {})
+        passed = tally(results)["passed"]
+        scores[f"{arm}_passed"] = passed
+        expected = spec["expected_passed"]
+        if passed != expected:
+            direction = "below" if passed < expected else "ABOVE"
+            failures.append(
+                f"{arm}: {passed}/{len(cases)} is {direction} the pinned comparator "
+                f"{expected}/{len(cases)}. The instrument has moved. If that is intended, the "
+                "comparator moves in its own two-key PR stating which change moved it and in "
+                "which direction — never in the same diff that moved it."
+            )
+
+    decided = "FAIL" if failures else "PASS"
+    # The verdict is written BEFORE anything is printed. Reversed, a console that
+    # cannot encode the summary line killed the process on the PASS path and left
+    # no verdict file at all - a passing lane exiting 1 with a traceback.
+    if out:
+        verdict_mod.write(out[0], verdict_mod.build(
+            service=service, surface="agent", suite="evals", layer="L2",
+            verdict=decided, fail_closed=True, scores=scores,
+            artifacts=[str(r) for spec in arms.values() for r in spec["runs"]]))
+
+    for line in failures:
+        _emit(f"    {line}")
+    _emit(f"[pave evals] {service}: {decided} - "
+          + ", ".join(f"{k} {v}" for k, v in sorted(scores.items())))
+    if failures:
+        _emit(f"    fix: re-derive locally with `python -m pave.cli evals run {service}`. "
+              "If the move is intended, edit evals/comparators.json in its own PR with "
+              "`Two-Key-Disposition: ai-quality` and `Two-Key-Disposition: platform-eng`, "
+              "naming which of the three inputs moved - the golden cases, "
+              "evals/deterministic.py, or data/catalog.json.")
+    return 1 if failures else 0
+
+
 def check(argv=()):
     """Hermetic local checks (G8): no cloud, no network. The platform-neutral
     twin of `make check` — the Makefile's `2>/dev/null` and `rm -f` are POSIX-only,
@@ -203,6 +336,21 @@ def check(argv=()):
         if exc.code:
             failures.append(f"rules validation failed (exit {exc.code})")
 
+    print("==> style (ruff)")
+    try:
+        lint = subprocess.run([sys.executable, "-m", "ruff", "check", "."], cwd=ROOT)
+        if lint.returncode != 0:
+            failures.append(f"ruff failed (exit {lint.returncode})")
+    except FileNotFoundError:
+        # Loud, not skipped. `ruff.toml` selects six rule families, `pyproject.toml`
+        # declares the dev dependency and CLAUDE.md names it as the Python style
+        # rule — and nothing invoked it: not the Makefile, not this function, not
+        # the gate workflow. A linter nobody runs is a linter that has been wrong,
+        # silently, since the first commit that broke it. The same shape as the
+        # Makefile's old `|| echo`, which reported green over zero tests for the
+        # repo's whole life. Absent tooling is a failure, never a pass.
+        failures.append("ruff is not installed — `pip install -e .` (it is a declared dev dep)")
+
     print("==> L0 unit + L1 contract (hermetic)")
     proc = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=ROOT)
     if proc.returncode == 5:
@@ -210,8 +358,36 @@ def check(argv=()):
     elif proc.returncode != 0:
         failures.append(f"pytest failed (exit {proc.returncode})")
 
+    print("==> guardrail-refusal band (SPEC/01, reporting only)")
+    try:
+        # Printed, never collected into `failures`. This step cannot fail the check:
+        # a refusal count reaching a pass/fail decision would let a guardrail
+        # misconfiguration read as a service regression, and would let tuning the
+        # guardrail move a recorded number. `tests/test_refusal_band.py` is where it
+        # is asserted; this is where it is *reported*, because a reporting-only
+        # number that prints nowhere reports nothing - which is what it did from M01
+        # until here, inside a runner nobody re-executes.
+        from evals import refusals
+        _emit(refusals.render())
+    except Exception as exc:  # noqa: BLE001
+        # Not a failure either. The band is advisory; a broken reporter is a broken
+        # reporter, and dressing it as a control finding would be the same category
+        # error one level down.
+        print(f"    (refusal band unavailable: {exc})")
+
     print("==> eval dry-run (no model calls)")
-    _stub("evals dryrun", "load goldens, resolve fixtures, validate asserts — without calling a model (M03)")
+    try:
+        # Was a `_stub` that printed a `==>` header in the same format as the three
+        # real steps above it, so a skimmed green run read as four phases when three
+        # ran — and it named M03 in its own output, which is how it became M03's.
+        # `run_evals.dryrun` already did the work.
+        from evals.run_evals import GOLDENS, _load
+        from evals.run_evals import dryrun as evals_dryrun
+        if evals_dryrun(_load(GOLDENS)):
+            failures.append("eval dry-run failed — fixtures or cases do not resolve")
+    except SystemExit as exc:
+        if exc.code:
+            failures.append(f"eval dry-run failed (exit {exc.code})")
 
     if out:
         verdict_mod.write(out[0], verdict_mod.build(
@@ -415,9 +591,12 @@ def main(argv):
     elif cmd == "new":
         _stub("new", f"scaffold service {rest} from templates/agent-tools with gate.yml, "
                      "CODEOWNERS, starter goldens, manifest; wire SDK; enable tracing")
+    elif cmd == "evals" and rest[:1] == ["run"]:
+        return evals_run(rest[1:])
+    elif cmd == "evals" and rest[:1] == ["dryrun"]:
+        return evals_dryrun_cmd(rest[1:])
     elif cmd == "evals":
-        _stub("evals", f"run the pytest eval harness for {rest} against committed baselines, "
-                       "emit a verdict record to the schema in quality/verdicts/schema.json")
+        _stub("evals", f"unknown evals subcommand {rest}; try `run` or `dryrun`")
     elif cmd == "adversarial":
         _stub("adversarial", f"run quality/adversarial/probes.yaml against {rest}; a probe passes "
                              "only if the guardrail blocked or policy denied AND an audit record exists (G4)")
@@ -453,8 +632,13 @@ def main(argv):
 
 
 def _entry():
-    main(sys.argv[1:])
+    # `main`'s return value was discarded here and below, so a command that
+    # reported a failure by RETURNING a code exited 0 anyway. Every command until
+    # M03 signalled failure by raising `SystemExit`, so nothing noticed — and the
+    # first one that returned a code was the L2 evals lane, which would have
+    # printed FAIL and exited green.
+    sys.exit(main(sys.argv[1:]))
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))

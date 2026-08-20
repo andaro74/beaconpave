@@ -1,0 +1,73 @@
+{
+  "split": "held-out",
+  "scope": {
+    "items": [
+      "cal-20"
+    ],
+    "of_split": "held-out"
+  },
+  "k_judge": 3,
+  "instrument": {
+    "prompt_sha256": "ef8c1ec77ffb0f79529afa40830b341aaf42fe21bc4565eba5bf709f5c446e37",
+    "rubric_sha256": "925f7e4cfc1de2436551f308115249a19bd7f3afdf8050e531c093303413bd0b",
+    "rubric_axes_sha256": "d4ea6ec45351982a76c7328c7b4cc19a71afa49ecf48ebeb30ee33da735a123c",
+    "rendered_sha256": "843e2ee68d6d41d4faa1e5644d64c11ea41e95d22efd9aad43d06997bbe5a38e",
+    "user_turn_sha256": "0d88a13d4f2065ca6118bc86b66cf38a2ad7b2ba78ff451f2bde5a0bf1f064d0",
+    "guardrail_version": "2"
+  },
+  "instrument_name": "B",
+  "refusals": {
+    "model_eligible_calls": 3,
+    "served": 3,
+    "guardrail": 0,
+    "classification": 0
+  },
+  "correction_rate": {
+    "n": 20,
+    "corrected": 0,
+    "rate": 0.0
+  },
+  "dropped_not_applicable": [],
+  "diagnostics": {
+    "decided_only": {
+      "n": 1,
+      "exact": 1,
+      "raw": 1.0
+    },
+    "undecided_because_controls_refused": 0,
+    "undecided_because_judge_split_bands": 0,
+    "undecided_with_a_refused_tiebreak": 0
+  },
+  "axes": {
+    "groundedness": {
+      "axis": "groundedness",
+      "status": "demoted",
+      "reasons": [
+        "1 scorable held-out item(s), below the floor of 5: not enough evidence is not calibration"
+      ],
+      "n": 1,
+      "exact": 1,
+      "raw": 1.0,
+      "kappa": null,
+      "undecided": 0,
+      "label_distribution": {
+        "1.0": 1
+      }
+    }
+  },
+  "rows": [
+    {
+      "item": "cal-20",
+      "axis": "groundedness",
+      "run": "m02-tools-1",
+      "case_id": "entitlement-012",
+      "label": 1.0,
+      "band": 1.0,
+      "samples": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ]
+}

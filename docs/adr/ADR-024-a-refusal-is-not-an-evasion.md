@@ -105,6 +105,85 @@ instrument outage without touching the measurement.
 `guardrail_refusals` to the history entry and asserts SPEC/01's band at suite
 level, reporting only. This ADR is what that number will be read against.
 
+## Amendment (2026-08-20, M03): the narrowing did not remove the instrument outage
+
+**This ADR is amended, not reverted.** Reverting restores a control that refuses
+`blackout-009` in 7 of 7 runs, and the reasoning in the Decision above — that
+`entitlement-circumvention` must name the act rather than the subject — is
+unchanged and still correct. What is wrong is a claim in the Consequences, and it
+is the load-bearing one.
+
+### What was claimed, and what was measured
+
+The Consequences say the narrowing "removes an instrument outage without touching
+the measurement". The first half did not happen. Under the narrowed version 2 the
+guardrail refuses **28 of 48** model-eligible judge calls on the held-out split —
+58%, the majority — and the instrument outage is the largest unexplained cost in
+the platform rather than a resolved one.
+
+Every committed judge run, as measured:
+
+| run | guardrail version | k | model-eligible calls | guardrail refusals | classification |
+|---|---|---|---|---|---|
+| dev | 1 | 1 | 8 | 3 (37.5%) | 0 |
+| dev | 2 | 3 | 24 | 11 (45.8%) | 0 |
+| held-out | 2 | 3 | 48 | 28 (58.3%) | 3 |
+
+### Those three numbers are not a trend, and presenting them as one would repeat M02's error
+
+This is worth more than the falsification itself. **No pair in that table is a
+controlled comparison.**
+
+- Rows 1 and 2 are the *same eight items* at `k = 1` and `k = 3`. The difference
+  is 37.5% against 45.8% on eight eligible calls — about two thirds of one item
+  per sample. A single sample is not a comparator, which is the finding M02 closed
+  with and the reason `k = 3` exists at all.
+- Row 3 is a **different item set** from rows 1 and 2. Held-out and dev are
+  disjoint by construction, so 45.8% against 58.3% compares two corpora, not two
+  guardrail versions.
+- No version-1 measurement exists on the held-out split and none ever will: the
+  split may not be re-read under a retired instrument to manufacture a comparator,
+  and doing so after seeing the number would be choosing the conditions of a
+  measurement.
+
+So the honest reading is not "refusals rose from 37.5% to 58%". It is: **under
+version 2 the guardrail refuses the majority of the judge's calls, and no
+committed evidence isolates what version 1 would have done on the same items.**
+The claim that the narrowing removed the outage is falsified by the first fact
+alone; the second fact is why this amendment does not replace it with a causal
+story pointing the other way.
+
+### The pre-registered attribution rule was also wrong, and its failure was informative
+
+SPEC/03 pre-registered: *"Guardrail refuses judge calls: 0–3 of 75 … ≥ 4 … is a
+finding about the gateway rather than about the judge."* The count was off by an
+order of magnitude, and the **attribution rule was backwards for part of it**.
+
+Three of the refusals were not the guardrail at all — they were the classification
+router, refusing one case in 3 of 3 samples. That was a finding about **the
+judge**: the instrument opened every case with `VIEWER QUESTION:`, `viewer` is a
+`SUBJECT_TERM`, and the answer under test supplied the attribute half. The control
+was right and the instrument was wrong. Under the corrected instrument the same
+call is served (`b4f1357`).
+
+A rule that assigns every refusal to the gateway would have sent that finding to
+the wrong seat and left it there. `guardrail_refusals` therefore records
+mechanisms separately rather than a single `refused` count, so an unpredicted
+control cannot hide inside a predicted one.
+
+### What is owed, and to whom
+
+The remaining 28 guardrail refusals are **M01's second owed tightening**
+(Security + Data Governance), not M03's and not unowned. M03 measures the cost and
+does not fix it: retuning a guardrail to make an instrument more comfortable is
+the trade this repo refuses, and the same argument that kept `classify.py`
+untouched applies here with more force, because these refusals are the control
+doing what it was configured to do.
+
+**What this amendment changes about how the ADR reads.** It currently reads as a
+success. It was a correct decision whose predicted benefit did not materialise,
+and both halves of that belong in the record.
+
 **At scale, replace with:** intent classification separated from topic detection,
 so "is this about entitlement" and "is this an attempt to circumvent entitlement"
 are two signals a policy composes rather than one string doing both jobs. The

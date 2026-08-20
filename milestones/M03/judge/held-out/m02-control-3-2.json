@@ -1,0 +1,50 @@
+{
+  "label": "m02-control-3",
+  "sample": 2,
+  "answers_file": "milestones/M02/runs/m02-control-3.json",
+  "instrument": {
+    "prompt_sha256": "ef8c1ec77ffb0f79529afa40830b341aaf42fe21bc4565eba5bf709f5c446e37",
+    "rubric_sha256": "925f7e4cfc1de2436551f308115249a19bd7f3afdf8050e531c093303413bd0b",
+    "rubric_axes_sha256": "d4ea6ec45351982a76c7328c7b4cc19a71afa49ecf48ebeb30ee33da735a123c",
+    "rendered_sha256": "843e2ee68d6d41d4faa1e5644d64c11ea41e95d22efd9aad43d06997bbe5a38e"
+  },
+  "service": "judge-highlights",
+  "cases": {
+    "blackout-007": {
+      "not_applicable": "gateway-refusal:guardrail",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "groundedness": null
+      }
+    },
+    "entitlement-010": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m02-control-3-entitlement-010-s2.json",
+      "axes": {
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "recommend-013": {
+      "not_applicable": "gateway-refusal:guardrail",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "grounded-017": {
+      "axes": {
+        "completeness": 0.5,
+        "groundedness": 1.0
+      },
+      "raw": "```\n{\"axes\": {\"completeness\": {\"band\": 0.5, \"why\": \"Answers the direct question (the answer is not in the highlights) but does not address the obvious follow-up about how to find the result.\"}, \"groundedness\": {\"band\": 1.0, \"why\": \"The cited title t003 'Granite Falls Classic (Replay)' exists in the catalog and supports all factual claims made.\"}}}\n```",
+      "usage": {
+        "tokens_in": 1574,
+        "tokens_out": 103,
+        "latency_ms": 2378
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m02-control-3-grounded-017-s2.json"
+    }
+  }
+}

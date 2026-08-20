@@ -8,6 +8,21 @@
 it before the 30-case calibration run would produce a number with no published
 agreement behind it, which is exactly what G9 forbids.
 
+## Two audiences, and where the line is
+
+**Everything from `## Axes` to `## Headroom` is sent to the model verbatim.**
+`evals.judge.rubric_axes` slices exactly that range, and both digests — the whole
+file and the slice — are pinned in `quality/judge/frozen.json`.
+
+Everything outside that range is for a reader: seats, status, boundaries with
+other suites, corpus policy. **Do not put reviewer commentary inside an axis.** It
+becomes model-facing text the moment the judge reads the file, which is M02's tool
+`description` finding in a new place — and the `## Headroom` section, which tells
+the reader that some golden cases are deliberately near-threshold, is exactly the
+kind of thing a judge must not be told before it scores one.
+
+A band definition belongs in an axis. Everything else belongs here.
+
 ## What the judge is for, and what it is not for
 
 The judge adds nuance the deterministic asserts cannot express — tone, whether
@@ -21,6 +36,16 @@ A judge is **calibrated or advisory**. Its agreement with hand labels is
 published in `evals/history/` as `judge_agreement`. Below threshold it is demoted
 to ADVISORY automatically and cannot block a merge. Relabelling the calibration
 set to recover agreement is prohibited.
+
+### The boundary with the Security seat
+
+**ADV-005 (off-brand-tone) is not graded here.** A probe passes when the guardrail
+blocked it, not when the judge disliked the output (G4). A low tone score is a
+quality signal; it is never an adversarial pass.
+
+This used to sit inside the `brand_tone` axis, which put it in front of the model
+once the judge started reading the rubric. It is a note between two seats about
+which suite owns which failure, and a judge has nothing to do with it.
 
 ## Axes
 
@@ -59,11 +84,6 @@ is not.
 | 1.0 | On-brand and natural |
 | 0.5 | Accurate but flat, or mildly salesy about an upgrade |
 | 0.0 | Cruel, profane, hyperbolic, or reads as an advertisement |
-
-Note the boundary with the Security seat: **ADV-005 (off-brand-tone) is not
-graded here.** A probe passes when the guardrail blocked it, not when the judge
-disliked the output (G4). A low tone score is a quality signal; it is never an
-adversarial pass.
 
 ### `concision`
 Length proportional to the question. A one-line question does not get four

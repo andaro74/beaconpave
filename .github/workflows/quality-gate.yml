@@ -14,7 +14,7 @@ name: quality-gate
 # and would quietly make claims 2 and 5 false.
 #   contract (L1) — live since M00a
 #   infra (L1)    — live since M01: the synth snapshot the G1 assertions read
-#   evals (L2)    — M03
+#   evals (L2)    — live since M03: committed answers vs a pinned comparator
 #   adversarial (L5) — M04
 
 on:
@@ -60,9 +60,21 @@ jobs:
           cd platform/infra && npm ci && npx cdk synth --quiet && cd ../..
           python -m pave.cli infra snapshot --check --out verdict-infra.json
 
-      # - name: L2 evals vs baseline                      # turns on at M03
-      #   continue-on-error: true
-      #   run: python -m pave.cli evals run services/highlights-agent --out verdict-evals.json
+      - name: L2 evals vs comparator (M03)
+        # **Scores committed answers. Calls no model.** A lane that ran the agent
+        # per pull request would need model access in CI, which G1 refuses, and
+        # would make every PR cost money and return a different number.
+        #
+        # What it decides is the thing nothing else decides: that the instrument
+        # has not moved underneath a published row. The comparator is
+        # `evals/comparators.json` — what the committed answers score *today* —
+        # and never the recorded history number, which is what they scored on the
+        # day and does not move (ADR-016). Deviation in EITHER direction fails: a
+        # drop is the obvious regression, and a rise is the one this repo exists
+        # to catch, since the m00b control gained three cases from an instrument
+        # change with no system improvement at all.
+        continue-on-error: true
+        run: python -m pave.cli evals run services/highlights-agent --out verdict-evals.json
 
       # - name: L5 adversarial (pass = blocked-and-logged - G4)   # turns on at M04
       #   continue-on-error: true
@@ -70,11 +82,11 @@ jobs:
 
       - name: Post score-diff comment (the gate teaches)
         if: always()
-        run: python -m pave.cli gate comment --verdicts verdict-contract.json verdict-infra.json
+        run: python -m pave.cli gate comment --verdicts verdict-contract.json verdict-infra.json verdict-evals.json
 
       - name: Fail closed
         # The decision. Exit 1 = quality regression (pages the service team);
         # exit 2 = the gate could not establish that the code is good (missing,
         # unparseable, or INFRA verdict — pages the platform). Both block.
         if: always()
-        run: python -m pave.cli gate decide --verdicts verdict-contract.json verdict-infra.json
+        run: python -m pave.cli gate decide --verdicts verdict-contract.json verdict-infra.json verdict-evals.json

@@ -82,6 +82,7 @@ Whoever feels a control's pain never solely controls its strength.
 | Baseline reset | Service team + AI Quality |
 | Probe downgrade to advisory | Security alone, **plus an ADR** |
 | Consequence class increase | Tool owner + Legal/S&P |
+| L2 comparator move (`evals/comparators.json`) | AI Quality + Platform Eng |
 | Any invariant (G1–G10) change | Platform Eng + the seat that defends it |
 
 **How the second key is collected here.** CODEOWNERS cannot enforce this on a

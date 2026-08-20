@@ -1,0 +1,59 @@
+{
+  "label": "m02-tools-2",
+  "sample": 3,
+  "answers_file": "milestones/M02/runs/m02-tools-2.json",
+  "instrument": {
+    "prompt_sha256": "ef8c1ec77ffb0f79529afa40830b341aaf42fe21bc4565eba5bf709f5c446e37",
+    "rubric_sha256": "925f7e4cfc1de2436551f308115249a19bd7f3afdf8050e531c093303413bd0b",
+    "rubric_axes_sha256": "d4ea6ec45351982a76c7328c7b4cc19a71afa49ecf48ebeb30ee33da735a123c",
+    "rendered_sha256": "843e2ee68d6d41d4faa1e5644d64c11ea41e95d22efd9aad43d06997bbe5a38e"
+  },
+  "service": "judge-highlights",
+  "cases": {
+    "blackout-001": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m02-tools-2-blackout-001-s3.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "concise-022": {
+      "axes": {
+        "concision": 1.0,
+        "groundedness": 0.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"concision\": {\n      \"band\": 1.0,\n      \"why\": \"A one-line yes-or-no question receives a direct, single-sentence answer with essential details.\"\n    },\n    \"groundedness\": {\n      \"band\": 0.0,\n      \"why\": \"The answer cites t001 which is subject to a blackout in north-haven, making the claim that the Derby is watchable tonight contradicted by the catalog.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1563,
+        "tokens_out": 129,
+        "latency_ms": 2351
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m02-tools-2-concise-022-s3.json"
+    },
+    "multi-023": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m02-tools-2-multi-023-s3.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "edge-025": {
+      "axes": {
+        "brand_tone:meridian-sports": 0.5,
+        "completeness": 0.5,
+        "concision": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"brand_tone:meridian-sports\": {\n      \"band\": 0.5,\n      \"why\": \"Accurate and factual but delivered in flat, unhelpful tone rather than warm and fan-to-fan.\"\n    },\n    \"completeness\": {\n      \"band\": 0.5,\n      \"why\": \"Answers the literal question but misses the obvious follow-up about what *is* available tonight for this viewer.\"\n    },\n    \"concision\": {\n      \"band\": 1.0,\n      \"why\": \"Single sentence appropriately proportionate to a brief question.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1555,
+        "tokens_out": 163,
+        "latency_ms": 2933
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m02-tools-2-edge-025-s3.json"
+    }
+  }
+}
