@@ -34,13 +34,14 @@ is worth less than one that shows where it was corrected.
 | ADR-025 | The judge is a pinned instrument: five file-backed digests, model-facing text in files rather than literals, raw output committed, and instruments named and retained rather than overwritten | A prompt registry with versioned, content-addressed entries; the instrument selected by version and promoted through environments |
 | ADR-026 | Calibration corpus: 30 items, 10 dev / 20 held-out, drawn deterministically from committed answers; may grow with a milestone that earns it, never shrink, and never move once a number exists for it | A per-brand calibration registry, corpora versioned alongside the rubric they label against |
 | ADR-027 | `instrument` versus `supersedes` versus `arm`: three orthogonal reasons for a second entry under one SHA — a wrong entry, a different system, and the same answers read differently | A measurement store where the instrument is a foreign key to a versioned instrument registry |
+| ADR-028 | The teaching-to-the-test phrasings become their own corpus under `quality/adversarial/` that scores nothing: a probe passes under G4, and "this was correctly allowed" has no G4 answer | A calibration suite per denied topic, run on every guardrail version bump before it is promoted |
 | ADR-012 | Control scored deterministically; judge arrives at M03 *(amended in place 2026-08-15: M00b builds the runner)* | Sequencing, not a cut — the discipline is the same at scale |
 | ADR-013 | G9 enforced as a checked attestation, not a review | Teams + code-owner review; same path list, check retained as a filter |
 | ADR-014 | Budgets denominated in tokens; dollars rendered at report time *(amended in place at M02: `tokens_in` and `max_ms` re-derived for a tool loop, which makes a turn n model calls; the 891-token governed projection struck as a measurement of the wrong shape)* | Same ceilings per tenant; rate table refreshed on the provider's price feed |
 | ADR-015 | Regional (`us.`) inference profile, at a recorded 10% premium | Per-workload pin driven by each manifest's `classification` |
 | ADR-016 | `entitlement_source` advisory until M06; `p95_ms` moved to suite level *(the `max_ms` figure re-derived at M02; the decision is untouched)* | Per-case latency sampled k times; SLO burn-rate alerting |
 
-Written out in full: **001, 003, 004, 007, 009, 011, 012, 013, 014, 015, 016, 017, 018, 019, 020, 022, 024, 025, 026, 027**.
+Written out in full: **001, 003, 004, 007, 009, 011, 012, 013, 014, 015, 016, 017, 018, 019, 020, 022, 024, 025, 026, 027, 028**.
 The rest are reserved rows you fill as you build each component — the table itself is the
 scaling story.
 
