@@ -650,6 +650,61 @@ and this bound cited as the reason. Reading it as an A-versus-B delta is the err
 this amendment exists to foreclose.
 
 
+### 8. Amendment (2026-08-20, before the m00b judged anchor is invoked)
+
+**No anchor call has been made at the commit that lands this.** The anchor is 25
+cases at `k_judge = 3` — **75 model-eligible calls**, none settled offline, and
+**180 axis-instances**, which are the two denominators the hypothesis table above
+was written against.
+
+**Three of the original predictions are resolved or unmeasurable before the run,
+and saying so afterwards would read as an excuse.**
+
+**"Size of the veto: 2–5 of 25 on the m00b anchor" is falsified at zero cost.**
+Every axis demoted on the held-out split, `veto()` consults only calibrated axes,
+and the calibrated set is empty. The veto is **0 of 25** by construction. The
+judged anchor score is therefore **15/25, identical to the deterministic one, for
+every case.** This is not a null result — it is what the second disjunct of claim
+9 looks like when it is selected by measurement rather than by choice. What would
+falsify *this* is any case where the judged and deterministic results differ,
+which would mean the veto composition is wrong rather than the judge.
+
+**"Veto larger on the control than on the tools arm" cannot be measured.** It is
+stated as a between-arm difference and both M02 arms are cut (§ "The cut"). It is
+recorded as **not measured**, with the reason, rather than quietly dropped —
+M02's headline error was a mechanism stated across two arms and measured on one,
+and silently retiring such a prediction is the same error wearing a different
+coat.
+
+**"Guardrail refuses judge calls: 0–3 of 75" is already known to be wrong**, and
+the *attribution rule* attached to it was wrong too: it assigned every refusal to
+the gateway, and three of the held-out refusals were the classification router
+responding to a defect in the instrument. Recorded in full in ADR-024's M03
+amendment.
+
+**Replacement predictions, for the anchor specifically:**
+
+| claim | prediction | measured across | what falsifies it |
+|---|---|---|---|
+| judged anchor score | **15/25, every case identical to deterministic** | all 25 cases, judged and deterministic side by side | any case differing — the veto composition is wrong, not the judge |
+| guardrail refusals | **30–55 of 75.** Wide, and deliberately so: the held-out split ran 58% under version 2, but on a *different answer set*. Extrapolating one corpus's rate onto another is the move ADR-024's amendment declines to make, so the band is stated loosely rather than falsely precisely | every anchor call, mechanism recorded separately | **≤ 3**, which would vindicate the original pre-registration and mean the held-out rate was a property of the M02 answers rather than of the topic |
+| classification refusals | **0 of 75.** Instrument B no longer supplies a `SUBJECT_TERM`, and the three renderings that failed under A are served under B | every anchor call | **any**, meaning the instrument still supplies half of a classification refusal and `b4f1357`'s reproduction was incomplete |
+| undecided axis-instances | **high, and almost all attributable to refusals rather than to the judge splitting bands.** The held-out run found every undecided item was a blocked call and **zero** came from the judge returning different bands | per axis, per case, with the two causes counted separately | a non-trivial count of undecided-from-band-splitting, which is a finding about the judge's stability rather than about the gateway, and belongs to a different seat |
+| case-level 1-1-1 | **unreachable**, and not manufactured | the outermost majority over `k_answers`; the anchor is `k_answers = 1` so it cannot arise here at all | a case-level `ADVISORY` appearing |
+| SPEC/01's 0–2 refusal band | **breached**, by a wide margin | suite level, reporting only, never blocking | any anchor run inside 0–2 |
+| guardrail version | **2 on every record**, observed from the audit records rather than from the stack | every call; `run_judge` exits if one invocation spans two versions | more than one version, which makes the run not one measurement |
+
+**What the anchor buys, stated before it is spent.** Not a score — 15/25 holds by
+construction and is known now. It buys three things: the **first judged history
+entry** this repo has ever written, which is what ADR-012 committed M03 to and
+what `instrument`, `judge_axes` and `guardrail_refusals` exist for; the **largest
+single sample of the refusal cost** anyone will have, at 75 calls against the
+held-out split's 48; and the **attribution of undecided bands** between the
+gateway and the judge on a corpus where all 25 cases are eligible.
+
+**Anything the anchor turns up about the guardrail is M01's second owed
+tightening** (Security + Data Governance). M03 measures it and does not fix it.
+
 ## Pre-registered hypothesis (written before the run)
 
 > **This one is blind.** No judge has been invoked, no pilot has been run, and no
