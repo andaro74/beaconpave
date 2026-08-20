@@ -8,11 +8,14 @@ measured here. Those are different questions and only the second one is a test.
 
 Owning seat: AI Quality.
 """
+import glob
 import json
 import pathlib
 import tempfile
 
 import pytest
+import yaml
+from core import classify
 
 from evals import judge
 
@@ -409,3 +412,103 @@ def test_an_axis_the_judge_was_not_asked_for_is_recorded_as_a_problem():
     _, problems = judge.bands_from(
         {"axes": {GROUND: {"band": 1.0}, "invented_axis": {"band": 0.0}}}, [GROUND])
     assert problems == ["unrequested axis 'invented_axis'"]
+
+
+def test_the_freeze_covers_the_user_turn(monkeypatch, tmp_path):
+    """The blind spot instrument A had for its whole life.
+
+    `user_turn` was a Python string literal whose own docstring said "a word
+    changed here changes every band", and not one of the four frozen digests
+    covered a single one of those words: the function could be replaced wholesale
+    with unrelated text and `is_frozen()` still returned `True`. Two different
+    instruments would have recorded one fingerprint — the exact confusion the
+    `instrument` field was added to `evals/history/schema.json` to prevent.
+
+    The freeze marks are taken from the tree rather than from the committed
+    `frozen.json`, so this asserts the *mechanism* and keeps asserting it through
+    any future re-freeze. Pointing at the real file would make the test pass or
+    fail on whether someone had run the freeze, which is a different question."""
+    marks = tmp_path / "frozen.json"
+    marks.write_text(json.dumps(judge.instrument()), encoding="utf-8")
+    monkeypatch.setattr(judge, "FROZEN", marks)
+    assert judge.is_frozen(), "marks taken from the tree must match the tree"
+
+    tampered = tmp_path / "user-turn.md"
+    tampered.write_text(
+        "<!-- a reviewer comment -->\n---\nWHOLLY DIFFERENT INSTRUCTION: {question}\n"
+        "{plan}{dma}{answer}{cited_titles}{axes}\n", encoding="utf-8")
+    monkeypatch.setattr(judge, "USER_TURN", tampered)
+
+    assert not judge.is_frozen(), "a rewritten user turn is a different instrument"
+    with pytest.raises(SystemExit) as excinfo:
+        judge.held_out_guard()
+    assert "not frozen" in str(excinfo.value)
+
+
+def test_the_committed_freeze_records_the_user_turn_digest():
+    """A published number is attributable only if the record names the whole
+    instrument. An entry without `user_turn_sha256` was measured under instrument
+    A, and that absence is meaningful rather than an omission."""
+    assert "user_turn_sha256" in judge.instrument()
+    if judge.FROZEN.is_file():
+        marks = json.loads(judge.FROZEN.read_text(encoding="utf-8"))
+        assert "user_turn_sha256" in marks, (
+            "quality/judge/frozen.json predates the user-turn pin; re-freeze before "
+            "scoring held-out items")
+
+
+def test_the_user_turn_scaffolding_carries_none_of_the_classifiers_vocabulary():
+    """The instrument must not supply half of a classification refusal.
+
+    Instrument A opened with `VIEWER QUESTION:` / `VIEWER CONTEXT:`. `viewer` is a
+    `SUBJECT_TERM`, so any case whose recorded answer happened to contain an
+    `ATTRIBUTE_TERM` classified `sensitive` and was refused — the subject half came
+    from the judge, the attribute half from the answer under test.
+
+    This asserts on the scaffolding alone rather than on the corpus, so it holds
+    even when no committed answer happens to supply the other half. The paired
+    test below is the one that reads real data; this is the one that cannot go
+    vacuous when the data changes."""
+    skeleton = judge.render_user_turn().format(
+        question="x", plan="x", dma="x", answer="x", cited_titles="x", axes="x")
+    lowered = skeleton.lower()
+    smuggled = [t for t in classify.SUBJECT_TERMS + classify.ATTRIBUTE_TERMS if t in lowered]
+    assert smuggled == [], (
+        f"the user-turn template supplies classifier terms {smuggled}; fix the template, "
+        "never platform/gateway/core/classify.py — the control is not the defect")
+
+
+def test_every_recorded_answer_survives_classification_as_the_judge_sends_it():
+    """No committed answer is refused because of how the judge frames it.
+
+    Under instrument A this failed nine times across `entitlement-012` and
+    `grounded-019` — refusals the calibration report filed as "the controls refused
+    the call", sending a finding about the instrument to the seat that owns the
+    gateway."""
+    root = pathlib.Path(judge.ROOT)
+    cases = yaml.safe_load(
+        (root / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml")
+        .read_text(encoding="utf-8"))
+    runs = [pathlib.Path(p) for p in sorted(glob.glob(str(root / "milestones" / "M0*" / "**" / "*.json"),
+                                                      recursive=True))
+            if "runs" in p or p.endswith("goldens-run.json")]
+    runs = [p for p in runs if "trajectory" not in p.name and "paired-diff" not in p.name]
+    assert runs, "no committed agent runs to check — this test would pass vacuously"
+
+    refused, checked = [], 0
+    for path in runs:
+        answers = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(answers, dict):
+            continue
+        for case in cases:
+            answer = (answers.get(case["id"]) or {}).get("answer")
+            if judge.not_applicable(answer):
+                continue
+            axes = sorted(set(case.get("judge", {}).get("axes", ())))
+            routing = classify.route("internal", judge.user_turn(case, answer, axes))
+            checked += 1
+            if not routing.allowed:
+                refused.append(f"{path.name}/{case['id']}: {routing.reasons}")
+
+    assert checked > 100, f"only {checked} renderings checked; the corpus sweep is not running"
+    assert refused == [], "\n".join(refused)

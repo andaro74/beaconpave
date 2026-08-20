@@ -45,6 +45,7 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 RUBRIC = ROOT / "quality" / "judge" / "rubric-sports.md"
 PROMPT = ROOT / "quality" / "judge" / "prompt.md"
+USER_TURN = ROOT / "quality" / "judge" / "user-turn.md"
 FROZEN = ROOT / "quality" / "judge" / "frozen.json"
 CATALOG = ROOT / "data" / "catalog.json"
 
@@ -132,6 +133,25 @@ def render_prompt() -> str:
     )
 
 
+def render_user_turn() -> str:
+    """The user-turn template, below its `---`, with the fields unsubstituted.
+
+    Split exactly as `render_prompt` splits `prompt.md`: the HTML comment above
+    the rule is written for a reviewer and is not sent to the model. The digest in
+    `instrument()` covers the **whole file**, comment included, which is the
+    stricter choice — a change to the reviewer-facing rationale for these labels
+    is a change worth seeing, and this is the file whose rationale is load-bearing.
+    """
+    text = USER_TURN.read_text(encoding="utf-8")
+    if "\n---\n" not in text:
+        raise SystemExit(
+            "error: quality/judge/user-turn.md has no `---` rule, so the judge would be "
+            "sent its own reviewer comment as the answer to grade. The template is "
+            "everything below the rule."
+        )
+    return text.split("\n---\n", 1)[1]
+
+
 def instrument() -> dict:
     """What produced a set of bands, as it goes into a history entry.
 
@@ -144,6 +164,13 @@ def instrument() -> dict:
         "rubric_sha256": digest(RUBRIC.read_text(encoding="utf-8")),
         "rubric_axes_sha256": digest(rubric_axes()),
         "rendered_sha256": digest(render_prompt()),
+        # Added for instrument B. For the whole of instrument A the user turn was a
+        # Python string literal that no digest covered, so `user_turn` could be
+        # replaced wholesale and `is_frozen()` still returned True — two different
+        # instruments recording one fingerprint, which is exactly what this dict
+        # exists to prevent. Its absence from an entry is therefore meaningful: an
+        # entry without this key was measured under instrument A.
+        "user_turn_sha256": digest(USER_TURN.read_text(encoding="utf-8")),
     }
 
 
@@ -168,7 +195,7 @@ def is_frozen() -> bool:
     # and the thing it is pinned around is not.
     return all(marks.get(k) == now[k]
                for k in ("prompt_sha256", "rubric_sha256", "rubric_axes_sha256",
-                         "rendered_sha256"))
+                         "rendered_sha256", "user_turn_sha256"))
 
 
 def held_out_guard() -> None:
@@ -221,22 +248,30 @@ def not_applicable(answer) -> str | None:
 
 
 def user_turn(case: dict, answer: dict, axes: list) -> str:
-    """What the judge is shown: question, viewer context, answer, citations, axes.
+    """What the judge is shown: question, request context, answer, citations, axes.
 
-    **Nothing from the case's `asserts` reaches it.** A judge holding the golden
-    expectations is not scoring an answer, it is checking a diff — and it would
-    then agree with the deterministic half by construction, which is the one
-    result that could prove nothing at all.
+    The template is `quality/judge/user-turn.md`, not a literal here, and it is
+    pinned by `user_turn_sha256`. Both facts are the same fact: this is
+    model-facing instrument text, so it has to live where the freeze can see it.
+    Under instrument A it lived in this function and the freeze could not — the
+    docstring asserted "a word changed here changes every band" while no digest
+    covered a single one of those words.
 
-    This is instrument text, so it lives beside the prompt rather than in the
-    runner: a word changed here changes every band."""
+    Keeping the prose in the docstring and the text in the file also means editing
+    this explanation does not move the instrument. Under a source-level digest it
+    would have, and every clarifying comment would have manufactured a new
+    instrument."""
     viewer = case.get("viewer") or {}
-    return (
-        f"VIEWER QUESTION: {case['input']}\n"
-        f"VIEWER CONTEXT: plan={viewer.get('plan')} dma={viewer.get('dma')}\n\n"
-        f"ANSWER AS RECORDED:\n{answer.get('answer')}\n\n"
-        f"CITED TITLE IDS: {answer.get('cited_titles')}\n\n"
-        f"AXES: {', '.join(axes)}"
+    # `.format` scans the template only, so braces inside a recorded answer are
+    # substituted values and never format fields — the same reason `render_prompt`
+    # can embed `data/catalog.json` whole.
+    return render_user_turn().format(
+        question=case["input"],
+        plan=viewer.get("plan"),
+        dma=viewer.get("dma"),
+        answer=answer.get("answer"),
+        cited_titles=answer.get("cited_titles"),
+        axes=", ".join(axes),
     )
 
 
