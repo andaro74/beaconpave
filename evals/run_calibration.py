@@ -106,8 +106,15 @@ def refusal_census(samples: dict) -> dict:
     return {"model_eligible_calls": calls, **dict(sorted(census.items()))}
 
 
-def assemble(split: str, samples: dict, k: int) -> tuple[list, list]:
-    """`(scorable, dropped)` — one entry per calibration item in `split`."""
+def assemble(split: str, samples: dict, k: int, only: tuple = ()) -> tuple[list, list]:
+    """`(scorable, dropped)` — one entry per calibration item in `split`.
+
+    `only` restricts to named item ids. A **scoped** measurement is the honest
+    shape when an instrument change can reach some items and provably not others:
+    re-rolling the untouched ones produces differences indistinguishable from
+    run-to-run variance, and a reader shown two full tables reads those as
+    instrument effects. Every report says whether it was scoped, and a scoped one
+    is never a split result."""
     items = {i["id"]: i for i in json.loads(ITEMS.read_text(encoding="utf-8"))["items"]}
     labels = json.loads(LABELS.read_text(encoding="utf-8"))
     labels = labels["labels"] if isinstance(labels, dict) else labels
@@ -116,6 +123,8 @@ def assemble(split: str, samples: dict, k: int) -> tuple[list, list]:
     for label in labels:
         item = items[label["item"]]
         if item["split"] != split:
+            continue
+        if only and label["item"] not in only:
             continue
         key = (item["run"], item["case_id"])
         by_sample = samples.get(key, {})
@@ -220,7 +229,7 @@ def diagnostics(rows: list) -> dict:
     }
 
 
-def report(split: str, directory: pathlib.Path, k: int) -> dict:
+def report(split: str, directory: pathlib.Path, k: int, only: tuple = ()) -> dict:
     if split == "held-out":
         # Enforced, not promised. `held_out_guard` had zero callers when it landed,
         # while its own docstring claimed to be "the one place the spec's central
@@ -260,7 +269,7 @@ def report(split: str, directory: pathlib.Path, k: int) -> dict:
             "instrument that produced it, or re-run under one that is recorded."
         )
 
-    scorable, dropped = assemble(split, samples, k)
+    scorable, dropped = assemble(split, samples, k, only)
     by_axis = collections.defaultdict(list)
     for row in scorable:
         by_axis[row["axis"]].append(row)
@@ -273,6 +282,10 @@ def report(split: str, directory: pathlib.Path, k: int) -> dict:
 
     return {
         "split": split,
+        # A scoped report is not a split result and must never be read as one. The
+        # key is always present so its absence cannot be mistaken for "not scoped"
+        # in a file written before the field existed.
+        "scope": {"items": sorted(only), "of_split": split} if only else None,
         "k_judge": k,
         "instrument": marks[0],
         # Which recorded instrument, by name. A report that shows two tables without
@@ -295,6 +308,10 @@ def render(result: dict) -> str:
     served = ref.get("served", 0)
     calls = ref["model_eligible_calls"]
     lines.append(f"split: {result['split']}   k_judge: {result['k_judge']}")
+    if result.get("scope"):
+        lines.append(f"SCOPED to {len(result['scope']['items'])} item(s): "
+                     f"{', '.join(result['scope']['items'])}. This is NOT a "
+                     f"{result['split']} split result and its axis rows are not the split's.")
     # Named, not only fingerprinted. Two reports shown side by side without the name
     # invite a reader to read run-to-run variance as an instrument effect.
     lines.append(f"instrument: {result.get('instrument_name', '?')} - "
@@ -346,6 +363,8 @@ def main(argv=None) -> int:
     p.add_argument("--split", default="held-out", choices=("held-out", "dev"))
     p.add_argument("--k", type=int, default=3)
     p.add_argument("--out", help="write the full result as JSON")
+    p.add_argument("--items", help="comma-separated calibration item ids: score only these. "
+                                   "Produces a SCOPED report, which is not a split result")
     args = p.parse_args(argv)
 
     if args.k % 2 == 0:
@@ -353,7 +372,8 @@ def main(argv=None) -> int:
               "reachable and 'undecided' would mean two different things.", file=sys.stderr)
         return 2
 
-    result = report(args.split, pathlib.Path(args.judged), args.k)
+    only = tuple(i.strip() for i in args.items.split(",") if i.strip()) if args.items else ()
+    result = report(args.split, pathlib.Path(args.judged), args.k, only)
     print(render(result))
     if args.out:
         pathlib.Path(args.out).write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

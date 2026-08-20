@@ -246,3 +246,109 @@ def test_no_axis_is_calibrated_and_the_reasons_are_recorded():
     assert calibrated == [], f"unexpectedly calibrated: {calibrated}"
     for axis, stats in result["axes"].items():
         assert stats["reasons"], f"{axis} is demoted with no reason recorded"
+
+
+# --- scoped measurement, and the two published reports ------------------------
+
+
+def test_assemble_can_be_scoped_to_named_items(tmp_path, monkeypatch):
+    """A scoped measurement is the honest shape when an instrument change can reach
+    some items and provably not others. Re-rolling the untouched ones produces
+    differences indistinguishable from run-to-run variance, and a reader shown two
+    full tables reads those as instrument effects (SPEC/03 amendment 7)."""
+    items = [{"id": "i-1", "run": "r", "case_id": "c1", "axis": "groundedness", "split": "held-out"},
+             {"id": "i-2", "run": "r", "case_id": "c2", "axis": "groundedness", "split": "held-out"}]
+    labels = [{"item": "i-1", "axis": "groundedness", "applicable": True,
+               "drafted": 1.0, "final": 1.0},
+              {"item": "i-2", "axis": "groundedness", "applicable": True,
+               "drafted": 0.0, "final": 0.0}]
+    monkeypatch.setattr(rc, "ITEMS", tmp_path / "items.json")
+    monkeypatch.setattr(rc, "LABELS", tmp_path / "labels.json")
+    (tmp_path / "items.json").write_text(json.dumps({"salt": "t", "items": items}), encoding="utf-8")
+    (tmp_path / "labels.json").write_text(json.dumps({"labels": labels}), encoding="utf-8")
+
+    samples = {("r", "c1"): {n: {"axes": {"groundedness": 1.0}} for n in (1, 2, 3)},
+               ("r", "c2"): {n: {"axes": {"groundedness": 1.0}} for n in (1, 2, 3)}}
+
+    full, _ = rc.assemble("held-out", samples, 3)
+    assert sorted(r["item"] for r in full) == ["i-1", "i-2"]
+
+    scoped, _ = rc.assemble("held-out", samples, 3, ("i-1",))
+    assert [r["item"] for r in scoped] == ["i-1"]
+
+
+def test_the_published_reports_are_re_derivable_from_the_committed_output():
+    """Both numbers, regenerated from the committed judge output and compared to
+    the committed reports field by field.
+
+    This is the property the whole hermetic/model-calling split exists for, and it
+    is the one that broke once already: `held-out-report.json` stopped being
+    re-derivable when `run_calibration.py` grew an undecided-drop its own docstring
+    forbade, and nothing noticed because no test regenerated it."""
+    for name, judged, only in (
+        ("held-out-report.json", "held-out", ()),
+        ("held-out-b-scoped-report.json", "held-out-b-scoped", ("cal-20",)),
+    ):
+        committed = json.loads((HELD_OUT.parent / name).read_text(encoding="utf-8"))
+        fresh = rc.report("held-out", HELD_OUT.parent / judged, 3, only)
+        for field in ("axes", "rows", "refusals", "correction_rate", "scope",
+                      "instrument", "instrument_name", "dropped_not_applicable"):
+            assert fresh[field] == committed[field], f"{name}: {field} is not re-derivable"
+
+
+def test_the_scoped_report_is_marked_and_the_full_one_is_not():
+    """A scoped report must be unmistakable for a split result. `scope` is always
+    present so its absence cannot be read as "not scoped" in a file written before
+    the field existed."""
+    full = json.loads((HELD_OUT.parent / "held-out-report.json").read_text(encoding="utf-8"))
+    scoped = json.loads((HELD_OUT.parent / "held-out-b-scoped-report.json").read_text(encoding="utf-8"))
+    assert full["scope"] is None
+    assert full["instrument_name"] == "A"
+    assert scoped["scope"] == {"items": ["cal-20"], "of_split": "held-out"}
+    assert scoped["instrument_name"] == "B"
+    assert "SCOPED" in rc.render(scoped)
+    assert "SCOPED" not in rc.render(full)
+
+
+def test_instrument_b_serves_the_item_instrument_a_refused():
+    """The entire empirical content of instrument B, pinned.
+
+    Under A, `entitlement-012` was refused by classification in 3 of 3 samples —
+    the instrument supplied the `SUBJECT_TERM` and the answer under test supplied
+    the `ATTRIBUTE_TERM`. Under B the identical answer is served. If this ever
+    fails, the reproduction in `9ef9e69` was wrong and the rename was not the
+    cause."""
+    a_refusals = 0
+    for path in sorted(HELD_OUT.glob("m02-tools-1-*.json")):
+        case = json.loads(path.read_text(encoding="utf-8"))["cases"]["entitlement-012"]
+        if case.get("refused_by_gateway") == "classification":
+            a_refusals += 1
+    assert a_refusals == 3, "instrument A refused this item in 3 of 3 samples"
+
+    scoped = json.loads(
+        (HELD_OUT.parent / "held-out-b-scoped-report.json").read_text(encoding="utf-8"))
+    assert scoped["refusals"] == {"model_eligible_calls": 3, "served": 3}
+    row = scoped["rows"][0]
+    assert row["item"] == "cal-20" and row["case_id"] == "entitlement-012"
+    assert row["band"] == row["label"] == 1.0, "the judge's majority agrees with the hand label"
+
+
+def test_the_pre_registered_bound_on_instrument_b_holds():
+    """SPEC/03 amendment 7, written before the three calls, checked after them.
+
+    The bound is arithmetic: A's groundedness row plus the one item B could reach.
+    Recomputed here rather than quoted, so editing the amendment to a number that
+    was never measured fails."""
+    a = json.loads((HELD_OUT.parent / "held-out-report.json").read_text(encoding="utf-8"))
+    ground = a["axes"]["groundedness"]
+    assert (ground["n"], ground["exact"], ground["undecided"]) == (6, 0, 6)
+
+    raw = round((ground["exact"] + 1) / ground["n"], 4)
+    undecided = (ground["undecided"] - 1) / ground["n"]
+    assert raw == 0.1667, "pre-registered: groundedness raw at best 1/6"
+    assert round(undecided, 2) == 0.83, "pre-registered: undecided at best 5/6"
+    assert raw < judge.AGREEMENT_THRESHOLD
+    assert undecided > judge.MAX_UNDECIDED_FRACTION
+
+    # Pre-registered: no axis changes status. Every axis demotes under both.
+    assert all(v["status"] == "demoted" for v in a["axes"].values())
