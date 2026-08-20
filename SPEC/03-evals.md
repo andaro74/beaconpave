@@ -586,6 +586,70 @@ measurement. **The corpus is not redrawn, not rebalanced, and not relabelled**, 
 pass is choosing the conditions of a measurement to change its outcome, which is
 the move this document exists to prevent.
 
+### 7. Amendment (2026-08-20, after the instrument-A held-out run, before any instrument-B call)
+
+**Written before the calls, and the ordering is again the only thing that makes it
+worth reading.** Instrument B exists (`9ef9e69`). No call has been made under it.
+The bound below is arithmetic over committed data, so it could have been computed
+at any time — which is exactly why it has to be recorded *before* the run rather
+than produced afterwards as an explanation of why nothing moved.
+
+**What instrument B can reach.** Instrument A prefixed every case with
+`VIEWER QUESTION:` / `VIEWER CONTEXT:`, supplying a `SUBJECT_TERM` to the
+classification router; a case whose recorded answer also carried an
+`ATTRIBUTE_TERM` classified `sensitive` and was refused. Across the eight
+committed agent runs that refused 9 of 169 case-by-answer renderings, on
+`entitlement-012` and `grounded-019`.
+
+Of the twenty held-out calibration items, **one** was touched by it:
+
+| held-out item | run | case | axis | refused under A |
+|---|---|---|---|---|
+| `cal-20` | `m02-tools-1` | `entitlement-012` | `groundedness` | classification, 3 of 3 samples |
+
+`grounded-019` is not a calibration item at all. The other nineteen held-out items
+were never classification-refused, so **instrument B cannot change their bands
+except by re-rolling the judge**, and a re-roll is not a treatment.
+
+**Pre-registered bound, before the run:**
+
+| claim | prediction | what falsifies it |
+|---|---|---|
+| `entitlement-012` is served under B | the classification refusal does not recur | it is refused again — the label rename was not the cause, and the reproduction in `9ef9e69` is wrong |
+| `groundedness` raw agreement | at best **1/6 = 0.167**, against `AGREEMENT_THRESHOLD = 0.75` | above 0.75, which is arithmetically impossible at n=6 with 5 unchanged zeros |
+| `groundedness` undecided | 6/6 → at best **5/6 = 83%**, against `MAX_UNDECIDED_FRACTION = 0.20` | below 20% |
+| `brand_tone`, `completeness`, `concision` | **untouched** — zero classification-refused items among them | any change, which would mean something other than the two labels moved |
+| axis demotion status | **no axis changes status.** Every axis demotes under both instruments, on two independent rules each | any axis calibrating under B |
+| guardrail refusals | **unchanged** on this item. The topic classifier reads the same answer text; only the two opening labels moved | the guardrail verdict on `entitlement-012` differs from A's, which would mean the labels reach the guardrail as well as the router and the instrument's blast radius is larger than measured |
+
+**Consequence, taken now: the run is scoped to what the instrument touched.**
+Three calls — `m02-tools-1`, `--only entitlement-012`, samples 1–3 — not the full
+21-invocation, 48-call split.
+
+The reason is not cost. **45 of those 48 calls would be re-rolls of items the
+instrument provably did not touch, and there is no instrument-A replicate to
+compare them against.** Temperature 0 is a pin, not a determinism claim
+(see "The judge is an instrument"). Any A↔B difference on the other nineteen items
+would be indistinguishable from run-to-run variance — and the headline quantity,
+undecided fraction, *is* the variance measure. A full re-run would produce a
+second table that looks like a comparison and is not one; a reader shown two
+tables side by side reads the differences as instrument effects, and nineteen
+twentieths of them would not be.
+
+**The alternative that would license a delta claim is named and declined:** re-run
+instrument A unchanged alongside B on the same day and publish A′−A as the noise
+floor. That is the honest design for a comparison, it costs ~96 calls, and M03
+does not need a comparison — it needs to know whether the instrument still
+supplies half of a control's refusal condition.
+
+**So the published record is not a second table.** Instrument A's held-out result
+stands as the milestone's agreement number, unchanged and unwithdrawn. The
+instrument-B run is published beside it as a **scoped re-measurement of one item**,
+labelled as such, with the other nineteen recorded as unchanged-by-construction
+and this bound cited as the reason. Reading it as an A-versus-B delta is the error
+this amendment exists to foreclose.
+
+
 ## Pre-registered hypothesis (written before the run)
 
 > **This one is blind.** No judge has been invoked, no pilot has been run, and no
