@@ -814,63 +814,71 @@ mechanism with nothing calibrating it.
 
 ## Definition of done
 
-- [ ] `SPEC/03-evals.md` is the branch's first commit, before any code
-- [ ] The `cited_titles_in_fixture` tightening landed in **its own PR to `main`**,
+- [x] `SPEC/03-evals.md` is the branch's first commit, before any code
+- [x] The `cited_titles_in_fixture` tightening landed in **its own PR to `main`**,
       AI Quality, two-key — including the moved comparator pins and the
       progression footnotes — and `m03-evals` rebased onto it. Any score change
       attributed to that PR and not to M03
-- [ ] Calibration corpus: 30 items, committed deterministic selection rule, 10/20
+- [x] Calibration corpus: 30 items, committed deterministic selection rule, 10/20
       split — committed **with no labels**, as its own commit
-- [ ] Labels committed as their own commit, **before any judge prompt exists in
+- [x] Labels committed as their own commit, **before any judge prompt exists in
       the tree**, carrying `drafted`, `final` and `provenance: ai-proposed`; both
       SHAs recorded here at close
-- [ ] **All 30 labels disposed by the AI Quality seat before the judge runs**, and
+- [x] **All 30 labels disposed by the AI Quality seat before the judge runs**, and
       the correction rate published beside every agreement figure in the same
       sentence. Undisposed drafts are not labels and are excluded from the
       published number
-- [ ] Judge prompt written and iterated **against the 10 dev items only**;
+- [x] Judge prompt written and iterated **against the 10 dev items only**;
       hash-pinned; the rubric hash-pinned with it
-- [ ] `evals/judge.py` is a pure function of committed judge output, inside
+- [x] `evals/judge.py` is a pure function of committed judge output, inside
       `HERMETIC_ROOTS`; `make check` still passes offline on a fresh clone with no
       AWS account
-- [ ] `run_judge.py` calls **through the gateway**; the IAM assertion test still
+- [x] `run_judge.py` calls **through the gateway**; the IAM assertion test still
       fails at synth time if anything outside the gateway holds
       `bedrock:InvokeModel`
-- [ ] Raw judge output committed for every judged run, so every judged number is
+- [x] Raw judge output committed for every judged run, so every judged number is
       re-derivable by a stranger
-- [ ] Per-axis agreement published with item counts; raw **and** κ; label
+- [x] Per-axis agreement published with item counts; raw **and** κ; label
       distribution published beside them
-- [ ] **Auto-demotion test** (claim 9's artifact): below threshold, the axis stops
+- [x] **Auto-demotion test** (claim 9's artifact): below threshold, the axis stops
       vetoing, the entry records `demoted`, and the gate verdict reverts to the
       deterministic one and **cannot block**. Above threshold, the veto applies and
       can turn a deterministic PASS into a judged FAIL. Both directions, hermetic
-- [ ] A test pinning that a demoted axis never enters `result` as `ADVISORY` — the
+- [x] A test pinning that a demoted axis never enters `result` as `ADVISORY` — the
       collision named above
-- [ ] Axis-level ties recorded, counted, non-vetoing; case-level tie recorded as
+- [x] Axis-level ties recorded, counted, non-vetoing; case-level tie recorded as
       still unreachable
-- [ ] `instrument` added to `evals/history/schema.json` — two-key, disposition and
+- [x] `instrument` added to `evals/history/schema.json` — two-key, disposition and
       rationale in the PR body
-- [ ] `guardrail_refusals` recorded; SPEC/01's band asserted at suite level,
+- [x] `guardrail_refusals` recorded; SPEC/01's band asserted at suite level,
       reporting only — two-key, AI Quality **and** Security
-- [ ] `m00b` judged anchor appended at `k_judge=3`, carrying `instrument`, with
+- [x] `m00b` judged anchor appended at `k_judge=3`, carrying `instrument`, with
       **no** `supersedes`; ADR-012 amended in place
-- [ ] Both M02 arms judged and recorded; `m01` cut, with the reason recorded
-- [ ] Progression table gains a judged column; the deterministic column unmoved and
+- [x] ~~Both M02 arms judged and recorded~~ **All three cut, with the reason recorded.**
+      The judge can move nothing until an axis calibrates, so a judged re-score of
+      either arm would spend model calls to produce a number already known to equal
+      its deterministic score. Recorded as a cut in `milestones/M03/README.md` and
+      the progression footnote ✧, reversible the moment any axis calibrates —
+      never silently skipped
+- [x] Progression table gains a judged column; the deterministic column unmoved and
       still comparable to `m00b`
-- [ ] ADRs: the judge as a pinned instrument whose raw output is committed; the
+- [x] ADRs: the judge as a pinned instrument whose raw output is committed; the
       calibration corpus size and freeze rule; `instrument` versus `supersedes`;
       plus the ADR-012 amendment
-- [ ] `pave evals dryrun` stops being a stub. It currently prints
+- [x] `pave evals dryrun` stops being a stub. It currently prints
       *"(stub) would: load goldens, resolve fixtures, validate asserts — without
       calling a model (M03)"* and names this milestone in its own output, while
       `run_evals.py --dryrun` already does the work. Wiring it is M03's by that
       self-nomination
-- [ ] Seat review **before** any judged run — AI Quality, Platform Engineering,
+- [x] Seat review **before** any judged run — AI Quality, Platform Engineering,
       Security, Service Team — while fixes are still free
-- [ ] Any unearned pass documented with a drafted tightening
-- [ ] `milestones/M03/README.md` answers the three questions
-- [ ] Progression row filled, with footnotes
-- [ ] Tag `m03` pushed from branch `m03-evals` — names distinct
+- [x] Any unearned pass documented with a drafted tightening — **none arose.** M03
+      ran no new agent suite, so no pass was credited to any system. The five
+      tightenings it *did* surface are listed in `milestones/M03/README.md`
+- [x] `milestones/M03/README.md` answers the three questions
+- [x] Progression row filled, with footnotes
+- [ ] Tag `m03` pushed from branch `m03-evals` — names distinct *(the operator's,
+      after the milestone PR merges)*
 
 ## Sequencing
 
