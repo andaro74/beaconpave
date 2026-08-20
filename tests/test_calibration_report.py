@@ -15,6 +15,7 @@ import pathlib
 
 import pytest
 
+from evals import judge
 from evals import run_calibration as rc
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -37,25 +38,98 @@ def write_samples(directory: pathlib.Path, label: str, cases_by_sample: dict,
 # --- the drop rule, which is where a flattering number would come from --------
 
 
-def test_a_refused_judge_call_is_a_disagreement_and_not_a_dropped_item():
-    """The single most dangerous mistake available in this module.
+def corpus(tmp_path, items, labels):
+    """Point the module at a synthetic corpus so `assemble` can be tested directly."""
+    (tmp_path / "items.json").write_text(json.dumps({"salt": "t", "items": items}), encoding="utf-8")
+    (tmp_path / "labels.json").write_text(json.dumps({"labels": labels}), encoding="utf-8")
+    rc.ITEMS, rc.LABELS = tmp_path / "items.json", tmp_path / "labels.json"
 
-    The answer exists and the judge was asked; a control would not carry the call.
-    Dropping it would compute agreement over exactly the answers the guardrail
-    found unobjectionable — a different question, and a far more flattering one.
-    At M03 it would have turned four demoted axes into a published figure over
-    five items.
+
+@pytest.fixture(autouse=True)
+def restore_corpus():
+    items, labels = rc.ITEMS, rc.LABELS
+    yield
+    rc.ITEMS, rc.LABELS = items, labels
+
+
+def test_a_refused_judge_call_is_a_disagreement_and_not_a_dropped_item(tmp_path):
+    """The single most dangerous mistake available in this module, tested where it lives.
+
+    **This test previously exercised `diagnostics()` and passed while the defect was
+    in `assemble()`.** It was named for the defect, asserted something adjacent to
+    it, and shipped a red branch green — the same shape as M02's synth assertions
+    that did not assert. It now drives `assemble` and would fail on the real bug.
+
+    Dropping a refused item would compute agreement over exactly the answers the
+    guardrail permitted, and delete a fully-blocked axis from the table rather than
+    demote it.
     """
-    rows = [
-        {"item": "x", "axis": "groundedness", "label": 1.0, "band": None,
-         "samples": [None, None, None]},
-        {"item": "y", "axis": "groundedness", "label": 1.0, "band": 1.0,
-         "samples": [1.0, 1.0, 1.0]},
-    ]
-    diag = rc.diagnostics(rows)
-    assert diag["decided_only"]["n"] == 1, "the refused item must not be scored as decided"
-    assert diag["undecided_because_controls_refused"] == 1
-    assert diag["undecided_because_judge_split_bands"] == 0
+    corpus(tmp_path,
+           [{"id": "i1", "run": "r", "case_id": "c1", "axis": "groundedness", "split": "held-out"},
+            {"id": "i2", "run": "r", "case_id": "c2", "axis": "groundedness", "split": "held-out"}],
+           [{"item": "i1", "axis": "groundedness", "split": "held-out", "applicable": True,
+             "drafted": 1.0, "final": 1.0},
+            {"item": "i2", "axis": "groundedness", "split": "held-out", "applicable": True,
+             "drafted": 1.0, "final": 1.0}])
+    samples = {("r", "c1"): {n: {"refused_by_gateway": "guardrail",
+                                 "axes": {"groundedness": None}} for n in (1, 2, 3)},
+               ("r", "c2"): {n: {"axes": {"groundedness": 1.0}} for n in (1, 2, 3)}}
+
+    scorable, _ = rc.assemble("held-out", samples, 3)
+    assert len(scorable) == 2, "the refused item was dropped instead of scored"
+    refused = next(r for r in scorable if r["case_id"] == "c1")
+    assert refused["band"] is None, "a refused call must carry no band"
+
+    stats = judge.agreement([{"axis": r["axis"], "label": r["label"], "band": r["band"]}
+                             for r in scorable])
+    assert stats["n"] == 2 and stats["exact"] == 1 and stats["raw"] == 0.5, (
+        "a refused item must count in the denominator as a disagreement; dropping it "
+        "would publish 1.00 here"
+    )
+
+
+def test_an_axis_whose_every_item_was_refused_is_demoted_and_not_deleted(tmp_path):
+    """A fully-blocked axis is the one an artifact must be loudest about.
+
+    When the drop bug was live, `groundedness` — all six items refused — never
+    reached `demotion()` and simply vanished from the published table. Absent reads
+    as "not measured"; the truth is "measured, and the controls refused every call".
+    """
+    corpus(tmp_path,
+           [{"id": "i1", "run": "r", "case_id": "c1", "axis": "groundedness", "split": "held-out"}],
+           [{"item": "i1", "axis": "groundedness", "split": "held-out", "applicable": True,
+             "drafted": 0.5, "final": 0.5}])
+    samples = {("r", "c1"): {n: {"refused_by_gateway": "guardrail",
+                                 "axes": {"groundedness": None}} for n in (1, 2, 3)}}
+    scorable, _ = rc.assemble("held-out", samples, 3)
+    by_axis = {r["axis"] for r in scorable}
+    assert "groundedness" in by_axis, "the axis left the table instead of being demoted"
+
+
+def test_a_duplicate_label_and_sample_is_refused(tmp_path):
+    """Last-one-wins would let a re-rolled call replace a refusal with no diff signal."""
+    for name in ("a.json", "b.json"):
+        (tmp_path / name).write_text(json.dumps({
+            "label": "r", "sample": 1, "instrument": INSTRUMENT,
+            "cases": {"c1": {"axes": {"groundedness": 1.0}}}}), encoding="utf-8")
+    with pytest.raises(SystemExit, match="both carry label"):
+        rc.load_samples(tmp_path)
+
+
+def test_a_missing_sample_names_the_k_flag_and_not_the_labels(tmp_path):
+    """The most likely developer error must not accuse a two-key artifact.
+
+    Pointing a k=3 report at a k=1 run used to report that the calibration labels
+    disagreed with the harness about whether an item was applicable. Nothing was
+    wrong with the labels; `--k` was wrong.
+    """
+    corpus(tmp_path,
+           [{"id": "i1", "run": "r", "case_id": "c1", "axis": "groundedness", "split": "held-out"}],
+           [{"item": "i1", "axis": "groundedness", "split": "held-out", "applicable": True,
+             "drafted": 1.0, "final": 1.0}])
+    samples = {("r", "c1"): {1: {"axes": {"groundedness": 1.0}}}}
+    with pytest.raises(SystemExit, match=r"--k 1"):
+        rc.assemble("held-out", samples, 3)
 
 
 def test_undecided_separates_a_blocked_call_from_a_judge_that_split_bands():

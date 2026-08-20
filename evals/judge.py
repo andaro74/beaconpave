@@ -161,8 +161,14 @@ def is_frozen() -> bool:
     if not marks:
         return False
     now = instrument()
+    # `rendered_sha256` is in this list deliberately. It covers the prompt, the
+    # rubric axes AND `data/catalog.json`, which the judge is shown and grades
+    # groundedness against. Without it, editing the catalog changes every band the
+    # judge would return and the freeze check still passes — the prompt is pinned
+    # and the thing it is pinned around is not.
     return all(marks.get(k) == now[k]
-               for k in ("prompt_sha256", "rubric_sha256", "rubric_axes_sha256"))
+               for k in ("prompt_sha256", "rubric_sha256", "rubric_axes_sha256",
+                         "rendered_sha256"))
 
 
 def held_out_guard() -> None:
@@ -314,12 +320,35 @@ def cohens_kappa(labels: list, predictions: list) -> float | None:
     expected failure mode and kappa rewards it exactly as it rewards genuine
     agreement. Published as the check on raw agreement, never as a defence of it.
 
-    `None` when it is undefined — one rater used a single category, which makes
-    expected agreement 1.0 and the correction a division by zero. That is not an
-    error to hide: it is what `brand_tone` looks like, and it is the reason the
-    axis is demoted on evidence rather than on this number."""
+    `None` when it is undefined, which is two distinct situations: the **labels**
+    used a single category (no discrimination task, so no baseline to correct
+    against), or the **judge decided nothing at all**. A single *prediction*
+    category is not one of them — see the note in the body.
+
+    The guard used to be `expected >= 1.0`, which only fires when *both* raters
+    collapse to the *same* single category. That let the case this corpus actually
+    produced through: at M03 the judge was refused on all six `groundedness` items,
+    so its every prediction was `None` while the labels spanned three bands —
+    expected agreement 0, and **kappa published as `0.00` for an axis the judge
+    never answered**. `0.00` reads as "no better than chance", which is a claim
+    about a judge that said nothing. There is no evidence here, and the honest
+    return for no evidence is no number."""
     if not labels or len(labels) != len(predictions):
         return None
+    if len(set(labels)) == 1:
+        # No discrimination task, so no chance baseline to correct against. This is
+        # `brand_tone`: every label 0.5, and any number returned would be read as a
+        # measurement of a judge that was never asked to tell two things apart.
+        return None
+    if all(b is None for b in predictions):
+        # The judge decided nothing — every call refused, or no majority anywhere.
+        # Label mass on `None` is zero, so expected agreement is zero and the formula
+        # happily returns 0.00, which reads as "no better than chance". It is not: it
+        # is no evidence. This is `groundedness` at M03, six items and six refusals.
+        return None
+    # NOTE: a single *prediction* category is deliberately NOT undefined. A judge
+    # that answers 1.0 to everything and lands nine of ten imbalanced labels earns
+    # kappa 0, and that zero is the whole reason kappa is published beside raw.
     n = len(labels)
     observed = sum(1 for a, b in zip(labels, predictions, strict=True) if a == b) / n
     lab, pred = collections.Counter(labels), collections.Counter(predictions)
@@ -344,6 +373,18 @@ def agreement(items: list) -> dict:
     as agreement would let an unrepeatable judge look calibrated."""
     labels = [i["label"] for i in items]
     bands = [i["band"] for i in items]
+    # `None == None` is True, so an unlabelled item and a refused judge call would
+    # score as exact agreement — and be counted as undecided in the same breath.
+    # Today every `final: null` label carries `applicable: false` and is dropped
+    # before it reaches here, but that invariant lives two files away in
+    # `tests/test_calibration_corpus.py`. An agreement figure must not depend on it.
+    unlabelled = [i for i in items if i["label"] is None]
+    if unlabelled:
+        raise ValueError(
+            f"{len(unlabelled)} item(s) reached agreement() with no label "
+            f"({', '.join(sorted(str(i.get('axis')) for i in unlabelled))}). An item with "
+            "nothing to agree with is not an agreement; it is a corpus defect."
+        )
     exact = sum(1 for a, b in zip(labels, bands, strict=True) if a == b)
     return {
         "n": len(items),
@@ -371,8 +412,10 @@ def demotion(axis: str, stats: dict) -> dict:
     if undecided_fraction > MAX_UNDECIDED_FRACTION:
         reasons.append(
             f"{undecided_fraction:.0%} of items undecided at k_judge, above "
-            f"{MAX_UNDECIDED_FRACTION:.0%}: a judge that cannot repeat itself is not "
-            "calibrated by the answers where it happened to"
+            f"{MAX_UNDECIDED_FRACTION:.0%}: an axis with no repeatable band on most of its "
+            "items is not calibrated by the few that produced one (see the run's "
+            "diagnostics for whether the controls refused the call or the judge split "
+            "bands — different findings, different seats)"
         )
     if stats["raw"] < AGREEMENT_THRESHOLD:
         reasons.append(

@@ -41,10 +41,20 @@ LABELS = ROOT / "quality" / "judge" / "calibration" / "labels.json"
 def load_samples(directory: pathlib.Path) -> dict:
     """`{(run, case_id): {sample: case_record}}` from a directory of judge output."""
     out: dict = collections.defaultdict(dict)
+    seen: dict = {}
     for path in sorted(directory.glob("*.json")):
         doc = json.loads(path.read_text(encoding="utf-8"))
         if "cases" not in doc:
             continue
+        key = (doc["label"], doc["sample"])
+        if key in seen:
+            raise SystemExit(
+                f"error: {path.name} and {seen[key]} both carry label {doc['label']!r} "
+                f"sample {doc['sample']}. Last-one-wins would let a re-rolled call replace a "
+                "refusal in both the majority and the refusal census, with nothing in the diff "
+                "to show it. Remove one or relabel it."
+            )
+        seen[key] = path.name
         for case_id, record in doc["cases"].items():
             out[(doc["label"], case_id)][doc["sample"]] = record
     return out
@@ -96,6 +106,14 @@ def assemble(split: str, samples: dict, k: int) -> tuple[list, list]:
         if not by_sample:
             raise SystemExit(f"error: no judge output for {key} (item {label['item']})")
 
+        missing = [s for s in range(1, k + 1) if s not in by_sample]
+        if missing:
+            raise SystemExit(
+                f"error: {key[0]} {key[1]} has no judge output for sample(s) "
+                f"{', '.join(map(str, missing))} at k={k}. If this directory holds a run at a "
+                f"different k, pass --k {len(by_sample)}. Read as a disagreement instead, a "
+                "missing sample would accuse the calibration labels of a defect they do not have."
+            )
         harness_na = all(by_sample.get(s, {}).get("not_applicable") for s in range(1, k + 1))
         seat_na = not label.get("applicable", True)
         if harness_na != seat_na:
@@ -110,8 +128,12 @@ def assemble(split: str, samples: dict, k: int) -> tuple[list, list]:
             continue
 
         bands = [by_sample.get(s, {}).get("axes", {}).get(label["axis"]) for s in range(1, k + 1)]
-        if judge.majority_band(bands) is None:
-            continue
+        # No `if majority_band(...) is None: continue` here, and it is worth saying
+        # why in the code rather than only in the docstring. Skipping undecided
+        # items would drop exactly the ones a control refused, compute agreement
+        # over the answers the guardrail permitted, and delete a fully-blocked axis
+        # from the published table instead of demoting it. It fails silently and in
+        # the flattering direction.
         scorable.append({
             "item": label["item"],
             "axis": label["axis"],
@@ -158,11 +180,18 @@ def diagnostics(rows: list) -> dict:
     """
     decided = [r for r in rows if r["band"] is not None]
     agree = sum(1 for r in decided if r["band"] == r["label"])
-    blocked = sum(1 for r in rows
-                  if r["band"] is None and sum(1 for s in r["samples"] if s in judge.BANDS) < 2)
-    split_bands = sum(1 for r in rows
-                      if r["band"] is None
-                      and sum(1 for s in r["samples"] if s in judge.BANDS) >= 2)
+    def usable(row):
+        return sum(1 for s in row["samples"] if s in judge.BANDS)
+
+    undecided = [r for r in rows if r["band"] is None]
+    blocked = sum(1 for r in undecided if usable(r) < 2)
+    # Only a row where every sample came back counts as the judge splitting bands.
+    # A row with two usable samples that disagree is NOT that: a control removed the
+    # tiebreak, so the split is as much the gateway's doing as the judge's, and
+    # filing it under "the judge disagreed with itself" would attribute a gateway
+    # finding to the instrument under test.
+    split_bands = sum(1 for r in undecided if usable(r) == len(r["samples"]))
+    ambiguous = len(undecided) - blocked - split_bands
     return {
         "decided_only": {
             "n": len(decided),
@@ -171,10 +200,16 @@ def diagnostics(rows: list) -> dict:
         },
         "undecided_because_controls_refused": blocked,
         "undecided_because_judge_split_bands": split_bands,
+        "undecided_with_a_refused_tiebreak": ambiguous,
     }
 
 
 def report(split: str, directory: pathlib.Path, k: int) -> dict:
+    if split == "held-out":
+        # Enforced, not promised. `held_out_guard` had zero callers when it landed,
+        # while its own docstring claimed to be "the one place the spec's central
+        # discipline is enforced rather than promised". This is that place.
+        judge.held_out_guard()
     samples = load_samples(directory)
     marks = instruments(directory)
     if len(marks) != 1:
@@ -182,6 +217,17 @@ def report(split: str, directory: pathlib.Path, k: int) -> dict:
             f"error: {len(marks)} distinct instrument blocks in {directory}. The judge moved "
             "mid-run; no agreement number computed across it means anything."
         )
+    if split == "held-out":
+        pinned = judge.frozen()
+        drifted = sorted(k for k in ("prompt_sha256", "rubric_sha256", "rubric_axes_sha256",
+                                     "rendered_sha256")
+                         if pinned.get(k) != marks[0].get(k))
+        if drifted:
+            raise SystemExit(
+                f"error: the committed judge output was produced under a different instrument "
+                f"than quality/judge/frozen.json pins ({', '.join(drifted)}). Checking that the "
+                "run used ONE instrument is not the same as checking it used the FROZEN one."
+            )
 
     scorable, dropped = assemble(split, samples, k)
     by_axis = collections.defaultdict(list)

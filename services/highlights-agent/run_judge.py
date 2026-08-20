@@ -48,11 +48,38 @@ from evals import judge  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 GOLDENS = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
+LABELS = ROOT / "quality" / "judge" / "calibration" / "labels.json"
+ITEMS = ROOT / "quality" / "judge" / "calibration" / "items.json"
 
-#: The judge's own caller identity. Deliberately not `highlights-agent`: the audit
-#: lake keys on service, and a judge call sitting under the agent's name would
-#: make "how often did the guardrail refuse the agent" unanswerable from the lake.
+#: The judge's own caller identity **for the audit record**. Deliberately not
+#: `highlights-agent`: the lake keys on service, and a judge call sitting under the
+#: agent's name would make "how often did the guardrail refuse the agent"
+#: unanswerable from the lake.
+#:
+#: **It is a label, not an authorization principal.** ADR-023 makes the Cedar
+#: principal deployment configuration — `handler.py` reads `SERVICE_PRINCIPAL` from
+#: the environment and explicitly refuses to take it from the event — so this
+#: string grants and restricts nothing. Harmless while the judge uses no tools and
+#: Cedar is never consulted; actively misleading the day someone adds a tool-using
+#: judge and believes this line authorizes it.
 JUDGE_SERVICE = "judge-highlights"
+
+
+def judged_split(label: str, case_ids: set) -> str | None:
+    """Which calibration split this invocation touches, or `None` if neither.
+
+    The freeze exists to stop the held-out half being read while the prompt is
+    still moving. That guard can only fire if something works out that the run
+    *is* the held-out half — the runner takes a label and case ids, not a split,
+    so it derives it. A run touching both splits counts as held-out: the stricter
+    of the two is the safe reading.
+    """
+    items = json.loads(ITEMS.read_text(encoding="utf-8"))["items"]
+    touched = {i["split"] for i in items
+               if i["run"] == label and (not case_ids or i["case_id"] in case_ids)}
+    if "held-out" in touched:
+        return "held-out"
+    return "dev" if touched else None
 
 
 def main(argv=None) -> int:
@@ -69,8 +96,30 @@ def main(argv=None) -> int:
         cases = [c for c in cases if c["id"] in set(args.only)]
     answers = json.loads(pathlib.Path(args.answers).read_text(encoding="utf-8"))
 
+    # Two guards that were documented as enforced and called from nowhere.
+    # `tests/test_calibration_corpus.py` declines to test disposition on the
+    # grounds that "run_judge.py refuses to run until it has", and the two-key
+    # rationale on the PR says the same. Neither was true until here.
+    provenance = json.loads(LABELS.read_text(encoding="utf-8")).get("provenance", {})
+    if not provenance.get("disposed"):
+        sys.exit(
+            "error: quality/judge/calibration/labels.json is not disposed "
+            f"(provenance.disposed={provenance.get('disposed')!r}). A drafted label is a "
+            "model's opinion, and measuring a model against it measures nothing. The AI "
+            "Quality seat disposes all thirty before the judge runs."
+        )
+    if judged_split(args.label, set(args.only or ())) == "held-out":
+        judge.held_out_guard()
+
+    deployed = gw.resources()
+    deployed_version = deployed["PinnedGuardrailVersion"]
+
     system = judge.render_prompt()
     marks = judge.instrument()
+    # The enforced policy is part of what read the answers. M03 ran two dev passes
+    # under guardrail versions 1 and 2 whose instrument blocks were byte-identical
+    # while the refusal rate differed, and nothing in the record said why.
+    marks["guardrail_version"] = deployed_version
     print(f"judge instrument: prompt {marks['prompt_sha256'][:12]} "
           f"rubric-axes {marks['rubric_axes_sha256'][:12]}")
     print(f"frozen: {judge.is_frozen()}\n")

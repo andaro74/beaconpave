@@ -42,7 +42,8 @@
       "raw": 0.4
     },
     "undecided_because_controls_refused": 12,
-    "undecided_because_judge_split_bands": 0
+    "undecided_because_judge_split_bands": 0,
+    "undecided_with_a_refused_tiebreak": 0
   },
   "axes": {
     "brand_tone:meridian-sports": {
@@ -50,13 +51,13 @@
       "status": "demoted",
       "reasons": [
         "3 scorable held-out item(s), below the floor of 5: not enough evidence is not calibration",
-        "67% of items undecided at k_judge, above 20%: a judge that cannot repeat itself is not calibrated by the answers where it happened to",
+        "67% of items undecided at k_judge, above 20%: an axis with no repeatable band on most of its items is not calibrated by the few that produced one (see the run's diagnostics for whether the controls refused the call or the judge split bands \u2014 different findings, different seats)",
         "raw exact-band agreement 0.00 below 0.75"
       ],
       "n": 3,
       "exact": 0,
       "raw": 0.0,
-      "kappa": 0.0,
+      "kappa": null,
       "undecided": 2,
       "label_distribution": {
         "0.5": 3
@@ -66,7 +67,7 @@
       "axis": "completeness",
       "status": "demoted",
       "reasons": [
-        "60% of items undecided at k_judge, above 20%: a judge that cannot repeat itself is not calibrated by the answers where it happened to",
+        "60% of items undecided at k_judge, above 20%: an axis with no repeatable band on most of its items is not calibrated by the few that produced one (see the run's diagnostics for whether the controls refused the call or the judge split bands \u2014 different findings, different seats)",
         "raw exact-band agreement 0.00 below 0.75"
       ],
       "n": 5,
@@ -84,13 +85,13 @@
       "status": "demoted",
       "reasons": [
         "3 scorable held-out item(s), below the floor of 5: not enough evidence is not calibration",
-        "33% of items undecided at k_judge, above 20%: a judge that cannot repeat itself is not calibrated by the answers where it happened to",
+        "33% of items undecided at k_judge, above 20%: an axis with no repeatable band on most of its items is not calibrated by the few that produced one (see the run's diagnostics for whether the controls refused the call or the judge split bands \u2014 different findings, different seats)",
         "raw exact-band agreement 0.67 below 0.75"
       ],
       "n": 3,
       "exact": 2,
       "raw": 0.6667,
-      "kappa": 0.0,
+      "kappa": null,
       "undecided": 1,
       "label_distribution": {
         "1.0": 3
@@ -100,13 +101,13 @@
       "axis": "groundedness",
       "status": "demoted",
       "reasons": [
-        "100% of items undecided at k_judge, above 20%: a judge that cannot repeat itself is not calibrated by the answers where it happened to",
+        "100% of items undecided at k_judge, above 20%: an axis with no repeatable band on most of its items is not calibrated by the few that produced one (see the run's diagnostics for whether the controls refused the call or the judge split bands \u2014 different findings, different seats)",
         "raw exact-band agreement 0.00 below 0.75"
       ],
       "n": 6,
       "exact": 0,
       "raw": 0.0,
-      "kappa": 0.0,
+      "kappa": null,
       "undecided": 6,
       "label_distribution": {
         "0.0": 2,
