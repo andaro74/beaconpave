@@ -531,6 +531,61 @@ its label distribution is choosing items to change a number.
 **`groundedness` and `completeness` both carry all three bands**, which is what
 makes them the two axes worth measuring.
 
+### 6. Amendment (2026-08-20, after the version-2 dev pass, before the held-out run)
+
+**Recorded here, in this order, deliberately.** The held-out run had not been
+invoked when this was written, and the sequencing is the only thing that makes it
+worth reading: a corpus limitation noticed after an agreement number exists is
+indistinguishable from an excuse.
+
+Finding 5 sized every axis against `MIN_SCORABLE_HELD_OUT = 5` and drew the
+consequence for `brand_tone` — demoted on insufficient evidence, owed to M04. Two
+things it did not do.
+
+**`concision` sits at the identical 3 and the same consequence was never drawn.**
+Same number, same rule, one axis named and the other not. Nothing hid it; it was
+simply not carried across the table.
+
+**Neither margin survives a refusal rate, and no refusal rate existed when the
+corpus was drawn.**
+
+| axis | scorable held-out | margin over MIN=5 | expected usable at 46% |
+|---|---|---|---|
+| `groundedness` | 6 | +1 | ~3.2 |
+| `completeness` | 5 | **0** | ~2.7 |
+| `brand_tone:meridian-sports` | 3 | −2 | ~1.6 |
+| `concision` | 3 | −2 | ~1.6 |
+
+The two axes finding 5 called *"the two axes worth measuring"* clear the threshold
+by one item and by nothing at all. Every item that the guardrail refuses comes
+straight off those margins, and the version-2 dev pass measures the refusal rate at
+**46% of model-eligible calls** (`milestones/M03/judge/dev-guardrail-2/`). At that
+rate all four axes demote on insufficient evidence, and they do so *in addition to*
+demoting on the >20%-undecided rule.
+
+**This is a sequencing problem, not an arithmetic one, and it generalises.** The
+corpus was sized against a threshold that was known and could not be sized against
+a refusal rate that did not yet exist — the judge had never run. Nothing in the
+order of operations was wrong. What was missing is that a corpus draw records no
+assumption about how many of its items will survive the instrument reading them,
+so there is nothing to falsify later.
+
+**Owed to AI Quality, named for M04:** a corpus draw must publish its *expected
+usable* count per stratum, not only its drawn count — an explicit loss allowance,
+stated before labels and falsifiable afterwards. ADR-009 fixes corpus sizes; it
+does not require them to be stated net of instrument loss. Had this rule existed,
+the 30-item draw would have been visibly too small for four axes before a single
+label was written.
+
+**Consequence for M03, taken now.** The held-out run proceeds and its number is
+published with item counts beside it, exactly as the definition of done requires.
+The outcome is over-determined — every axis demotes on two independent rules — and
+that is recorded as the result rather than treated as a reason to skip the
+measurement. **The corpus is not redrawn, not rebalanced, and not relabelled**, and
+`MIN_SCORABLE_HELD_OUT` is not re-derived. Changing any of them after seeing a dev
+pass is choosing the conditions of a measurement to change its outcome, which is
+the move this document exists to prevent.
+
 ## Pre-registered hypothesis (written before the run)
 
 > **This one is blind.** No judge has been invoked, no pilot has been run, and no
