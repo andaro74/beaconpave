@@ -225,6 +225,23 @@ def check(argv=()):
     elif proc.returncode != 0:
         failures.append(f"pytest failed (exit {proc.returncode})")
 
+    print("==> guardrail-refusal band (SPEC/01, reporting only)")
+    try:
+        # Printed, never collected into `failures`. This step cannot fail the check:
+        # a refusal count reaching a pass/fail decision would let a guardrail
+        # misconfiguration read as a service regression, and would let tuning the
+        # guardrail move a recorded number. `tests/test_refusal_band.py` is where it
+        # is asserted; this is where it is *reported*, because a reporting-only
+        # number that prints nowhere reports nothing - which is what it did from M01
+        # until here, inside a runner nobody re-executes.
+        from evals import refusals
+        print(refusals.render())
+    except Exception as exc:  # noqa: BLE001
+        # Not a failure either. The band is advisory; a broken reporter is a broken
+        # reporter, and dressing it as a control finding would be the same category
+        # error one level down.
+        print(f"    (refusal band unavailable: {exc})")
+
     print("==> eval dry-run (no model calls)")
     try:
         # Was a `_stub` that printed a `==>` header in the same format as the three

@@ -705,6 +705,42 @@ gateway and the judge on a corpus where all 25 cases are eligible.
 **Anything the anchor turns up about the guardrail is M01's second owed
 tightening** (Security + Data Governance). M03 measures it and does not fix it.
 
+### 9. Amendment (2026-08-20, after the band was asserted): "every governed entry" is falsified
+
+The hypothesis table predicts the `guardrail_refusals` band **"breached on every
+governed entry, including `m01`"**, with the falsifier named as *"any governed run
+inside 0–2"*. The falsifier fired.
+
+Measured hermetically over every committed golden run
+(`evals/refusals.py`, `tests/test_refusal_band.py`):
+
+| run | refused | band |
+|---|---|---|
+| `m00b` | 0 | ungoverned — no gateway existed |
+| `m01` | 3 | breach |
+| `m02-control-1/2/3` | 5, 6, 8 | breach |
+| `m02-tools-1` | **2** | **within** |
+| `m02-tools-2` | 3 | breach |
+| `m02-tools-3` | **2** | **within** |
+
+**Five of seven governed runs breach. Two do not, and both are the tools arm.**
+
+The direction is the interesting part, and it is one M02 already documented from
+the other side: the tools arm cites retrieved catalog rows where the control
+confabulates, so it gives the guardrail less to fire on. Stated as a between-arm
+difference, and therefore measured across both arms sample by sample — the control
+refuses more than the tools arm in **every** paired sample (5>2, 6>3, 8>2), same
+day, same gateway, same pinned guardrail version. That is the one paired
+comparison in this repo where those conditions actually hold.
+
+**What does not change.** The band is reporting-only and blocks nothing; a refusal
+count reaching a score would let a guardrail misconfiguration read as a service
+regression. The guardrail refusals remain **M01's second owed tightening**
+(Security + Data Governance), not M03's. And the prediction is recorded as
+falsified rather than softened: `test_the_pre_registered_every_governed_entry_claim_is_falsified`
+pins which two runs sit inside the band, so the claim cannot be quietly edited to
+match the result.
+
 ## Pre-registered hypothesis (written before the run)
 
 > **This one is blind.** No judge has been invoked, no pilot has been run, and no
