@@ -1,0 +1,286 @@
+{
+  "label": "m00b",
+  "sample": 3,
+  "answers_file": "milestones/M00b/goldens-run.json",
+  "instrument": {
+    "prompt_sha256": "ef8c1ec77ffb0f79529afa40830b341aaf42fe21bc4565eba5bf709f5c446e37",
+    "rubric_sha256": "925f7e4cfc1de2436551f308115249a19bd7f3afdf8050e531c093303413bd0b",
+    "rubric_axes_sha256": "d4ea6ec45351982a76c7328c7b4cc19a71afa49ecf48ebeb30ee33da735a123c",
+    "rendered_sha256": "843e2ee68d6d41d4faa1e5644d64c11ea41e95d22efd9aad43d06997bbe5a38e",
+    "user_turn_sha256": "0d88a13d4f2065ca6118bc86b66cf38a2ad7b2ba78ff451f2bde5a0bf1f064d0",
+    "guardrail_version": "2"
+  },
+  "service": "judge-highlights",
+  "cases": {
+    "blackout-001": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-blackout-001-s3.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "blackout-006": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-blackout-006-s3.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "blackout-007": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-blackout-007-s3.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "groundedness": null
+      }
+    },
+    "blackout-008": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-blackout-008-s3.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "blackout-009": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-blackout-009-s3.json",
+      "axes": {
+        "concision": null,
+        "groundedness": null
+      }
+    },
+    "entitlement-002": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-entitlement-002-s3.json",
+      "axes": {
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "entitlement-010": {
+      "axes": {
+        "completeness": 1.0,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"groundedness\": {\n      \"band\": 1.0,\n      \"why\": \"All factual claims (title, entitlement tier, start time) are directly supported by t005 in the catalog.\"\n    },\n    \"completeness\": {\n      \"band\": 1.0,\n      \"why\": \"Answers the question affirmatively and provides the obvious follow-up information (event date and time) the viewer would need.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1598,
+        "tokens_out": 124,
+        "latency_ms": 2134
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-entitlement-010-s3.json"
+    },
+    "entitlement-011": {
+      "axes": {
+        "brand_tone:meridian-sports": 0.5,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"brand_tone:meridian-sports\": {\n      \"band\": 0.5,\n      \"why\": \"Accurate and straightforward but flat and formulaic, lacking the warm energy of a fan talking to a fan.\"\n    },\n    \"groundedness\": {\n      \"band\": 1.0,\n      \"why\": \"Both claims—that the Granite Falls Classic (Replay) is included with base and that it's available as VOD—are directly supported by t003, which specifies entitlement 'base' and type 'vod'.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1579,
+        "tokens_out": 152,
+        "latency_ms": 3228
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-entitlement-011-s3.json"
+    },
+    "entitlement-012": {
+      "axes": {
+        "completeness": 1.0,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"completeness\": {\n      \"band\": 1.0,\n      \"why\": \"The answer directly addresses that the title is not in the catalog and offers a constructive path forward by asking for clarification.\"\n    },\n    \"groundedness\": {\n      \"band\": 1.0,\n      \"why\": \"The answer makes no factual claims about titles, start times, or entitlements; it only states what is absent from the catalog, which is accurate.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1604,
+        "tokens_out": 129,
+        "latency_ms": 2540
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-entitlement-012-s3.json"
+    },
+    "recommend-003": {
+      "axes": {
+        "brand_tone:meridian-sports": 1.0,
+        "completeness": 0.5,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"groundedness\": {\n      \"band\": 1.0,\n      \"why\": \"The cited title t003 'Granite Falls Classic (Replay)' is in the catalog with entitlement 'base', and the answer's claim that it is a sports replay available on base plan traces entirely to that citation.\"\n    },\n    \"completeness\": {\n      \"band\": 0.5,\n      \"why\": \"The answer identifies one available replay but does not address whether other base-tier sports content exists or might be watchable, leaving the broader question of what replays (plural) are available incompletely answered.\"\n    },\n    \"brand_tone:meridian-sports\": {\n      \"band\": 1.0,\n      \"why\": \"The tone is warm, direct, and knowledgeable—a helpful fan-to-fan response with no hard sell, cruelty, or hyperbole.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1579,
+        "tokens_out": 230,
+        "latency_ms": 3649
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-recommend-003-s3.json"
+    },
+    "recommend-013": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-recommend-013-s3.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "recommend-014": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-recommend-014-s3.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "recommend-015": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-recommend-015-s3.json",
+      "axes": {
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "grounded-016": {
+      "axes": {
+        "concision": 1.0,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"concision\": {\n      \"band\": 1.0,\n      \"why\": \"A single direct sentence answers a one-line factual question proportionately.\"\n    },\n    \"groundedness\": {\n      \"band\": 1.0,\n      \"why\": \"The start time (7:00 PM UTC / 2026-09-13T19:00:00Z) is directly supported by the cited title t001 in the catalog.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1575,
+        "tokens_out": 128,
+        "latency_ms": 4013
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-grounded-016-s3.json"
+    },
+    "grounded-017": {
+      "axes": {
+        "completeness": 0.0,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"completeness\": {\n      \"band\": 0.0,\n      \"why\": \"The answer redirects to watching a replay instead of answering the question about who won.\"\n    },\n    \"groundedness\": {\n      \"band\": 1.0,\n      \"why\": \"The cited title t003 'Granite Falls Classic (Replay)' exists in the catalog with base entitlement, and the answer's claims about availability and eligibility trace to it.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1572,
+        "tokens_out": 130,
+        "latency_ms": 2225
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-grounded-017-s3.json"
+    },
+    "grounded-018": {
+      "axes": {
+        "completeness": 1.0,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"completeness\": {\n      \"band\": 1.0,\n      \"why\": \"The answer directly addresses whether a second leg exists (it doesn't) and explains what is actually in the catalog, resolving both the question and the implied follow-up about what Derby content is available.\"\n    },\n    \"groundedness\": {\n      \"band\": 1.0,\n      \"why\": \"The answer cites t001 (Jefferson Derby: Rovers vs Union) and every factual claim about the catalog—the September 13 date, the 7:00 PM start time, the teams involved, and the absence of a second leg—is either directly supported by or consistent with the cited title.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1602,
+        "tokens_out": 179,
+        "latency_ms": 3427
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-grounded-018-s3.json"
+    },
+    "grounded-019": {
+      "axes": {
+        "completeness": 1.0,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"completeness\": {\n      \"band\": 1.0,\n      \"why\": \"The answer directly resolves the viewer's question by stating the event is not available in the catalog, which is the accurate and complete response.\"\n    },\n    \"groundedness\": {\n      \"band\": 1.0,\n      \"why\": \"The answer makes no factual claims about titles, start times, or entitlements; it only states absence, which is consistent with the catalog containing no Harbor Bay Invitational entry.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1595,
+        "tokens_out": 139,
+        "latency_ms": 2272
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-grounded-019-s3.json"
+    },
+    "brand-020": {
+      "axes": {
+        "concision": 1.0,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"concision\": {\n      \"band\": 1.0,\n      \"why\": \"A straightforward yes/no question receives a direct, proportionate answer in two sentences.\"\n    },\n    \"groundedness\": {\n      \"band\": 1.0,\n      \"why\": \"The answer cites t002 (North Haven Nightly), which the catalog confirms has entitlement 'base' and type 'vod', making all factual claims traceable to the cited title.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1572,
+        "tokens_out": 135,
+        "latency_ms": 2219
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-brand-020-s3.json"
+    },
+    "brand-021": {
+      "axes": {
+        "brand_tone:meridian-sports": 1.0,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\"axes\": {\"brand_tone:meridian-sports\": {\"band\": 1.0, \"why\": \"Warm and knowledgeable tone; acknowledges the question with enthusiasm about the upcoming match without being salesy or hyperbolic.\"}, \"groundedness\": {\"band\": 1.0, \"why\": \"All factual claims (match participants, start time, date) trace to t001 in the catalog with no invented details.\"}}}\n```",
+      "usage": {
+        "tokens_in": 1644,
+        "tokens_out": 106,
+        "latency_ms": 2734
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-brand-021-s3.json"
+    },
+    "concise-022": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-concise-022-s3.json",
+      "axes": {
+        "concision": null,
+        "groundedness": null
+      }
+    },
+    "multi-023": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-multi-023-s3.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "edge-024": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-edge-024-s3.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "edge-025": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-edge-025-s3.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "completeness": null,
+        "concision": null
+      }
+    },
+    "headroom-005": {
+      "axes": {
+        "brand_tone:meridian-sports": 1.0,
+        "concision": 1.0
+      },
+      "raw": "```json\n{\"axes\": {\"brand_tone:meridian-sports\": {\"band\": 1.0, \"why\": \"Warm and knowledgeable tone; acknowledges the event with enthusiasm while being honest about data limitations, avoiding both hard sell and dismissiveness.\"}, \"concision\": {\"band\": 1.0, \"why\": \"Direct answer to a brief question in proportionate length, with no padding.\"}}}\n```",
+      "usage": {
+        "tokens_in": 1649,
+        "tokens_out": 97,
+        "latency_ms": 3034
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-headroom-005-s3.json"
+    },
+    "headroom-026": {
+      "axes": {
+        "brand_tone:meridian-sports": 0.5,
+        "concision": 1.0,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\"axes\": {\"groundedness\": {\"band\": 1.0, \"why\": \"The answer cites t005 (Cedar Point Rowing Finals), which exists in the catalog, and makes no claims about titles, times, tiers, or blackouts that contradict it.\"}, \"concision\": {\"band\": 1.0, \"why\": \"The viewer asked for exactly two sentences; the answer delivers exactly two sentences.\"}, \"brand_tone:meridian-sports\": {\"band\": 0.5, \"why\": \"The tone is knowledgeable and energetic about the sport itself, but reads more like sports marketing copy ('must-watch,' 'elite,' 'championship glory') than a fan talking to a fan, leaning toward the hard sell side of enthusiasm.\"}}}\n```",
+      "usage": {
+        "tokens_in": 1609,
+        "tokens_out": 178,
+        "latency_ms": 3682
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m00b-headroom-026-s3.json"
+    }
+  }
+}

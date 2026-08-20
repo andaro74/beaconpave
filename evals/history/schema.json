@@ -189,6 +189,35 @@
         "calibrated_by": {
           "type": "string",
           "description": "Which instrument produced the calibration in `judge_axes`. NOT necessarily the instrument that read these answers. `judge_axes` is a property of the judge - the held-out agreement that decides whether any band may veto - while `instrument` is what read this run, and at M03 they differ: the anchor ran under instrument B while the published calibration was measured under A, with B measured only on the single held-out item A's defect touched. Recorded even when it equals `name`, because otherwise its absence would have to mean 'the same one' and absence already means 'not recorded'."
+        },
+        "deterministic": {
+          "type": "object",
+          "description": "What scored the DETERMINISTIC half. The judge is not the only instrument in a judged entry. M03's m00b anchor scores 18/25 against the 15/25 the deterministic entry records for the same answers at the same commit, and none of that difference is the judge - it vetoed nothing, because no axis is calibrated. All three flipped cases carried p95_ms: 1800 and ran between 1862 and 2017 ms; ADR-016 moved the percentile to suite level. Without this block a reader sees two numbers under one SHA differing by three cases and concludes the judge added three passes, when a judge can only subtract.",
+          "required": [
+            "cases_sha256",
+            "scored",
+            "deferred"
+          ],
+          "properties": {
+            "cases_sha256": {
+              "type": "string",
+              "description": "The golden cases file: per-case asserts and thresholds."
+            },
+            "scored": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Assert kinds that contribute to the score."
+            },
+            "deferred": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Assert kinds evaluated and NOT scored. ADR-016 moved entitlement_source here, which is exactly the kind of change a bare digest would record without explaining."
+            }
+          }
         }
       },
       "required": [
@@ -196,7 +225,8 @@
         "rubric_axes_sha256",
         "user_turn_sha256",
         "name",
-        "calibrated_by"
+        "calibrated_by",
+        "deterministic"
       ]
     },
     "judge_axes": {

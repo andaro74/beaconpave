@@ -79,6 +79,40 @@ def vetoes(bands: dict, calibrated: set) -> dict:
     return out
 
 
+def deterministic_instrument() -> dict:
+    """What scored the **deterministic** half, as an identity a reader can compare.
+
+    The judge is not the only instrument in a judged entry, and M03 found that out
+    the expensive way. The `m00b` anchor scores 18/25 today against the 15/25 the
+    deterministic entry records for the same answers at the same commit — and
+    **none of that difference is the judge**, which vetoed nothing because no axis
+    is calibrated. All three flipped cases carried `p95_ms: 1800` at M00b and ran
+    at 1918, 2017 and 1862 ms; ADR-016 moved the percentile to suite level and gave
+    cases a `max_ms` hang guard, and the commit that did it says in its own message
+    that three of m00b's ten failures were nothing else.
+
+    Recording only the judge's digests would publish two numbers under one SHA
+    differing by three cases, with the entry's only instrument field describing the
+    half that changed nothing. A reader would conclude the judge added three passes.
+    **A judge can only subtract.**
+
+    Semantic rather than a blunt file hash. `cases_sha256` covers the thresholds and
+    per-case asserts; `scored` and `deferred` name which assert kinds contribute to
+    the score, which is exactly what ADR-016 changed when it stopped scoring
+    `entitlement_source`. A digest of `deterministic.py` would also move on a
+    comment, and would say nothing about *what* moved."""
+    from evals import deterministic
+
+    cases = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
+    kinds = {key for case in __import__("yaml").safe_load(cases.read_text(encoding="utf-8"))
+             for assertion in case.get("asserts", []) for key in assertion}
+    return {
+        "cases_sha256": judge.digest(cases.read_text(encoding="utf-8")),
+        "scored": sorted(kinds - set(deterministic.DEFERRED_ASSERTS)),
+        "deferred": sorted(kinds & set(deterministic.DEFERRED_ASSERTS)),
+    }
+
+
 def entry_parts(judged_dir: pathlib.Path, calibration: dict, k: int) -> dict:
     """The judged half of a history entry, derived from committed files alone.
 
@@ -119,6 +153,7 @@ def entry_parts(judged_dir: pathlib.Path, calibration: dict, k: int) -> dict:
 
     calibrated = calibrated_axes(calibration)
     bands = bands_by_case(samples, k)
+    instrument["deterministic"] = deterministic_instrument()
     return {
         "instrument": instrument,
         "judge_axes": calibration.get("axes") or {},

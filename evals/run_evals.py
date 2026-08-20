@@ -377,8 +377,12 @@ def run(args) -> int:
             print(f"  {r.id}: {r.unearned_reason}")
 
     if args.record:
+        # A judged entry always names and hashes the answers it read, even at
+        # k_answers = 1. The whole claim of a re-reading is "these exact answers,
+        # read differently", and an entry that does not say which bytes it read
+        # cannot support it.
         path = record(results, scores, args, len(per_sample), samples,
-                      sources=_sources(paths) if len(per_sample) > 1 else None,
+                      sources=_sources(paths) if (len(per_sample) > 1 or judged_parts) else None,
                       judged=judged_parts)
         print(f"recorded: {path.relative_to(ROOT)}")
 
@@ -424,7 +428,19 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None) 
     protection rather than a legible one — which is the state this repo converts
     into checks."""
     samples = samples or {}
-    sha = _git_sha()
+    # The sha names **the commit that produced the answers**, not the commit that
+    # scored them. For a fresh run those are the same and the default is right. For
+    # a re-reading they are not: the m00b judged anchor reads answers produced at
+    # the m00b commit, and recording HEAD would say the M03 branch produced them —
+    # putting two readings of one commit under two shas, where the whole point is
+    # that a reader sees them as one commit read twice (ADR-012, ADR-027).
+    sha = getattr(args, "sha", None) or _git_sha()
+    if getattr(args, "sha", None) and not judged:
+        raise SystemExit(
+            "error: --sha overrides the commit a score is recorded against, and is only "
+            "meaningful for a re-reading of committed answers. A fresh run records the commit "
+            "it ran at. Pass --judged, or drop --sha."
+        )
     entry = {
         "sha": sha,
         "suite": "goldens",
@@ -528,6 +544,8 @@ def main(argv=None) -> int:
                         "which ADR-021 designates as the result rather than the total")
     p.add_argument("--diff-out", help="write the paired diff here as JSON")
     p.add_argument("--against-arm", help="label for the other arm in the diff output")
+    p.add_argument("--sha", help="the commit that produced the ANSWERS, when re-reading "
+                                 "committed answers under a new instrument. Requires --judged")
     p.add_argument("--judged", help="directory of committed judge output for this run: "
                                     "score it judged as well as deterministically")
     p.add_argument("--calibration", help="the published calibration report whose axes decide "

@@ -170,7 +170,8 @@ def test_a_judged_entry_carries_no_supersedes_and_a_distinguishing_filename(tmp_
     monkeypatch.setattr(run_evals, "HISTORY", tmp_path / "history")
     args = argparse.Namespace(target="baseline", arm=None, tag="m00b",
                               tokens_in=None, tokens_out=None)
-    parts = {"instrument": dict(judge.instrument(), name="B", calibrated_by="A", k_judge=3),
+    parts = {"instrument": dict(judge.instrument(), name="B", calibrated_by="A", k_judge=3,
+                                deterministic=judged.deterministic_instrument()),
              "judge_axes": calibration()["axes"],
              "guardrail_refusals": {"model_eligible_calls": 3, "served": 3}}
     results = [CaseResult("blackout-001", "PASS", (), ())]
@@ -195,7 +196,8 @@ def test_the_judged_entry_validates_against_the_committed_schema(tmp_path, monke
     monkeypatch.setattr(run_evals, "HISTORY", tmp_path / "history")
     args = argparse.Namespace(target="baseline", arm=None, tag="m00b",
                               tokens_in=None, tokens_out=None)
-    parts = {"instrument": dict(judge.instrument(), name="B", calibrated_by="A", k_judge=3),
+    parts = {"instrument": dict(judge.instrument(), name="B", calibrated_by="A", k_judge=3,
+                                deterministic=judged.deterministic_instrument()),
              "judge_axes": calibration()["axes"],
              "guardrail_refusals": {"model_eligible_calls": 3, "served": 3}}
     run_evals.record([CaseResult("c", "PASS", (), ())],
@@ -213,10 +215,63 @@ def test_an_instrument_block_missing_the_user_turn_digest_is_rejected(tmp_path, 
     args = argparse.Namespace(target="baseline", arm=None, tag="m00b",
                               tokens_in=None, tokens_out=None)
     marks = {k: v for k, v in judge.instrument().items() if k != "user_turn_sha256"}
-    parts = {"instrument": dict(marks, name="B", calibrated_by="A", k_judge=3),
+    parts = {"instrument": dict(marks, name="B", calibrated_by="A", k_judge=3,
+                                deterministic=judged.deterministic_instrument()),
              "judge_axes": calibration()["axes"],
              "guardrail_refusals": {"model_eligible_calls": 3, "served": 3}}
     with pytest.raises(jsonschema.ValidationError):
         run_evals.record([CaseResult("c", "PASS", (), ())],
                          {"total": 1, "passed": 1, "failed": 0, "infra": 0, "pass_rate": 1.0},
                          args, k=3, judged=parts)
+
+
+def test_the_entry_records_what_scored_the_deterministic_half(tmp_path):
+    """The third instance of one lesson, and the most expensive.
+
+    M03's `m00b` anchor scores 18/25 against the 15/25 the deterministic entry
+    records for the same answers at the same commit. **None of that difference is
+    the judge** — it vetoed nothing, because no axis is calibrated. All three
+    flipped cases carried `p95_ms: 1800` at M00b and ran at 1918, 2017 and 1862 ms;
+    ADR-016 moved the percentile to suite level.
+
+    An entry whose only instrument field describes the judge would let a reader
+    conclude the judge added three passes. A judge can only subtract."""
+    directory = judge_dir(tmp_path, {"blackout-001": {"axes": {"groundedness": 1.0}}})
+    parts = judged.entry_parts(directory, calibration(), 3)
+    det = parts["instrument"]["deterministic"]
+    assert det["deferred"] == ["entitlement_source"], (
+        "ADR-016 stopped scoring entitlement_source; that is exactly the change this "
+        "block exists to make visible")
+    assert "budget" in det["scored"]
+    assert det["cases_sha256"] == judge.digest(
+        (ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml")
+        .read_text(encoding="utf-8"))
+
+
+def test_the_three_flipped_cases_are_the_deterministic_instrument_not_the_judge():
+    """Pinned against the committed evidence, so the decomposition of 15 -> 18
+    cannot be quietly restated later.
+
+    The m00b-era case file is read out of git rather than described."""
+    import subprocess
+
+    import yaml as _yaml
+
+    m00b_sha = json.loads(
+        (ROOT / "evals" / "history" / "m00b-goldens.json").read_text(encoding="utf-8"))["sha"]
+    old = subprocess.run(
+        ["git", "show", f"{m00b_sha}:services/highlights-agent/evals/golden/cases.yaml"],
+        cwd=ROOT, capture_output=True, text=True, check=False)
+    if old.returncode != 0:
+        pytest.skip("the m00b commit is not reachable in this clone")
+    old_cases = {c["id"]: c for c in _yaml.safe_load(old.stdout)}
+    answers = json.loads((ROOT / "milestones" / "M00b" / "goldens-run.json")
+                         .read_text(encoding="utf-8"))
+
+    for case_id in ("blackout-001", "blackout-006", "concise-022"):
+        budget = next(a["budget"] for a in old_cases[case_id]["asserts"] if "budget" in a)
+        latency = answers[case_id]["usage"]["latency_ms"]
+        assert budget["p95_ms"] == 1800
+        assert latency > 1800, (
+            f"{case_id} passed its m00b-era per-case p95; the 15 -> 18 difference is then "
+            "not explained by ADR-016 and needs re-deriving")
