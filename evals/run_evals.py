@@ -42,6 +42,7 @@ from evals.deterministic import (
     FAIL,
     INFRA,
     PASS,
+    AssertResult,
     Scorer,
     suite_latency,
     tally,
@@ -303,6 +304,38 @@ def run(args) -> int:
             for r in results
         ]
 
+    # The judged half. Applied to `results` BEFORE `tally`, so the recorded score is
+    # the judged one rather than a deterministic score with a note attached.
+    judged_parts = None
+    if args.judged:
+        if not args.calibration:
+            print("error: --judged needs --calibration: which axes may veto is decided by a "
+                  "published agreement number, never by the run being scored", file=sys.stderr)
+            return 2
+        from evals import judged as judged_mod
+        judged_parts = judged_mod.entry_parts(
+            pathlib.Path(args.judged), _load(pathlib.Path(args.calibration)), args.k_judge)
+        vetoed = judged_parts["vetoes"]
+        unknown = sorted(set(vetoed) - {r.id for r in results})
+        if unknown:
+            print(f"error: the judge vetoed case(s) not in this suite: {unknown}", file=sys.stderr)
+            return 2
+        # A veto can only subtract. It turns a deterministic PASS into a judged FAIL
+        # and never the reverse, which is what `judged <= deterministic` means as
+        # code rather than as a promise (SPEC/03).
+        # Appended to `asserts`, not to `failures`. `failures` is a derived property
+        # over `asserts`, so `replace(r, failures=...)` raises - a test written for
+        # the veto found it before the anchor was ever run against it.
+        results = [
+            replace(r, result=FAIL,
+                    asserts=tuple(r.asserts) + tuple(
+                        AssertResult(f"judge:{axis}", False,
+                                     "vetoed by a calibrated axis at the published agreement")
+                        for axis in vetoed[r.id]))
+            if r.id in vetoed and r.result == PASS else r
+            for r in results
+        ]
+
     scores = tally(results)
     if len(per_sample) > 1:
         # Recorded beside the majority, never instead of it. A majority polarizes
@@ -322,7 +355,11 @@ def run(args) -> int:
     print(
         f"\n{scores['passed']}/{scores['total']} passed "
         f"({scores['failed']} failed, {scores['infra']} infra) — "
-        f"judge axes recorded {ADVISORY}, not scored (ADR-012)"
+        + (f"judge axes recorded {ADVISORY}, not scored (ADR-012)" if not judged_parts
+           else f"judged by instrument {judged_parts['instrument']['name']}, "
+                f"calibrated by {judged_parts['instrument']['calibrated_by']}: "
+                f"{len(judged_parts['calibrated'])} calibrated axis(es), "
+                f"{len(judged_parts['vetoes'])} case(s) vetoed")
     )
     latency = suite_latency(answers, _load(MANIFEST)["gates"]["budgets"].get("p95_ms"))
     print(f"suite latency  {'OK  ' if latency.passed else 'OVER'} {latency.detail}")
@@ -341,7 +378,8 @@ def run(args) -> int:
 
     if args.record:
         path = record(results, scores, args, len(per_sample), samples,
-                      sources=_sources(paths) if len(per_sample) > 1 else None)
+                      sources=_sources(paths) if len(per_sample) > 1 else None,
+                      judged=judged_parts)
         print(f"recorded: {path.relative_to(ROOT)}")
 
     if args.against:
@@ -376,7 +414,7 @@ def run(args) -> int:
     return 0
 
 
-def record(results, scores, args, k=1, samples=None, sources=None) -> pathlib.Path:
+def record(results, scores, args, k=1, samples=None, sources=None, judged=None) -> pathlib.Path:
     """Append a history entry. Never edits: a correction is a new entry carrying
     `supersedes`, because the value of this file is that every row came from a
     real execution.
@@ -416,6 +454,15 @@ def record(results, scores, args, k=1, samples=None, sources=None) -> pathlib.Pa
         entry["samples_from"] = sources
     if args.arm:
         entry["arm"] = args.arm
+    if judged:
+        # **No `supersedes`, ever, and this is the one place it could creep in.**
+        # ADR-012 originally committed M03 to appending the judged anchor with
+        # `supersedes` pointing at the deterministic entry. It means *corrects a
+        # wrong entry*, and 15/25 is not wrong - it is a correct measurement taken
+        # with the only instrument that existed at the time (ADR-027).
+        entry["instrument"] = judged["instrument"]
+        entry["judge_axes"] = judged["judge_axes"]
+        entry["guardrail_refusals"] = judged["guardrail_refusals"]
     if args.tag:
         entry["tag"] = args.tag
     for key in ("tokens_in", "tokens_out"):
@@ -430,7 +477,12 @@ def record(results, scores, args, k=1, samples=None, sources=None) -> pathlib.Pa
     # The arm is in the filename because a milestone that runs two arms writes two
     # entries under one tag, and the append-only guard below would otherwise read
     # the second arm as an attempt to rewrite the first.
+    # ADR-027 rule 3: the append-only guard keys on the filename, so two entries
+    # under one tag need two names and the distinguishing component must be the
+    # thing that actually differs - the instrument, not a number or a date.
     stem = f"{args.tag or sha[:7]}" + (f"-{args.arm}" if args.arm else "")
+    if judged:
+        stem += f"-judged-{judged['instrument']['name']}"
     path = HISTORY / f"{stem}-goldens.json"
     if path.exists():
         raise SystemExit(
@@ -476,6 +528,12 @@ def main(argv=None) -> int:
                         "which ADR-021 designates as the result rather than the total")
     p.add_argument("--diff-out", help="write the paired diff here as JSON")
     p.add_argument("--against-arm", help="label for the other arm in the diff output")
+    p.add_argument("--judged", help="directory of committed judge output for this run: "
+                                    "score it judged as well as deterministically")
+    p.add_argument("--calibration", help="the published calibration report whose axes decide "
+                                         "which axes may veto (required with --judged)")
+    p.add_argument("--k-judge", dest="k_judge", type=int, default=3,
+                   help="judge samples per case in --judged")
     p.add_argument("--record", action="store_true", help="append an entry to evals/history/")
     p.add_argument("--tag", help="milestone tag, e.g. m00b")
     p.add_argument("--target", default="baseline", help="baseline | <service-name>")

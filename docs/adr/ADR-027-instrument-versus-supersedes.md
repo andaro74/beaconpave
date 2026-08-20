@@ -57,7 +57,7 @@ history:
 would carry `arm: tools` *and* an `instrument`, and still no `supersedes`. A
 genuinely wrong judged entry would carry all three.
 
-### Four rules that follow
+### Five rules that follow
 
 **1. A moved instrument never carries `supersedes`.** Not "usually not" — never.
 If the earlier number was correct under its instrument, correcting it is a lie;
@@ -86,6 +86,30 @@ anchor lands as `m00b-judged-B-goldens.json` beside `m00b-goldens.json`.
 instrument no entry records (ADR-025). The history is under the same rule: an
 `instrument` block that names nothing a reader can look up is a fingerprint of
 an object that does not exist.
+
+**5. What read the answers and what calibrated the judge are two facts, and a row
+must carry both.** Added on the same day, after building the writer this ADR was
+written to specify — which is the ordering working rather than failing, and it is
+recorded here rather than folded in silently.
+
+`judge_axes` and `instrument` describe different objects. `guardrail_refusals` is
+a property of *the run*: how many of its own judge calls each control refused.
+`judge_axes` is a property of *the judge*: the held-out agreement that decides
+whether any band is allowed to veto anything. Nothing forces them to come from the
+same instrument, and at M03 they do not — the `m00b` anchor runs under instrument
+B, while the published calibration was measured under instrument A and B was
+measured only on the single held-out item A's defect touched.
+
+A reader who assumes `judge_axes` was measured by `instrument` would be wrong
+here, and would have no way to find out. So the instrument block carries
+`calibrated_by`, and it is `required` and recorded **even when it equals the
+instrument's own name** — otherwise its absence would have to mean "the same one",
+and absence already means "not recorded".
+
+This is the same failure mode as the missing `user_turn_sha256`, one level up: a
+field that asserts a distinction it cannot actually make. The lesson generalises
+past both. **A record of an instrument must name every input that could change
+what the number means, including the ones that came from a different instrument.**
 
 ## Consequences
 

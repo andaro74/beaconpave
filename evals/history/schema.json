@@ -146,6 +146,10 @@
       "type": "object",
       "description": "What read the answers, when an entry is produced by an instrument that can move without a commit. Absent means the deterministic asserts alone. It exists because `supersedes` is the wrong verb for a re-read: `supersedes` means *corrects a wrong entry*, and m00b's 15/25 is not wrong - it is a correct measurement under a different instrument (ADR-012's 2026-08-20 amendment). `arm` does not close the gap either, since it records which *system* produced an entry and a judged and unjudged m00b are the same system, the same answers and the same bytes. Two entries under one sha with different `instrument` values are two readings; two entries with `supersedes` are a mistake and its correction, and a reader must be able to tell which they are looking at.",
       "properties": {
+        "name": {
+          "type": "string",
+          "description": "Which recorded instrument this is, by the name quality/judge/frozen.json gives it. The digests are the identity; this is the handle a human uses. Every name here must be recorded in frozen.json - a row naming an instrument nobody can look up is a fingerprint of an object that does not exist (ADR-027, rule 4)."
+        },
         "prompt_sha256": {
           "type": "string",
           "description": "The judge prompt as frozen in quality/judge/frozen.json."
@@ -181,12 +185,18 @@
           "type": "integer",
           "minimum": 1,
           "description": "Judge samples per case, distinct from `k`, which counts agent samples. Both can exceed 1 in the same entry and they summarise different things - `k` over the system under test, `k_judge` over the instrument reading it. An even value is refused: a strict majority would not always be reachable and `undecided` would mean two different things."
+        },
+        "calibrated_by": {
+          "type": "string",
+          "description": "Which instrument produced the calibration in `judge_axes`. NOT necessarily the instrument that read these answers. `judge_axes` is a property of the judge - the held-out agreement that decides whether any band may veto - while `instrument` is what read this run, and at M03 they differ: the anchor ran under instrument B while the published calibration was measured under A, with B measured only on the single held-out item A's defect touched. Recorded even when it equals `name`, because otherwise its absence would have to mean 'the same one' and absence already means 'not recorded'."
         }
       },
       "required": [
         "prompt_sha256",
         "rubric_axes_sha256",
-        "user_turn_sha256"
+        "user_turn_sha256",
+        "name",
+        "calibrated_by"
       ]
     },
     "judge_axes": {
