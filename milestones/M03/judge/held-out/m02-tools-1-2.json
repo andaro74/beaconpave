@@ -1,0 +1,51 @@
+{
+  "label": "m02-tools-1",
+  "sample": 2,
+  "answers_file": "milestones/M02/runs/m02-tools-1.json",
+  "instrument": {
+    "prompt_sha256": "ef8c1ec77ffb0f79529afa40830b341aaf42fe21bc4565eba5bf709f5c446e37",
+    "rubric_sha256": "925f7e4cfc1de2436551f308115249a19bd7f3afdf8050e531c093303413bd0b",
+    "rubric_axes_sha256": "d4ea6ec45351982a76c7328c7b4cc19a71afa49ecf48ebeb30ee33da735a123c",
+    "rendered_sha256": "843e2ee68d6d41d4faa1e5644d64c11ea41e95d22efd9aad43d06997bbe5a38e"
+  },
+  "service": "judge-highlights",
+  "cases": {
+    "entitlement-012": {
+      "refused_by_gateway": "classification",
+      "record_id": "2026-08-20/judge-highlights/judge-m02-tools-1-entitlement-012-s2.json",
+      "axes": {
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "recommend-003": {
+      "axes": {
+        "brand_tone:meridian-sports": 1.0,
+        "completeness": 0.5,
+        "groundedness": 1.0
+      },
+      "raw": "```json\n{\n  \"axes\": {\n    \"groundedness\": {\n      \"band\": 1.0,\n      \"why\": \"The cited title t003 (Granite Falls Classic (Replay)) is in the catalog with entitlement 'base' and type 'vod', making the claim fully traceable.\"\n    },\n    \"completeness\": {\n      \"band\": 0.5,\n      \"why\": \"The answer identifies one available replay but does not acknowledge whether other base-tier sports replays exist in the catalog or clarify the scope of what's currently available.\"\n    },\n    \"brand_tone:meridian-sports\": {\n      \"band\": 1.0,\n      \"why\": \"The tone is warm, straightforward, and fan-to-fan without salesiness or hyperbole about the base plan.\"\n    }\n  }\n}\n```",
+      "usage": {
+        "tokens_in": 1577,
+        "tokens_out": 204,
+        "latency_ms": 3205
+      },
+      "record_id": "2026-08-20/judge-highlights/judge-m02-tools-1-recommend-003-s2.json"
+    },
+    "grounded-018": {
+      "not_applicable": "unparsed-turn",
+      "axes": {
+        "completeness": null,
+        "groundedness": null
+      }
+    },
+    "brand-021": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-08-20/judge-highlights/judge-m02-tools-1-brand-021-s2.json",
+      "axes": {
+        "brand_tone:meridian-sports": null,
+        "groundedness": null
+      }
+    }
+  }
+}

@@ -1,0 +1,341 @@
+{
+  "split": "held-out",
+  "k_judge": 3,
+  "instrument": {
+    "prompt_sha256": "ef8c1ec77ffb0f79529afa40830b341aaf42fe21bc4565eba5bf709f5c446e37",
+    "rubric_sha256": "925f7e4cfc1de2436551f308115249a19bd7f3afdf8050e531c093303413bd0b",
+    "rubric_axes_sha256": "d4ea6ec45351982a76c7328c7b4cc19a71afa49ecf48ebeb30ee33da735a123c",
+    "rendered_sha256": "843e2ee68d6d41d4faa1e5644d64c11ea41e95d22efd9aad43d06997bbe5a38e"
+  },
+  "refusals": {
+    "model_eligible_calls": 48,
+    "classification": 3,
+    "guardrail": 28,
+    "served": 17
+  },
+  "correction_rate": {
+    "n": 20,
+    "corrected": 0,
+    "rate": 0.0
+  },
+  "dropped_not_applicable": [
+    {
+      "item": "cal-13",
+      "axis": "completeness",
+      "reason": "unparsed-turn"
+    },
+    {
+      "item": "cal-21",
+      "axis": "brand_tone:meridian-sports",
+      "reason": "gateway-refusal:guardrail"
+    },
+    {
+      "item": "cal-25",
+      "axis": "groundedness",
+      "reason": "gateway-refusal:guardrail"
+    }
+  ],
+  "diagnostics": {
+    "decided_only": {
+      "n": 5,
+      "exact": 2,
+      "raw": 0.4
+    },
+    "undecided_because_controls_refused": 12,
+    "undecided_because_judge_split_bands": 0
+  },
+  "axes": {
+    "brand_tone:meridian-sports": {
+      "axis": "brand_tone:meridian-sports",
+      "status": "demoted",
+      "reasons": [
+        "3 scorable held-out item(s), below the floor of 5: not enough evidence is not calibration",
+        "67% of items undecided at k_judge, above 20%: a judge that cannot repeat itself is not calibrated by the answers where it happened to",
+        "raw exact-band agreement 0.00 below 0.75"
+      ],
+      "n": 3,
+      "exact": 0,
+      "raw": 0.0,
+      "kappa": 0.0,
+      "undecided": 2,
+      "label_distribution": {
+        "0.5": 3
+      }
+    },
+    "completeness": {
+      "axis": "completeness",
+      "status": "demoted",
+      "reasons": [
+        "60% of items undecided at k_judge, above 20%: a judge that cannot repeat itself is not calibrated by the answers where it happened to",
+        "raw exact-band agreement 0.00 below 0.75"
+      ],
+      "n": 5,
+      "exact": 0,
+      "raw": 0.0,
+      "kappa": -0.1905,
+      "undecided": 3,
+      "label_distribution": {
+        "0.5": 2,
+        "1.0": 3
+      }
+    },
+    "concision": {
+      "axis": "concision",
+      "status": "demoted",
+      "reasons": [
+        "3 scorable held-out item(s), below the floor of 5: not enough evidence is not calibration",
+        "33% of items undecided at k_judge, above 20%: a judge that cannot repeat itself is not calibrated by the answers where it happened to",
+        "raw exact-band agreement 0.67 below 0.75"
+      ],
+      "n": 3,
+      "exact": 2,
+      "raw": 0.6667,
+      "kappa": 0.0,
+      "undecided": 1,
+      "label_distribution": {
+        "1.0": 3
+      }
+    },
+    "groundedness": {
+      "axis": "groundedness",
+      "status": "demoted",
+      "reasons": [
+        "100% of items undecided at k_judge, above 20%: a judge that cannot repeat itself is not calibrated by the answers where it happened to",
+        "raw exact-band agreement 0.00 below 0.75"
+      ],
+      "n": 6,
+      "exact": 0,
+      "raw": 0.0,
+      "kappa": 0.0,
+      "undecided": 6,
+      "label_distribution": {
+        "0.0": 2,
+        "0.5": 1,
+        "1.0": 3
+      }
+    }
+  },
+  "rows": [
+    {
+      "item": "cal-03",
+      "axis": "completeness",
+      "run": "m02-control-3",
+      "case_id": "entitlement-010",
+      "label": 1.0,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        1.0
+      ]
+    },
+    {
+      "item": "cal-08",
+      "axis": "completeness",
+      "run": "m02-tools-3",
+      "case_id": "blackout-001",
+      "label": 0.5,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "item": "cal-09",
+      "axis": "completeness",
+      "run": "m02-control-3",
+      "case_id": "grounded-017",
+      "label": 1.0,
+      "band": 0.5,
+      "samples": [
+        0.5,
+        0.5,
+        null
+      ]
+    },
+    {
+      "item": "cal-10",
+      "axis": "completeness",
+      "run": "m02-tools-3",
+      "case_id": "recommend-015",
+      "label": 0.5,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        1.0
+      ]
+    },
+    {
+      "item": "cal-14",
+      "axis": "completeness",
+      "run": "m02-tools-1",
+      "case_id": "recommend-003",
+      "label": 1.0,
+      "band": 0.5,
+      "samples": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "item": "cal-17",
+      "axis": "brand_tone:meridian-sports",
+      "run": "m02-control-2",
+      "case_id": "edge-024",
+      "label": 0.5,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "item": "cal-18",
+      "axis": "groundedness",
+      "run": "m00b",
+      "case_id": "blackout-009",
+      "label": 1.0,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "item": "cal-19",
+      "axis": "groundedness",
+      "run": "m02-tools-2",
+      "case_id": "blackout-001",
+      "label": 0.0,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "item": "cal-20",
+      "axis": "groundedness",
+      "run": "m02-tools-1",
+      "case_id": "entitlement-012",
+      "label": 1.0,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "item": "cal-22",
+      "axis": "brand_tone:meridian-sports",
+      "run": "m00b",
+      "case_id": "blackout-006",
+      "label": 0.5,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "item": "cal-23",
+      "axis": "groundedness",
+      "run": "m00b",
+      "case_id": "blackout-006",
+      "label": 0.5,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "item": "cal-24",
+      "axis": "groundedness",
+      "run": "m02-tools-1",
+      "case_id": "brand-021",
+      "label": 1.0,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "item": "cal-26",
+      "axis": "brand_tone:meridian-sports",
+      "run": "m02-control-1",
+      "case_id": "recommend-003",
+      "label": 0.5,
+      "band": 1.0,
+      "samples": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "item": "cal-27",
+      "axis": "concision",
+      "run": "m02-tools-2",
+      "case_id": "edge-025",
+      "label": 1.0,
+      "band": 1.0,
+      "samples": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "item": "cal-28",
+      "axis": "groundedness",
+      "run": "m02-tools-2",
+      "case_id": "multi-023",
+      "label": 0.0,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "item": "cal-29",
+      "axis": "concision",
+      "run": "m02-tools-2",
+      "case_id": "concise-022",
+      "label": 1.0,
+      "band": null,
+      "samples": [
+        null,
+        null,
+        1.0
+      ]
+    },
+    {
+      "item": "cal-30",
+      "axis": "concision",
+      "run": "m02-control-2",
+      "case_id": "grounded-016",
+      "label": 1.0,
+      "band": 1.0,
+      "samples": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ]
+}
