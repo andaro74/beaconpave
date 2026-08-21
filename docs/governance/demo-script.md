@@ -4,6 +4,20 @@ Each act is a recorded artifact produced at a specific milestone. Record at
 milestone close; the recordings ARE the deliverable. Total runtime target: 12
 minutes.
 
+**Which acts are actually recorded is tracked in `recordings.json`, and
+`tests/test_demo_recordings.py` reads it.** None of them were, for four
+milestones — the sentence above was true, stated in two places, and enforced by
+nothing, which is this repository's most-repeated defect. An act now goes RED in
+the suite once the milestone it is owed by closes with the recording still
+missing.
+
+**A recording is a presentation artifact, not the evidence.** Claim 2 is proved
+by a red pull request carrying the gate's own comment and `exit 1` in its log,
+and the twelve-claims table cites that PR rather than a video. Deferring a
+recording never defers a proof — and where an act's artifact IS produced by the
+run it demonstrates, as Act 4's go/no-go is, `recordings.json` says so per act
+rather than leaving it assumed.
+
 ## Act 0 — The control (M00b) · 90s
 
 **Rewritten at M00b close, because the original act was not reproducible.** It
@@ -63,7 +77,11 @@ next person what to do, which is the half of a gate that usually goes missing."
 > instead, because SPEC/04 amendment 3 pinned the exhibit **by diff** after two
 > seats measured two different outcomes for "the polite-answer pass". Updated to
 > the artifact that exists rather than left describing a demo nobody can give.
-> **Not yet recorded**; the recording is the deliverable and it is owed.
+> **Not yet recorded.** Owed by M05 and tracked in `recordings.json`: it records
+> alongside Acts 0 and 1 in one sitting, and the three share a thread — Act 0's
+> control hands its viewer context, evaluation clock and blackout table to
+> **ADV-010**, and this act is the platform blocking exactly that probe, 3 of 3,
+> under guardrail v2. Together it is an arc; apart it is two clips.
 
 ## Act 3 — The seat disposes (M07) · 3 min
 The fictional State of Jefferson AI Disclosure Act arrives as a delta. The

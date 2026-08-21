@@ -1,0 +1,56 @@
+{
+  "_comment": "Which demo acts have been recorded, and by when the unrecorded ones are owed. `docs/governance/demo-script.md` says 'the recordings ARE the deliverable' and `.claude/skills/close-milestone` step 8 says to record at close -- and NO act had ever been recorded. Act 0 belongs to M00b, which closed and tagged four milestones before this file existed. The rule was real, stated in two places, and enforced by nothing, which is this repository's most-repeated defect.",
+  "_why_this_is_data_and_not_prose": "`brand_tone`'s widening was owed 'to M04' in an ADR, M04 closed without paying it, and nothing noticed. An obligation written only in a sentence is discharged by forgetting. `tests/test_demo_recordings.py` reads this file, so an act that goes unrecorded past the milestone it was deferred to turns the suite RED rather than turning invisible.",
+  "_what_recording_is_and_is_not_evidence_for": "For Act 2 the EVIDENCE is PR #29 -- permanent, linkable, re-derivable by a stranger, carrying the gate's own posted comment and exit 1 in the workflow log. The claim in the twelve-claims table cites that PR, not a video, and nothing about claim 2's falsifiability depends on a recording. The recording is a PRESENTATION artifact. That is not true of every act -- Act 4's go/no-go artifact is produced BY the run -- so the distinction is recorded per act rather than assumed across all of them.",
+  "acts": [
+    {
+      "act": 0,
+      "title": "The control",
+      "owner_milestone": "M00b",
+      "recorded": null,
+      "owed_by": "M05",
+      "why": "M00b closed without it and the debt was invisible until M04 went looking. Deferred to M05 rather than backdated: it records alongside Acts 1 and 2, and the three share a thread -- Act 0's control hands its viewer context, clock and blackout table to ADV-010, and Act 2 is the platform blocking exactly that probe. Together it is an arc; apart it is two clips."
+    },
+    {
+      "act": 1,
+      "title": "The paved road provides",
+      "owner_milestone": "M05",
+      "recorded": null,
+      "owed_by": "M05",
+      "why": "Not yet buildable; M05 builds `pave new`."
+    },
+    {
+      "act": 2,
+      "title": "The gate decides",
+      "owner_milestone": "M04",
+      "recorded": null,
+      "owed_by": "M05",
+      "why": "M04's evidence artifact exists and is stronger than a recording of it: PR #29, red for an L5 reason at exit 1, five probes named in the posted comment. Deferring the video did not defer the proof. Recorded at M05 with Acts 0 and 1 in one sitting.",
+      "evidence": "https://github.com/andaro74/beaconpave/pull/29"
+    },
+    {
+      "act": 3,
+      "title": "The seat disposes",
+      "owner_milestone": "M07",
+      "recorded": null,
+      "owed_by": "M07",
+      "why": "Not yet buildable; M07 drives the rules loop."
+    },
+    {
+      "act": 4,
+      "title": "The audience isn't in the room",
+      "owner_milestone": "M09",
+      "recorded": null,
+      "owed_by": "M09",
+      "why": "Not yet buildable; M09 builds the drill."
+    },
+    {
+      "act": 5,
+      "title": "AI proposes, humans dispose",
+      "owner_milestone": "M10",
+      "recorded": null,
+      "owed_by": "M10",
+      "why": "Not yet buildable; M10 builds self-heal."
+    }
+  ]
+}
