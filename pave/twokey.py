@@ -88,9 +88,28 @@ RULES: tuple[Rule, ...] = (
         # inputs and are deliberately NOT here: a scorer change should be reviewable
         # as code, and it becomes visible the moment it moves a comparator, which now
         # needs this key. The point is that the loop cannot be closed unattested.
-        "the L2 comparator — what committed answers score under the current instrument",
+        #
+        # **Security joined at M04, when the file stopped being only the L2
+        # comparator.** The adversarial pins moved in here so the L5 lane would have
+        # one place to read a pin from rather than a third; the effect was that a
+        # probe number — Security's, under `quality/adversarial/`'s own rule — became
+        # movable on two attestations, neither from the seat that owns G4. Three seats
+        # named it independently on the PR that caused it, and it is the same shape as
+        # the fault above: the rule's wording stayed put while its scope doubled.
+        #
+        # The seat list is the UNION of both suites' owners, because the pattern is a
+        # path and the file holds two suites. That is over-broad for a purely golden
+        # re-pin, deliberately: over-broad in the direction of more review is the
+        # fail-closed direction, and a rule that cannot tell which suite moved must
+        # not pretend it can. `requires_adr` stays off — the file's own `_comment`
+        # already requires the PR body to name the instrument change and its
+        # direction, and an ADR per comparator move would price routine tightenings
+        # high enough to discourage them, which is the pressure that gets tightenings
+        # reverted rather than the pressure that keeps baselines honest.
+        "the gate's scoring comparators — what committed artifacts score under the "
+        "current instrument, for both the golden suite (L2) and the probe corpus (L5)",
         re.compile(r"^evals/comparators\.json$"),
-        ("ai-quality", "platform-eng"),
+        ("ai-quality", "platform-eng", "security"),
     ),
     Rule(
         "gate criteria",

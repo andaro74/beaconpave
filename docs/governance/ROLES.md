@@ -82,8 +82,16 @@ Whoever feels a control's pain never solely controls its strength.
 | Baseline reset | Service team + AI Quality |
 | Probe downgrade to advisory | Security alone, **plus an ADR** |
 | Consequence class increase | Tool owner + Legal/S&P |
-| L2 comparator move (`evals/comparators.json`) | AI Quality + Platform Eng |
+| Comparator move (`evals/comparators.json`) | AI Quality + Platform Eng + Security |
 | Any invariant (G1–G10) change | Platform Eng + the seat that defends it |
+
+**Why the comparator needs three keys.** From M04 that file holds the pinned
+numbers for *both* scored suites — the golden set and the probe corpus — and the
+rule is a path, so it requires the union of both suites' owners. Security joined
+when the adversarial pins moved in: without it, a probe number could be moved on
+two attestations, neither from the seat that owns G4. Over-broad for a purely
+golden re-pin, and over-broad in the direction of more review is the fail-closed
+direction.
 
 **How the second key is collected here.** CODEOWNERS cannot enforce this on a
 one-operator repo — GitHub does not let a PR's author approve their own PR, so
