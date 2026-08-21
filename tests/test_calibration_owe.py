@@ -20,12 +20,11 @@ from __future__ import annotations
 
 import collections
 import json
-import pathlib
 import re
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+from milestone_status import README, ROOT, milestone_is_closed
+
 LABELS = ROOT / "quality" / "judge" / "calibration" / "labels.json"
-README = ROOT / "README.md"
 
 
 def _labels():
@@ -39,22 +38,6 @@ def _zero_variance_axes() -> set:
         if record.get("applicable") and record.get("final") is not None:
             by[record["axis"]].add(record["final"])
     return {axis for axis, values in by.items() if len(values) < 2}
-
-
-def _milestone_is_closed(tag: str) -> bool:
-    """Read the progression table rather than git tags.
-
-    The table is what the README publishes and what a reader believes, so it is
-    the honest source for "is this milestone closed" -- and it is committed, which
-    keeps this hermetic. It was ALSO wrong once: M03 sat at the unclosed marker for
-    four milestones after it was tagged, which is why a check that reads it is
-    worth having in its own right."""
-    number = tag.lower().lstrip("m")
-    for line in README.read_text(encoding="utf-8").splitlines():
-        cells = [c.strip() for c in line.split("|")]
-        if len(cells) > 3 and cells[1].lower().lstrip("0") == number.lstrip("0"):
-            return "✅" in line
-    raise AssertionError(f"no progression row for milestone {tag!r}")
 
 
 def test_every_zero_variance_axis_is_recorded_as_owed():
@@ -72,7 +55,7 @@ def test_the_owe_is_still_within_the_milestone_it_was_deferred_to():
     for entry in _labels().get("owed") or []:
         target = entry.get("re_deferred_to") or entry.get("originally_due")
         assert target, f"owe for {entry['axis']!r} names no milestone at all"
-        assert not _milestone_is_closed(target), (
+        assert not milestone_is_closed(target), (
             f"{entry['axis']} was owed by {target}, {target} is marked closed, and the "
             "owe is still recorded as outstanding. Pay it by extending the "
             "deterministic draw, or re-defer it deliberately in labels.json — which "
@@ -91,6 +74,6 @@ def test_an_owe_states_how_it_must_be_paid():
 
 def test_the_progression_table_can_actually_be_read():
     """A parser that silently matched nothing would make the check above vacuous."""
-    assert _milestone_is_closed("M04") is True
-    assert _milestone_is_closed("M07") is False
+    assert milestone_is_closed("M04") is True
+    assert milestone_is_closed("M07") is False
     assert re.search(r"^\| 04 \|", README.read_text(encoding="utf-8"), re.MULTILINE)
