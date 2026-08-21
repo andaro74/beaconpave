@@ -176,6 +176,31 @@ def evals_dryrun_cmd(argv=()):
     return _dryrun(_load(GOLDENS))
 
 
+def _suite_pin(pinned: dict, service: str, suite: str):
+    """One suite's comparator for one service, or `None` if the file cannot supply it.
+
+    `suites` arrived at M04, when the adversarial lane needed a pin and the
+    alternative was a third place to keep one. Extracted before the L5 lane exists
+    rather than after, because the second copy of a fragile reach is where the
+    first copy's gaps get inherited.
+
+    **`None` rather than an exception, for every malformed shape.** A lane that
+    raises leaves no verdict file, which the gate blocks on (exit 2, "pages the
+    platform") — so G2 holds either way. But an ABSENT verdict and an errored step
+    page differently, and a comparator whose *content* is wrong is not a platform
+    incident. The first version of this used `.get("suites", {})`, which supplies
+    the default only when the key is missing: `suites: null` and `suites: []` went
+    straight past it into an `AttributeError`. Enumerated by the Platform seat
+    across nineteen shapes; the loop below is written so no shape reaches a raise
+    and, more importantly, so no shape reaches a PASS."""
+    node = pinned
+    for key in ("services", service, "suites", suite):
+        if not isinstance(node, dict):
+            return None
+        node = node.get(key)
+    return node if isinstance(node, dict) else None
+
+
 def evals_run(argv=()):
     """`pave evals run <service> [--out verdict.json]` — the L2 lane.
 
@@ -215,20 +240,22 @@ def evals_run(argv=()):
 
     comparators = pathlib.Path(override[0]) if override else ROOT / "evals" / "comparators.json"
     pinned = json.loads(comparators.read_text(encoding="utf-8"))
-    # `suites` arrived at M04, when the adversarial lane needed a pin and the
-    # alternative was a third place to keep one. `.get` rather than `[]` on both
-    # halves: a comparator file that has lost its shape must reach the ABSENT
-    # branch below, which the gate blocks on, rather than raising a KeyError that
-    # CI reports as an errored step with no verdict written at all.
-    entry = (pinned["services"].get(service) or {}).get("suites", {}).get("goldens")
+    entry = _suite_pin(pinned, service, "goldens")
     if entry is None:
         # ABSENT, not PASS. The gate's own rule: a suite with nothing to decide on
         # is missing from the verdict list rather than reporting success.
         # Names what IS pinned. A typo'd service path was indistinguishable from a
         # service nobody has onboarded, and in CI both become an absent verdict that
         # pages the platform for a service-team typo.
+        # `pinned.get(...)`, not `pinned['services']`. The reporting line read the
+        # key the reader had just established might be missing, so a comparator
+        # with no `services` at all crashed the lane *while telling the operator
+        # it had nothing to report* — the ABSENT branch raising on its way to
+        # explaining that nothing was absent.
+        known = pinned.get("services") if isinstance(pinned, dict) else None
+        names = ", ".join(sorted(known)) if isinstance(known, dict) and known else "none"
         _emit(f"[pave evals] no goldens comparator pinned for {service!r}; emitting nothing. "
-              f"Pinned services: {', '.join(sorted(pinned['services'])) or 'none'}")
+              f"Pinned services: {names}")
         return 0
 
     cases = _yaml.safe_load(

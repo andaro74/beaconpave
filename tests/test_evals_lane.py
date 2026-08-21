@@ -8,7 +8,8 @@ indistinguishable from a real pass"*. The lane was commented out and annotated
 turning it on bought a decision rather than a green light.
 
 Hermetic. Owning seats: Platform Engineering (the lane and the workflow) · AI
-Quality (the comparator, two-key).
+Quality (the comparator) · Security (from M04, when the same file gained the
+probe pins) — the comparator is two-key across all three.
 """
 from __future__ import annotations
 
@@ -38,7 +39,12 @@ def goldens(doc: dict | None = None) -> dict:
 
     Suite-keyed since M04, when the adversarial lane needed a pin of its own and
     the alternative was a third place to keep one. Reached through one helper so
-    that a later suite cannot be added by copying a path expression eight times."""
+    that a later suite cannot be added by copying a path expression eight times.
+
+    **`goldens(doc)` returns a live reference into `doc`; `goldens()` returns a
+    throwaway.** So `goldens(doc)["expected_passed"] += 1` mutates the document a
+    caller is about to write, and `goldens()["expected_passed"] += 1` silently does
+    nothing at all. Every mutation below passes `doc` for that reason."""
     return (doc or comparators())["services"]["highlights-agent"]["suites"]["goldens"]
 
 
@@ -205,11 +211,18 @@ def test_the_control_arm_pin_also_fails_the_lane(tmp_path):
     `comparators.json` argues the control arm is pinned *because the paired diff is
     the result* (ADR-021) — an untested claim is how that pin quietly becomes
     decoration."""
+    original = COMPARATORS.read_text(encoding="utf-8")
     doc = comparators()
     goldens(doc)["also_pinned"]["control"]["expected_passed"] -= 1
     copy = tmp_path / "comparators.json"
     copy.write_text(json.dumps(doc, indent=2), encoding="utf-8")
     result = run_lane("services/highlights-agent", "--comparators", str(copy))
+    # Kept rather than dropped when this stopped being a string replace. "It cannot
+    # write there structurally" was true of the previous version too, right up until
+    # the version before that, which edited the tracked two-key file and restored it
+    # in a `finally`.
+    assert COMPARATORS.read_text(encoding="utf-8") == original, (
+        "the tracked comparator file was modified by a test")
     assert result.returncode == 1
     assert "control" in result.stdout
 
@@ -239,3 +252,29 @@ def test_the_comparator_is_two_key():
     assert rules, "evals/comparators.json is not a two-key path"
     seats = {seat for rule, _files in rules for seat in rule.seats}
     assert "ai-quality" in seats and "platform-eng" in seats
+    # Security joined at M04, when the adversarial pins moved into this file. The
+    # rule's seat list is the union of both suites' owners because the pattern is a
+    # path and the file holds two suites; without this the probe corpus's numbers —
+    # Security's, under `quality/adversarial/`'s own rule — would be movable on two
+    # attestations, neither from the seat that owns G4. Three seats named it
+    # independently on the PR that caused it.
+    assert "security" in seats, (
+        "the adversarial pins live in this file and Security holds no key over them. "
+        "A widening of what counts as a refusal, followed by a re-pin to match, would "
+        "then be closable without the seat that owns G4."
+    )
+
+
+def test_the_two_key_seats_and_the_published_table_agree():
+    """`docs/governance/ROLES.md` is what a human reads; `pave/twokey.py` is what
+    blocks. A row that names fewer seats than the rule enforces reads as an
+    exemption, and one that names more reads as a protection nobody gets."""
+    from pave import twokey
+
+    published = (ROOT / "docs" / "governance" / "ROLES.md").read_text(encoding="utf-8")
+    row = next(line for line in published.splitlines()
+               if "evals/comparators.json" in line and line.startswith("|"))
+    rule = next(r for r, _ in twokey.triggered(["evals/comparators.json"]))
+    naming = {"ai-quality": "AI Quality", "platform-eng": "Platform Eng", "security": "Security"}
+    for seat in rule.seats:
+        assert naming[seat] in row, f"ROLES.md's comparator row does not name {seat}"
