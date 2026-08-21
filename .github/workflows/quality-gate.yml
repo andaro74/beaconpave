@@ -96,6 +96,17 @@ jobs:
 
       - name: Post score-diff comment (the gate teaches)
         if: always()
+        # The token is passed as env rather than interpolated into the command, so
+        # it cannot reach the shell's argv or a log line. `permissions:` above
+        # grants `pull-requests: write`, which is what upserting the comment needs.
+        #
+        # On a fork PR the token is read-only and the post fails; `_post_pr_comment`
+        # reports that and returns rather than raising. A comment that could not be
+        # posted must never turn a correct decision into a red step for a reason
+        # that is not the team's fault — `gate decide` below is the only thing that
+        # blocks.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python -m pave.cli gate comment --verdicts verdict-contract.json verdict-infra.json verdict-evals.json verdict-adv.json
 
       - name: Fail closed

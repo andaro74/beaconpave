@@ -304,3 +304,24 @@ def test_the_lane_is_uncommented_and_its_verdict_reaches_the_decider():
         step = next(s for s in steps if command in (s.get("run") or ""))
         assert "verdict-adv.json" in step["run"], (
             f"`{command}` does not read the adversarial verdict, so the lane blocks nothing")
+
+
+def test_the_comment_step_can_actually_post():
+    """Claim 2's artifact is a red PR **with a score-diff comment**, and the first
+    CI run of this lane rendered the body correctly and posted nothing.
+
+    `_post_pr_comment` is a silent no-op without `GITHUB_TOKEN`, deliberately — a
+    comment that cannot be posted must not turn a correct decision into a red step.
+    The consequence is that forgetting the token fails silently and looks exactly
+    like a working gate, which is why this is asserted in the workflow rather than
+    trusted."""
+    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    step = next(s for s in workflow["jobs"]["gate"]["steps"]
+                if "gate comment" in (s.get("run") or ""))
+    assert (step.get("env") or {}).get("GITHUB_TOKEN"), (
+        "the comment step has no GITHUB_TOKEN, so the gate renders its teaching and "
+        "posts nothing — silently, and indistinguishably from a working gate")
+    assert workflow["permissions"]["pull-requests"] == "write"
+    assert "${{" not in step["run"], (
+        "the token is interpolated into the command rather than passed as env, which "
+        "puts it in the shell's argv")
