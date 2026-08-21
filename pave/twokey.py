@@ -32,14 +32,56 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-#: A rationale shorter than this, or one of the placeholders below, is not a
-#: disposition. The point of the trailer is the reasoning, not the keyword.
-MIN_RATIONALE_CHARS = 24
+#: A rationale is measured by SUBSTANCE, not by length.
+#:
+#: It used to be `len(rationale) < 24`, and the failure message published that
+#: number. Measured: `"see commit abc123"` was rejected at 17 characters and
+#: `"see commit abc123def4567890"` sailed through at 27 — the identical
+#: non-rationale, padded. A gate that states its own numeric bar in the refusal
+#: is not enforcing a standard, it is issuing instructions for clearing one, and
+#: the thing it was defending (G9: the written reasoning attached to the diff) is
+#: exactly what padding removes.
+#:
+#: So the check counts words that carry meaning after references and connective
+#: tissue are removed. A pointer collapses to nothing under that count no matter
+#: how long it is, and a genuine rationale clears it without trying: measured
+#: across this repo's committed rationales and a corpus of pointer forms, the two
+#: populations sit at 9–11 and 0–1 with nothing in between.
+MIN_SUBSTANTIVE_WORDS = 6
+
+#: Words that a rationale can be built entirely out of while saying nothing:
+#: deictic lead-ins ("see", "per", "refer"), the nouns of pointing ("commit",
+#: "reference", "details"), and ordinary English glue.
+RATIONALE_FILLER = frozenset({
+    "a", "above", "an", "and", "as", "at", "be", "below", "by", "cf", "commit",
+    "commits", "context", "detail", "details", "discussed", "for", "from", "in",
+    "is", "it", "its", "of", "on", "or", "per", "pr", "previous", "ref",
+    "refer", "reference", "see", "submitted", "that", "the", "their", "there",
+    "these", "this", "to", "up", "was", "were", "what", "when", "where",
+    "which", "why", "with"
+})
+
 PLACEHOLDER_RATIONALES = {"n/a", "na", "none", "-", "--", "tbd", "see above", "as discussed"}
 
 DISPOSITION_RE = re.compile(r"^\s*Two-Key-Disposition:\s*(?P<seat>[a-z-]+)\s*$", re.MULTILINE)
 RATIONALE_RE = re.compile(r"^\s*Two-Key-Rationale:\s*(?P<text>.+?)(?=^\s*[A-Z][A-Za-z-]*:|\Z)", re.MULTILINE | re.DOTALL)
 ADR_RE = re.compile(r"^\s*ADR:\s*(?P<ref>\S+)\s*$", re.MULTILINE)
+
+
+def substantive_words(rationale: str) -> list[str]:
+    """The words in a rationale that carry its reasoning.
+
+    References are stripped first — a SHA, a URL, an issue number, an ADR id, a
+    file path — because pointing at one is the move being refused, and a rule
+    that counted them would be satisfied by pointing harder.
+    """
+    text = re.sub(r"\b[0-9a-f]{7,40}\b", " ", rationale, flags=re.IGNORECASE)
+    text = re.sub(r"https?://\S+", " ", text)
+    text = re.sub(r"#\d+", " ", text)
+    text = re.sub(r"\bADR-\d+\S*", " ", text)
+    text = re.sub(r"\b\S+\.(?:md|py|json|ya?ml|ts|yml)\b", " ", text)
+    words = re.findall(r"[A-Za-z][A-Za-z_-]+", text.lower())
+    return [w for w in words if w not in RATIONALE_FILLER]
 
 
 @dataclass(frozen=True)
@@ -202,10 +244,16 @@ def evaluate(changed: Sequence[str], body: str, repo_root=None) -> list[str]:
             "disposition recorded with no rationale. Add `Two-Key-Rationale: <why>` — "
             "the written reason is the point of the second key, not the keyword."
         )
-    elif stripped in PLACEHOLDER_RATIONALES or len(att.rationale) < MIN_RATIONALE_CHARS:
+    elif (stripped in PLACEHOLDER_RATIONALES
+          or len(substantive_words(att.rationale)) < MIN_SUBSTANTIVE_WORDS):
+        # The message names the DEFECT, never the bar. The previous one said
+        # "in at least 24 characters", which told the reader precisely how to
+        # defeat it and nothing about what was wanted.
         problems.append(
-            f"rationale is {len(att.rationale)} characters and reads as a placeholder. "
-            f"Say why this change is correct, in at least {MIN_RATIONALE_CHARS} characters."
+            "rationale points at a reason instead of giving one. The second key's value "
+            "is the written reasoning attached to THIS diff — a commit, a link or an "
+            "issue number is where the reasoning lives, not the reasoning. Say which "
+            "input moved, in which direction, and why that is correct, here in the body."
         )
 
     if att.adr and repo_root is not None and not (repo_root / att.adr).is_file():

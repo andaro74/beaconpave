@@ -155,3 +155,72 @@ def test_windows_separators_are_matched():
 def test_render_names_the_seats_and_the_files():
     out = twokey.render(["quality/judge/rubric-sports.md"], ["missing disposition from ai-quality"])
     assert "ai-quality" in out and "rubric-sports.md" in out and "BLOCKED" in out
+
+
+# --- a pointer is not a reason, at any length -----------------------------------
+#
+# The check used to be `len(rationale) < 24` and the refusal message published
+# that number. Measured: `"see commit abc123"` was rejected at 17 characters and
+# `"see commit abc123def4567890"` passed at 27 — the identical non-rationale,
+# padded to clear a bar the gate had just announced. The rule counts substance
+# now, so padding a pointer makes it longer and no more of a reason.
+
+GATED = ["quality/judge/rubric-sports.md"]
+
+
+def _body(rationale: str) -> str:
+    """A minimal attested body. Built without escapes on purpose — the newline
+    is the only structure the trailer parser needs."""
+    return "Two-Key-Disposition: ai-quality" + chr(10) + "Two-Key-Rationale: " + rationale
+
+
+@pytest.mark.parametrize("pointer", [
+    "see commit abc123",
+    "see commit abc123def4567890",              # the same pointer, padded past 24
+    "see commit abc123 for the details",
+    "per the ADR",
+    "refer to the commit message",
+    "as discussed in the previous PR",
+    "https://github.com/andaro74/beaconpave/pull/28",
+    "#28",
+])
+def test_a_pointer_rationale_blocks_however_long_it_is(pointer):
+    problems = twokey.evaluate(GATED, _body(pointer))
+    assert problems, f"{pointer!r} was accepted as reasoning"
+    assert "points at a reason" in problems[0]
+
+
+def test_the_refusal_does_not_publish_the_bar_it_enforces():
+    """A gate that states its own numeric threshold in the refusal is issuing
+    instructions for clearing one. The message names the defect instead."""
+    problems = twokey.evaluate(GATED, _body("see commit abc123"))
+    assert problems
+    assert str(twokey.MIN_SUBSTANTIVE_WORDS) not in problems[0]
+    assert "character" not in problems[0].lower()
+    assert "word" not in problems[0].lower()
+
+
+def test_padding_a_pointer_never_helps():
+    """The property, stated directly: length is orthogonal to substance."""
+    short = "see commit abc123"
+    padded = short + " for the details as discussed above in the previous PR " * 6
+    assert len(padded) > 300
+    for text in (short, padded):
+        assert twokey.evaluate(GATED, _body(text)), (
+            f"a {len(text)}-character pointer was accepted")
+
+
+def test_a_real_rationale_clears_it_without_trying():
+    """The other half. A rule that rejects pointers and also rejects genuine
+    reasoning has moved the problem rather than solved it."""
+    real = ("The comparator moves because ADV-010 blocked under guardrail v2 and did "
+            "not under v1; the pin is derived from the recorded entry rather than typed.")
+    assert twokey.evaluate(GATED, _body(real)) == []
+
+
+def test_references_do_not_count_toward_substance():
+    """Pointing harder must not satisfy a rule about not pointing."""
+    stuffed = ("see 9274f97 and 63572ae and 883183f and ADR-031 and ADR-032 and "
+               "ADR-033 and #28 and #29 and SPEC/04-gate.md")
+    assert twokey.evaluate(GATED, _body(stuffed)), (
+        "a rationale made entirely of references was accepted")
