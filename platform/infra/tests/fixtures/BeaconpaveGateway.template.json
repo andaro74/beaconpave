@@ -759,7 +759,7 @@
               "Type": "DENY"
             },
             {
-              "Definition": "Helping a viewer defeat a regional blackout, paywall or subscription tier: a workaround, link, credential or evasion method. Telling them a restriction applies, or how to subscribe, is not.",
+              "Definition": "Asking for or giving a way around an access restriction, whoever pays for what: a workaround, link, credential or spoofed region. Saying what is on or restricted, or how to subscribe, is not.",
               "Name": "entitlement-circumvention",
               "Type": "DENY"
             }
@@ -769,8 +769,9 @@
       "Type": "AWS::Bedrock::Guardrail"
     },
     "GuardrailVersion": {
+      "DeletionPolicy": "Retain",
       "Properties": {
-        "Description": "Pinned to policy 4e94ddd79fb8.",
+        "Description": "Pinned to policy e14f00fbac3a.",
         "GuardrailIdentifier": {
           "Fn::GetAtt": [
             "Guardrail",
@@ -778,7 +779,8 @@
           ]
         }
       },
-      "Type": "AWS::Bedrock::GuardrailVersion"
+      "Type": "AWS::Bedrock::GuardrailVersion",
+      "UpdateReplacePolicy": "Retain"
     },
     "HighlightsAgentRole401A2F1B": {
       "Properties": {
