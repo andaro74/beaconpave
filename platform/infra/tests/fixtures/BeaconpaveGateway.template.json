@@ -769,6 +769,7 @@
       "Type": "AWS::Bedrock::Guardrail"
     },
     "GuardrailVersion": {
+      "DeletionPolicy": "Retain",
       "Properties": {
         "Description": "Pinned to policy e14f00fbac3a.",
         "GuardrailIdentifier": {
@@ -778,7 +779,8 @@
           ]
         }
       },
-      "Type": "AWS::Bedrock::GuardrailVersion"
+      "Type": "AWS::Bedrock::GuardrailVersion",
+      "UpdateReplacePolicy": "Retain"
     },
     "HighlightsAgentRole401A2F1B": {
       "Properties": {

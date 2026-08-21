@@ -1,0 +1,6 @@
+{
+  "_comment": "The pair the version pin rests on. `policy_digest` is computed by tests/test_guardrail_pin_tracks_policy.py over the enforced policy in the synth snapshot; `description_digest` is what the CDK put in the guardrail version's description. They are taken over different material and will never be equal - the invariant is that NEITHER CAN MOVE ALONE. A policy change with a frozen description means the version resource will not be replaced, so `cdk deploy` reports UPDATE_COMPLETE while the gateway keeps enforcing the previous published version. That is ADR-024's failure arriving through the mechanism built to prevent it, and the Platform Engineering seat reproduced it with a one-word edit and 24 passing tests. Update BOTH values, after re-synthesising, in the PR that changes the policy.",
+  "policy_digest": "a19ccc33b562",
+  "description_digest": "e14f00fbac3a",
+  "guardrail_version_at_pin": "the version published from this policy, v3 once deployed"
+}

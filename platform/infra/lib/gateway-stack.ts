@@ -351,6 +351,29 @@ export class GatewayStack extends cdk.Stack {
       guardrailIdentifier: guardrail.attrGuardrailId,
       description: `Pinned to policy ${policyDigest}.`,
     });
+    // **RETAINED, because a published version is the instrument every recorded
+    // score was taken with.** Both properties above are create-only — which is
+    // exactly why the description trick works — so a policy change REPLACES this
+    // resource, and CloudFormation's cleanup would delete the old version.
+    //
+    // SPEC/04 defines `guardrail_policy_sha256` as what the version referred to,
+    // *fetched back from the deployed guardrail*, and `verify_guardrail_pin.py
+    // --policy-digest` is its only producer. Delete version 2 and every entry
+    // naming it — `m04-adversarial`, and ADR-035's own step-0 baseline — becomes
+    // a row fingerprinting an object nobody can look up, in a history that is
+    // append-only and therefore cannot be corrected afterwards.
+    //
+    // The AuditLake in this same stack is RETAIN because evidence that can be
+    // overwritten in place is not evidence. A guardrail version is the instrument
+    // the evidence was taken with, and the argument is the same one.
+    //
+    // **The cost is real and is accepted deliberately.** Bedrock caps versions
+    // per guardrail, so this trades a silent failure for a loud one: one day a
+    // deploy fails until somebody prunes old versions, and pruning becomes a
+    // deliberate recorded act rather than a side effect of every deploy. That is
+    // the direction to fail in. Found by the Platform Engineering seat reading
+    // the template's deletion semantics rather than the diff.
+    guardrailVersion.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
 
     // --- the gateway -------------------------------------------------------
     const gatewayFn = new lambda.Function(this, 'GatewayFn', {
