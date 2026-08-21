@@ -224,8 +224,8 @@ Anything that doesn't serve one is out of scope.
 | 6 | Rules have owners and dispositions | A rule delta disposed end-to-end into eval cases | 07 |
 | 7 | AI proposes, a human disposes, rates published | An `ai-proposed` PR merged; curation panel | 10 |
 | 8 | Self-heal classifies before it repairs | Classifier test suite + one drift-repair PR | 10 |
-| 9 | Judges are calibrated or advisory | Published agreement number; auto-demotion test | 03 |
-| 10 | Consequence classes gate real actions | – | `publish_highlight` waits on human approval | 06 |
+| 9 | Judges are calibrated or advisory | ✅ **Advisory, by measurement.** [`held-out-report.json`](milestones/M03/judge/held-out-report.json) — 20 held-out items at `k_judge=3`, every axis demoted, seat correction rate 0/20 published beside it. Auto-demotion test both directions in [`tests/test_judged_entry.py`](tests/test_judged_entry.py); a demoted axis cannot block, a calibrated one turns a deterministic PASS into a judged FAIL | 03 |
+| 10 | Consequence classes gate real actions | `publish_highlight` waits on human approval | 06 |
 | 11 | Readiness drills produce go/no-go artifacts | NO-GO → fix → delta drill → GO | 09 |
 | 12 | Defect leakage is counted honestly | Increments from rollbacks, never gate failures | 10 |
 
