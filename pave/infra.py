@@ -63,6 +63,41 @@ MODEL_INVOKE_ACTIONS = frozenset({
 #: Security seat rather than a commit.
 MODEL_INVOKE_ROLE_PREFIXES = ("GatewayFn",)
 
+#: Every CloudFormation resource type that can carry an IAM policy statement, and
+#: therefore every shape `statements()` has to walk.
+#:
+#: **Enumerated rather than discovered.** Two of these four were added after
+#: somebody planted a grant that every G1 assertion in the repository waved
+#: through: `AWS::IAM::ManagedPolicy` at M02, `AWS::IAM::RolePolicy` at M04. Both
+#: times the invariant CLAUDE.md calls non-negotiable was defeated by choosing a
+#: different construct, and both times the walker looked complete. A test asserts
+#: this tuple and the walker agree, so adding a type here without teaching
+#: `statements()` about it fails rather than silently widening the blind spot.
+GRANT_SHAPES = (
+    "AWS::IAM::Policy",
+    "AWS::IAM::ManagedPolicy",
+    "AWS::IAM::RolePolicy",
+    "AWS::IAM::Role",
+)
+
+#: Managed policies that may be attached by ARN without the checker being able to
+#: read them. **Security's allowlist, and it is deliberately one entry.**
+#:
+#: A managed policy attached through `ManagedPolicyArns` has its document stored
+#: in IAM, not in the template, so no amount of care in `statements()` can tell
+#: whether it grants `bedrock:InvokeModel`. There is no wording of the assertion
+#: that reads it. The only fail-closed answer is to refuse attachments that are
+#: not on a reviewed list, which is what `unreadable_managed_policies` does.
+#:
+#: `AWSLambdaBasicExecutionRole` is AWS-managed, grants CloudWatch Logs only, and
+#: cannot be edited by this account — so its contents are a published fact rather
+#: than something this repository controls. Every Lambda in the stack attaches it.
+#: A CUSTOMER-managed policy would be a different matter entirely: its contents
+#: are editable outside any diff this gate can see, which is precisely the hole.
+MODEL_INVOKE_READABLE_EXCEPTIONS = (
+    "arn:<PARTITION>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+)
+
 
 def load(path: str | pathlib.Path) -> dict:
     return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
@@ -126,9 +161,15 @@ def _referenced_roles(refs: Any) -> list[str]:
 def statements(template: dict) -> Iterator[dict]:
     """Every IAM statement in the template, with the roles it binds to.
 
-    Covers both shapes CDK emits: a standalone `AWS::IAM::Policy` naming its
-    roles, and inline `Policies` on an `AWS::IAM::Role`. Missing the second shape
-    would leave a grant that reads exactly like the first one invisible."""
+    Covers every shape in `GRANT_SHAPES`, which is the list this function is
+    checked against — a walker that silently handles fewer types than the
+    invariant claims is how a grant becomes invisible, and it has happened twice.
+
+    **What it cannot cover is `ManagedPolicyArns`**, because an attached managed
+    policy's document is not in the template at all. That is not a wording
+    problem in this function; there is nothing here to read. See
+    `unreadable_managed_policies`, which fails closed on the attachment
+    instead."""
     for logical_id, resource in template.get("Resources", {}).items():
         kind = resource.get("Type")
         properties = resource.get("Properties", {})
@@ -147,6 +188,20 @@ def statements(template: dict) -> Iterator[dict]:
             # CLAUDE.md calls non-negotiable, defeated by choosing a different
             # construct. Found by the Security seat planting it.
             roles = _referenced_roles(properties.get("Roles"))
+            for statement in _as_list(properties.get("PolicyDocument", {}).get("Statement")):
+                yield {"policy": logical_id, "roles": roles, "statement": statement}
+
+        elif kind == "AWS::IAM::RolePolicy":
+            # **A fourth shape, and it was invisible.** CloudFormation accepts
+            # `AWS::IAM::RolePolicy` as a standalone resource naming a single role
+            # in `RoleName`, and CDK emits it for an escape-hatch `CfnRolePolicy`
+            # and for some L1 constructs. Until this branch existed, a
+            # `bedrock:InvokeModel` grant delivered this way passed every G1
+            # assertion in the repository — the invariant CLAUDE.md calls
+            # non-negotiable, defeated by choosing a different construct. Third
+            # time that sentence has had to be written here; the shapes are
+            # enumerated rather than discovered now (`GRANT_SHAPES`).
+            roles = _referenced_roles(properties.get("RoleName"))
             for statement in _as_list(properties.get("PolicyDocument", {}).get("Statement")):
                 yield {"policy": logical_id, "roles": roles, "statement": statement}
 
@@ -210,6 +265,71 @@ def model_invoke_denials(template: dict) -> list[dict]:
         if grants_any(statement, MODEL_INVOKE_ACTIONS):
             found.append(entry)
     return found
+
+
+def render_arn(value: Any) -> str:
+    """Flatten a CloudFormation ARN expression into a comparable string.
+
+    `ManagedPolicyArns` entries are `Fn::Join` expressions carrying a
+    `{"Ref": "AWS::Partition"}` pseudo-parameter, because the app is synthesized
+    environment-agnostic (ADR-017). Rendering the pseudo-parameter to a
+    placeholder rather than resolving it keeps the comparison hermetic and keeps
+    an account identifier out of the snapshot."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        if "Fn::Join" in value:
+            separator, parts = value["Fn::Join"]
+            return separator.join(render_arn(part) for part in parts)
+        if "Ref" in value:
+            ref = value["Ref"]
+            return f"<{ref.split('::')[-1].upper()}>" if ref.startswith("AWS::") else f"<{ref}>"
+        if "Fn::Sub" in value:
+            return render_arn(value["Fn::Sub"])
+    return str(value)
+
+
+def attached_managed_policies(template: dict) -> list[dict]:
+    """Every `ManagedPolicyArns` attachment, with the role it lands on."""
+    found = []
+    for logical_id, resource in template.get("Resources", {}).items():
+        if resource.get("Type") != "AWS::IAM::Role":
+            continue
+        for arn in _as_list(resource.get("Properties", {}).get("ManagedPolicyArns")):
+            found.append({"role": logical_id, "arn": render_arn(arn)})
+    return found
+
+
+def unreadable_managed_policies(template: dict) -> list[dict]:
+    """Attachments whose grants this checker cannot see and has not reviewed.
+
+    **This is the one G1 shape where fail-closed is the only correct answer.**
+    The other three are grants written somewhere `statements()` did not look, and
+    the fix is to look there. An attached managed policy's document is not in the
+    template at all, so there is nothing to look at: a role carrying
+    `ManagedPolicyArns` could hold `bedrock:InvokeModel` and every assertion in
+    `tests/test_iam_assertions.py` would pass, because each of them reasons over
+    statements the template contains.
+
+    So the assertion cannot be about the statements. It is about the attachment:
+    anything not on `MODEL_INVOKE_READABLE_EXCEPTIONS` blocks, and adding an entry
+    there is a Security review rather than a commit — the same argument
+    `MODEL_INVOKE_ROLE_PREFIXES` carries one field up."""
+    return [a for a in attached_managed_policies(template)
+            if a["arn"] not in MODEL_INVOKE_READABLE_EXCEPTIONS]
+
+
+def gateway_roles(template: dict) -> list[str]:
+    """Every role the allowlist would treat as the gateway's.
+
+    `is_gateway_role` is a PREFIX match, because CDK appends a hash to every
+    logical id and the exact name is not knowable in advance. The consequence is
+    that `GatewayFnAnythingAtAll` inherits the one-role allowlist — and a role
+    that inherits it escapes the explicit-Deny requirement that every other role
+    in the stack carries.
+
+    G1 says "the gateway", a singular noun. This is what lets a test say so."""
+    return [r for r in roles(template) if is_gateway_role(r)]
 
 
 def is_gateway_role(logical_id: str) -> bool:
