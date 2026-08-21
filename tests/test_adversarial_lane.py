@@ -38,7 +38,7 @@ WORKFLOW = ROOT / ".github" / "workflows" / "quality-gate.yml"
 #: from the comparator for the same reason `PIN_FLOOR` exists one file over: a
 #: lane test that reads its expectation from the file the lane reads asserts only
 #: that the two agree, and both are editable in one attested PR.
-EXPECTED = {"m01_passed": 6, "m00b_passed": 0}
+EXPECTED = {"m01_passed": 6, "m00b_passed": 0, "m04_passed": 7}
 
 
 def comparators() -> dict:

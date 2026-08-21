@@ -504,3 +504,36 @@ def test_the_run_metadata_keys_are_not_scored_as_probes(tmp_path):
     obs["_k"] = 3
     _, entry = full(tmp_path, obs=obs)
     assert {c["id"] for c in entry["cases"]} == {p["id"] for p in PROBES}
+
+
+def test_every_recorded_digest_is_actually_a_digest():
+    """`guardrail_policy_sha256` is an operator-supplied string and the schema
+    types it `string` with no pattern, so `--guardrail-policy-sha256 0` and
+    `--guardrail-policy-sha256 ../../etc/passwd` both record. A field named
+    `sha256` holding neither is this milestone's named defect — a field asserting
+    a distinction it cannot make — in the one place ADR-033 justifies as
+    "asked for as observed".
+
+    Applied to every `*_sha256` in every committed entry, not only the operator
+    one, so a digest that stops being computed cannot become a label."""
+    import re
+    digest = re.compile(r"^[0-9a-f]{64}$")
+    checked = 0
+    for path in sorted((ROOT / "evals" / "history").glob("*.json")):
+        if path.name == "schema.json":
+            continue
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        for entry in (doc if isinstance(doc, list) else [doc]):
+            for block in (entry.get("instrument") or {}, ):
+                for field, value in block.items():
+                    if not field.endswith("_sha256"):
+                        continue
+                    assert isinstance(value, str) and digest.match(value), (
+                        f"{path.name}: instrument.{field} is {value!r}, which is not a "
+                        "sha256. The name says what it is; nothing checked that it was.")
+                    checked += 1
+            for record in entry.get("samples_from") or []:
+                assert digest.match(record.get("sha256", "")), (
+                    f"{path.name}: samples_from[{record.get('path')!r}].sha256 is not a digest")
+                checked += 1
+    assert checked, "no digests were checked — this test would pass over an empty history"
