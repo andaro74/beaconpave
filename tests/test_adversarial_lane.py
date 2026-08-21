@@ -176,29 +176,59 @@ def test_a_deleted_pin_fails_rather_than_scoring_what_is_left(tmp_path):
 # --- half two: what a pinned score provably cannot see ------------------------
 
 
-def test_the_lane_fails_when_g4_stops_meaning_what_the_corpus_says(tmp_path):
-    """Amendment 1, made executable.
+@pytest.mark.parametrize("plant,expect", [
+    ('    if refused and logged:', '    if refused:'),
+    ('CEDAR_MECHANISMS = frozenset({"policy"})',
+     'CEDAR_MECHANISMS = frozenset({"policy", "classification"})'),
+    ('    if passed == len(verdicts):', '    if passed * 2 > len(verdicts):'),
+    ('    if INFRA in verdicts:', '    if False:'),
+], ids=["and-logged-deleted", "cedar-widened", "unanimity-to-majority", "infra-not-contagious"])
+def test_a_weakened_scorer_blocks_the_lane_end_to_end(tmp_path, plant, expect):
+    """Amendment 1's claim, run rather than asserted.
 
-    The corpus is copied and weakened rather than the scorer, because the scorer
-    is what every other test in the suite depends on. The effect is the same
-    assertion from the other side: the lane compares `score_probe` against the
-    committed cases, so a disagreement fails it whichever half moved."""
-    corpus = yaml.safe_load(SEMANTICS.read_text(encoding="utf-8"))
-    # G4-002 is the case no committed observation can reach: something refused,
-    # nothing logged. Flipping its expectation is what a scorer that dropped the
-    # audit half would need in order to stay green.
-    case = next(c for c in corpus["cases"] if c["id"] == "G4-002")
-    assert case["expect"] == "FAIL"
-    case["expect"] = "PASS"
-    case.pop("reason_has", None)
+    **The first version of this test never called the lane.** It wrote a weakened
+    corpus to `tmp_path`, never read the file, and asserted on `check_semantics`
+    in-process — the M03 defect this milestone's own definition of done names, in
+    the test written for its central claim. Two seats found it independently.
 
-    weakened = tmp_path / "g4-semantics.yaml"
-    weakened.write_text(yaml.safe_dump(corpus), encoding="utf-8")
+    So the scorer is weakened in a *copy of the repository* and the real CLI is
+    invoked there: `pave adversarial run` must exit 1, write a `FAIL` verdict, and
+    `gate decide` must exit 1 on that verdict. Nothing short of that is the claim
+    ADR-032 makes.
 
-    from evals.adversarial import check_semantics
-    failures = check_semantics(corpus)
-    assert failures, "the lane's semantics check did not notice a moved expectation"
-    assert any(f.id == "G4-002" for f in failures)
+    The four plants are the ones the Security seat measured as invisible to the
+    pinned scores — the reason the lane has a second half at all."""
+    import shutil
+
+    scratch = tmp_path / "repo"
+    # `milestones/` carries the committed observations the pins name — without it
+    # the lane reports INFRA (the honest answer to "the evidence is gone") rather
+    # than the FAIL this test is about, which is the distinction working.
+    for part in ("evals", "quality", "pave", "platform", "services", "data", "milestones"):
+        src, dst = ROOT / part, scratch / part
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc",
+                                                                "node_modules", "cdk.out"))
+    scorer = scratch / "evals" / "adversarial.py"
+    source = scorer.read_text(encoding="utf-8")
+    assert plant in source, "the anchor moved; this test is no longer planting anything"
+    scorer.write_text(source.replace(plant, expect, 1), encoding="utf-8")
+
+    out = tmp_path / "verdict-adv.json"
+    lane = subprocess.run(
+        [sys.executable, "-m", "pave.cli", "adversarial", "run",
+         "services/highlights-agent", "--out", str(out)],
+        cwd=scratch, capture_output=True, text=True)
+    assert lane.returncode == 1, lane.stdout + lane.stderr
+    assert out.is_file(), "no verdict written on the failing path"
+    assert json.loads(out.read_text(encoding="utf-8"))["verdict"] == "FAIL"
+    assert "G4 semantics" in lane.stdout, (
+        "the lane failed for some other reason than the semantics it exists to check")
+
+    gate = subprocess.run(
+        [sys.executable, "-m", "pave.cli", "gate", "decide", "--verdicts", str(out)],
+        cwd=scratch, capture_output=True, text=True)
+    assert gate.returncode == 1, "the gate did not block on the lane's FAIL verdict"
 
 
 def test_the_lane_reads_the_same_checker_the_unit_suite_does():

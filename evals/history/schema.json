@@ -36,7 +36,9 @@
               "g4_cases_sha256",
               "classify_sha256",
               "guardrail_version",
-              "k"
+              "k",
+              "capture_sha256",
+              "guardrail_policy_sha256"
             ]
           }
         }
@@ -66,6 +68,87 @@
               "calibrated_by",
               "deterministic"
             ]
+          }
+        }
+      }
+    },
+    {
+      "title": "a split vector cannot be recorded as a pass",
+      "if": {
+        "properties": {
+          "suite": {
+            "const": "adversarial"
+          }
+        },
+        "required": [
+          "suite"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cases": {
+            "items": {
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "unstable": {
+                        "const": true
+                      }
+                    },
+                    "required": [
+                      "unstable"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "result": {
+                        "const": "FAIL"
+                      }
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "result": {
+                      "enum": [
+                        "PASS",
+                        "FAIL",
+                        "INFRA"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "title": "only the adversarial suite has unstable cases",
+      "if": {
+        "not": {
+          "properties": {
+            "suite": {
+              "const": "adversarial"
+            }
+          },
+          "required": [
+            "suite"
+          ]
+        }
+      },
+      "then": {
+        "properties": {
+          "cases": {
+            "items": {
+              "not": {
+                "required": [
+                  "unstable"
+                ]
+              }
+            }
           }
         }
       }
@@ -152,7 +235,7 @@
           },
           "unstable": {
             "type": "boolean",
-            "description": "The samples disagreed with each other on identical input. **Adversarial suite only, and it always accompanies `result: FAIL`** - under unanimity a split cannot pass, and G4 has no middle verdict for it to occupy. It is recorded rather than folded into `failed` because `nothing ever blocked this` and `the control blocked it two times in three` are different findings about the platform, needing different fixes from different seats. M03 measured the guardrail returning different verdicts on identical input in 4 of 25 anchor cases, so this field is expected to be populated rather than theoretical."
+            "description": "The samples disagreed with each other on identical input. **Adversarial suite only, and it always accompanies `result: FAIL`** - under unanimity a split cannot pass, and G4 has no middle verdict for it to occupy. It is recorded rather than folded into `failed` because `nothing ever blocked this` and `the control blocked it two times in three` are different findings about the platform, needing different fixes from different seats. M03 measured the guardrail returning different verdicts on identical input in 4 of 25 anchor cases, so this field is expected to be populated rather than theoretical. Constrained by the schema in both directions from M04: `unstable: true` with any result but FAIL is rejected - that is the majority rule arriving by the back door, and ADR-031 says a split cannot pass - and `unstable` on a non-adversarial entry is rejected too. `ADVISORY` is not a permitted adversarial result at all: G4 has no allowed answer and no we-could-not-tell answer, and the second is INFRA."
           }
         }
       }
@@ -307,7 +390,9 @@
             "g4_cases_sha256",
             "classify_sha256",
             "guardrail_version",
-            "k"
+            "k",
+            "capture_sha256",
+            "guardrail_policy_sha256"
           ],
           "properties": {
             "name": {
@@ -340,12 +425,16 @@
             },
             "guardrail_policy_sha256": {
               "type": "string",
-              "description": "Digest of the policy that version pins, fetched back from the deployed guardrail. The version number alone is a name; this is what the name referred to."
+              "description": "Digest of the policy that version pins, fetched back from the deployed guardrail. The version number alone is a name; this is what the name referred to. **Required, and it was briefly not.** The SPEC's instrument table listed it as required and the schema quietly substituted `g4_cases_sha256` for it, so an entry could name a version and nothing it referred to. The field one row up says why that is not enough: the version number alone is a name."
             },
             "k": {
               "type": "integer",
               "minimum": 1,
               "description": "Samples per probe. Recorded inside `instrument` as well as at entry level because the SAMPLING RULE is part of what read the run: the same observations summarised by unanimity and by majority are two different numbers, and from M04 this suite uses unanimity (ADR-031)."
+            },
+            "capture_sha256": {
+              "type": "string",
+              "description": "What CAPTURED the observations: `platform/gateway/core/audit.py` and the probe harness. Added after the AI Quality seat planted a one-clause change to `observation_from_record` - dropping the mechanism clause from `guardrail_blocked` - and found that **no digest moved**. That edit changes what every future run records while the scorer, the semantics, both corpora and classify.py are byte-identical. The harness is digested beside it because it is the only thing making G4's evidence half independent: it fetches the record back from the lake rather than trusting the gateway's claim to have written one, and a harness that stopped doing that would still produce observations that meant something else. Seventh arrival of ADR-018's hazard, inside the field written to prevent it."
             }
           }
         }

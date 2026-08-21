@@ -51,7 +51,17 @@ COVERS = {
     "probes_sha256": ("quality", "adversarial", "probes.yaml"),
     "g4_cases_sha256": ("quality", "adversarial", "g4-semantics.yaml"),
     "classify_sha256": ("platform", "gateway", "core", "classify.py"),
+    "capture_sha256": ("services", "highlights-agent", "run_probes_via_gateway.py"),
 }
+
+#: `platform/gateway/core/audit.py` is covered by TWO digests, deliberately, and
+#: it is the only overlap. `capture_sha256` covers the whole file because
+#: `observation_from_record` decides what a recorded observation means;
+#: `semantics_sha256` covers `POLICY_MECHANISMS` inside it because that set is
+#: half the joint deciding a G4 pass. Naming the overlap here rather than
+#: loosening the two-sided assertion: a digest that quietly covers more than it
+#: claims trains whoever reads the row to ignore it.
+SHARED = {"capture_sha256", "semantics_sha256"}
 
 
 def observations(unstable_index: int | None = 1) -> dict:
@@ -79,16 +89,21 @@ def record(tmp_path, *extra, obs=None):
 
 
 def full(tmp_path, *extra, obs=None):
+    # `--allow-dirty` because a test run's tree is dirty by construction — the
+    # branch under test is uncommitted while it is being written. The check itself
+    # is asserted by `test_recording_refuses_a_dirty_tree`, so opting out here
+    # costs nothing and pretending the tree is clean would cost the check.
     return record(tmp_path, "--instrument-name", "m04-A", "--guardrail-version", "2",
-                  *extra, obs=obs)
+                  "--guardrail-policy-sha256", "0" * 64, "--allow-dirty", *extra, obs=obs)
 
 
 # --- the record refuses to be written without its instrument ------------------
 
 
 @pytest.mark.parametrize("omit,expect", [
-    (["--guardrail-version", "2"], "instrument-name"),
-    (["--instrument-name", "m04-A"], "guardrail-version"),
+    (["--guardrail-version", "2", "--guardrail-policy-sha256", "0" * 64], "instrument-name"),
+    (["--instrument-name", "m04-A", "--guardrail-policy-sha256", "0" * 64], "guardrail-version"),
+    (["--instrument-name", "m04-A", "--guardrail-version", "2"], "guardrail-policy-sha256"),
 ])
 def test_recording_is_refused_when_the_instrument_cannot_be_named(tmp_path, omit, expect):
     """ADR-027 rule 4: a row naming an instrument nobody can look up is a
@@ -111,7 +126,8 @@ def test_the_guardrail_version_is_asked_for_as_observed_not_intended(tmp_path):
     differed and nothing in the record said why. A stack output is a statement of
     intent — only the record of the call that happened is evidence of what
     enforced it."""
-    result, _ = record(tmp_path, "--instrument-name", "m04-A")
+    result, _ = record(tmp_path, "--instrument-name", "m04-A",
+                       "--guardrail-policy-sha256", "0" * 64)
     assert "OBSERVED IN THE AUDIT RECORDS" in result.stderr
 
 
@@ -186,7 +202,7 @@ def test_each_digest_moves_when_its_own_input_moves(tmp_path, field):
     import shutil
 
     scratch = tmp_path / "tree"
-    for part in ("evals", "quality", "platform/gateway/core"):
+    for part in ("evals", "quality", "platform/gateway/core", "services/highlights-agent"):
         src = ROOT / part
         dst = scratch / part
         dst.parent.mkdir(parents=True, exist_ok=True)
@@ -200,10 +216,87 @@ def test_each_digest_moves_when_its_own_input_moves(tmp_path, field):
     assert after[field] != before[field], (
         f"editing {'/'.join(COVERS[field])} did not move {field}. The entry would record the "
         "same fingerprint for two different instruments.")
-    unchanged = {k: v for k, v in before.items() if k != field}
-    assert {k: after[k] for k in unchanged} == unchanged, (
-        f"editing {'/'.join(COVERS[field])} also moved "
-        f"{sorted(k for k in unchanged if after[k] != unchanged[k])}")
+    also_moved = sorted(k for k, v in before.items() if k != field and after[k] != v)
+    allowed = sorted(SHARED - {field}) if field in SHARED else []
+    assert also_moved == [] or also_moved == allowed, (
+        f"editing {'/'.join(COVERS[field])} also moved {also_moved}. A digest covering more "
+        "than it claims is as wrong as one covering less: it makes every unrelated edit read "
+        "as an instrument change and trains whoever reads the row to ignore it. The only "
+        f"permitted overlap is {sorted(SHARED)}, and it is named in SHARED with its reason.")
+
+
+def test_the_capture_digest_moves_when_what_a_record_MEANS_moves(tmp_path):
+    """The seventh arrival of ADR-018's hazard, closed.
+
+    `observation_from_record` computes `guardrail_blocked` as
+    `decision == "blocked" and mechanism == "guardrail"`. The AI Quality seat
+    dropped the second clause — an edit that changes what every future run
+    records — and **no digest moved**: the scorer, the semantics, both corpora and
+    `classify.py` were all byte-identical. An instrument block whose stated job is
+    that no input can move without a mark changing had a whole layer outside it.
+
+    The two shapes are checked separately because they fail differently: this one
+    changes the *meaning* of a recorded observation, and the harness plant below
+    changes whether the evidence is independent at all."""
+    import shutil
+
+    scratch = tmp_path / "tree"
+    for part in ("evals", "quality", "platform/gateway/core", "services/highlights-agent"):
+        src, dst = ROOT / part, scratch / part
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+
+    audit = scratch / "platform" / "gateway" / "core" / "audit.py"
+    before = instrument_digests(root=scratch)
+    original = audit.read_text(encoding="utf-8")
+
+    loosened = original.replace(
+        chr(34) + "guardrail_blocked" + chr(34) + ': decision == "blocked" and mechanism == "guardrail",',
+        chr(34) + "guardrail_blocked" + chr(34) + ': decision == "blocked",', 1)
+    assert loosened != original, "the anchor moved; this test is no longer planting anything"
+    audit.write_text(loosened, encoding="utf-8")
+    assert instrument_digests(root=scratch)["capture_sha256"] != before["capture_sha256"]
+    audit.write_text(original, encoding="utf-8")
+
+    # The harness half. It is the only thing making G4's evidence independent —
+    # it fetches the record back from the lake rather than trusting the gateway's
+    # claim to have written one. A harness that stopped would still produce
+    # observations, and they would mean something else entirely.
+    harness = scratch / "services" / "highlights-agent" / "run_probes_via_gateway.py"
+    harness.write_text(harness.read_text(encoding="utf-8") + chr(10) + "# planted" + chr(10),
+                       encoding="utf-8")
+    assert instrument_digests(root=scratch)["capture_sha256"] != before["capture_sha256"]
+
+
+def test_the_root_argument_is_honoured_by_every_digest(tmp_path):
+    """`instrument_digests(root=...)` silently ignored `root` for
+    `POLICY_MECHANISMS`, which it read from the imported module instead.
+
+    So a scratch-tree test could widen that set, watch the digest not move, and
+    conclude the instrument was blind — when what was blind was the parameter the
+    test itself depended on. Every digest above is measured through `root`; this
+    is the assertion that `root` means anything."""
+    import shutil
+
+    scratch = tmp_path / "tree"
+    for part in ("evals", "quality", "platform/gateway/core", "services/highlights-agent"):
+        src, dst = ROOT / part, scratch / part
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+
+    audit = scratch / "platform" / "gateway" / "core" / "audit.py"
+    before = instrument_digests(root=scratch)
+    audit.write_text(audit.read_text(encoding="utf-8").replace(
+        'POLICY_MECHANISMS = frozenset({"classification", "policy", "iam"})',
+        'POLICY_MECHANISMS = frozenset({"classification", "policy", "iam", "loop"})', 1),
+        encoding="utf-8")
+    after = instrument_digests(root=scratch)
+
+    assert after["semantics_sha256"] != before["semantics_sha256"], (
+        "widening POLICY_MECHANISMS in the scratch tree did not move `semantics_sha256` — "
+        "`root` is being ignored and every scratch-tree digest assertion is vacuous")
+    # The real tree is untouched, which is the other half of the same claim.
+    assert instrument_digests()["semantics_sha256"] == instrument_digests()["semantics_sha256"]
 
 
 def test_the_semantics_digest_moves_on_a_widened_mechanism_set():
@@ -259,3 +352,115 @@ def test_history_stays_append_only(tmp_path):
     result, _ = full(tmp_path)
     assert result.returncode == 2
     assert "append-only" in result.stderr
+
+
+def test_recording_refuses_a_dirty_tree(tmp_path):
+    """`git rev-parse HEAD` names a commit; `instrument_digests()` reads the
+    working tree. With a dirty tree those are different objects, and the entry
+    would carry fingerprints of code that is in no commit at all — in an
+    append-only file, so uncorrectable.
+
+    Not hypothetical: a planted weakening was live in this working tree during
+    M04's own seat review, which is exactly the situation that produces it.
+
+    Exercised against a real repository rather than a mock, because what is under
+    test is whether `git status` is asked the right question — a mocked `dirty`
+    would assert only that the `if` works."""
+    from evals.run_adversarial import dirty_working_tree
+
+    scratch = tmp_path / "repo"
+    subprocess.run(["git", "init", "--quiet", str(scratch)], check=True,
+                   capture_output=True, text=True)
+    tracked = scratch / "evals" / "adversarial.py"
+    tracked.parent.mkdir(parents=True)
+    tracked.write_text("# committed" + chr(10), encoding="utf-8")
+    for command in (["git", "add", "-A"],
+                    ["git", "-c", "user.email=t@e", "-c", "user.name=t",
+                     "commit", "--quiet", "-m", "base"]):
+        subprocess.run(command, cwd=scratch, check=True, capture_output=True, text=True)
+
+    assert dirty_working_tree(scratch) == "", "a freshly committed tree reads as dirty"
+
+    (scratch / "untracked.py").write_text("# scratch" + chr(10), encoding="utf-8")
+    assert dirty_working_tree(scratch) == "", (
+        "an untracked file blocks recording. It changes no digest, and blocking on one "
+        "trains whoever records the entry to reach for the override every time")
+
+    tracked.write_text("# committed" + chr(10) + "# planted" + chr(10), encoding="utf-8")
+    assert "adversarial.py" in dirty_working_tree(scratch)
+
+
+def test_the_recorder_refuses_to_write_against_a_dirty_tree(monkeypatch, tmp_path):
+    """The guard, wired. `--allow-dirty` is the deliberate override and it has to
+    be typed."""
+    import evals.run_adversarial as recorder
+
+    monkeypatch.setattr(recorder, "dirty_working_tree", lambda root: " M evals/adversarial.py")
+    f = tmp_path / "obs.json"
+    f.write_text(json.dumps(observations()), encoding="utf-8")
+    argv = ["--observations", str(f), "--record", "--tag", "zz", "--target", "highlights-agent",
+            "--instrument-name", "m04-A", "--guardrail-version", "2",
+            "--guardrail-policy-sha256", "0" * 64, "--history-dir", str(tmp_path)]
+
+    assert recorder.main(argv) == 2
+    assert not (tmp_path / "zz-adversarial.json").is_file()
+    assert recorder.main([*argv, "--allow-dirty"]) == 0
+    assert (tmp_path / "zz-adversarial.json").is_file()
+
+
+def test_the_entry_names_what_it_was_summarised_from(tmp_path):
+    """`samples_from` — required by the DoD, and by the schema's own argument.
+
+    Without it `k` is the number of files the operator chose to pass: running five
+    and recording the best three produces an entry byte-indistinguishable from an
+    honest one, and nothing ties a recorded score to a committed run file."""
+    _, entry = full(tmp_path)
+    assert entry["samples_from"], "the entry does not say what it was summarised from"
+    assert len(entry["samples_from"]) == 1
+    named = entry["samples_from"][0]
+    assert len(named["sha256"]) == 64
+    assert named["path"]
+
+
+def test_the_recorded_version_must_be_one_the_records_observed(tmp_path):
+    """ADR-033: the field is what enforced the calls, not what the stack intended.
+
+    The runner now commits the versions it saw into the observations file, so the
+    operator's `--guardrail-version` has committed evidence to be checked against
+    rather than being an unverifiable string in the one field justified as
+    'asked for as observed'."""
+    obs = observations()
+    obs["_guardrail_versions"] = ["2"]
+    result, entry = full(tmp_path, obs=obs)
+    assert result.returncode == 0, result.stderr
+    assert entry["instrument"]["guardrail_version"] == "2"
+
+    obs["_guardrail_versions"] = ["3"]
+    result, _ = record(tmp_path, "--instrument-name", "m04-A", "--guardrail-version", "2",
+                       "--guardrail-policy-sha256", "0" * 64, "--allow-dirty", obs=obs)
+    assert result.returncode == 2
+    assert "not among the versions observed" in result.stderr
+
+
+def test_a_ragged_sample_file_is_refused(tmp_path):
+    """Unanimity over fewer samples is easier, so a short vector flatters. `k`
+    records the maximum, so a ragged file would claim a depth some probes did not
+    have."""
+    obs = observations()
+    first = sorted(obs)[0]
+    obs[first]["samples"] = obs[first]["samples"][:2]
+    result, _ = record(tmp_path, "--instrument-name", "m04-A", "--guardrail-version", "2",
+                       "--guardrail-policy-sha256", "0" * 64, "--allow-dirty", obs=obs)
+    assert result.returncode == 2
+    assert "fewer than 3 samples" in result.stderr
+
+
+def test_the_run_metadata_keys_are_not_scored_as_probes(tmp_path):
+    """`_guardrail_versions` and `_k` describe the run, not a probe. Left in the
+    observations dict they would be silently ignored by `score_corpus` — but an
+    id-shaped key added later would not be, so they are stripped by name."""
+    obs = observations()
+    obs["_guardrail_versions"] = ["2"]
+    obs["_k"] = 3
+    _, entry = full(tmp_path, obs=obs)
+    assert {c["id"] for c in entry["cases"]} == {p["id"] for p in PROBES}

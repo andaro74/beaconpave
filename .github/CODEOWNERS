@@ -53,9 +53,17 @@
 # seat that feels a probe score rather than the seat that defends it. That is G9
 # read backwards. `CEDAR_MECHANISMS` lives in the first file and
 # `POLICY_MECHANISMS` in `core/audit.py`, whose docstring names this seat too.
-/evals/adversarial.py     @andaro74
-/tests/test_adversarial_scoring.py        @andaro74
-/platform/gateway/core/audit.py           @andaro74
+#
+# **Both handles on each line, and that is the point.** CODEOWNERS is
+# last-match-wins: a line naming only Security here would REPLACE `/evals/`'s AI
+# Quality ownership rather than adding to it, silently moving the scorer out from
+# under the seat that owns the harness instead of putting a second key on it. The
+# Platform seat caught that on the diff that introduced these lines. Every handle
+# resolves to the same person on a one-operator repo (ADR-001), so nothing changes
+# in practice today -- the doctrine changes, and the doctrine is what scales.
+/evals/adversarial.py                     @andaro74 @andaro74
+/tests/test_adversarial_scoring.py        @andaro74 @andaro74
+/platform/gateway/core/audit.py           @andaro74 @andaro74
 
 # ...and the authorization path, which M02 created. Both modules name this seat as
 # a co-owner in their docstrings; without these entries a PR relaxing the publish

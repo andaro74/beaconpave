@@ -265,13 +265,22 @@ def test_what_decides_a_probe_outcome_is_routed_to_the_seat_that_defends_it():
 
     That is G9 backwards: whoever feels a control's pain never solely controls its
     strength."""
+    import re
+
+    # A section header is a comment that NAMES A SEAT and then says "owns" —
+    # `# Security / Red Team owns ...`. The first version matched any comment
+    # containing the word, so a prose line reading "the seat that owns the
+    # harness" silently opened a new section and swallowed the three paths below
+    # it. The test then failed for a reason that had nothing to do with ownership.
+    header = re.compile(r"^#\s*(?P<seat>[A-Z][A-Za-z/&. ]*?)\s+owns\s")
     text = (ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8")
     sections, current = {}, None
     for line in text.splitlines():
         stripped = line.strip()
         if stripped.startswith("#"):
-            if "owns" in stripped or "Owns" in stripped:
-                current = stripped.lstrip("# ").lower()
+            match = header.match(stripped)
+            if match:
+                current = match.group("seat").lower()
                 sections.setdefault(current, [])
             continue
         if stripped and current:

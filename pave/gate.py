@@ -261,13 +261,21 @@ def summarize(paths: Sequence[str]) -> str:
 
     lines = [COMMENT_MARKER, f"### quality gate: {status}", ""]
 
-    rows = ["| | suite | layer | scores | note |", "|---|---|---|---|---|"]
+    rows = ["| | suite | layer | scores | |", "|---|---|---|---|---|"]
     for f in decision.findings:
         mark = "✅" if not f.blocks else ("🛠" if f.kind == CONTRACT else "❌")
         scores = _scores_of(f.path)
         rendered = ", ".join(f"`{k}` {v}" for k, v in sorted(scores.items())) or "—"
-        rows.append(f"| {mark} {f.verdict or '—'} | {f.suite or '—'} | {f.layer or '—'} "
-                    f"| {rendered} | {f.reason} |")
+        # `suite reported PASS` in a column headed by the verdict is four rows of
+        # restatement in the artifact whose job is to inform. The reason is kept
+        # only where it says something the verdict does not — which is every
+        # blocking row, and no passing one. A missing verdict has no suite, so the
+        # path is what identifies it; `render` keeps it and this dropped it, which
+        # turns two absent verdicts into two identical rows on the exit-2 path.
+        note = "" if not f.blocks else f.reason
+        label = f.suite or f"`{f.path}`"
+        rows.append(f"| {mark} {f.verdict or '—'} | {label} | {f.layer or '—'} "
+                    f"| {rendered} | {note} |")
     lines.extend(rows)
 
     teaching = [(f, _notes_of(f.path)) for f in decision.findings]
@@ -276,7 +284,18 @@ def summarize(paths: Sequence[str]) -> str:
         lines += ["", "#### what moved"]
         for f, notes in teaching:
             lines.append(f"**{f.suite or f.path}**")
-            lines += [f"- {n}" for n in notes]
+            # Short lines first, long ones folded away. The G4 semantics notes
+            # carry a case's whole `why` — several hundred characters of
+            # reasoning that is exactly right in the file and buries the
+            # actionable line in a comment. A reviewer needs "ADV-002 FAIL ->
+            # PASS, above the pinned 6/10" before they need the essay.
+            headline = [n for n in notes if len(n) <= 200]
+            detail = [n for n in notes if len(n) > 200]
+            lines += [f"- {n}" for n in headline]
+            if detail:
+                lines += ["", "<details><summary>why each of these is a finding</summary>", ""]
+                lines += [f"- {n}" for n in detail]
+                lines += ["", "</details>"]
 
     if decision.blocked:
         owner = "platform" if decision.exit_code == EXIT_CONTRACT else "service team"
