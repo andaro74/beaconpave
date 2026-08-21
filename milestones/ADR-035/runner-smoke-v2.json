@@ -1,0 +1,45 @@
+{
+  "_what_this_is": "Per-case, per-sample refusal detail for this run, taken from the audit records fetched back out of the lake rather than from the gateway's response. The answer files beside it carry what was answered; this carries WHY the rest was not, which `evals/run_evals.py` cannot express - it scores a refused case as a plain FAIL, indistinguishable from one that answered badly.",
+  "tag": "smoke-runner",
+  "_k": 1,
+  "_guardrail_versions": [
+    "2"
+  ],
+  "census": {
+    "k": 1,
+    "n_cases": 1,
+    "refused_at_least_once": 1,
+    "refused_by_majority": 1,
+    "refused_unanimously": 1,
+    "cases_at_least_once": [
+      "blackout-009"
+    ],
+    "cases_by_majority": [
+      "blackout-009"
+    ],
+    "cases_separating_the_estimators": [],
+    "cases_with_missing_samples": [],
+    "estimator_for_adr_035": "refused_at_least_once"
+  },
+  "refusals": {
+    "blackout-009": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channel": null,
+        "record_id": "2026-08-21/highlights-agent/blackout-009-smoke-runner.json",
+        "record_resolved": true
+      }
+    }
+  },
+  "per_sample_refused": {
+    "blackout-009": [
+      true
+    ]
+  },
+  "_incidentally": "It also cross-validates the free diagnostic against the real path. `topic-baseline-v2.json` predicted from ApplyGuardrail alone that `blackout-009` is refused at the QUESTION channel by TOPIC:entitlement-circumvention; the gateway agrees, with the same single attribution. That is the case refused in 7 of 7 governed runs and never once answered in this repository's history, so it is the sharpest falsifier Change A has - and the free instrument that will judge rows 14-19 now has one point of agreement with the paid one.",
+  "_cost": "1 gateway invocation, 0 model tokens - the guardrail blocked it before the model was reached, which is itself the finding."
+}
