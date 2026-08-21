@@ -80,15 +80,29 @@ M01_ANSWERS = ROOT / "milestones" / "M01" / "goldens-run.json"
 TOPIC = "TOPIC:entitlement-circumvention"
 
 
-def _assess(runtime, guardrail_id, version, text, source):
-    response = runtime.apply_guardrail(
-        guardrailIdentifier=guardrail_id, guardrailVersion=version,
-        source=source, content=[{"text": {"text": text}}])
-    # Read through the same `_blocked_names` every other verdict in this repo is
-    # read through. A second reader that could disagree would split one finding
-    # into two nobody joins up.
-    outcome = guardrail.interpret_apply(response, channel=guardrail.CHANNEL_SYSTEM)
-    return outcome.intervened, list(outcome.assessed)
+def _assess(runtime, guardrail_id, version, text, source, k):
+    """`k` samples, and the split is recorded rather than resolved.
+
+    **This guardrail returns different verdicts on identical input** — 4 of 25
+    anchor cases at M03, and `PHR-004` blocked in 1 of 3 identical calls, which is
+    the datum this whole tightening exists for. A k=1 baseline of the thing being
+    changed would be the same mistake in the same place. Unanimity decides, never
+    majority (ADR-031): a control that stops something twice in three does not
+    stop it, and a 2-1 split is evidence of instability rather than a verdict to
+    round off."""
+    blocked, per_sample = 0, []
+    for _ in range(k):
+        response = runtime.apply_guardrail(
+            guardrailIdentifier=guardrail_id, guardrailVersion=version,
+            source=source, content=[{"text": {"text": text}}])
+        # Read through the same `_blocked_names` every other verdict in this repo
+        # is read through. A second reader that could disagree would split one
+        # finding into two nobody joins up.
+        outcome = guardrail.interpret_apply(response, channel=guardrail.CHANNEL_SYSTEM)
+        blocked += int(outcome.intervened)
+        per_sample.append(sorted(outcome.assessed))
+    assessed = sorted({name for a in per_sample for name in a})
+    return blocked, assessed, per_sample
 
 
 def questions() -> list[tuple[str, str]]:
@@ -129,6 +143,8 @@ def main(argv=None) -> int:
     p.add_argument("--answers", action="store_true")
     p.add_argument("--attacks", action="store_true")
     p.add_argument("--all", action="store_true")
+    p.add_argument("--k", type=int, default=3,
+                   help="samples per item. k=1 is not a result against this guardrail")
     p.add_argument("--out")
     args = p.parse_args(argv)
     if args.all:
@@ -143,7 +159,8 @@ def main(argv=None) -> int:
     runtime = boto3.client("bedrock-runtime")
     print(f"guardrail: {guardrail_id} version {version}\n")
 
-    recorded = {"guardrail_id": guardrail_id, "guardrail_version": version, "arms": {}}
+    recorded = {"guardrail_id": guardrail_id, "guardrail_version": version,
+                "k": args.k, "arms": {}}
     arms = []
     if args.questions:
         arms.append(("questions", "INPUT", questions()))
@@ -154,16 +171,24 @@ def main(argv=None) -> int:
 
     for arm, source, items in arms:
         print(f"--- {arm} ({len(items)} items, source={source}) " + "-" * 26)
-        results, blocked, by_topic = {}, 0, 0
+        results, blocked, unstable, by_topic = {}, 0, 0, 0
         for item_id, text in items:
-            intervened, assessed = _assess(runtime, guardrail_id, version, text, source)
-            results[item_id] = {"intervened": intervened, "assessed": assessed}
-            blocked += int(intervened)
+            hits, assessed, per_sample = _assess(
+                runtime, guardrail_id, version, text, source, args.k)
+            unanimous = hits in (0, args.k)
+            results[item_id] = {"blocked_samples": hits, "unanimous": unanimous,
+                                "assessed": assessed, "per_sample_assessed": per_sample}
+            blocked += int(hits == args.k)
+            unstable += int(not unanimous)
             by_topic += int(TOPIC in assessed)
-            if intervened:
-                print(f"  BLOCKED  {item_id:20s} {assessed}")
-        print(f"  {blocked}/{len(items)} blocked, {by_topic} naming the entitlement topic\n")
-        recorded["arms"][arm] = {"source": source, "n": len(items), "blocked": blocked,
+            if hits:
+                label = "BLOCKED" if hits == args.k else f"UNSTABLE {hits}/{args.k}"
+                print(f"  {label:12s} {item_id:20s} {assessed}")
+        print(f"  {blocked}/{len(items)} blocked unanimously, {unstable} unstable, "
+              f"{by_topic} naming the entitlement topic")
+        print()
+        recorded["arms"][arm] = {"source": source, "n": len(items), "k": args.k,
+                                 "blocked_unanimously": blocked, "unstable": unstable,
                                  "named_the_topic": by_topic, "results": results}
 
     print("This scores nothing. No audit record was written and no model was called.")

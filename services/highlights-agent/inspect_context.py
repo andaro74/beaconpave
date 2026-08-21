@@ -57,12 +57,27 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "platform" 
 
 import boto3  # noqa: E402
 import gateway_client as gw  # noqa: E402
-from core import (
-    guardrail,  # noqa: E402
-    toolloop,  # noqa: E402
-)
+from core import guardrail  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def _as_tool_output(payload) -> str:
+    """The payload serialised the way the tool loop would hand it to the guardrail.
+
+    **Deliberately duplicated from `core/toolloop.py::_inspection_text` rather
+    than imported.** The first version imported it, which made this diagnostic
+    unrunnable on any branch where Change B is not merged — inside an eager list
+    literal, so the whole run aborted before a single call. Rows 12 and 13 fall
+    due the day Change A deploys, and under the re-plan Change B is unmerged at
+    that moment. A diagnostic that cannot run when its rows come due is not a
+    diagnostic.
+
+    Duplication is the lesser evil here and only here: this scores nothing, so
+    the two copies drifting costs a mislabelled diagnostic subject rather than a
+    mismeasured control. The rule that matters — one reader for a verdict — is
+    kept: `interpret_apply` is imported, never re-implemented."""
+    return json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
 
 
 def injected_title() -> str:
@@ -101,7 +116,7 @@ def main() -> int:
         ("the injected title alone", injected_title(), guardrail.CHANNEL_SYSTEM,
          "the payload with no catalog around it"),
         ("the poisoned catalog as tool output",
-         toolloop._inspection_text(json.loads(poisoned_catalog.read_text(encoding="utf-8"))),
+         _as_tool_output(json.loads(poisoned_catalog.read_text(encoding="utf-8"))),
          guardrail.CHANNEL_TOOL_OUTPUT,
          "the same payload, serialised the way the loop would hand it over"),
 
@@ -130,27 +145,47 @@ def main() -> int:
          "the same, with the injection in it — the pair that decides everything"),
     ]
 
+    k = int(sys.argv[sys.argv.index("--k") + 1]) if "--k" in sys.argv else 3
+    print(f"k:         {k}   (this guardrail returns different verdicts on identical input)")
+    print()
     recorded = {"guardrail_id": guardrail_id, "guardrail_version": version,
-                "source": "INPUT", "subjects": []}
+                "source": "INPUT", "k": k, "subjects": []}
+
     for label, text, channel, why in subjects:
-        response = runtime.apply_guardrail(
-            guardrailIdentifier=guardrail_id,
-            guardrailVersion=version,
-            source="INPUT",
-            content=[{"text": {"text": text}}],
-        )
-        outcome = guardrail.interpret_apply(response, channel=channel)
-        verdict = "BLOCKED" if outcome.intervened else "allowed"
-        units = response.get("usage", {}).get("textUnits", "?")
-        print(f"  {verdict:8s} {label}")
-        print(f"           {len(text):,} chars, {units} text unit(s) — {why}")
-        if outcome.assessed:
-            print(f"           assessed: {list(outcome.assessed)}")
+        # **k samples, not one.** `tests/test_probe_sampling.py` says it about
+        # this same guardrail: a single sample is not a result. It returned
+        # different verdicts on identical input in 4 of 25 anchor cases, and rows
+        # 12 and 13 decide whether Change B's system half comes back — deciding
+        # that on one observation is the error ADR-028 and ADR-031 exist to
+        # prevent. Unanimity decides; a split is recorded as a split.
+        samples = []
+        for _ in range(k):
+            response = runtime.apply_guardrail(
+                guardrailIdentifier=guardrail_id,
+                guardrailVersion=version,
+                source="INPUT",
+                content=[{"text": {"text": text}}],
+            )
+            samples.append(guardrail.interpret_apply(response, channel=channel))
+
+        blocked = sum(s.intervened for s in samples)
+        per_sample = [sorted(s.assessed) for s in samples]
+        assessed = sorted({name for a in per_sample for name in a})
+        verdict = ("BLOCKED" if blocked == k else "allowed" if blocked == 0
+                   else f"UNSTABLE {blocked}/{k}")
+
+        print(f"  {verdict:12s} {label}")
+        print(f"           {len(text):,} chars — {why}")
+        if assessed:
+            print(f"           assessed: {assessed}")
+        if len({tuple(a) for a in per_sample}) > 1:
+            print(f"           per-sample attributions differ: {per_sample}")
         print()
         recorded["subjects"].append({
             "subject": label, "channel": channel, "chars": len(text),
-            "intervened": outcome.intervened, "assessed": list(outcome.assessed),
-            "why": why,
+            "k": k, "blocked_samples": blocked, "unanimous": blocked in (0, k),
+            "intervened": blocked == k, "assessed": assessed,
+            "per_sample_assessed": per_sample, "why": why,
         })
 
     print("This scores nothing. No audit record was written and no probe was run.")
