@@ -578,7 +578,7 @@ complete and this one is visibly *not* on it.
 
 ## Definition of done
 
-- [ ] `evals/comparators.json` gains an `adversarial` block; the constants in
+- [x] `evals/comparators.json` gains an `adversarial` block; the constants in
       `tests/test_instrument_stability.py` read from it rather than restating it.
       **Its own PR, cut from `main`, before any run** — two-key (AI Quality +
       Platform Engineering + Security: the rule is a path and the file holds two
@@ -586,76 +586,80 @@ complete and this one is visibly *not* on it.
       rationale inline. Each pin also restated as a code-level floor, because both
       sides of `assert scorer_output == file_value` are otherwise editable in one
       attested PR *(landed: PR #27, ADR-030)*
-- [ ] `pave adversarial run <service>` implemented: hermetic, comparator-pinned,
+- [x] `pave adversarial run <service>` implemented: hermetic, comparator-pinned,
       `fail_closed: true`, deviation in **either** direction fails, `exit 2` for a
       missing observation / unreadable `pass_when` / unresolved audit record
-- [ ] The L5 lane uncommented in `.github/workflows/quality-gate.yml` and added to
+- [x] The L5 lane uncommented in `.github/workflows/quality-gate.yml` and added to
       **both** the `gate comment` and `gate decide` verdict lists — a lane that
       emits a verdict nothing reads is a lane that does not block
-- [ ] `run_probes_via_gateway.py --k 3`; ~~an even `k` refused~~ — **struck.** That
+- [x] `run_probes_via_gateway.py --k 3`; ~~an even `k` refused~~ — **struck.** That
       requirement was carried across from the golden suite, where an even `k` can
       leave a majority unreachable. Under unanimity there is no tie to be
       unreachable, so refusing an even `k` would forbid a harmless choice for a
       reason that does not apply. Struck with the reason rather than left as a box
       that quietly goes unticked; unanimity decides, per-sample verdicts and the
       `assessed` field committed
-- [ ] `unstable` recorded and tallied separately from `failed`
-- [ ] **The L5 lane asserts the G4 discrimination cases**, not only the pinned
+- [x] `unstable` recorded and tallied separately from `failed`
+- [x] **The L5 lane asserts the G4 discrimination cases**, not only the pinned
       score — see amendment 1. `evals/adversarial.py` exposes them as committed
       data, read by `tests/test_adversarial_scoring.py` at L0 and by the lane's
       verdict at L5, so one source of truth is exercised twice rather than
       restated
-- [ ] `evals/adversarial.py` and `tests/test_adversarial_scoring.py` routed to
+- [x] `evals/adversarial.py` and `tests/test_adversarial_scoring.py` routed to
       Security in `.github/CODEOWNERS`. The module whose docstring names Security
       as its owning seat matches only `/evals/`, and it is what decides what a
       probe pass means
-- [ ] The comparator's `expected_unearned` / `expected_unstable` carried through
+- [x] The comparator's `expected_unearned` / `expected_unstable` carried through
       the M04 re-pin, so an unearned pass cannot enter the pin as a bare `PASS`
       the gate then defends — **and read by the lane**, not only by a test
-- [ ] The G4 corpus covers every scorer branch that can move a probe outcome, and
+- [x] The G4 corpus covers every scorer branch that can move a probe outcome, and
       the lane is not satisfiable by deleting it: a case-count floor in code, and
       the case ids pinned in the two-key comparator
-- [ ] `instrument` covers observation **capture**, not only scoring — the seventh
+- [x] `instrument` covers observation **capture**, not only scoring — the seventh
       arrival of ADR-018's hazard, found by planting a one-clause change to
       `observation_from_record` that moved no digest
-- [ ] `samples_from` recorded, and the recorder refuses a dirty tree: `sha` names a
+- [x] `samples_from` recorded, and the recorder refuses a dirty tree: `sha` names a
       commit while the digests read the working tree, and an append-only entry
       cannot be corrected afterwards
-- [ ] ADV-002's channel control has a harness (`--as-user-turn`), and it sends the
+- [x] ADV-002's channel control has a harness (`--as-user-turn`), and it sends the
       payload read out of the fixture rather than a retyped copy
-- [ ] History schema: suite-conditional `instrument`, and the `k` field's
+- [x] History schema: suite-conditional `instrument`, and the `k` field's
       per-suite summarisation rule — two-key (AI Quality), disposition and
       rationale inline
-- [ ] `m04-adversarial` appended, carrying `instrument`, `samples_from` and **no**
+- [x] `m04-adversarial` appended, carrying `instrument`, `samples_from` and **no**
       `supersedes` — two-key
-- [ ] ADV-002 and its user-turn channel control run at `k = 3`; the attribution
+- [x] ADV-002 and its user-turn channel control run at `k = 3`; the attribution
       recorded and handed to the owning seat
-- [ ] The three G1 grant shapes closed, **each with a planted defect** that fails
+- [x] The three G1 grant shapes closed, **each with a planted defect** that fails
       against today's assertions and passes against tomorrow's
-- [ ] **Every new test in this milestone verified against a planted defect.** M03
+- [x] **Every new test in this milestone verified against a planted defect.** M03
       shipped a veto test that reimplemented the veto and never called the runner;
       rewriting it surfaced a real production bug. A test that has never been seen
       to fail is a comment
-- [ ] `gate comment` posts to the pull request and carries a real score diff: the
+- [x] `gate comment` posts to the pull request and carries a real score diff: the
       pinned comparator, the observed value, and the case ids that moved
-- [ ] The exhibit PR opened, red for an L5 reason, labeled `exhibit`, **closed
-      unmerged**, and linked from the twelve-claims table
-- [ ] **Four-seat review before any model call** — Security, Platform Engineering,
+- [~] The exhibit PR opened, red for an L5 reason, labeled `exhibit`, **closed
+      unmerged**, and linked from the twelve-claims table — **PR #29 is open, red
+      and labeled**, `gate: BLOCKED (quality regression); exit 1`, five probes named
+      in the posted comment, and cited from claim 2. `two-key` is green on it, so the
+      only red check is the gate catching the weakening. **Closing it is the
+      operator's action and is the last box**
+- [x] **Four-seat review before any model call** — Security, Platform Engineering,
       AI Quality, Service Team — while fixes are still free
-- [ ] Any unearned pass documented with a drafted tightening for the owning seat
-- [ ] ADRs: **ADR-030** (one comparator registry, the golden half that stayed,
+- [x] Any unearned pass documented with a drafted tightening for the owning seat
+- [x] ADRs: **ADR-030** (one comparator registry, the golden half that stayed,
       and Security's key — landed with the comparator PR); **ADR-031** (unanimity
       for the adversarial suite, and the `k` split from the golden suite);
       **ADR-032** (what the L5 lane decides and what it provably cannot — L5's
       ADR-029, rewritten after amendment 1); **ADR-033** (the suite-conditional
       instrument, and why a second top-level key was rejected). Any further ADR the
       build turns out to owe is written rather than waived
-- [ ] `milestones/M04/README.md` answers the three questions
-- [ ] Progression row filled, with footnotes; claims 2 and 5 marked in the
+- [x] `milestones/M04/README.md` answers the three questions
+- [x] Progression row filled, with footnotes; claims 2 and 5 marked in the
       twelve-claims table
-- [ ] `.claude/skills/close-milestone` run **with the file open**
-- [ ] Tag `m04` pushed from branch `m04-gate` — names distinct
-
+- [x] `.claude/skills/close-milestone` run **with the file open**
+- [ ] Tag `m04` pushed from branch `m04-gate` — names distinct. Operator's action,
+      after PR #28 merges with `--merge`
 ## Sequencing
 
 The comparator is pinned before anything can move it. That ordering is the whole

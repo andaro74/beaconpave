@@ -41,13 +41,29 @@ required workflow, the conformance check, the manifest verification at deploy.
 **Line:** "Compliance stopped being a phase. It's the shape of the only road."
 
 ## Act 2 — The gate decides (M04) · 3 min
-Open the exhibit PR: a prompt change to "be more concise." Completeness
-regresses. The gate fails closed and posts the score-diff table. Try to merge —
-branch protection refuses. Try a baseline reset — CODEOWNERS demands the AI
-Quality key.
+Open [PR #29](https://github.com/andaro74/beaconpave/pull/29), the exhibit. Six
+lines in `evals/adversarial.py` make a probe pass because **the model declined** —
+the polite-answer pass, which CLAUDE.md names as the worst failure mode in this
+repository. The gate fails closed and posts the score-diff: the ungoverned control
+rises `0 → 5/10`, and the comment names the five probes that moved, the comparator
+they moved against, and what to do about it. Try to merge — branch protection
+refuses. Try moving the comparator instead — two-key demands **three** keys,
+ai-quality, platform-eng and security.
 
-**Line:** "A quality regression caught by infrastructure, not by a viewer during
-a live game. The red PR stays in history."
+**Point at the exit code**, because it is the whole distinction: `exit 1` is a
+caught regression; `exit 2` would be the gate failing to establish anything. In a
+list of pull requests both are the same shade of red.
+
+**Line:** "A control quietly weakened, caught by infrastructure rather than by a
+viewer during a live game. The red PR stays in history — and the comment tells the
+next person what to do, which is the half of a gate that usually goes missing."
+
+> **The script used to describe a different exhibit** — a "be more concise" prompt
+> change regressing completeness, an L2 goldens story. M04 built an L5 one
+> instead, because SPEC/04 amendment 3 pinned the exhibit **by diff** after two
+> seats measured two different outcomes for "the polite-answer pass". Updated to
+> the artifact that exists rather than left describing a demo nobody can give.
+> **Not yet recorded**; the recording is the deliverable and it is owed.
 
 ## Act 3 — The seat disposes (M07) · 3 min
 The fictional State of Jefferson AI Disclosure Act arrives as a delta. The
