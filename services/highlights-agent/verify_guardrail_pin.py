@@ -31,6 +31,7 @@ Owning seat: Platform Engineering (the mechanism) · Security (the policy).
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import pathlib
 import sys
@@ -64,7 +65,57 @@ def deployed_topics() -> tuple[dict, str]:
     return {t["name"]: t["definition"] for t in guard["topicPolicy"]["topics"]}, version
 
 
+#: The blocks that make up "everything the guardrail actually enforces" — the
+#: same five the CDK digests to force a new published version when the policy
+#: changes (`gateway-stack.ts`). Listed explicitly rather than hashing the whole
+#: response: `createdAt`, the ARN and the status move for reasons that are not
+#: policy changes, and a digest that churned on those would be useless for the
+#: thing it is recorded to answer.
+POLICY_BLOCKS = ("topicPolicy", "contentPolicy", "sensitiveInformationPolicy")
+
+
+def policy_digest(guard: dict) -> str:
+    """A digest of the policy the deployed version actually enforces.
+
+    `instrument.guardrail_policy_sha256` is "what the version referred to,
+    fetched back from the deployed guardrail" (SPEC/04). A version NUMBER is a
+    name; two entries naming version 2 are comparable only if version 2 meant the
+    same thing both times, and the number alone cannot say so.
+
+    Computed over the fetched policy rather than over the CDK construct, because
+    the construct is a statement of intent and only the deployed policy is the
+    policy — the same argument this file makes about a green stack. It therefore
+    does NOT equal the 12-character digest in the version description, which is
+    taken over the construct's own camelCase config; that one exists to force a
+    version replacement, this one exists to be compared across entries. Canonical
+    JSON, sorted keys, so a stranger re-derives it exactly.
+    """
+    material = {block: guard.get(block) for block in POLICY_BLOCKS}
+    material["blockedInputMessaging"] = guard.get("blockedInputMessaging")
+    material["blockedOutputsMessaging"] = guard.get("blockedOutputsMessaging")
+    return hashlib.sha256(
+        json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def deployed_guardrail() -> dict:
+    """The raw fetched version, for callers that want more than the topics."""
+    cf = boto3.client("cloudformation")
+    outputs = {o["OutputKey"]: o["OutputValue"]
+               for o in cf.describe_stacks(StackName="BeaconpaveGateway")["Stacks"][0]["Outputs"]}
+    return boto3.client("bedrock").get_guardrail(
+        guardrailIdentifier=outputs["PinnedGuardrailId"],
+        guardrailVersion=outputs["PinnedGuardrailVersion"])
+
+
 def main() -> int:
+    if "--policy-digest" in sys.argv:
+        # Deliberately prints the digest ALONE, so it can be substituted into a
+        # `--guardrail-policy-sha256` argument without a human retyping it. A
+        # retyped digest is a digest of whatever was typed.
+        print(policy_digest(deployed_guardrail()))
+        return 0
+
     want = committed_topics()
     got, version = deployed_topics()
 
