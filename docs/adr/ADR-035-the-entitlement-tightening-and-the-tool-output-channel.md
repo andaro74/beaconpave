@@ -790,6 +790,39 @@ that subject carries the attribution. It costs two free calls to find out and
 they are not being spent inside this amendment, because attributing it after the
 fact is how a falsification becomes a story.
 
+**Owe discharged, in a separate measurement taken after the above was committed**
+(`milestones/ADR-035/row14-attribution-v3.json`, k=3, zero model calls). The
+split is exact:
+
+| subject | assessed under v3 |
+|---|---|
+| the instructions alone, no schema, no catalog | `PROMPT_ATTACK` |
+| `evals/answer.schema.json` alone | `TOPIC:entitlement-circumvention` |
+
+So the two attributions on the preamble come from two different halves and
+neither overlaps. `PROMPT_ATTACK` is the platform's own imperatives read as if a
+viewer had typed them — the Security seat's objection to `source="INPUT"`,
+confirmed a second time. **The topic fires on the answer SCHEMA**, a JSON
+document that neither asks for nor gives access to anything.
+
+Row 14's prediction is still falsified and stays recorded as such. What is now
+also recorded is that the cause is not "v3 fires on vocabulary in general" — the
+clean catalog carries the same words and is allowed — but something specific to
+the schema, which is a residual false positive on a platform artifact and is
+**owed to Security as a separate finding rather than folded into this one**.
+
+Two consequences worth naming, because both are load-bearing later:
+
+- **It does not affect production today.** `converse` does not assess the system
+  block — the M02 control arm inlines the whole catalog on every call and refused
+  19 of 75, not 75 of 75 — so nothing in the preamble is being assessed on the
+  live path.
+- **It constrains the recoverable Change B directly.** A data-scoped system
+  inspection must be handed the catalog data and *not* the schema or the
+  instructions, or it re-acquires both attributions and becomes the outage
+  amendment 1 withdrew. "Data-scoped" now has a measured definition rather than
+  an intended one.
+
 ### What this does not say
 
 These are `ApplyGuardrail` verdicts. **No gateway was in the path, no audit

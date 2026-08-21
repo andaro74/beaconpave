@@ -1,0 +1,45 @@
+{
+  "_what_this_is": "ADR-035 amendment 3 recorded row 14 as falsified - the instruction preamble still carries TOPIC:entitlement-circumvention under v3 - and recorded WHICH HALF as owed rather than guessing. This is the two calls that answer it. Zero model calls, scores nothing, and taken AFTER the falsification was committed so it cannot be read as an attribution invented to soften one.",
+  "guardrail_version": "3",
+  "k": 3,
+  "subjects": [
+    {
+      "subject": "the instructions alone (no schema, no catalog)",
+      "chars": 299,
+      "blocked_samples": 3,
+      "assessed": [
+        "PROMPT_ATTACK"
+      ],
+      "per_sample_assessed": [
+        [
+          "PROMPT_ATTACK"
+        ],
+        [
+          "PROMPT_ATTACK"
+        ],
+        [
+          "PROMPT_ATTACK"
+        ]
+      ]
+    },
+    {
+      "subject": "the answer schema alone",
+      "chars": 2334,
+      "blocked_samples": 3,
+      "assessed": [
+        "TOPIC:entitlement-circumvention"
+      ],
+      "per_sample_assessed": [
+        [
+          "TOPIC:entitlement-circumvention"
+        ],
+        [
+          "TOPIC:entitlement-circumvention"
+        ],
+        [
+          "TOPIC:entitlement-circumvention"
+        ]
+      ]
+    }
+  ]
+}
