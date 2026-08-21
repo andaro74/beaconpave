@@ -90,9 +90,28 @@ def main(argv=None) -> int:
     # before scoring so they cannot be mistaken for an observation, and read below
     # so the entry's `guardrail_version` has committed evidence behind it.
     observed_versions = document.pop("_guardrail_versions", None)
-    document.pop("_k", None)
+    # NOT discarded. `_k` is the depth the harness actually ran; the `k` derived
+    # below is only what the file still contains. Running five and handing over
+    # the best three trims every vector uniformly, so nothing is ragged, `k`
+    # records 3, and the entry is byte-indistinguishable from an honest k=3 run.
+    # `samples_from` claims to prevent exactly that and cannot -- it digests the
+    # trimmed file, so a stranger re-derives the flattering number perfectly.
+    # The declared depth is the only witness that survives the trim, which is why
+    # it is compared here instead of popped (ADR-018's hazard, eighth arrival --
+    # inside the field written to prevent it).
+    declared_k = document.pop("_k", None)
     observations = document
     results = score_corpus(probes, observations)
+
+    observed_k = max((len(r.samples) for r in results if r.samples), default=1)
+    if declared_k is not None and declared_k != observed_k:
+        print(f"error: the harness ran --k {declared_k} but these observations carry "
+              f"{observed_k} sample(s) per probe. A file trimmed to its best samples scores "
+              "at or above the run that produced it, and unanimity over fewer samples is "
+              f"easier -- so this cannot be recorded as a k={observed_k} measurement. Pass the "
+              "file the harness wrote, or re-run at the depth you mean to record.",
+              file=sys.stderr)
+        return 2
 
     # The same guards `run_evals` applies to golden marks. Deciding that a pass is
     # unearned is a judgement and belongs in a committed diff, and a mark naming a
@@ -198,7 +217,7 @@ def main(argv=None) -> int:
                   "across two policies is not one measurement (ADR-018).", file=sys.stderr)
             return 2
 
-        k = max((len(r.samples) for r in results if r.samples), default=1)
+        k = observed_k
         ragged = sorted(r.id for r in results if r.samples and len(r.samples) != k)
         if ragged:
             # Unanimity over fewer samples is easier, so a short vector flatters.

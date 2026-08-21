@@ -279,7 +279,15 @@ def evals_dryrun_cmd(argv=()):
 #: the corpus rather than the numbers. Raising it is fine; lowering it means
 #: deliberately checking less of what a probe passing means, which belongs in an
 #: ADR with Security's key rather than in a diff about something else.
-G4_CASE_FLOOR = 20
+#: Set to the corpus size, not below it. At 20 against 23 committed cases the
+#: floor left exactly three cases of slack — and every G4 semantic is witnessed
+#: by three cases or fewer, so the slack was precisely the size of the hole.
+#: Deleting `G4-001/015/016` from the corpus AND the pin, then adding a
+#: polite-answer clause to the scorer, took this lane to `PASS ... 20 G4
+#: semantics case(s) checked`, exit 0 — CLAUDE.md's named worst failure mode,
+#: reachable through a door the floor was built to shut. A floor with slack is a
+#: floor for the amount of weakening nobody had measured.
+G4_CASE_FLOOR = 23
 
 
 def _suite_pin(pinned: dict, service: str, suite: str):
@@ -550,6 +558,18 @@ def adversarial_run(argv=()):
             f"the comparator pins {len(expected_cases)} G4 case id(s), below the floor of "
             f"{G4_CASE_FLOOR}. The pin may grow and may not shrink — shrinking it is the "
             "self-justifying half of deleting a case.")
+    # Containment BOTH ways, so the pin and the corpus cannot drift apart. One
+    # direction alone leaves the other free: a case pinned and deleted is caught
+    # below, but a case deleted from *both* was not, and that is the two-line diff
+    # the attack actually needs. Pinning every case also means adding one obliges
+    # the two-key pin to name it, which is where a new semantic gets its second
+    # key rather than arriving unattested.
+    unpinned = sorted(present - set(expected_cases))
+    if unpinned:
+        failures.append(
+            f"G4 semantics case(s) present in the corpus and named by no pin: {unpinned}. "
+            "The comparator must name every case, or a case can be added without a key and "
+            "removed without a trace.")
     missing_cases = sorted(set(expected_cases) - present)
     if missing_cases:
         failures.append(
@@ -940,6 +960,13 @@ def infra_snapshot(argv):
     cdk_out = pathlib.Path(source[0]) if source else CDK_OUT
     started = time.monotonic()
 
+    # Bound BEFORE `emit` can be called, not merely before it is called on the
+    # happy path. `emit("INFRA")` fires on the no-templates branch below, which is
+    # above the original assignment — so the closure read an unbound local and the
+    # lane raised NameError, wrote no verdict, and exited 1 with a traceback where
+    # its own docstring promises "no synthesized templates ... run `cdk synth`".
+    drifted: list[str] = []
+
     def emit(state):
         if out:
             verdict_mod.write(out[0], verdict_mod.build(
@@ -963,7 +990,6 @@ def infra_snapshot(argv):
         _die(f"no synthesized templates in {cdk_out} — run `cdk synth` first", gate_mod.EXIT_CONTRACT)
 
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
-    drifted = []
     for template_path in templates:
         normalized = infra.normalize(infra.load(template_path))
         rendered = json.dumps(normalized, indent=2, sort_keys=True) + "\n"

@@ -254,3 +254,86 @@ def test_notes_are_rendered_and_never_decide_anything(tmp_path):
     start = source.index("def _inspect(")
     body = source[start:source.index("\ndef ", start + 10)]
     assert "notes" not in body, "the decider reads the runner's prose"
+
+
+# --- the decider's own posture (the pipeline is only as strong as this step) ---
+
+#: Every verdict the decider must weigh. A lane can be proven to block and still
+#: decide nothing if its verdict is dropped from this list — the contract and
+#: infra verdicts predate the convention and were droppable in silence.
+EXPECTED_VERDICTS = {"verdict-contract.json", "verdict-infra.json",
+                     "verdict-evals.json", "verdict-adv.json"}
+
+
+def _decider_step():
+    """The `gate decide` step, from the real workflow."""
+    import pathlib
+
+    import yaml
+    root = pathlib.Path(gate.__file__).resolve().parents[1]
+    workflow = yaml.safe_load(
+        (root / ".github" / "workflows" / "quality-gate.yml").read_text(encoding="utf-8"))
+    jobs = workflow["jobs"]
+    assert len(jobs) == 1, f"a second job appeared: {list(jobs)}; is it also fail-closed?"
+    job = next(iter(jobs.values()))
+    steps = [s for s in job["steps"] if "gate decide" in (s.get("run") or "")]
+    assert len(steps) == 1, f"expected exactly one decider step, found {len(steps)}"
+    return job, steps[0]
+
+
+def test_the_decider_step_cannot_be_skipped_or_swallowed():
+    """Each lane brought a test for its own verdict; nothing tested the step that
+    makes any of them block.
+
+    The Platform seat measured four one-line edits — `continue-on-error: true`,
+    `if: false`, `|| true`, and `if: always()` downgraded to `if: success()` —
+    each of which leaves `quality-gate / gate` GREEN with 1417 tests passing while
+    the gate blocks nothing at all. The required check reports success and the
+    merge proceeds. A gate that can be merged past is not a gate, and this is the
+    single line of YAML the whole pipeline rests on."""
+    job, step = _decider_step()
+
+    assert step.get("continue-on-error") in (None, False), (
+        "the decider runs with continue-on-error: its exit code cannot fail the job")
+    assert step.get("if") == "always()", (
+        f"the decider's condition is {step.get('if')!r}; it must be always(), or a failing "
+        "lane skips the decision and the job reports success")
+    assert job.get("if") in (None, "true"), (
+        f"the gate job is conditional on {job.get('if')!r} and can be turned off wholesale")
+
+    run = step["run"]
+    for swallow in ("|| true", "|| exit 0", "continue-on-error", "set +e"):
+        assert swallow not in run, f"the decider's exit code is swallowed by {swallow!r}"
+
+
+def test_the_decider_weighs_every_verdict_the_lanes_write():
+    """A lane proven to block still decides nothing if its verdict is not passed
+    to the decider. Asserted against the set rather than one suite's file, because
+    each lane's own test only ever checked its own."""
+    _, step = _decider_step()
+    named = {tok for tok in step["run"].split() if tok.endswith(".json")}
+    missing = EXPECTED_VERDICTS - named
+    assert not missing, f"verdict(s) written by a lane and never weighed: {sorted(missing)}"
+
+
+def test_the_infra_lane_writes_a_verdict_when_there_is_nothing_to_snapshot(tmp_path):
+    """`emit("INFRA")` fires above the line that bound `drifted`, so the closure
+    read an unbound local: the lane raised NameError, wrote NO verdict, and exited
+    1 with a traceback. G2 held only by absence — the gate blocked because the
+    file was missing, not because the lane said INFRA."""
+    import subprocess
+    import sys
+
+    empty = tmp_path / "cdk.out"
+    empty.mkdir()
+    out = tmp_path / "verdict-infra.json"
+    result = subprocess.run(
+        [sys.executable, "-m", "pave.cli", "infra", "snapshot", "--check",
+         "--from", str(empty), "--out", str(out)],
+        capture_output=True, text=True)
+
+    assert "Traceback" not in result.stderr, result.stderr
+    assert "run `cdk synth` first" in result.stderr
+    assert result.returncode == gate.EXIT_CONTRACT
+    assert out.is_file(), "the INFRA path wrote no verdict"
+    assert json.loads(out.read_text(encoding="utf-8"))["verdict"] == "INFRA"

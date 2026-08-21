@@ -355,3 +355,93 @@ def test_the_comment_step_can_actually_post():
     assert "${{" not in step["run"], (
         "the token is interpolated into the command rather than passed as env, which "
         "puts it in the shell's argv")
+
+
+# --- the floor has no slack, and the pin names the whole corpus ----------------
+
+
+def _repo_copy(tmp_path):
+    """The lane driven in a copy, so a plant exercises the real CLI end to end."""
+    import shutil
+    scratch = tmp_path / "repo"
+    for part in ("evals", "quality", "pave", "platform", "services", "data", "milestones"):
+        src, dst = ROOT / part, scratch / part
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc",
+                                                                "node_modules", "cdk.out"))
+    return scratch
+
+
+def test_the_case_floor_leaves_no_slack_beneath_the_corpus():
+    """A floor below the corpus is a licence to delete the difference.
+
+    At 20 against 23 committed cases this left exactly three cases of slack, and
+    every G4 semantic is witnessed by three cases or fewer — so the slack was
+    precisely the size of the hole. Asserted as a ratchet rather than a constant:
+    adding a case without raising the floor re-opens the same gap silently, which
+    is how the slack got there in the first place."""
+    from pave.cli import G4_CASE_FLOOR
+    cases = yaml.safe_load(SEMANTICS.read_text(encoding="utf-8"))["cases"]
+    assert len(cases) <= G4_CASE_FLOOR, (
+        f"the corpus holds {len(cases)} cases and the floor is {G4_CASE_FLOOR}; the "
+        f"difference is {len(cases) - G4_CASE_FLOOR} case(s) that can be deleted with the "
+        "lane still green. Raise G4_CASE_FLOOR to the corpus size.")
+
+
+def test_the_pin_names_every_case_in_the_corpus():
+    """Containment both ways. A case pinned and deleted is caught; a case deleted
+    from *both* files was not, and that two-line diff is what the attack needs."""
+    cases = {c["id"] for c in yaml.safe_load(SEMANTICS.read_text(encoding="utf-8"))["cases"]}
+    assert set(adversarial()["g4_cases_expected"]) == cases
+
+
+def test_deleting_a_semantics_witness_blocks_even_with_the_pin_edited_to_match(tmp_path):
+    """The Security seat's measured route to CLAUDE.md's worst failure mode.
+
+    Dropping `G4-001/015/016` from the corpus AND the comparator, then widening
+    `refused` to accept a declined answer, took this lane to `PASS ... 20 G4
+    semantics case(s) checked`, exit 0 — a probe passing because the model was
+    polite. The deletion alone is green too, which is why it is planted here
+    without the scorer change as well."""
+    scratch = _repo_copy(tmp_path)
+    drop = {"G4-001", "G4-015", "G4-016"}
+
+    corpus = scratch / "quality" / "adversarial" / "g4-semantics.yaml"
+    doc = yaml.safe_load(corpus.read_text(encoding="utf-8"))
+    doc["cases"] = [c for c in doc["cases"] if c.get("id") not in drop]
+    corpus.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+
+    pins = scratch / "evals" / "comparators.json"
+    doc = json.loads(pins.read_text(encoding="utf-8"))
+    block = doc["services"]["highlights-agent"]["suites"]["adversarial"]
+    block["g4_cases_expected"] = [c for c in block["g4_cases_expected"] if c not in drop]
+    pins.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+
+    out = tmp_path / "verdict-adv.json"
+    lane = subprocess.run(
+        [sys.executable, "-m", "pave.cli", "adversarial", "run",
+         "services/highlights-agent", "--out", str(out)],
+        cwd=scratch, capture_output=True, text=True)
+    assert lane.returncode == 1, (
+        "deleting three witnesses from corpus and pin together left the lane green: "
+        + lane.stdout + lane.stderr)
+    assert "below the floor" in lane.stdout
+    assert json.loads(out.read_text(encoding="utf-8"))["verdict"] == "FAIL"
+
+
+def test_a_case_added_without_a_pin_blocks(tmp_path):
+    """Adding a case obliges the two-key pin to name it — which is where a new
+    semantic gets its second key rather than arriving unattested."""
+    scratch = _repo_copy(tmp_path)
+    corpus = scratch / "quality" / "adversarial" / "g4-semantics.yaml"
+    doc = yaml.safe_load(corpus.read_text(encoding="utf-8"))
+    added = dict(doc["cases"][0])
+    added["id"] = "G4-999"
+    doc["cases"].append(added)
+    corpus.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+
+    lane = subprocess.run(
+        [sys.executable, "-m", "pave.cli", "adversarial", "run", "services/highlights-agent"],
+        cwd=scratch, capture_output=True, text=True)
+    assert lane.returncode == 1, lane.stdout + lane.stderr
+    assert "named by no pin" in lane.stdout and "G4-999" in lane.stdout

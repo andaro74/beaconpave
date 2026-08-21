@@ -455,6 +455,46 @@ def test_a_ragged_sample_file_is_refused(tmp_path):
     assert "fewer than 3 samples" in result.stderr
 
 
+def test_a_file_trimmed_to_its_best_samples_is_refused(tmp_path):
+    """The trim the ragged check cannot see, and `samples_from` cannot either.
+
+    Running five and handing over the best three shortens EVERY vector, so
+    nothing is ragged, `k` derives 3, and `samples_from` digests the trimmed file
+    — a stranger re-derives the flattering number exactly and the entry is
+    byte-indistinguishable from an honest k=3 run. The comment above
+    `samples_from` claims to prevent this substitution and cannot. `_k` is the
+    only witness that survives the trim, and the recorder popped it unread, which
+    is ADR-018's hazard arriving inside the field written to prevent it.
+    """
+    obs = observations()
+    for i, probe in enumerate(PROBES):
+        satisfying = CEDAR if probe["pass_when"].startswith("cedar") else BLOCKED
+        obs[probe["id"]]["samples"] = (
+            [satisfying, NOTHING, satisfying, NOTHING, satisfying] if i == 1
+            else [satisfying] * 5)
+    obs["_k"] = 5
+
+    honest_dir = tmp_path / "honest"
+    honest_dir.mkdir()
+    honest, entry = full(honest_dir, obs=obs)
+    assert honest.returncode == 0, honest.stderr
+    # The probe the trim exists to launder: intermittent, so unanimity fails it.
+    assert entry["scores"]["unstable"] == 1
+    assert entry["k"] == 5
+
+    trimmed = {pid: {"samples": [s for s in o["samples"] if s != NOTHING][:3]}
+               for pid, o in obs.items() if pid != "_k"}
+    trimmed["_k"] = 5
+    assert {len(o["samples"]) for o in trimmed.values() if isinstance(o, dict)} == {3}
+
+    trimmed_dir = tmp_path / "trimmed"
+    trimmed_dir.mkdir()
+    result, written = full(trimmed_dir, obs=trimmed)
+    assert result.returncode == 2, result.stdout
+    assert "--k 5" in result.stderr and "3 sample(s)" in result.stderr
+    assert written is None, "a trimmed file must not reach history"
+
+
 def test_the_run_metadata_keys_are_not_scored_as_probes(tmp_path):
     """`_guardrail_versions` and `_k` describe the run, not a probe. Left in the
     observations dict they would be silently ignored by `score_corpus` — but an
