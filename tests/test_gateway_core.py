@@ -357,3 +357,191 @@ def test_the_meter_refuses_to_store_money():
     budgets ask for; this guards what the platform records."""
     with pytest.raises(ValueError, match="token-denominated"):
         meter.assert_token_denominated({"tokens_in": 1, "cost_usd": 0.02})
+
+
+# --- the ApplyGuardrail reader (ADR-035, change B) ---------------------------
+#
+# The gateway hands platform-supplied content to the guardrail directly, so a
+# second response shape has to be read into the same decision. These assert that
+# the two readers agree about what a block is — and, first, that adding the
+# second one did not move the first.
+
+def test_a_converse_block_still_records_no_channel():
+    """**The byte-identity guarantee this whole change rests on.** M04's per-probe
+    pins were recorded before the channel existed; if `interpret` started emitting
+    a `channel` key, every future record of the same event would differ from the
+    committed one and the before/after would be comparing record shapes rather
+    than controls. `test_the_record_fragment_carries_a_pinned_version` pins the
+    fragment; this pins where the value comes from."""
+    outcome = guardrail.interpret({"stopReason": "guardrail_intervened"})
+    assert outcome.channel is None
+    assert "channel" not in outcome.as_record_fragment("gr-1", "2")
+
+
+def test_the_action_alone_is_an_intervention():
+    outcome = guardrail.interpret_apply(
+        {"action": "GUARDRAIL_INTERVENED"}, channel=guardrail.CHANNEL_TOOL_OUTPUT)
+    assert outcome.intervened is True
+    assert outcome.channel == "tool_output"
+
+
+def test_an_assessment_alone_is_an_intervention():
+    """The mirror of `test_a_trace_block_is_an_intervention_even_on_a_normal_stop`,
+    and for the same reason: either signal is sufficient, because under-reporting
+    a block is how a probe silently stops passing after a service update."""
+    outcome = guardrail.interpret_apply({
+        "action": "NONE",
+        "assessments": [{"topicPolicy": {"topics": [
+            {"name": "entitlement-circumvention", "action": "BLOCKED"}]}}],
+    }, channel=guardrail.CHANNEL_SYSTEM)
+    assert outcome.intervened is True
+    assert outcome.assessed == ("TOPIC:entitlement-circumvention",)
+
+
+def test_clean_platform_content_is_not_an_intervention():
+    outcome = guardrail.interpret_apply({"action": "NONE", "assessments": []},
+                                        channel=guardrail.CHANNEL_SYSTEM)
+    assert outcome.intervened is False
+    assert outcome.assessed == ()
+
+
+def test_both_readers_name_a_policy_identically():
+    """One `_blocked_names`, so a topic block on the user turn and the same topic
+    block on tool output are the same string in the lake. Two readers that could
+    disagree would split one finding into two that nobody joins up."""
+    fired = {"topicPolicy": {"topics": [{"name": "medical-advice", "action": "BLOCKED"}]}}
+    via_converse = guardrail.interpret(
+        {"stopReason": "guardrail_intervened",
+         "trace": {"guardrail": {"inputAssessment": {"gr-1": fired}}}})
+    via_apply = guardrail.interpret_apply(
+        {"action": "GUARDRAIL_INTERVENED", "assessments": [fired]},
+        channel=guardrail.CHANNEL_TOOL_OUTPUT)
+    assert via_converse.assessed == via_apply.assessed == ("TOPIC:medical-advice",)
+
+
+def test_anonymized_is_not_a_block_on_this_channel_either():
+    """`BLOCKING_ACTIONS` is shared, and this is the assertion that notices if it
+    stops being. Masking a PII entity in a tool result lets the result through."""
+    outcome = guardrail.interpret_apply({
+        "action": "NONE",
+        "assessments": [{"sensitiveInformationPolicy": {"piiEntities": [
+            {"type": "EMAIL", "action": "ANONYMIZED"}]}}],
+    }, channel=guardrail.CHANNEL_TOOL_OUTPUT)
+    assert outcome.intervened is False
+
+
+def test_an_unnamed_channel_is_refused():
+    """A channel name is read by a person deciding which seat owns a block. A
+    free-form one is how `tool-output` and `tool_output` become two findings."""
+    with pytest.raises(ValueError, match="unknown channel"):
+        guardrail.interpret_apply({"action": "NONE"}, channel="whatever")
+
+
+def test_a_channel_block_records_which_channel_and_still_validates():
+    """The channel travels in the audit record, not only in a log. A finding that
+    lives in CloudWatch expires with the retention policy; the run artifact is
+    built from records fetched back out of the lake, so anything not in the record
+    is not in the evidence."""
+    outcome = guardrail.interpret_apply(
+        {"action": "GUARDRAIL_INTERVENED",
+         "assessments": [{"contentPolicy": {"filters": [
+             {"type": "PROMPT_ATTACK", "action": "BLOCKED"}]}}]},
+        channel=guardrail.CHANNEL_SYSTEM)
+    fragment = outcome.as_record_fragment("gr-1", "2")
+    assert fragment["channel"] == "system"
+
+    record = a_record(decision="blocked", mechanism="guardrail", guardrail=fragment)
+    jsonschema.validate(record, AUDIT_SCHEMA)
+
+
+
+# --- the action guard, one policy type at a time -----------------------------
+#
+# **The AI Quality seat neutralised each `action in BLOCKING_ACTIONS` guard in
+# `_blocked_names` in turn and the suite stayed green for five of the six** —
+# including the topic guard, the one deciding the control ADR-035 is about to
+# change. Measured end to end on a trace where the entitlement topic was
+# evaluated and explicitly did NOT block:
+#
+#     as committed        : intervened=False -> allowed  -> guardrail_blocked=False
+#     topic guard removed : intervened=True  -> blocked  -> guardrail_blocked=True
+#
+# A one-word edit flips probes to PASS because the guardrail LOOKED rather than
+# because it blocked — precisely what G4 forbids — with all six instrument
+# digests unchanged and `m04-A` still resolving. `interpret_apply` now shares
+# `_blocked_names`, so one edit there moves the user-turn and the tool-output
+# verdicts at once, across the comparison ADR-035 rests on. Sharing the reader is
+# still right; leaving the class untested was not.
+#
+# One test per policy type, both readers, asserting the same thing: a policy that
+# was consulted and did not block contributes no name and no intervention.
+
+EVALUATED_BUT_NOT_BLOCKED = {
+    "contentPolicy": {"filters": [{"type": "PROMPT_ATTACK", "action": "NONE"}]},
+    "topicPolicy": {"topics": [{"name": "entitlement-circumvention", "action": "NONE"}]},
+    "sensitiveInformationPolicy": {
+        "piiEntities": [{"type": "EMAIL", "action": "NONE"}],
+        "regexes": [{"name": "account-number", "action": "NONE"}],
+    },
+    "wordPolicy": {
+        "customWords": [{"match": "bypass", "action": "NONE"}],
+        "managedWordLists": [{"type": "PROFANITY", "action": "NONE"}],
+    },
+}
+
+
+@pytest.mark.parametrize("policy", sorted(EVALUATED_BUT_NOT_BLOCKED))
+def test_a_policy_that_did_not_block_contributes_no_name_on_the_converse_path(policy):
+    """`action: "NONE"` means the policy was consulted and let the content through.
+    Counting it would credit the guardrail with stopping a request it served, and
+    would do it in the field a probe's pass is derived from."""
+    outcome = guardrail.interpret({
+        "stopReason": "end_turn",
+        "trace": {"guardrail": {"inputAssessment": {
+            "gr-1": {policy: EVALUATED_BUT_NOT_BLOCKED[policy]}}}},
+    })
+    assert outcome.assessed == ()
+    assert outcome.intervened is False
+
+
+@pytest.mark.parametrize("policy", sorted(EVALUATED_BUT_NOT_BLOCKED))
+def test_a_policy_that_did_not_block_contributes_no_name_on_the_apply_path(policy):
+    """The same guard, reached through the other reader. Both call
+    `_blocked_names`, so this is the assertion that makes sharing it safe."""
+    outcome = guardrail.interpret_apply(
+        {"action": "NONE", "assessments": [{policy: EVALUATED_BUT_NOT_BLOCKED[policy]}]},
+        channel=guardrail.CHANNEL_SYSTEM)
+    assert outcome.assessed == ()
+    assert outcome.intervened is False
+
+
+def test_the_topic_guard_specifically_cannot_be_removed_unnoticed():
+    """Called out on its own because it is the one the seat proved was live, and
+    the one ADR-035's Change A is about to reword. A probe scoring PASS off a
+    topic that was evaluated and allowed is a G4 violation that moves no digest."""
+    trace = {"guardrail": {"inputAssessment": {"gr-1": {
+        "topicPolicy": {"topics": [
+            {"name": "entitlement-circumvention", "action": "NONE"},
+            {"name": "medical-advice", "action": "BLOCKED"},
+        ]}}}}}
+    outcome = guardrail.interpret({"stopReason": "end_turn", "trace": trace})
+    assert outcome.assessed == ("TOPIC:medical-advice",), (
+        "an evaluated-but-allowed topic is being counted as a block")
+
+
+def test_a_mixed_assessment_names_only_what_blocked():
+    """The realistic shape: several policies consulted, one fires. Everything that
+    did not fire has to stay out of `assessed`, because `assessed` is what tells
+    the Security seat where the corpus is under-covering."""
+    outcome = guardrail.interpret_apply({
+        "action": "GUARDRAIL_INTERVENED",
+        "assessments": [{
+            "contentPolicy": {"filters": [
+                {"type": "PROMPT_ATTACK", "action": "BLOCKED"},
+                {"type": "INSULTS", "action": "NONE"},
+            ]},
+            "topicPolicy": {"topics": [
+                {"name": "entitlement-circumvention", "action": "NONE"}]},
+        }],
+    }, channel=guardrail.CHANNEL_TOOL_OUTPUT)
+    assert outcome.assessed == ("PROMPT_ATTACK",)
