@@ -166,3 +166,248 @@ def test_typo_in_flag_name_blocks(tmp_path):
     with pytest.raises(SystemExit) as exc:
         cli.main(["gate", "decide", "--verdict", write_verdict(tmp_path)])
     assert exc.value.code == gate.EXIT_CONTRACT
+
+
+# --- claim 2's other half: the gate teaches ----------------------------------
+#
+# `gates fail closed AND teach`. The first half has been enforced since M00a. The
+# second was a table of verdict names printed to stdout: it said which suite
+# failed and never what moved, so a reviewer got a red check and had to open the
+# CI run to learn anything. M04 makes the finding travel with the artifact.
+
+def _verdict(tmp_path, name, **kw):
+    import json
+    record = {"service": "s", "surface": "agent", "commit": "abc", "suite": kw.get("suite", "x"),
+              "layer": "L5", "verdict": kw.get("verdict", "PASS"), "fail_closed": True}
+    for key in ("scores", "notes"):
+        if kw.get(key):
+            record[key] = kw[key]
+    path = tmp_path / name
+    path.write_text(json.dumps(record), encoding="utf-8")
+    return str(path)
+
+
+def test_the_comment_carries_the_scores_each_suite_measured(tmp_path):
+    body = gate.summarize([_verdict(tmp_path, "v.json", suite="adversarial",
+                                    scores={"m01_passed": 6, "m00b_passed": 0})])
+    assert "`m01_passed` 6" in body and "`m00b_passed` 0" in body
+
+
+def test_the_comment_names_what_moved_and_not_only_that_something_did(tmp_path):
+    """The teaching half, stated as the difference it makes.
+
+    `suite reported FAIL` is what the gate said before. It is true, it blocks, and
+    it tells the person who has to fix it nothing at all."""
+    notes = ["m00b: 5/10 is ABOVE the pinned comparator 0/10",
+             "probe result(s) moved against the pin: m00b/ADV-004: FAIL -> PASS"]
+    body = gate.summarize([_verdict(tmp_path, "v.json", suite="adversarial",
+                                    verdict="FAIL", notes=notes)])
+    assert "what moved" in body
+    assert "ADV-004" in body
+    assert "ABOVE the pinned comparator" in body
+    assert "BLOCKED" in body
+
+
+def test_the_comment_says_who_it_pages_and_why(tmp_path):
+    """The exit-code split is the gate's whole design and it is invisible in a red
+    check. A contract failure is the platform's; a quality failure is the team's,
+    and telling the wrong one is how a gate earns a reputation for crying wolf."""
+    quality = gate.summarize([_verdict(tmp_path, "q.json", verdict="FAIL")])
+    assert "owner: service team" in quality and "exit 1" in quality
+
+    contract = gate.summarize([_verdict(tmp_path, "i.json", verdict="INFRA")])
+    assert "owner: platform" in contract and "exit 2" in contract
+
+
+def test_the_comment_carries_a_marker_so_a_rerun_replaces_rather_than_stacks(tmp_path):
+    """A reviewer scrolling past six stale gate comments to find the current one
+    is a gate that has stopped teaching."""
+    body = gate.summarize([_verdict(tmp_path, "v.json")])
+    assert body.startswith(gate.COMMENT_MARKER)
+
+
+def test_the_comment_survives_a_verdict_it_cannot_read(tmp_path):
+    """A comment that crashes takes the explanation away from exactly the merge
+    that is being blocked. `decide` has already recorded what is wrong with the
+    file; this must add to that, never replace it with a traceback."""
+    broken = tmp_path / "broken.json"
+    broken.write_text("{not json", encoding="utf-8")
+    missing = str(tmp_path / "absent.json")
+    body = gate.summarize([str(broken), missing])
+    assert "BLOCKED" in body
+    assert "not valid JSON" in body
+    assert "missing" in body
+
+
+def test_notes_are_rendered_and_never_decide_anything(tmp_path):
+    """Structural. The notes are the runner's prose; a gate that branched on them
+    would be taking a decision from an unvalidated string, and the reason a suite
+    gives for passing is not evidence that it passed."""
+    passing = _verdict(tmp_path, "p.json", verdict="PASS",
+                       notes=["FAIL", "regression", "ABOVE the pinned comparator"])
+    assert gate.decide([passing]).exit_code == gate.EXIT_OK
+    assert "PASS" in gate.summarize([passing])
+
+    import pathlib
+
+    source = pathlib.Path(gate.__file__).read_text(encoding="utf-8")
+    start = source.index("def _inspect(")
+    body = source[start:source.index("\ndef ", start + 10)]
+    assert "notes" not in body, "the decider reads the runner's prose"
+
+
+# --- the decider's own posture (the pipeline is only as strong as this step) ---
+
+#: Every verdict the decider must weigh. A lane can be proven to block and still
+#: decide nothing if its verdict is dropped from this list — the contract and
+#: infra verdicts predate the convention and were droppable in silence.
+EXPECTED_VERDICTS = {"verdict-contract.json", "verdict-infra.json",
+                     "verdict-evals.json", "verdict-adv.json"}
+
+
+def _decider_step():
+    """The `gate decide` step, from the real workflow."""
+    import pathlib
+
+    import yaml
+    root = pathlib.Path(gate.__file__).resolve().parents[1]
+    workflow = yaml.safe_load(
+        (root / ".github" / "workflows" / "quality-gate.yml").read_text(encoding="utf-8"))
+    jobs = workflow["jobs"]
+    assert len(jobs) == 1, f"a second job appeared: {list(jobs)}; is it also fail-closed?"
+    job = next(iter(jobs.values()))
+    steps = [s for s in job["steps"] if "gate decide" in (s.get("run") or "")]
+    assert len(steps) == 1, f"expected exactly one decider step, found {len(steps)}"
+    return job, steps[0]
+
+
+def test_the_decider_step_cannot_be_skipped_or_swallowed():
+    """Each lane brought a test for its own verdict; nothing tested the step that
+    makes any of them block.
+
+    The Platform seat measured four one-line edits — `continue-on-error: true`,
+    `if: false`, `|| true`, and `if: always()` downgraded to `if: success()` —
+    each of which leaves `quality-gate / gate` GREEN with 1417 tests passing while
+    the gate blocks nothing at all. The required check reports success and the
+    merge proceeds. A gate that can be merged past is not a gate, and this is the
+    single line of YAML the whole pipeline rests on."""
+    job, step = _decider_step()
+
+    assert step.get("continue-on-error") in (None, False), (
+        "the decider runs with continue-on-error: its exit code cannot fail the job")
+    assert step.get("if") == "always()", (
+        f"the decider's condition is {step.get('if')!r}; it must be always(), or a failing "
+        "lane skips the decision and the job reports success")
+    assert job.get("if") in (None, "true"), (
+        f"the gate job is conditional on {job.get('if')!r} and can be turned off wholesale")
+
+    run = step["run"]
+    for swallow in ("|| true", "|| exit 0", "continue-on-error", "set +e"):
+        assert swallow not in run, f"the decider's exit code is swallowed by {swallow!r}"
+
+
+def test_the_decider_weighs_every_verdict_the_lanes_write():
+    """A lane proven to block still decides nothing if its verdict is not passed
+    to the decider. Asserted against the set rather than one suite's file, because
+    each lane's own test only ever checked its own."""
+    _, step = _decider_step()
+    named = {tok for tok in step["run"].split() if tok.endswith(".json")}
+    missing = EXPECTED_VERDICTS - named
+    assert not missing, f"verdict(s) written by a lane and never weighed: {sorted(missing)}"
+
+
+def test_the_infra_lane_writes_a_verdict_when_there_is_nothing_to_snapshot(tmp_path):
+    """`emit("INFRA")` fires above the line that bound `drifted`, so the closure
+    read an unbound local: the lane raised NameError, wrote NO verdict, and exited
+    1 with a traceback. G2 held only by absence — the gate blocked because the
+    file was missing, not because the lane said INFRA."""
+    import subprocess
+    import sys
+
+    empty = tmp_path / "cdk.out"
+    empty.mkdir()
+    out = tmp_path / "verdict-infra.json"
+    result = subprocess.run(
+        [sys.executable, "-m", "pave.cli", "infra", "snapshot", "--check",
+         "--from", str(empty), "--out", str(out)],
+        capture_output=True, text=True)
+
+    assert "Traceback" not in result.stderr, result.stderr
+    assert "run `cdk synth` first" in result.stderr
+    assert result.returncode == gate.EXIT_CONTRACT
+    assert out.is_file(), "the INFRA path wrote no verdict"
+    assert json.loads(out.read_text(encoding="utf-8"))["verdict"] == "INFRA"
+
+
+# --- the teaching half of claim 2 ---------------------------------------------
+
+
+def test_the_score_diff_is_visible_and_not_folded_away(tmp_path):
+    """Claim 2 is "gates fail closed AND teach", and the teaching half was one
+    click away from a reader with no reason to click.
+
+    Notes were bucketed by LENGTH, `<= 200` visible. The pinned-versus-observed
+    score diff — the line a reviewer needs first — ran to 204 characters and
+    missed the visible bucket by four, while a one-line restatement stayed. The
+    exhibit PR that is claim 2's artifact rendered with its five moved probes
+    hidden behind a summary reading "why each of these is a finding": nobody
+    expands that when they already know why, and the label promised the opposite
+    of what it held."""
+    diff = ("probe result(s) moved against the pin: m00b/ADV-004: FAIL -> PASS, "
+            "m00b/ADV-005: FAIL -> PASS, m00b/ADV-006: FAIL -> PASS, m00b/ADV-008: "
+            "FAIL -> PASS, m00b/ADV-009: FAIL -> PASS. A total can hide a swap.")
+    assert len(diff) > 200, "this test no longer exercises the case it was written for"
+    path = _verdict(tmp_path, "adv.json", verdict="FAIL", suite="adversarial",
+                    layer="L5", notes=[diff])
+    body = gate.summarize([path])
+    visible = body.split("<details>")[0]
+    for probe in ("ADV-004", "ADV-005", "ADV-006", "ADV-008", "ADV-009"):
+        assert probe in visible, f"{probe} is not visible before the fold"
+
+
+def test_remediation_is_always_visible_and_never_folded(tmp_path):
+    """The remediation is the longest note a runner writes, so under a length
+    rule the more specific and useful it was, the more certain its concealment."""
+    fix = "fix: " + ("re-derive locally and say which input moved in the PR body. " * 8)
+    assert len(fix) > 200
+    path = _verdict(tmp_path, "adv.json", verdict="FAIL", suite="adversarial",
+                    layer="L5", notes=["something moved.", fix])
+    body = gate.summarize([path])
+    visible = body.split("<details>")[0]
+    assert "#### what to do" in visible
+    assert "re-derive locally" in visible
+    # and it leads the reader to the action rather than to the essay
+    assert body.index("#### what to do") > body.index("#### what moved")
+
+
+def test_a_suite_header_is_separated_from_the_previous_list(tmp_path):
+    """CommonMark lazy continuation absorbs a bold header into the preceding list
+    item, so the second suite's name renders as trailing text of the first
+    suite's last bullet. The workflow always passes four verdicts."""
+    a = _verdict(tmp_path, "a.json", verdict="FAIL", suite="contract", layer="L1",
+                 notes=["ruff failed (exit 1)"])
+    b = _verdict(tmp_path, "b.json", verdict="FAIL", suite="adversarial", layer="L5",
+                 notes=["a probe moved"])
+    body = gate.summarize([a, b])
+    lines = body.splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith("**") and line.endswith("**") and i:
+            assert lines[i - 1].strip() == "", (
+                f"{line!r} follows {lines[i - 1]!r} with no blank line; markdown will "
+                "absorb it into that list item")
+
+
+def test_the_remediation_names_the_seats_the_rule_actually_requires():
+    """A hardcoded seat list goes stale in silence. This lane's remediation named
+    ai-quality and platform-eng for a comparator edit that has needed Security's
+    key since PR #27 — the gate telling people to collect the wrong signatures
+    for a check it runs itself."""
+    from pave import twokey
+    from pave.cli import _seats_for
+
+    rendered = _seats_for("evals/comparators.json")
+    required = {seat for rule, _ in twokey.triggered(["evals/comparators.json"])
+                for seat in rule.seats}
+    assert required, "the comparator is no longer a two-key path; this test is stale"
+    for seat in required:
+        assert seat in rendered, f"{seat} is required by the rule and absent from the text"

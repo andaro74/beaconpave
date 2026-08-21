@@ -2,13 +2,17 @@
 pave — the paved-road CLI for beaconpave.
 
 Implemented: `rules validate` (G7), `gate decide` / `gate comment` (G2), `check`
-(G8). The rest are stubs that print what they WOULD do and name the milestone
-that implements them, so the repo stays runnable and self-documenting.
+(G8), `evals run` (L2, M03), `adversarial run` (L5, M04). The rest are stubs that
+print what they WOULD do and name the milestone that implements them, so the repo
+stays runnable and self-documenting. A command that blocks merges is not a stub,
+and leaving it described as one is how the help text stops being read.
 
   pave new <name> --brand <b> --classification <c>   scaffold a governed service
   pave check                                          hermetic local checks
   pave evals run|dryrun <service>                     run/dry-run the eval harness
-  pave adversarial run <service>                      run the L5 probe suite
+  pave adversarial run <service>                      L5: re-score the pinned probe
+                                                      observations and assert what G4
+                                                      means (hermetic, no model call)
   pave rules validate                                 validate the rules registry (G7)
   pave infra snapshot [--check] [--from <dir>]        record / verify the synth snapshot (G1)
   pave policy generate [--check]                      generate / verify Cedar from the registry (G3)
@@ -135,19 +139,113 @@ def gate_decide(argv):
     sys.exit(decision.exit_code)
 
 
-def gate_comment(argv):
-    """The score-diff comment body. M00a prints it (and appends to the GitHub
-    step summary when running in Actions); M04 posts it to the PR and adds the
-    baseline comparison that makes the gate teach rather than merely block.
+def _post_pr_comment(body: str) -> None:
+    """Upsert the gate's comment on the pull request. Never raises.
 
-    Always exits 0 — this is a reporter, not a decider. The workflow runs it with
-    `if: always()`, so a non-zero exit here would mask which step actually failed."""
+    **Upsert, not append.** A reviewer scrolling past six stale gate comments to
+    find the current one is a gate that has stopped teaching, so a run replaces
+    its own previous comment, found by the marker in the body.
+
+    Silent no-op outside Actions, and silent on any failure. Claim 2's artifact is
+    the blocked merge; the comment is how it teaches. A comment that could not be
+    posted must never turn a correct decision into a red step for a reason that is
+    not the team's fault - that is the failure mode `_console_safe` exists for,
+    arriving over HTTP instead of through a codepage. `gate decide` runs
+    separately and is the only thing that blocks."""
+    import urllib.error
+    import urllib.request
+
+    # GitHub rejects a comment body over 65536 bytes with a 422, which would be
+    # caught below and swallowed — the teaching disappearing silently at exactly
+    # the moment there is most to say.
+    limit = 60000
+    if len(body.encode("utf-8")) > limit:
+        body = (body.encode("utf-8")[:limit].decode("utf-8", "ignore")
+                + "\n\n_…truncated. The full decision is in the workflow log; "
+                  "`gate decide` blocked on it regardless._")
+
+    token = os.environ.get("GITHUB_TOKEN")
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    if not (token and repo and event_path and pathlib.Path(event_path).is_file()):
+        return
+
+    try:
+        event = json.loads(pathlib.Path(event_path).read_text(encoding="utf-8"))
+        number = event["pull_request"]["number"]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        return
+
+    api = f"https://api.github.com/repos/{repo}"
+    headers = {"Authorization": f"Bearer {token}",
+               "Accept": "application/vnd.github+json",
+               "User-Agent": "beaconpave-gate"}
+
+    def call(url, data=None, method="GET"):
+        request = urllib.request.Request(
+            url, method=method, headers=headers,
+            data=json.dumps(data).encode("utf-8") if data is not None else None)
+        if data is not None:
+            request.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return json.loads(response.read().decode("utf-8") or "null")
+
+    try:
+        # Paged. Past 100 comments the marker sits on page 2, `mine` is None, and
+        # every run posts a NEW comment — the stacking the upsert exists to
+        # prevent, arriving exactly on the long-running PR where it hurts most.
+        existing, page = [], 1
+        while page <= 10:
+            batch = call(f"{api}/issues/{number}/comments?per_page=100&page={page}")
+            # A GitHub error body is a dict, not a list. Iterating one yields string
+            # keys and `c.get(...)` raises `AttributeError` — which escapes a
+            # docstring promising this function never raises, on a step that has
+            # `if: always()` and no `continue-on-error`.
+            if not isinstance(batch, list) or not batch:
+                break
+            existing.extend(batch)
+            if len(batch) < 100:
+                break
+            page += 1
+        mine = next((c for c in existing
+                     if isinstance(c, dict) and gate_mod.COMMENT_MARKER in (c.get("body") or "")),
+                    None)
+        if mine:
+            call(f"{api}/issues/comments/{mine['id']}", {"body": body}, method="PATCH")
+            print(f"[pave gate] updated comment {mine['id']} on PR #{number}")
+        else:
+            call(f"{api}/issues/{number}/comments", {"body": body}, method="POST")
+            print(f"[pave gate] posted a comment on PR #{number}")
+    except Exception as exc:  # noqa: BLE001
+        # Reported, never raised, and deliberately bare. An except tuple is a list
+        # of the failures somebody thought of; this function's contract is that
+        # NOTHING it does can redden a step, and the tuple form already missed
+        # `AttributeError` from a dict-shaped error body.
+        print(f"[pave gate] could not post the comment ({exc}); the decision is unaffected "
+              "and `gate decide` still blocks", file=sys.stderr)
+
+
+def gate_comment(argv):
+    """The score-diff comment - claim 2's *teach* half.
+
+    Prints the body, appends it to the GitHub step summary, and from M04 posts it
+    to the pull request. The body carries every suite's scores and the runners'
+    own account of what moved, because until now that account lived only in a CI
+    log: the lane printed which probe moved and in which direction, the verdict
+    recorded `FAIL`, and the reviewer got a red check with no way to see the
+    difference without opening the run.
+
+    Always exits 0 - this is a reporter, not a decider. The workflow runs it with
+    `if: always()`, so a non-zero exit here would mask which step actually
+    failed."""
     body = gate_mod.summarize(_flag_values(argv, "--verdicts"))
     _emit(body)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as fh:
             fh.write(body + "\n")
+    if "--no-post" not in argv:
+        _post_pr_comment(body)
 
 
 def gate_two_key(argv):
@@ -169,11 +267,46 @@ def gate_two_key(argv):
         sys.exit(gate_mod.EXIT_QUALITY)
 
 
+def _seats_for(path: str) -> str:
+    """The seats a two-key path actually needs, rendered for a remediation.
+
+    Read from `twokey.RULES` rather than typed. A hardcoded seat list goes stale
+    in silence: this lane's remediation named `ai-quality` and `platform-eng` for
+    a comparator edit that has needed Security's key since PR #27, so the gate was
+    telling people to collect the wrong signatures for a check it runs itself.
+    Three seats found the same class of drift in a two-key rule whose scope had
+    doubled while its seat list stayed put. An instruction derived from the rule
+    cannot disagree with the rule.
+    """
+    seats = sorted({seat for rule, _ in twokey.triggered([path]) for seat in rule.seats})
+    if not seats:
+        return ""
+    if len(seats) == 1:
+        return seats[0]
+    return ", ".join(seats[:-1]) + f" AND {seats[-1]}"
+
+
 def evals_dryrun_cmd(argv=()):
     """`pave evals dryrun` — load and resolve, call nothing."""
     from evals.run_evals import GOLDENS, _load
     from evals.run_evals import dryrun as _dryrun
     return _dryrun(_load(GOLDENS))
+
+
+#: The fewest G4 semantics cases the L5 lane will run on. A floor in code, where
+#: a two-key comparator edit cannot reach it — `PIN_FLOOR`'s argument, applied to
+#: the corpus rather than the numbers. Raising it is fine; lowering it means
+#: deliberately checking less of what a probe passing means, which belongs in an
+#: ADR with Security's key rather than in a diff about something else.
+#: Set to the corpus size, not below it. At 20 against 23 committed cases the
+#: floor left exactly three cases of slack — and every G4 semantic is witnessed
+#: by three cases or fewer, so the slack was precisely the size of the hole.
+#: Deleting `G4-001/015/016` from the corpus AND the pin, then adding a
+#: polite-answer clause to the scorer, took this lane to `PASS ... 20 G4
+#: semantics case(s) checked`, exit 0 — CLAUDE.md's named worst failure mode,
+#: reachable through a door the floor was built to shut. A floor with slack is a
+#: floor for the amount of weakening nobody had measured.
+G4_CASE_FLOOR = 23
 
 
 def _suite_pin(pinned: dict, service: str, suite: str):
@@ -311,6 +444,21 @@ def evals_run(argv=()):
                 "which direction — never in the same diff that moved it."
             )
 
+    # **The remediation travels on this lane too.** It was written for L5 and
+    # stopped there, so the lane that fires on every goldens PR produced a red
+    # required check carrying a score, one sentence of diagnosis, and no
+    # instruction — the artifact the L5 work exists to eliminate, one layer down.
+    remediation = None
+    if failures:
+        remediation = (
+            f"fix: re-derive locally with `python -m pave.cli evals run {service}` — "
+            "hermetic, no model call, committed answers. If the move is intended, edit "
+            "evals/comparators.json in its own PR with `Two-Key-Disposition:` from "
+            f"{_seats_for('evals/comparators.json')}, naming which of the three inputs "
+            "moved: the golden cases, evals/deterministic.py, or data/catalog.json. Never "
+            "edit a golden case to make this lane pass — a case that is wrong is fixed in "
+            "its own PR with the reasoning, reviewed by AI Quality.")
+
     decided = "FAIL" if failures else "PASS"
     # The verdict is written BEFORE anything is printed. Reversed, a console that
     # cannot encode the summary line killed the process on the PASS path and left
@@ -319,19 +467,323 @@ def evals_run(argv=()):
         verdict_mod.write(out[0], verdict_mod.build(
             service=service, surface="agent", suite="evals", layer="L2",
             verdict=decided, fail_closed=True, scores=scores,
+            notes=failures + ([remediation] if remediation else []),
             artifacts=[str(r) for spec in arms.values() for r in spec["runs"]]))
 
     for line in failures:
         _emit(f"    {line}")
     _emit(f"[pave evals] {service}: {decided} - "
           + ", ".join(f"{k} {v}" for k, v in sorted(scores.items())))
-    if failures:
-        _emit(f"    fix: re-derive locally with `python -m pave.cli evals run {service}`. "
-              "If the move is intended, edit evals/comparators.json in its own PR with "
-              "`Two-Key-Disposition: ai-quality` and `Two-Key-Disposition: platform-eng`, "
-              "naming which of the three inputs moved - the golden cases, "
-              "evals/deterministic.py, or data/catalog.json.")
+    if remediation:
+        # One string, printed and recorded. Two copies drift, and the copy a
+        # reader sees is not the copy anyone maintains.
+        _emit(f"    {remediation}")
     return 1 if failures else 0
+
+
+def adversarial_run(argv=()):
+    """`pave adversarial run <service> [--out verdict.json]` — the L5 lane.
+
+    **Two things have to hold, and the second is why this lane is not simply the
+    L2 lane with a different corpus.**
+
+    1. **Every pinned probe result still holds.** Committed observations —
+       fetched back from the audit lake on the day they were taken — re-scored
+       through today's `score_probe`, per probe and in total, against
+       `evals/comparators.json`. Deviation in **either** direction fails: a rise
+       is the direction this repo exists to catch, and on the adversarial side it
+       is a one-line edit away, because the easiest way to raise a probe score is
+       to widen what counts as a refusal.
+
+    2. **G4 still means what `quality/adversarial/g4-semantics.yaml` says.**
+       The pins alone cannot see this. Measured before the lane was built:
+       deleting the `and logged` half of `score_probe` moves neither the m01 pin
+       nor the m00b control, because `refused` and `logged` never disagree
+       anywhere in the committed corpora — every m01 observation carries a record
+       and every m00b observation refuses nothing. That is structural, not a
+       corpus to improve, so the semantics are checked from a corpus built to
+       discriminate rather than inferred from a number.
+
+    **It calls no model**, for ADR-029's reasons applied one layer over: a lane
+    that ran probes per pull request would need model access in CI, which G1
+    refuses, and would return a different number every time against a guardrail
+    this repo has measured as stochastic on identical input.
+
+    **The split lives in the verdict, not in this command's exit code.** A moved
+    probe result or a broken semantics case is a quality `FAIL` and pages the
+    service team; a missing observation or an unreadable `pass_when` is `INFRA` and
+    pages the platform. Both return 1 here, because the workflow runs this step
+    with `continue-on-error` and `gate decide` is the single decider — it reads the
+    verdict and maps `INFRA` to exit 2. Said explicitly because the first version
+    of this docstring claimed the exit code carried the split, and a local
+    `--out`-less run would then lose the distinction the whole design is about.
+
+    **A probe is never ADVISORY.** G4 has no "allowed" answer (ADR-028) and no
+    "we could not tell" answer either; the second is INFRA, and INFRA blocks."""
+    import yaml as _yaml
+
+    from evals.adversarial import check_semantics, score_corpus
+    from evals.deterministic import INFRA
+
+    out = _flag_values(argv, "--out")
+    override = _flag_values(argv, "--comparators")
+    consumed = {out[0] if out else None, override[0] if override else None}
+    services = [a for a in argv if not a.startswith("--") and a not in consumed]
+    service = pathlib.Path(services[0]).name if services else "highlights-agent"
+
+    comparators = pathlib.Path(override[0]) if override else ROOT / "evals" / "comparators.json"
+    pinned = json.loads(comparators.read_text(encoding="utf-8"))
+    suite = _suite_pin(pinned, service, "adversarial")
+    if suite is None:
+        # ABSENT, not PASS — the gate's own rule, and the same branch the L2 lane
+        # takes. A suite with nothing to decide on is missing from the verdict
+        # list rather than reporting success, and the gate blocks on the absence.
+        known = pinned.get("services") if isinstance(pinned, dict) else None
+        names = ", ".join(sorted(known)) if isinstance(known, dict) and known else "none"
+        _emit(f"[pave adversarial] no adversarial comparator pinned for {service!r}; "
+              f"emitting nothing. Pinned services: {names}.\n"
+              "    To onboard: run the probe corpus through the gateway "
+              "(`services/<svc>/run_probes_via_gateway.py --k 3`), record the entry, and add "
+              "a `suites.adversarial` block for the service to evals/comparators.json in a "
+              "two-key PR (ai-quality, platform-eng, security). Until then this lane emits no "
+              "verdict, and `gate decide` blocks on the absence — which is the designed "
+              "behaviour and not a misconfiguration.")
+        return 0
+
+    probes = _yaml.safe_load((ROOT / "quality" / "adversarial" / "probes.yaml")
+                             .read_text(encoding="utf-8"))
+    semantics = _yaml.safe_load((ROOT / "quality" / "adversarial" / "g4-semantics.yaml")
+                                .read_text(encoding="utf-8"))
+
+    failures, infra, scores, moved = [], [], {}, []
+
+    # --- what G4 means, before what any number says ---------------------------
+    #
+    # Checked first because it changes how a moved number reads. If the semantics
+    # broke, a probe score that also moved is a consequence rather than a second
+    # finding, and the operator should be told which one to fix.
+    cases = (semantics or {}).get("cases") or []
+    present = {c.get("id") for c in cases if isinstance(c, dict)}
+
+    # **The corpus must not be satisfiable by deletion.** Emptying `cases`,
+    # renaming the key, or dropping one case each left this lane GREEN before the
+    # floor existed, printing "0 G4 semantics case(s) checked" and exiting 0.
+    # `rules_validate` refuses an empty rules registry with exactly this argument.
+    # Two-key plus an ADR guards *editing* the file; this is what stops the lane
+    # being satisfied by *removing* it.
+    #
+    # Both a code-level floor and a two-key pin, for the reason `PIN_FLOOR` exists:
+    # a floor that lives only in the file being checked can be lowered in the same
+    # attested diff that lowers what it protects.
+    if len(cases) < G4_CASE_FLOOR:
+        failures.append(
+            f"the G4 semantics corpus holds {len(cases)} case(s), below the floor of "
+            f"{G4_CASE_FLOOR}. It is the only thing that can see the pass condition itself "
+            "widen (ADR-032); a lane checking zero cases reports PASS identically to one "
+            "checking all of them.")
+    # Floored as well as declared, for the reason `pins_expected` is: a list that
+    # lives in the file being checked can be emptied in the same diff that empties
+    # what it protects. Without this, deleting `g4_cases_expected` and three cases
+    # stayed under the count floor and the lane went green.
+    expected_cases = suite.get("g4_cases_expected") or []
+    if len(expected_cases) < G4_CASE_FLOOR:
+        failures.append(
+            f"the comparator pins {len(expected_cases)} G4 case id(s), below the floor of "
+            f"{G4_CASE_FLOOR}. The pin may grow and may not shrink — shrinking it is the "
+            "self-justifying half of deleting a case.")
+    # Containment BOTH ways, so the pin and the corpus cannot drift apart. One
+    # direction alone leaves the other free: a case pinned and deleted is caught
+    # below, but a case deleted from *both* was not, and that is the two-line diff
+    # the attack actually needs. Pinning every case also means adding one obliges
+    # the two-key pin to name it, which is where a new semantic gets its second
+    # key rather than arriving unattested.
+    unpinned = sorted(present - set(expected_cases))
+    if unpinned:
+        failures.append(
+            f"G4 semantics case(s) present in the corpus and named by no pin: {unpinned}. "
+            "The comparator must name every case, or a case can be added without a key and "
+            "removed without a trace.")
+    missing_cases = sorted(set(expected_cases) - present)
+    if missing_cases:
+        failures.append(
+            f"G4 semantics case(s) pinned and absent from the corpus: {missing_cases}. "
+            "Removing a case changes what a probe passing means and needs Security's key on "
+            "both files plus an ADR — never a deletion that makes this lane quiet.")
+
+    for failure in check_semantics(semantics):
+        failures.append(f"G4 semantics: {failure}")
+
+    # --- every pinned observation set, re-scored ------------------------------
+    #
+    # `PIN_FLOOR`'s argument in `tests/test_instrument_stability.py` applies here
+    # too: the expected set is declared beside the pins AND defaulted, so removing
+    # `pins_expected` cannot shrink what the lane checks. The default mirrors the
+    # L2 lane's `arms_expected or [...]`.
+    expected = sorted(set(suite.get("pins_expected") or ["m01", "m00b"]))
+    pins = suite.get("pins") if isinstance(suite.get("pins"), dict) else {}
+    # **Membership is not enough.** `pins: {"m01": null}` satisfied a `not in`
+    # check and then took the `pin is None: continue` branch below, so the lane
+    # scored nothing and reported PASS with an empty `scores` dict. Nulling is the
+    # one-character variant of deleting, and it took the opposite branch from the
+    # one two tests were written to close.
+    absent = [tag for tag in expected if not isinstance(pins.get(tag), dict)]
+    if absent:
+        failures.append(
+            f"pin(s) expected and absent or unreadable in the comparator: {absent}. A "
+            "milestone that recorded a probe score keeps its pin — history is append-only "
+            "and so is this.")
+
+    for tag in expected:
+        pin = pins.get(tag)
+        if not isinstance(pin, dict):
+            continue
+        if not isinstance(pin.get("observations"), list) or "expected_passed" not in pin:
+            # INFRA rather than FAIL: the comparator's *content* is wrong, which
+            # establishes nothing about the system under test. `_suite_pin` guards
+            # the outer shape across nineteen malformed templates; this is the same
+            # argument one level in.
+            infra.append(f"{tag}: the pin is missing `observations` or `expected_passed`")
+            continue
+        missing = [o for o in pin["observations"] if not (ROOT / o).is_file()]
+        if missing:
+            # INFRA, not FAIL. The observations are gone, so nothing about the
+            # system under test was established either way.
+            infra.append(f"{tag}: committed observation file(s) missing {missing}")
+            continue
+        observations = {}
+        try:
+            for path in pin["observations"]:
+                observations |= json.loads((ROOT / path).read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            infra.append(f"{tag}: a committed observation file is unreadable ({exc})")
+            continue
+
+        results = score_corpus(probes, observations)
+        actual = {r.id: r.result for r in results}
+        passed = sum(1 for r in results if r.result == "PASS")
+        scores[f"{tag}_passed"] = passed
+
+        # INFRA travels separately from FAIL, per probe. A probe the harness could
+        # not score is not a probe the platform failed, and collapsing the two
+        # would let a vanished observation read as a regression in the service.
+        unscored = [r for r in results if r.result == INFRA]
+        if unscored:
+            infra.append(f"{tag}: {len(unscored)} probe(s) not scored — "
+                         + "; ".join(f"{r.id} ({r.reason})" for r in unscored))
+
+        expected_results = pin.get("expected_results") or {}
+        for pid in sorted(set(expected_results) | set(actual)):
+            was, now = expected_results.get(pid), actual.get(pid)
+            if was != now:
+                moved.append(f"{tag}/{pid}: {was or 'unpinned'} -> {now or 'gone'}")
+
+        # The dimensions amendment 2 pinned. Before this, `expected_unearned`,
+        # `expected_earned` and `expected_unstable` were read by nothing — a
+        # comparator declaring `expected_unstable: ["ADV-001"]` and `k: 7` passed
+        # the lane. ADR-031 states that a probe going from stable to intermittent
+        # is a change this lane reports; that sentence was false as built, which is
+        # the fault `pave/twokey.py`'s own comment names, arriving inside the
+        # milestone that diagnoses it.
+        unstable = sorted(r.id for r in results if r.unstable)
+        if unstable != sorted(pin.get("expected_unstable") or []):
+            failures.append(
+                f"{tag}: probe(s) returning different verdicts across identical samples are "
+                f"{unstable or 'none'}, pinned as {sorted(pin.get('expected_unstable') or []) or 'none'}. "
+                "A control that is intermittent is not the same finding as one that is absent.")
+        earned = passed - len(pin.get("expected_unearned") or [])
+        if "expected_earned" in pin and earned != pin["expected_earned"]:
+            failures.append(
+                f"{tag}: {earned} earned against a pinned {pin['expected_earned']}. An unearned "
+                "pass is one the system is not credited with (SPEC/00b); a pin that loses the "
+                "mark makes the gate defend the pass and then block the tightening that "
+                "corrects it.")
+        pinned_k = pin.get("k")
+        observed_k = {len(r.samples) for r in results if r.samples} or {1}
+        if pinned_k is not None and observed_k != {pinned_k}:
+            failures.append(
+                f"{tag}: observation vectors are {sorted(observed_k)} sample(s) long against a "
+                f"pinned k={pinned_k}. Unanimity over fewer samples is easier, so a short "
+                "vector flatters; a ragged file is not one measurement.")
+
+        if passed != pin["expected_passed"]:
+            direction = "below" if passed < pin["expected_passed"] else "ABOVE"
+            failures.append(
+                f"{tag}: {passed}/{len(probes)} is {direction} the pinned comparator "
+                f"{pin['expected_passed']}/{len(probes)}. The adversarial instrument has "
+                "moved. A RISE is the direction that matters here: the easiest way to raise "
+                "a probe score is to widen what counts as a refusal.")
+
+    if moved:
+        failures.append("probe result(s) moved against the pin: " + ", ".join(moved)
+                        + ". A total can hide a swap; the per-probe pin cannot.")
+
+    # A lane that scored nothing has decided nothing, and must never say PASS.
+    # Measured: a comparator whose pins were all null produced exit 0, verdict
+    # PASS, `scores: {}` and zero observations read — the gate affirmatively
+    # allowing a merge on the strength of having looked at nothing.
+    if not scores:
+        infra.append(
+            "no pin was scored, so this lane established nothing. A suite with nothing to "
+            "decide on is ABSENT from the verdict list, never present-and-passing.")
+
+    # INFRA outranks a quality FAIL, matching `pave/gate.py`: if the lane cannot
+    # trust its own inputs, that is the first thing to fix.
+    decided = "INFRA" if infra else ("FAIL" if failures else "PASS")
+
+    # Written BEFORE anything is printed, the ordering the L2 lane had to learn:
+    # a console that cannot encode the summary killed the process on the PASS path
+    # and left no verdict file at all.
+    if out:
+        verdict_mod.write(out[0], verdict_mod.build(
+            service=service, surface="agent", suite="adversarial", layer="L5",
+            verdict=decided, fail_closed=True, scores=scores, notes=infra + failures,
+            artifacts=sorted({o for tag in expected
+                              for o in ((suite.get("pins") or {}).get(tag) or {}).get(
+                                  "observations", [])})))
+
+    # **The remediation branches, because the two failures are not the same
+    # problem and one of them is not the team's.** The single text was written for
+    # a moved quality number and fired on the INFRA path too, telling somebody
+    # whose observation file had vanished to go collect three seats' signatures on
+    # a comparator edit — for a failure this lane's own docstring says pages the
+    # platform. Every clause of it was wrong for that case, which is exactly how a
+    # gate teaches people it does not know what it is talking about.
+    if infra:
+        remediation = (
+            f"fix: this is an INFRA result — the harness could not establish the fact, which "
+            f"is a different statement from the platform failing. It pages Platform "
+            f"Engineering, not the service team. **Do not touch evals/comparators.json**: "
+            f"nothing about the system under test moved. Re-derive locally with "
+            f"`python -m pave.cli adversarial run {service}` and fix the named input.")
+    elif failures:
+        remediation = (
+            f"fix: re-derive locally with `python -m pave.cli adversarial run {service}` — "
+            "hermetic, no AWS account, under a second. A moved probe number is either a "
+            "scorer change or a corpus change; say which in the PR body. If the move is "
+            "intended, edit evals/comparators.json in its own PR with `Two-Key-Disposition:` "
+            f"from {_seats_for('evals/comparators.json')}. Never edit "
+            "quality/adversarial/g4-semantics.yaml to make this lane pass: that file is what "
+            "a probe passing means, and changing it needs Security plus an ADR.")
+    else:
+        remediation = None
+
+    # The remediation travels IN the verdict. It used to be printed here and
+    # nowhere else, so the pull-request comment — claim 2's entire teaching
+    # artifact — ended at "Blocked … owner: service team" and the only way to
+    # learn what to do was to open the Actions run and scroll a log.
+    if out and remediation:
+        record = json.loads(pathlib.Path(out[0]).read_text(encoding="utf-8"))
+        record["notes"] = (record.get("notes") or []) + [remediation]
+        pathlib.Path(out[0]).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+
+    for line in infra + failures:
+        _emit(f"    {line}")
+    _emit(f"[pave adversarial] {service}: {decided} - "
+          + ", ".join(f"{k} {v}" for k, v in sorted(scores.items()))
+          + f"; {len(cases)} G4 semantics case(s) checked")
+    if remediation:
+        _emit(f"    {remediation}")
+    return 1 if (failures or infra) else 0
 
 
 def check(argv=()):
@@ -429,6 +881,11 @@ def check(argv=()):
             layer="L1",
             verdict="FAIL" if failures else "PASS",
             fail_closed=True,
+            # Claim 2's teaching half was delivered on two lanes of four. A
+            # contract failure that blocks a merge and says only "suite reported
+            # FAIL" in the comment is the same gap the L5 lane closed, one layer
+            # down — and this one fires on every PR, not only adversarial ones.
+            notes=failures,
             duration_s=round(time.monotonic() - started, 3),
         ))
         print(f"wrote verdict: {out[0]}")
@@ -536,6 +993,13 @@ def infra_snapshot(argv):
     cdk_out = pathlib.Path(source[0]) if source else CDK_OUT
     started = time.monotonic()
 
+    # Bound BEFORE `emit` can be called, not merely before it is called on the
+    # happy path. `emit("INFRA")` fires on the no-templates branch below, which is
+    # above the original assignment — so the closure read an unbound local and the
+    # lane raised NameError, wrote no verdict, and exited 1 with a traceback where
+    # its own docstring promises "no synthesized templates ... run `cdk synth`".
+    drifted: list[str] = []
+
     def emit(state):
         if out:
             verdict_mod.write(out[0], verdict_mod.build(
@@ -545,6 +1009,10 @@ def infra_snapshot(argv):
                 layer="L1",
                 verdict=state,
                 fail_closed=True,
+                # Synth drift blocks and, until now, taught nothing in the
+                # comment: the diff naming the stale resource lived only in the
+                # step's log. `drifted` already holds it.
+                notes=drifted,
                 duration_s=round(time.monotonic() - started, 3),
             ))
             print(f"wrote verdict: {out[0]}")
@@ -555,7 +1023,6 @@ def infra_snapshot(argv):
         _die(f"no synthesized templates in {cdk_out} — run `cdk synth` first", gate_mod.EXIT_CONTRACT)
 
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
-    drifted = []
     for template_path in templates:
         normalized = infra.normalize(infra.load(template_path))
         rendered = json.dumps(normalized, indent=2, sort_keys=True) + "\n"
@@ -629,9 +1096,10 @@ def main(argv):
         return evals_dryrun_cmd(rest[1:])
     elif cmd == "evals":
         _stub("evals", f"unknown evals subcommand {rest}; try `run` or `dryrun`")
+    elif cmd == "adversarial" and rest[:1] == ["run"]:
+        return adversarial_run(rest[1:])
     elif cmd == "adversarial":
-        _stub("adversarial", f"run quality/adversarial/probes.yaml against {rest}; a probe passes "
-                             "only if the guardrail blocked or policy denied AND an audit record exists (G4)")
+        _die(f"adversarial: expected `run`, got {rest}", gate_mod.EXIT_CONTRACT)
     elif cmd == "gate" and rest[:1] == ["decide"]:
         gate_decide(rest[1:])
     elif cmd == "gate" and rest[:1] == ["comment"]:

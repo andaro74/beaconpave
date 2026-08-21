@@ -210,12 +210,142 @@ def render(decision: Decision) -> str:
     return "\n".join(lines)
 
 
+#: Marker the PR comment carries so a later run can find and replace its own
+#: previous comment instead of stacking a new one under every push. A reviewer
+#: scrolling past six stale gate comments to find the current one is a gate that
+#: has stopped teaching.
+COMMENT_MARKER = "<!-- beaconpave-gate -->"
+
+
+def _scores_of(path: str) -> dict:
+    """The `scores` block of a verdict, or empty if it cannot be read.
+
+    Never raises: this feeds the comment, and a comment that crashes takes the
+    explanation away from a merge that is being blocked anyway. `decide` has
+    already recorded whatever is wrong with the file."""
+    try:
+        record = json.loads(pathlib.Path(path).read_text(encoding="utf-8-sig"))
+        return record.get("scores") or {} if isinstance(record, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _notes_of(path: str) -> list:
+    try:
+        record = json.loads(pathlib.Path(path).read_text(encoding="utf-8-sig"))
+        notes = record.get("notes") if isinstance(record, dict) else None
+        return [n for n in notes if isinstance(n, str)] if isinstance(notes, list) else []
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
+#: A remediation note. The runners prefix instructions with it, and this is the
+#: one class of note that is always rendered and never folded.
+REMEDIATION_PREFIX = "fix:"
+
+
+def _split_note(note: str) -> tuple[str, str]:
+    """An actionable head and its elaboration.
+
+    Sorted by KIND, not by length. Length is not a proxy for importance and here
+    it was inversely correlated with it: the pinned-versus-observed score diff —
+    the thing a reviewer needs first — ran to 204 characters and missed the
+    visible bucket by four, while a one-line restatement stayed. Every note now
+    contributes its first sentence to the visible list and folds the rest, so a
+    long note is shortened rather than hidden.
+    """
+    cut = note.find(". ")
+    if cut == -1 or cut + 2 >= len(note):
+        return note, ""
+    return note[:cut + 1], note[cut + 2:]
+
+
 def summarize(paths: Sequence[str]) -> str:
-    """The score-diff comment body. M00a prints it; M04 posts it to the PR and
-    adds the baseline comparison that makes it teach."""
+    """The score-diff comment body — claim 2's *teach* half.
+
+    A gate that blocks without saying what moved teaches people to route around
+    it, which is the failure mode `_console_safe` was also written against. So
+    this renders three things, in the order a reviewer needs them: the decision,
+    every score the suites measured, and the runners' own account of what changed.
+
+    **The notes come from the verdict records, not from the CI log.** Until M04
+    the lane printed which probe moved and in which direction, the verdict
+    recorded `FAIL`, and the reviewer got a red check with no way to see the
+    difference without opening the run. A finding that travels with the artifact
+    is one a reader still has next milestone.
+
+    Nothing here can change a decision. `decide` is the only decider, and this
+    function is deliberately incapable of raising: a comment that crashes takes
+    the explanation away from exactly the merge that is being blocked."""
     decision = decide(paths)
-    rows = ["| verdict | suite | layer | file | note |", "|---|---|---|---|---|"]
-    for f in decision.findings:
-        rows.append(f"| {f.verdict or '—'} | {f.suite or '—'} | {f.layer or '—'} | `{f.path}` | {f.reason} |")
     status = "BLOCKED" if decision.blocked else "PASS"
-    return f"### quality gate: {status}\n\n" + "\n".join(rows)
+
+    lines = [COMMENT_MARKER, f"### quality gate: {status}", ""]
+
+    rows = ["| | suite | layer | scores | |", "|---|---|---|---|---|"]
+    for f in decision.findings:
+        mark = "✅" if not f.blocks else ("🛠" if f.kind == CONTRACT else "❌")
+        scores = _scores_of(f.path)
+        rendered = ", ".join(f"`{k}` {v}" for k, v in sorted(scores.items())) or "—"
+        # `suite reported PASS` in a column headed by the verdict is four rows of
+        # restatement in the artifact whose job is to inform. The reason is kept
+        # only where it says something the verdict does not — which is every
+        # blocking row, and no passing one. A missing verdict has no suite, so the
+        # path is what identifies it; `render` keeps it and this dropped it, which
+        # turns two absent verdicts into two identical rows on the exit-2 path.
+        note = "" if not f.blocks else f.reason
+        label = f.suite or f"`{f.path}`"
+        rows.append(f"| {mark} {f.verdict or '—'} | {label} | {f.layer or '—'} "
+                    f"| {rendered} | {note} |")
+    lines.extend(rows)
+
+    teaching = [(f, _notes_of(f.path)) for f in decision.findings]
+    teaching = [(f, notes) for f, notes in teaching if notes]
+    remediation = []
+    if teaching:
+        lines += ["", "#### what moved"]
+        for f, notes in teaching:
+            # A blank line before the bold suite name. Without it, CommonMark
+            # lazy continuation absorbs the header into the preceding list item,
+            # so the second suite's name renders as trailing text of the first
+            # suite's last bullet. The workflow always passes four verdicts, so
+            # this is the normal path rather than an edge case.
+            lines += ["", f"**{f.suite or f.path}**"]
+            fixes = [n for n in notes if n.lstrip().lower().startswith(REMEDIATION_PREFIX)]
+            remediation += [(f.suite or f.path, n) for n in fixes]
+            heads, tails = [], []
+            for note in notes:
+                if note in fixes:
+                    continue
+                head, tail = _split_note(note)
+                heads.append(head)
+                if tail:
+                    tails.append(tail)
+            lines += [f"- {h}" for h in heads]
+            if tails:
+                lines += ["", "<details><summary>full reasoning for each finding</summary>", ""]
+                lines += [f"- {t}" for t in tails]
+                lines += ["", "</details>"]
+
+    # **Remediation is never folded.** It used to be bucketed by length with
+    # everything else, and it is the longest note a runner writes — so the more
+    # specific and useful the instruction, the more certain it was to be hidden,
+    # behind a summary reading "why each of these is a finding". Nobody expands
+    # "why is this a finding" when they already know why; they are looking for
+    # what to do, and the label promised the opposite. Claim 2 is "gates fail
+    # closed AND teach", and the teaching half was one click away from a reader
+    # who had no reason to click.
+    if remediation:
+        lines += ["", "#### what to do"]
+        for suite, note in remediation:
+            body = note.lstrip()[len(REMEDIATION_PREFIX):].lstrip()
+            lines.append(f"- **{suite}** — {body}")
+
+    if decision.blocked:
+        owner = "platform" if decision.exit_code == EXIT_CONTRACT else "service team"
+        why = ("the gate could not establish that the code is good"
+               if decision.exit_code == EXIT_CONTRACT else "a suite reported a regression")
+        lines += ["", f"**Blocked ({why}); exit {decision.exit_code}; owner: {owner}.** "
+                      "This check is required and cannot be merged past — a gate that can be "
+                      "merged past is not a gate."]
+    return "\n".join(lines)

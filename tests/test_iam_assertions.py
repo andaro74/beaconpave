@@ -331,3 +331,139 @@ def test_the_guardrail_version_follows_the_policy_it_pins():
             "policy changes — and the gateway will go on enforcing the old one with the "
             "stack reporting success."
         )
+
+
+# --- the three shapes M03 measured as invisible, closed at M04 ----------------
+#
+# Named for M04 by the Security seat at M03's close: `AWS::IAM::RolePolicy`, a
+# `ManagedPolicyArns` attachment, and a `GatewayFn`-prefixed role name. **A gate
+# cannot fail closed on an invariant its checker is blind to**, and M04 is the
+# milestone that makes probe outcomes block merges, so the checker underneath
+# them has to see every shape the grant can take.
+
+
+def test_the_walker_covers_every_shape_that_can_carry_a_statement():
+    """`GRANT_SHAPES` and `statements()` must agree.
+
+    Two of the four types were added after somebody planted a grant that every G1
+    assertion waved through, and both times the walker looked complete. The list
+    is what makes "complete" checkable: a type added here without a branch in the
+    walker fails, rather than silently widening the blind spot it was meant to
+    close."""
+    source = (ROOT / "pave" / "infra.py").read_text(encoding="utf-8")
+    start = source.index("def statements(")
+    body = source[start:source.index("\ndef ", start + 10)]
+    for shape in infra.GRANT_SHAPES:
+        assert f'"{shape}"' in body, f"GRANT_SHAPES names {shape} and the walker does not handle it"
+
+
+def test_the_assertion_catches_a_standalone_role_policy_resource():
+    """**Shape one, measured as invisible at M03.**
+
+    `AWS::IAM::RolePolicy` is a CloudFormation resource naming a single role in
+    `RoleName` rather than a `Roles` list. CDK emits it for an escape-hatch
+    `CfnRolePolicy`. Before this shape was walked, the grant below passed every
+    G1 assertion in the repository."""
+    template = copy.deepcopy(load(GATEWAY_SNAPSHOT))
+    before = offenders_in(template)
+
+    template["Resources"]["SmugglerRole"] = {"Type": "AWS::IAM::Role", "Properties": {}}
+    template["Resources"]["SmugglerRolePolicy"] = {
+        "Type": "AWS::IAM::RolePolicy",
+        "Properties": {
+            "RoleName": {"Ref": "SmugglerRole"},
+            "PolicyDocument": {"Statement": [
+                {"Effect": "Allow", "Action": "bedrock:Converse", "Resource": "*"}
+            ]},
+        },
+    }
+    assert offenders_in(template) - before == {"SmugglerRole"}
+
+
+def test_a_managed_policy_attached_by_arn_blocks_rather_than_passing():
+    """**Shape two, and it is the interesting one.**
+
+    The other two shapes are grants written somewhere the checker did not look,
+    and the fix is to look there. This one the checker *cannot* look at: an
+    attached managed policy's document lives in IAM, not in the template. A role
+    carrying `ManagedPolicyArns` could hold `bedrock:InvokeModel` and every
+    assertion in this file would pass, because each of them reasons over
+    statements the template contains.
+
+    So there is no wording of the assertion that reads it, and fail-closed on the
+    attachment is the only correct answer. Arriving at that required the shape to
+    be planted first — reasoning about it produced a better `statements()` and
+    would have left the hole open."""
+    template = copy.deepcopy(load(GATEWAY_SNAPSHOT))
+    assert not infra.unreadable_managed_policies(template), (
+        "the committed snapshot already attaches a managed policy nobody has reviewed")
+
+    template["Resources"]["SmugglerRole"] = {
+        "Type": "AWS::IAM::Role",
+        "Properties": {"ManagedPolicyArns": [
+            {"Fn::Join": ["", ["arn:", {"Ref": "AWS::Partition"},
+                               ":iam::aws:policy/AmazonBedrockFullAccess"]]}
+        ]},
+    }
+    unreadable = infra.unreadable_managed_policies(template)
+    assert [a["role"] for a in unreadable] == ["SmugglerRole"]
+    assert "AmazonBedrockFullAccess" in unreadable[0]["arn"]
+    # And the statement walker still sees nothing, which is the whole point.
+    assert offenders_in(template) == offenders_in(load(GATEWAY_SNAPSHOT))
+
+
+def test_the_readable_exception_list_has_exactly_one_entry():
+    """The same argument as `MODEL_INVOKE_ROLE_PREFIXES`, one field over.
+
+    The realistic way this protection is lost is not an ADR anybody reviews but a
+    second ARN added here to make a failing assertion pass, in a diff about
+    something else. `AWSLambdaBasicExecutionRole` is AWS-managed, grants
+    CloudWatch Logs only, and cannot be edited by this account, so its contents
+    are a published fact. A CUSTOMER-managed policy is editable outside any diff
+    this gate can see, which is exactly the hole."""
+    assert len(infra.MODEL_INVOKE_READABLE_EXCEPTIONS) == 1
+    assert infra.MODEL_INVOKE_READABLE_EXCEPTIONS[0].endswith("AWSLambdaBasicExecutionRole")
+
+
+def test_every_committed_role_attaches_only_reviewed_managed_policies():
+    """The live assertion. Every Lambda in the stack attaches
+    `AWSLambdaBasicExecutionRole`, so this is not vacuous — it is passing on
+    three real attachments the seat has reviewed."""
+    template = load(GATEWAY_SNAPSHOT)
+    assert infra.attached_managed_policies(template), (
+        "no managed policy attachments at all — this assertion would prove nothing")
+    assert infra.unreadable_managed_policies(template) == []
+
+
+def test_exactly_one_role_is_treated_as_the_gateway():
+    """**Shape three.** `is_gateway_role` is a prefix match, because CDK appends a
+    hash to every logical id and the exact name is not knowable in advance.
+
+    The consequence is that a second role named `GatewayFnSomethingElse` inherits
+    the one-role allowlist — and a role that inherits it is excluded from
+    `test_the_governed_service_role_carries_an_explicit_deny`, so it escapes the
+    Deny every other role in the stack carries. G1 says "the gateway", a singular
+    noun; this is what makes the noun checkable."""
+    assert infra.gateway_roles(load(GATEWAY_SNAPSHOT)) == ["GatewayFnServiceRole97795AA7"]
+
+
+def test_a_second_gateway_prefixed_role_is_caught_rather_than_inheriting_the_allowlist():
+    """The planted defect for shape three, and it plants the *escape* rather than
+    the grant.
+
+    A second `GatewayFn`-prefixed role holding a grant is already caught by
+    `test_exactly_one_role_holds_the_grant`, which counts granted roles. What was
+    NOT caught is a role that inherits the prefix and therefore never has to carry
+    an explicit Deny — a control point that exists, is exempt, and is invisible to
+    every other assertion here."""
+    template = copy.deepcopy(load(GATEWAY_SNAPSHOT))
+    template["Resources"]["GatewayFnSmugglerRole"] = {"Type": "AWS::IAM::Role", "Properties": {}}
+
+    # It escapes the Deny requirement, which is the hole.
+    denied = {role for entry in infra.model_invoke_denials(template) for role in entry["roles"]}
+    service_roles = [r for r in infra.roles(template) if not infra.is_gateway_role(r)]
+    assert "GatewayFnSmugglerRole" not in service_roles
+    assert "GatewayFnSmugglerRole" not in denied
+
+    # And this is what notices.
+    assert len(infra.gateway_roles(template)) == 2

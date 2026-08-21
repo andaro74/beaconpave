@@ -58,6 +58,7 @@ def build(
     tokens_out: int | None = None,
     cost_usd: float | None = None,
     artifacts: list[str] | None = None,
+    notes: list[str] | None = None,
     commit: str | None = None,
 ) -> dict:
     record = {
@@ -81,6 +82,8 @@ def build(
         record["cost_usd"] = cost_usd
     if artifacts:
         record["artifacts"] = artifacts
+    if notes:
+        record["notes"] = notes
 
     jsonschema.validate(record, json.loads(SCHEMA_PATH.read_text(encoding="utf-8")))
     return record

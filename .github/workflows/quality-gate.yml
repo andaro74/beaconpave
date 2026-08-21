@@ -15,7 +15,7 @@ name: quality-gate
 #   contract (L1) — live since M00a
 #   infra (L1)    — live since M01: the synth snapshot the G1 assertions read
 #   evals (L2)    — live since M03: committed answers vs a pinned comparator
-#   adversarial (L5) — M04
+#   adversarial (L5) — live since M04: committed observations, plus what G4 means
 
 on:
   pull_request:
@@ -76,17 +76,42 @@ jobs:
         continue-on-error: true
         run: python -m pave.cli evals run services/highlights-agent --out verdict-evals.json
 
-      # - name: L5 adversarial (pass = blocked-and-logged - G4)   # turns on at M04
-      #   continue-on-error: true
-      #   run: python -m pave.cli adversarial run services/highlights-agent --out verdict-adv.json
+      - name: L5 adversarial (pass = blocked-and-logged - G4)
+        # **Two things, and the second is why this is not the L2 lane with a
+        # different corpus.** It re-scores committed observations against the
+        # pinned per-probe results, AND asserts
+        # `quality/adversarial/g4-semantics.yaml` — synthetic cases that
+        # discriminate the parts of G4 no committed observation can reach.
+        #
+        # The pins alone could not see the pass condition being widened: deleting
+        # the `and logged` half of `score_probe` moves neither the m01 pin nor the
+        # m00b control, because `refused` and `logged` never disagree anywhere in
+        # the committed corpora. Measured before this lane was built.
+        #
+        # Calls no model, for ADR-029's reasons: probes per pull request would
+        # need model access in CI, which G1 refuses, and would return a different
+        # number every time against a guardrail measured as stochastic.
+        continue-on-error: true
+        run: python -m pave.cli adversarial run services/highlights-agent --out verdict-adv.json
 
       - name: Post score-diff comment (the gate teaches)
         if: always()
-        run: python -m pave.cli gate comment --verdicts verdict-contract.json verdict-infra.json verdict-evals.json
+        # The token is passed as env rather than interpolated into the command, so
+        # it cannot reach the shell's argv or a log line. `permissions:` above
+        # grants `pull-requests: write`, which is what upserting the comment needs.
+        #
+        # On a fork PR the token is read-only and the post fails; `_post_pr_comment`
+        # reports that and returns rather than raising. A comment that could not be
+        # posted must never turn a correct decision into a red step for a reason
+        # that is not the team's fault — `gate decide` below is the only thing that
+        # blocks.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python -m pave.cli gate comment --verdicts verdict-contract.json verdict-infra.json verdict-evals.json verdict-adv.json
 
       - name: Fail closed
         # The decision. Exit 1 = quality regression (pages the service team);
         # exit 2 = the gate could not establish that the code is good (missing,
         # unparseable, or INFRA verdict — pages the platform). Both block.
         if: always()
-        run: python -m pave.cli gate decide --verdicts verdict-contract.json verdict-infra.json verdict-evals.json
+        run: python -m pave.cli gate decide --verdicts verdict-contract.json verdict-infra.json verdict-evals.json verdict-adv.json
