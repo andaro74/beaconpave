@@ -99,3 +99,80 @@ alongside the rubric they label against, and agreement recomputed on every rubri
 change rather than on every milestone. The interface already matches — items are
 content-addressed by `answer_sha256`, so an item whose underlying answer changed
 is detectable rather than silently re-pointed.
+
+## Amendment (2026-08-21, after M04 closed): the `brand_tone` widening is re-deferred to M07, and the owe becomes something a test can see
+
+**The owe above lapsed.** This ADR says widening the `brand_tone` stratum "is
+owed to M04". M04 was built, run, journaled, tagged and closed without paying it,
+and nothing noticed — because the obligation lived in a sentence inside an ADR
+and no check read that sentence. It surfaced only because a seat went looking.
+
+That is the same fault this repository keeps recording in other clothes: a
+protection that is stated and enforced by nothing. An owe recorded only in prose
+is discharged by forgetting.
+
+### The defect, restated with the numbers
+
+`brand_tone:meridian-sports` holds 7 items, **5 gradeable, every one labelled
+0.5**. Every other axis carries two or three distinct values —
+`groundedness` 10 gradeable across `[0.0, 0.5, 1.0]`, `completeness` 7 across the
+same, `concision` 4 across `[0.5, 1.0]`.
+
+An axis whose labels are one value cannot produce a meaningful agreement figure
+in either direction: a judge that always emits 0.5 agrees with it perfectly, and
+a judge that never does agrees with it never, and **neither number says anything
+about whether the judge is any good.** It is not a low score, it is an absent
+measurement wearing a score's clothing.
+
+### Re-deferred to M07, with the reason
+
+M04 changed no system the judge measures and produced no new graded content, so
+widening there would have meant drawing items purely to discharge a debt. **M07
+is the next milestone that adds graded content** — the disclosure disposition
+turns a rule into golden cases — so the hand-labelling happens under the same
+ordering discipline as the work that needs it, rather than as a separate exercise
+whose only purpose is to make a number computable.
+
+Milestone ordering is PM's seat, and M07 is a recommendation this amendment
+records rather than a fact it establishes. Moving it is a one-field edit to
+`labels.json`, which is two-key with AI Quality's key — and that cost is the
+point.
+
+### How it must be paid, decided now rather than then
+
+**By extending the deterministic draw — same ordering, larger `n` — never by
+hand-picking items that would vary the label.**
+
+This matters more now than it did at M03. The reason for not widening inside M03
+was that it would have meant choosing items after seeing their label
+distribution. That distribution has now been seen and published. So the only
+defensible widening is one where the *choice* is not ours: a larger deterministic
+draw, labelled under the existing discipline, and whatever it yields is the
+result.
+
+**Including "still one value."** If a wider draw also labels every item 0.5, that
+is a finding about the axis — a rubric dimension that does not discriminate, or a
+service whose brand voice genuinely does not vary — and it belongs in the journal
+as such. It is not a licence to keep drawing until the labels vary, which would be
+choosing the answer one item at a time.
+
+### The mechanism
+
+The owe now lives in `quality/judge/calibration/labels.json` as data, beside the
+labels it describes, and `tests/test_calibration_owe.py` reads it:
+
+- every axis with single-valued labels **must** be recorded as owed;
+- every owe **must** name a milestone that is not yet closed in the progression
+  table;
+- every owe **must** state that the draw stays deterministic.
+
+**When M07 closes, that suite goes red** unless the owe has been paid or
+deliberately re-deferred again — and re-deferring is then an attested edit to a
+two-key file rather than something that happens by nobody noticing. Verified
+against three planted defects: deleting the owe, pointing it at a milestone that
+has already closed, and dropping the deterministic-draw requirement from it.
+
+The check reads the README progression table rather than git tags, which keeps it
+hermetic and honest about what the repo *publishes*. That table was itself wrong
+once — M03 sat unmarked for four milestones after being tagged — which is a second
+reason a test that reads it is worth having.
