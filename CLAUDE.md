@@ -74,7 +74,16 @@ Before changing a file, know which seat owns it. Role subagents in
 input to a human, never an approval (G6).
 
 Two-key paths (owning seat **plus** AI Quality): eval thresholds, baselines,
-`gate.yml` gate criteria.
+`gate.yml` gate criteria, and **the deployed guardrail policy**
+(`platform/infra/lib/gateway-stack.ts`, Security + AI Quality, ADR required).
+
+The last one was added after the ADR-035 review found the probe corpus and the
+comparator pins both guarded twice while the control they measure was guarded
+neither — the thermometer protected and the thermostat not. G9 is the reason:
+whoever feels a control's pain never solely controls its strength, and the seat
+that wants a guardrail to stop refusing its questions is the seat that can widen
+it by a sentence. `pave/twokey.py` is the enforced list; this one is the summary,
+and they must not disagree.
 
 ## Style
 
