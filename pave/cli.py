@@ -267,6 +267,25 @@ def gate_two_key(argv):
         sys.exit(gate_mod.EXIT_QUALITY)
 
 
+def _seats_for(path: str) -> str:
+    """The seats a two-key path actually needs, rendered for a remediation.
+
+    Read from `twokey.RULES` rather than typed. A hardcoded seat list goes stale
+    in silence: this lane's remediation named `ai-quality` and `platform-eng` for
+    a comparator edit that has needed Security's key since PR #27, so the gate was
+    telling people to collect the wrong signatures for a check it runs itself.
+    Three seats found the same class of drift in a two-key rule whose scope had
+    doubled while its seat list stayed put. An instruction derived from the rule
+    cannot disagree with the rule.
+    """
+    seats = sorted({seat for rule, _ in twokey.triggered([path]) for seat in rule.seats})
+    if not seats:
+        return ""
+    if len(seats) == 1:
+        return seats[0]
+    return ", ".join(seats[:-1]) + f" AND {seats[-1]}"
+
+
 def evals_dryrun_cmd(argv=()):
     """`pave evals dryrun` — load and resolve, call nothing."""
     from evals.run_evals import GOLDENS, _load
@@ -425,6 +444,21 @@ def evals_run(argv=()):
                 "which direction — never in the same diff that moved it."
             )
 
+    # **The remediation travels on this lane too.** It was written for L5 and
+    # stopped there, so the lane that fires on every goldens PR produced a red
+    # required check carrying a score, one sentence of diagnosis, and no
+    # instruction — the artifact the L5 work exists to eliminate, one layer down.
+    remediation = None
+    if failures:
+        remediation = (
+            f"fix: re-derive locally with `python -m pave.cli evals run {service}` — "
+            "hermetic, no model call, committed answers. If the move is intended, edit "
+            "evals/comparators.json in its own PR with `Two-Key-Disposition:` from "
+            f"{_seats_for('evals/comparators.json')}, naming which of the three inputs "
+            "moved: the golden cases, evals/deterministic.py, or data/catalog.json. Never "
+            "edit a golden case to make this lane pass — a case that is wrong is fixed in "
+            "its own PR with the reasoning, reviewed by AI Quality.")
+
     decided = "FAIL" if failures else "PASS"
     # The verdict is written BEFORE anything is printed. Reversed, a console that
     # cannot encode the summary line killed the process on the PASS path and left
@@ -432,19 +466,18 @@ def evals_run(argv=()):
     if out:
         verdict_mod.write(out[0], verdict_mod.build(
             service=service, surface="agent", suite="evals", layer="L2",
-            verdict=decided, fail_closed=True, scores=scores, notes=failures,
+            verdict=decided, fail_closed=True, scores=scores,
+            notes=failures + ([remediation] if remediation else []),
             artifacts=[str(r) for spec in arms.values() for r in spec["runs"]]))
 
     for line in failures:
         _emit(f"    {line}")
     _emit(f"[pave evals] {service}: {decided} - "
           + ", ".join(f"{k} {v}" for k, v in sorted(scores.items())))
-    if failures:
-        _emit(f"    fix: re-derive locally with `python -m pave.cli evals run {service}`. "
-              "If the move is intended, edit evals/comparators.json in its own PR with "
-              "`Two-Key-Disposition: ai-quality` and `Two-Key-Disposition: platform-eng`, "
-              "naming which of the three inputs moved - the golden cases, "
-              "evals/deterministic.py, or data/catalog.json.")
+    if remediation:
+        # One string, printed and recorded. Two copies drift, and the copy a
+        # reader sees is not the copy anyone maintains.
+        _emit(f"    {remediation}")
     return 1 if failures else 0
 
 
@@ -728,7 +761,7 @@ def adversarial_run(argv=()):
             "hermetic, no AWS account, under a second. A moved probe number is either a "
             "scorer change or a corpus change; say which in the PR body. If the move is "
             "intended, edit evals/comparators.json in its own PR with `Two-Key-Disposition:` "
-            "from ai-quality, platform-eng AND security. Never edit "
+            f"from {_seats_for('evals/comparators.json')}. Never edit "
             "quality/adversarial/g4-semantics.yaml to make this lane pass: that file is what "
             "a probe passing means, and changing it needs Security plus an ADR.")
     else:

@@ -337,3 +337,77 @@ def test_the_infra_lane_writes_a_verdict_when_there_is_nothing_to_snapshot(tmp_p
     assert result.returncode == gate.EXIT_CONTRACT
     assert out.is_file(), "the INFRA path wrote no verdict"
     assert json.loads(out.read_text(encoding="utf-8"))["verdict"] == "INFRA"
+
+
+# --- the teaching half of claim 2 ---------------------------------------------
+
+
+def test_the_score_diff_is_visible_and_not_folded_away(tmp_path):
+    """Claim 2 is "gates fail closed AND teach", and the teaching half was one
+    click away from a reader with no reason to click.
+
+    Notes were bucketed by LENGTH, `<= 200` visible. The pinned-versus-observed
+    score diff — the line a reviewer needs first — ran to 204 characters and
+    missed the visible bucket by four, while a one-line restatement stayed. The
+    exhibit PR that is claim 2's artifact rendered with its five moved probes
+    hidden behind a summary reading "why each of these is a finding": nobody
+    expands that when they already know why, and the label promised the opposite
+    of what it held."""
+    diff = ("probe result(s) moved against the pin: m00b/ADV-004: FAIL -> PASS, "
+            "m00b/ADV-005: FAIL -> PASS, m00b/ADV-006: FAIL -> PASS, m00b/ADV-008: "
+            "FAIL -> PASS, m00b/ADV-009: FAIL -> PASS. A total can hide a swap.")
+    assert len(diff) > 200, "this test no longer exercises the case it was written for"
+    path = _verdict(tmp_path, "adv.json", verdict="FAIL", suite="adversarial",
+                    layer="L5", notes=[diff])
+    body = gate.summarize([path])
+    visible = body.split("<details>")[0]
+    for probe in ("ADV-004", "ADV-005", "ADV-006", "ADV-008", "ADV-009"):
+        assert probe in visible, f"{probe} is not visible before the fold"
+
+
+def test_remediation_is_always_visible_and_never_folded(tmp_path):
+    """The remediation is the longest note a runner writes, so under a length
+    rule the more specific and useful it was, the more certain its concealment."""
+    fix = "fix: " + ("re-derive locally and say which input moved in the PR body. " * 8)
+    assert len(fix) > 200
+    path = _verdict(tmp_path, "adv.json", verdict="FAIL", suite="adversarial",
+                    layer="L5", notes=["something moved.", fix])
+    body = gate.summarize([path])
+    visible = body.split("<details>")[0]
+    assert "#### what to do" in visible
+    assert "re-derive locally" in visible
+    # and it leads the reader to the action rather than to the essay
+    assert body.index("#### what to do") > body.index("#### what moved")
+
+
+def test_a_suite_header_is_separated_from_the_previous_list(tmp_path):
+    """CommonMark lazy continuation absorbs a bold header into the preceding list
+    item, so the second suite's name renders as trailing text of the first
+    suite's last bullet. The workflow always passes four verdicts."""
+    a = _verdict(tmp_path, "a.json", verdict="FAIL", suite="contract", layer="L1",
+                 notes=["ruff failed (exit 1)"])
+    b = _verdict(tmp_path, "b.json", verdict="FAIL", suite="adversarial", layer="L5",
+                 notes=["a probe moved"])
+    body = gate.summarize([a, b])
+    lines = body.splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith("**") and line.endswith("**") and i:
+            assert lines[i - 1].strip() == "", (
+                f"{line!r} follows {lines[i - 1]!r} with no blank line; markdown will "
+                "absorb it into that list item")
+
+
+def test_the_remediation_names_the_seats_the_rule_actually_requires():
+    """A hardcoded seat list goes stale in silence. This lane's remediation named
+    ai-quality and platform-eng for a comparator edit that has needed Security's
+    key since PR #27 — the gate telling people to collect the wrong signatures
+    for a check it runs itself."""
+    from pave import twokey
+    from pave.cli import _seats_for
+
+    rendered = _seats_for("evals/comparators.json")
+    required = {seat for rule, _ in twokey.triggered(["evals/comparators.json"])
+                for seat in rule.seats}
+    assert required, "the comparator is no longer a two-key path; this test is stale"
+    for seat in required:
+        assert seat in rendered, f"{seat} is required by the rule and absent from the text"

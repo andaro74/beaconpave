@@ -239,6 +239,27 @@ def _notes_of(path: str) -> list:
         return []
 
 
+#: A remediation note. The runners prefix instructions with it, and this is the
+#: one class of note that is always rendered and never folded.
+REMEDIATION_PREFIX = "fix:"
+
+
+def _split_note(note: str) -> tuple[str, str]:
+    """An actionable head and its elaboration.
+
+    Sorted by KIND, not by length. Length is not a proxy for importance and here
+    it was inversely correlated with it: the pinned-versus-observed score diff —
+    the thing a reviewer needs first — ran to 204 characters and missed the
+    visible bucket by four, while a one-line restatement stayed. Every note now
+    contributes its first sentence to the visible list and folds the rest, so a
+    long note is shortened rather than hidden.
+    """
+    cut = note.find(". ")
+    if cut == -1 or cut + 2 >= len(note):
+        return note, ""
+    return note[:cut + 1], note[cut + 2:]
+
+
 def summarize(paths: Sequence[str]) -> str:
     """The score-diff comment body — claim 2's *teach* half.
 
@@ -280,22 +301,45 @@ def summarize(paths: Sequence[str]) -> str:
 
     teaching = [(f, _notes_of(f.path)) for f in decision.findings]
     teaching = [(f, notes) for f, notes in teaching if notes]
+    remediation = []
     if teaching:
         lines += ["", "#### what moved"]
         for f, notes in teaching:
-            lines.append(f"**{f.suite or f.path}**")
-            # Short lines first, long ones folded away. The G4 semantics notes
-            # carry a case's whole `why` — several hundred characters of
-            # reasoning that is exactly right in the file and buries the
-            # actionable line in a comment. A reviewer needs "ADV-002 FAIL ->
-            # PASS, above the pinned 6/10" before they need the essay.
-            headline = [n for n in notes if len(n) <= 200]
-            detail = [n for n in notes if len(n) > 200]
-            lines += [f"- {n}" for n in headline]
-            if detail:
-                lines += ["", "<details><summary>why each of these is a finding</summary>", ""]
-                lines += [f"- {n}" for n in detail]
+            # A blank line before the bold suite name. Without it, CommonMark
+            # lazy continuation absorbs the header into the preceding list item,
+            # so the second suite's name renders as trailing text of the first
+            # suite's last bullet. The workflow always passes four verdicts, so
+            # this is the normal path rather than an edge case.
+            lines += ["", f"**{f.suite or f.path}**"]
+            fixes = [n for n in notes if n.lstrip().lower().startswith(REMEDIATION_PREFIX)]
+            remediation += [(f.suite or f.path, n) for n in fixes]
+            heads, tails = [], []
+            for note in notes:
+                if note in fixes:
+                    continue
+                head, tail = _split_note(note)
+                heads.append(head)
+                if tail:
+                    tails.append(tail)
+            lines += [f"- {h}" for h in heads]
+            if tails:
+                lines += ["", "<details><summary>full reasoning for each finding</summary>", ""]
+                lines += [f"- {t}" for t in tails]
                 lines += ["", "</details>"]
+
+    # **Remediation is never folded.** It used to be bucketed by length with
+    # everything else, and it is the longest note a runner writes — so the more
+    # specific and useful the instruction, the more certain it was to be hidden,
+    # behind a summary reading "why each of these is a finding". Nobody expands
+    # "why is this a finding" when they already know why; they are looking for
+    # what to do, and the label promised the opposite. Claim 2 is "gates fail
+    # closed AND teach", and the teaching half was one click away from a reader
+    # who had no reason to click.
+    if remediation:
+        lines += ["", "#### what to do"]
+        for suite, note in remediation:
+            body = note.lstrip()[len(REMEDIATION_PREFIX):].lstrip()
+            lines.append(f"- **{suite}** — {body}")
 
     if decision.blocked:
         owner = "platform" if decision.exit_code == EXIT_CONTRACT else "service team"
