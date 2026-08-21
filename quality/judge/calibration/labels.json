@@ -344,5 +344,18 @@
       "disposition": "agreed",
       "reason": "A single direct sentence for a single direct question."
     }
+  ],
+  "owed": [
+    {
+      "axis": "brand_tone:meridian-sports",
+      "defect": "zero label variance",
+      "detail": "7 items, 5 gradeable, every one labelled 0.5. An axis whose labels are one value cannot produce a meaningful agreement figure: a judge that always emits 0.5 scores perfect agreement against it and a judge that never does scores none, and neither number says anything about whether the judge is any good. Every other axis carries two or three distinct values.",
+      "owed_by": "widening the stratum so the draw can produce more than one label",
+      "originally_due": "M04",
+      "re_deferred_to": "M07",
+      "why_re_deferred": "M04 changed no system the judge measures and produced no new judged content, so widening there would have meant drawing items for their own sake. M07 is the next milestone that adds graded content — the disclosure disposition turns a rule into golden cases — so the labelling happens under the same discipline as the work rather than as a separate exercise. Recorded as a re-deferral with a date rather than left owed, because it silently lapsed once already.",
+      "how_it_must_be_paid": "By EXTENDING THE DETERMINISTIC DRAW — same ordering, larger n — never by hand-picking items that would vary the label. The distribution has now been seen, so choosing items is choosing the answer, which is the exact hazard ADR-026 declined to run inside M03. Whatever the wider draw labels is the result, including 'still one value', which would be a finding about the axis rather than about the corpus.",
+      "adr": "docs/adr/ADR-026-calibration-corpus-size-and-freeze-rule.md"
+    }
   ]
 }
