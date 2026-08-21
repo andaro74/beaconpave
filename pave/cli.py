@@ -786,6 +786,31 @@ def adversarial_run(argv=()):
     return 1 if (failures or infra) else 0
 
 
+def _contract_remediation(failures: list) -> str:
+    """What to do about a red L1 contract lane.
+
+    This lane fires on every pull request, so it is the gate most people meet
+    first — and it was the one saying least. A reader got `ruff failed (exit 1)`
+    and a blocked merge.
+    """
+    steps = ["fix: reproduce locally with `python -m pave.cli check` (or `make check`) — "
+             "hermetic, no cloud account, no network, about 30 seconds. The failing step's "
+             "full output is in this run's workflow log; these notes carry the verdict, not "
+             "the transcript."]
+    if any("ruff" in f for f in failures):
+        steps.append("Style findings are mostly auto-fixable: `python -m ruff check --fix .`.")
+    if any("pytest" in f for f in failures):
+        steps.append("Re-run a single failure with `python -m pytest <file>::<test> -q`. A test "
+                     "named for a defect that no longer exercises it is worse than a missing "
+                     "one, so fix the code before the assertion.")
+    if any("drift" in f or "rules" in f for f in failures):
+        steps.append("A registry or Cedar drift is a regenerate, not an edit: "
+                     "`python -m pave.cli policy generate` and commit the result.")
+    steps.append("A contract failure is the code under test rather than the harness, so it "
+                 "pages the service team — do NOT reach for a comparator or a baseline.")
+    return " ".join(steps)
+
+
 def check(argv=()):
     """Hermetic local checks (G8): no cloud, no network. The platform-neutral
     twin of `make check` — the Makefile's `2>/dev/null` and `rm -f` are POSIX-only,
@@ -885,7 +910,14 @@ def check(argv=()):
             # contract failure that blocks a merge and says only "suite reported
             # FAIL" in the comment is the same gap the L5 lane closed, one layer
             # down — and this one fires on every PR, not only adversarial ones.
-            notes=failures,
+            #
+            # It got the `notes` plumbing and nothing to send through it: the
+            # strings here are exit codes (`ruff failed (exit 1)`), so the comment
+            # named a tool and a number and no next step. The steps stream their
+            # output to the console rather than capturing it, which is right for a
+            # local run and means the detail lives in the workflow log — so the
+            # remediation says where it is instead of pretending to quote it.
+            notes=failures + ([_contract_remediation(failures)] if failures else []),
             duration_s=round(time.monotonic() - started, 3),
         ))
         print(f"wrote verdict: {out[0]}")

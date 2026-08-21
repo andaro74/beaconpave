@@ -411,3 +411,45 @@ def test_the_remediation_names_the_seats_the_rule_actually_requires():
     assert required, "the comparator is no longer a two-key path; this test is stale"
     for seat in required:
         assert seat in rendered, f"{seat} is required by the rule and absent from the text"
+
+
+def test_every_lane_speaks_the_prefix_the_renderer_listens_for():
+    """Producer and renderer agree on one token, and nothing enforced it.
+
+    `summarize` lifts a note into the always-visible `what to do` block by
+    matching `REMEDIATION_PREFIX`. Every runner writes that prefix by hand. If
+    either side drifts the remediation silently stops being remediation — it
+    folds back in with the essays, which is the exact failure this milestone
+    fixed, arriving through a different door."""
+    import pathlib as _p
+    import re
+
+    source = (_p.Path(gate.__file__).resolve().parents[1] / "pave" / "cli.py").read_text(
+        encoding="utf-8")
+    written = set(re.findall(r'"(fix:)', source)) | set(re.findall(r"'(fix:)", source))
+    assert written, "no lane writes a remediation prefix at all"
+    assert written == {gate.REMEDIATION_PREFIX}, (
+        f"lanes write {written} and the renderer matches "
+        f"{gate.REMEDIATION_PREFIX!r}; a remediation the renderer cannot recognise "
+        "is folded away with the reasoning")
+
+
+def test_the_contract_lane_has_a_remediation_and_it_is_actionable():
+    """This lane fires on every pull request, so it is the gate most people meet
+    first — and it was the one saying least: `ruff failed (exit 1)`, a blocked
+    merge, and no next step."""
+    from pave.cli import _contract_remediation
+
+    text = _contract_remediation(["ruff failed (exit 1)", "pytest failed (exit 1)"])
+    assert text.startswith(gate.REMEDIATION_PREFIX)
+    assert "pave.cli check" in text, "the remediation does not say how to reproduce it"
+    assert "ruff check --fix" in text, "a ruff failure is auto-fixable and the text omits it"
+    assert "pytest" in text
+    # It must send the reader to the right owner. A contract failure is the code
+    # under test, so reaching for a comparator is the wrong move and the text says so.
+    assert "comparator" in text and "service team" in text
+
+    only_rules = _contract_remediation(["rules validation failed (exit 1)"])
+    assert "policy generate" in only_rules
+    assert "ruff check --fix" not in only_rules, (
+        "the remediation names a fix for a failure that did not happen")

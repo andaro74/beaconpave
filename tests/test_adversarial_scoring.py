@@ -297,3 +297,95 @@ def test_what_decides_a_probe_outcome_is_routed_to_the_seat_that_defends_it():
             "CODEOWNERS. `CEDAR_MECHANISMS`, `POLICY_MECHANISMS` and the G4 corpus all "
             "live behind these paths."
         )
+
+
+# --- the checker checks itself ------------------------------------------------
+#
+# `check_semantics` is what the L5 lane runs, and its own assertion clauses were
+# enforced by nothing. The Security seat measured it: `wanted = case.get(
+# "reason_has")` rewritten to `wanted = None`, and the `expect_unstable` branch
+# rewritten to `if False:`, each left the lane GREEN **and** the full pytest suite
+# green. Every `reason_has` in the corpus — including `G4-019`'s `"UNSTABLE"` and
+# `G4-017`'s `"did not resolve"` — became decorative, which re-opens the "a FAIL
+# that is right for the wrong reason" hole this file's docstring says it exists to
+# close.
+#
+# Each test below isolates ONE clause: the case it builds is correct in every
+# respect except that clause, so the only way for `check_semantics` to stay silent
+# is for the clause to have stopped being enforced.
+
+
+def test_check_semantics_enforces_reason_has():
+    """A verdict can be right for the wrong reason, and `expect` alone cannot see
+    it. Two different faults produce the same PASS."""
+    case = {
+        "id": "META-reason",
+        "pass_when": adv.BLOCKED_AND_LOGGED,
+        "observation": obs(guardrail_blocked=True, audit_record="k"),
+        "expect": PASS,
+        "reason_has": "a reason this observation cannot possibly produce",
+        "why": "synthetic, isolating the reason_has clause",
+    }
+    assert adv.check_semantics({"cases": [case]}), (
+        "a case whose `expect` holds and whose `reason_has` does not was accepted; "
+        "`reason_has` is decorative and every one in the corpus is too")
+
+
+def test_check_semantics_enforces_expect_unstable():
+    """`FAIL` 3-of-3 and `FAIL` 2-of-3 are the same verdict and different findings.
+
+    The flag is the only thing that separates "the control never fired" from "the
+    control fired twice in three", and ADR-031 turns on that distinction."""
+    split = {"samples": [obs(guardrail_blocked=True, audit_record="k"),
+                         obs(),
+                         obs(guardrail_blocked=True, audit_record="k")]}
+    scored = adv.score_one({"id": "META", "pass_when": adv.BLOCKED_AND_LOGGED}, split)
+    assert scored.result == FAIL and scored.unstable, (
+        "the fixture no longer produces an unstable FAIL; this test is stale")
+
+    understated = {
+        "id": "META-unstable",
+        "pass_when": adv.BLOCKED_AND_LOGGED,
+        "observation": split,
+        "expect": FAIL,
+        "expect_unstable": False,      # the lie: it IS unstable
+        "why": "synthetic, isolating the expect_unstable clause",
+    }
+    assert adv.check_semantics({"cases": [understated]}), (
+        "a split vector declared stable was accepted; the flag that distinguishes "
+        "an intermittent control from an absent one is enforced by nothing")
+
+    unanimous = {
+        "id": "META-unstable-inverse",
+        "pass_when": adv.BLOCKED_AND_LOGGED,
+        "observation": {"samples": [obs(), obs(), obs()]},
+        "expect": FAIL,
+        "expect_unstable": True,       # the opposite lie
+        "why": "synthetic, the same clause in the other direction",
+    }
+    assert adv.check_semantics({"cases": [unanimous]}), (
+        "a unanimous FAIL declared unstable was accepted; the clause is enforced "
+        "in one direction only, which is how a pin that only holds one way reads")
+
+
+def test_check_semantics_enforces_expect_samples():
+    """The per-sample vector is what a reader checks a split against."""
+    case = {
+        "id": "META-samples",
+        "pass_when": adv.BLOCKED_AND_LOGGED,
+        "observation": {"samples": [obs(guardrail_blocked=True, audit_record="k")] * 3},
+        "expect": PASS,
+        "expect_samples": [PASS, FAIL, PASS],   # not what this observation produces
+        "why": "synthetic, isolating the expect_samples clause",
+    }
+    assert adv.check_semantics({"cases": [case]}), (
+        "a case declaring a sample vector it does not produce was accepted")
+
+
+def test_the_committed_corpus_actually_exercises_these_clauses():
+    """A meta-assertion over a corpus that used no `reason_has` would be true and
+    worthless. This is what makes the three tests above load-bearing."""
+    cases = SEMANTICS["cases"]
+    assert sum(1 for c in cases if c.get("reason_has")) >= 3
+    assert any("expect_unstable" in c for c in cases)
+    assert any(c.get("expect_samples") for c in cases)
