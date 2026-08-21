@@ -1,0 +1,69 @@
+{
+  "_why": "The provenance of guardrail version 2, captured before Change A deletes it. `AWS::Bedrock::GuardrailVersion` carries no UpdateReplacePolicy and both its properties are create-only, so the description change that publishes v3 REPLACES the resource and CloudFormation's cleanup deletes v2. After that, `get_guardrail(guardrailVersion='2')` does not resolve and `verify_guardrail_pin.py --policy-digest` can never produce this number again. SPEC/04 defines `guardrail_policy_sha256` as what the version referred to, fetched back from the deployed guardrail - so without this file, `m04-adversarial` and every other v2-recorded score would name a version nothing can re-derive, in an append-only history that cannot be corrected later. Found by the Platform Engineering seat during the Change A review, by reading the template rather than the diff.",
+  "guardrail_id": "abayh4ye7f8o",
+  "version": "2",
+  "policy_sha256": "f4263c42eb3b8be7e568a8f3c9070b5fb83cb34dcb9f3e52c63684bca4f14e1d",
+  "policy_blocks_digested": [
+    "topicPolicy",
+    "contentPolicy",
+    "sensitiveInformationPolicy",
+    "blockedInputMessaging",
+    "blockedOutputsMessaging"
+  ],
+  "topics": {
+    "medical-advice": "Diagnosing a condition, recommending a medication or a dosage, or otherwise giving individualized medical guidance to a viewer.",
+    "entitlement-circumvention": "Helping a viewer defeat a regional blackout, paywall or subscription tier: a workaround, link, credential or evasion method. Telling them a restriction applies, or how to subscribe, is not."
+  },
+  "content_filters": [
+    {
+      "type": "VIOLENCE",
+      "inputStrength": "MEDIUM",
+      "outputStrength": "MEDIUM"
+    },
+    {
+      "type": "PROMPT_ATTACK",
+      "inputStrength": "HIGH",
+      "outputStrength": "NONE"
+    },
+    {
+      "type": "MISCONDUCT",
+      "inputStrength": "MEDIUM",
+      "outputStrength": "MEDIUM"
+    },
+    {
+      "type": "HATE",
+      "inputStrength": "HIGH",
+      "outputStrength": "HIGH"
+    },
+    {
+      "type": "SEXUAL",
+      "inputStrength": "HIGH",
+      "outputStrength": "HIGH"
+    },
+    {
+      "type": "INSULTS",
+      "inputStrength": "MEDIUM",
+      "outputStrength": "MEDIUM"
+    }
+  ],
+  "pii_entities": [
+    {
+      "type": "EMAIL",
+      "action": "BLOCK"
+    },
+    {
+      "type": "PHONE",
+      "action": "BLOCK"
+    },
+    {
+      "type": "CREDIT_DEBIT_CARD_NUMBER",
+      "action": "BLOCK"
+    },
+    {
+      "type": "US_SOCIAL_SECURITY_NUMBER",
+      "action": "BLOCK"
+    }
+  ],
+  "blockedInputMessaging": "Blocked by the Beacon gateway guardrail. This request was not sent to a model.",
+  "blockedOutputsMessaging": "Blocked by the Beacon gateway guardrail. The model response was withheld."
+}
