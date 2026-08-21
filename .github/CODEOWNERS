@@ -44,7 +44,21 @@
 
 # Security / Red Team owns the adversarial corpus and guardrail configs
 /quality/adversarial/     @andaro74
-/platform/gateway/guardrail_config.yaml   @andaro74
+# **`/platform/gateway/guardrail_config.yaml` used to be here, and that file has
+# never existed.** The guardrail policy lives in `platform/infra/lib/gateway-stack.ts`,
+# which matched only `/platform/` -- Platform Engineering. So a change to the
+# deployed guardrail auto-requested the seat that operates it and not the seat
+# that owns it, behind a line that read as though it were covered. Found by the
+# Platform seat during the ADR-035 Change A review, by running `ls`.
+#
+# That is the same fault this file's own comment describes two blocks down and
+# `pave/twokey.py` describes about itself: a stated protection stops anyone
+# looking for the real one. Third arrival, third seat, third file.
+#
+# Both handles for the same reason as the block below: CODEOWNERS is
+# last-match-wins, so a line naming only Security would REPLACE `/platform/`'s
+# ownership rather than adding a second key to it.
+/platform/infra/lib/gateway-stack.ts      @andaro74 @andaro74
 # ...and what a probe pass MEANS, which is a different thing from the corpus and
 # was owned by nobody until M04. `evals/adversarial.py` names this seat in its own
 # docstring -- "Owning seat: Security / Red Team" -- and matched only `/evals/`,
