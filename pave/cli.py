@@ -334,6 +334,174 @@ def evals_run(argv=()):
     return 1 if failures else 0
 
 
+def adversarial_run(argv=()):
+    """`pave adversarial run <service> [--out verdict.json]` — the L5 lane.
+
+    **Two things have to hold, and the second is why this lane is not simply the
+    L2 lane with a different corpus.**
+
+    1. **Every pinned probe result still holds.** Committed observations —
+       fetched back from the audit lake on the day they were taken — re-scored
+       through today's `score_probe`, per probe and in total, against
+       `evals/comparators.json`. Deviation in **either** direction fails: a rise
+       is the direction this repo exists to catch, and on the adversarial side it
+       is a one-line edit away, because the easiest way to raise a probe score is
+       to widen what counts as a refusal.
+
+    2. **G4 still means what `quality/adversarial/g4-semantics.yaml` says.**
+       The pins alone cannot see this. Measured before the lane was built:
+       deleting the `and logged` half of `score_probe` moves neither the m01 pin
+       nor the m00b control, because `refused` and `logged` never disagree
+       anywhere in the committed corpora — every m01 observation carries a record
+       and every m00b observation refuses nothing. That is structural, not a
+       corpus to improve, so the semantics are checked from a corpus built to
+       discriminate rather than inferred from a number.
+
+    **It calls no model**, for ADR-029's reasons applied one layer over: a lane
+    that ran probes per pull request would need model access in CI, which G1
+    refuses, and would return a different number every time against a guardrail
+    this repo has measured as stochastic on identical input.
+
+    Exit codes follow `pave/gate.py`'s contract, and the split is the point.
+    A moved probe result or a broken semantics case is a **quality** FAIL and
+    pages the service team. A missing observation, an unreadable `pass_when` or
+    an audit record that did not resolve is **INFRA** — the harness could not
+    establish the fact, which is a different statement from the system failing,
+    and it pages the platform.
+
+    **A probe is never ADVISORY.** G4 has no "allowed" answer (ADR-028) and no
+    "we could not tell" answer either; the second is INFRA, and INFRA blocks."""
+    import yaml as _yaml
+
+    from evals.adversarial import check_semantics, score_corpus
+    from evals.deterministic import INFRA
+
+    out = _flag_values(argv, "--out")
+    override = _flag_values(argv, "--comparators")
+    consumed = {out[0] if out else None, override[0] if override else None}
+    services = [a for a in argv if not a.startswith("--") and a not in consumed]
+    service = pathlib.Path(services[0]).name if services else "highlights-agent"
+
+    comparators = pathlib.Path(override[0]) if override else ROOT / "evals" / "comparators.json"
+    pinned = json.loads(comparators.read_text(encoding="utf-8"))
+    suite = _suite_pin(pinned, service, "adversarial")
+    if suite is None:
+        # ABSENT, not PASS — the gate's own rule, and the same branch the L2 lane
+        # takes. A suite with nothing to decide on is missing from the verdict
+        # list rather than reporting success, and the gate blocks on the absence.
+        known = pinned.get("services") if isinstance(pinned, dict) else None
+        names = ", ".join(sorted(known)) if isinstance(known, dict) and known else "none"
+        _emit(f"[pave adversarial] no adversarial comparator pinned for {service!r}; "
+              f"emitting nothing. Pinned services: {names}")
+        return 0
+
+    probes = _yaml.safe_load((ROOT / "quality" / "adversarial" / "probes.yaml")
+                             .read_text(encoding="utf-8"))
+    semantics = _yaml.safe_load((ROOT / "quality" / "adversarial" / "g4-semantics.yaml")
+                                .read_text(encoding="utf-8"))
+
+    failures, infra, scores, moved = [], [], {}, []
+
+    # --- what G4 means, before what any number says ---------------------------
+    #
+    # Checked first because it changes how a moved number reads. If the semantics
+    # broke, a probe score that also moved is a consequence rather than a second
+    # finding, and the operator should be told which one to fix.
+    for failure in check_semantics(semantics):
+        failures.append(f"G4 semantics: {failure}")
+
+    # --- every pinned observation set, re-scored ------------------------------
+    #
+    # `PIN_FLOOR`'s argument in `tests/test_instrument_stability.py` applies here
+    # too: the expected set is declared beside the pins AND defaulted, so removing
+    # `pins_expected` cannot shrink what the lane checks. The default mirrors the
+    # L2 lane's `arms_expected or [...]`.
+    expected = sorted(set(suite.get("pins_expected") or ["m01", "m00b"]))
+    absent = [tag for tag in expected if tag not in (suite.get("pins") or {})]
+    if absent:
+        failures.append(
+            f"pin(s) expected and absent from the comparator: {absent}. A milestone that "
+            "recorded a probe score keeps its pin — history is append-only and so is this.")
+
+    for tag in expected:
+        pin = (suite.get("pins") or {}).get(tag)
+        if pin is None:
+            continue
+        missing = [o for o in pin["observations"] if not (ROOT / o).is_file()]
+        if missing:
+            # INFRA, not FAIL. The observations are gone, so nothing about the
+            # system under test was established either way.
+            infra.append(f"{tag}: committed observation file(s) missing {missing}")
+            continue
+        observations = {}
+        try:
+            for path in pin["observations"]:
+                observations |= json.loads((ROOT / path).read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            infra.append(f"{tag}: a committed observation file is unreadable ({exc})")
+            continue
+
+        results = score_corpus(probes, observations)
+        actual = {r.id: r.result for r in results}
+        passed = sum(1 for r in results if r.result == "PASS")
+        scores[f"{tag}_passed"] = passed
+
+        # INFRA travels separately from FAIL, per probe. A probe the harness could
+        # not score is not a probe the platform failed, and collapsing the two
+        # would let a vanished observation read as a regression in the service.
+        unscored = [r for r in results if r.result == INFRA]
+        if unscored:
+            infra.append(f"{tag}: {len(unscored)} probe(s) not scored — "
+                         + "; ".join(f"{r.id} ({r.reason})" for r in unscored))
+
+        expected_results = pin.get("expected_results") or {}
+        for pid in sorted(set(expected_results) | set(actual)):
+            was, now = expected_results.get(pid), actual.get(pid)
+            if was != now:
+                moved.append(f"{tag}/{pid}: {was or 'unpinned'} -> {now or 'gone'}")
+
+        if passed != pin["expected_passed"]:
+            direction = "below" if passed < pin["expected_passed"] else "ABOVE"
+            failures.append(
+                f"{tag}: {passed}/{len(probes)} is {direction} the pinned comparator "
+                f"{pin['expected_passed']}/{len(probes)}. The adversarial instrument has "
+                "moved. A RISE is the direction that matters here: the easiest way to raise "
+                "a probe score is to widen what counts as a refusal.")
+
+    if moved:
+        failures.append("probe result(s) moved against the pin: " + ", ".join(moved)
+                        + ". A total can hide a swap; the per-probe pin cannot.")
+
+    # INFRA outranks a quality FAIL, matching `pave/gate.py`: if the lane cannot
+    # trust its own inputs, that is the first thing to fix.
+    decided = "INFRA" if infra else ("FAIL" if failures else "PASS")
+
+    # Written BEFORE anything is printed, the ordering the L2 lane had to learn:
+    # a console that cannot encode the summary killed the process on the PASS path
+    # and left no verdict file at all.
+    if out:
+        verdict_mod.write(out[0], verdict_mod.build(
+            service=service, surface="agent", suite="adversarial", layer="L5",
+            verdict=decided, fail_closed=True, scores=scores,
+            artifacts=sorted({o for tag in expected
+                              for o in ((suite.get("pins") or {}).get(tag) or {}).get(
+                                  "observations", [])})))
+
+    for line in infra + failures:
+        _emit(f"    {line}")
+    _emit(f"[pave adversarial] {service}: {decided} - "
+          + ", ".join(f"{k} {v}" for k, v in sorted(scores.items()))
+          + f"; {len(semantics.get('cases') or [])} G4 semantics case(s) checked")
+    if failures or infra:
+        _emit(f"    fix: re-derive locally with `python -m pave.cli adversarial run {service}`. "
+              "A moved probe number is either a scorer change or a corpus change — say which "
+              "in the PR body. If the move is intended, edit evals/comparators.json in its own "
+              "PR with `Two-Key-Disposition:` from ai-quality, platform-eng AND security. "
+              "Never edit quality/adversarial/g4-semantics.yaml to make this lane pass: that "
+              "file is what a probe passing means, and changing it needs Security plus an ADR.")
+    return 1 if (failures or infra) else 0
+
+
 def check(argv=()):
     """Hermetic local checks (G8): no cloud, no network. The platform-neutral
     twin of `make check` — the Makefile's `2>/dev/null` and `rm -f` are POSIX-only,
@@ -629,9 +797,10 @@ def main(argv):
         return evals_dryrun_cmd(rest[1:])
     elif cmd == "evals":
         _stub("evals", f"unknown evals subcommand {rest}; try `run` or `dryrun`")
+    elif cmd == "adversarial" and rest[:1] == ["run"]:
+        return adversarial_run(rest[1:])
     elif cmd == "adversarial":
-        _stub("adversarial", f"run quality/adversarial/probes.yaml against {rest}; a probe passes "
-                             "only if the guardrail blocked or policy denied AND an audit record exists (G4)")
+        _die(f"adversarial: expected `run`, got {rest}", gate_mod.EXIT_CONTRACT)
     elif cmd == "gate" and rest[:1] == ["decide"]:
         gate_decide(rest[1:])
     elif cmd == "gate" and rest[:1] == ["comment"]:
