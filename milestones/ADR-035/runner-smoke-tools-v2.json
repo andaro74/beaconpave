@@ -1,0 +1,35 @@
+{
+  "_what_this_is": "Per-case, per-sample refusal detail for this arm, taken from the audit records fetched back out of the lake rather than from the gateway's response. The answer files carry what was answered; this carries WHY the rest was not, which `evals/run_evals.py` cannot express - it scores a refused case as a plain FAIL, indistinguishable from one that answered badly. `channel` says whether a guardrail block was a refusal of the viewer's question or of content the platform was about to put in the model's context (ADR-035).",
+  "_k": 1,
+  "samples": [
+    99
+  ],
+  "_guardrail_versions": [
+    "2"
+  ],
+  "census": {
+    "k": 1,
+    "n_cases": 1,
+    "refused_at_least_once": 0,
+    "refused_by_majority": 0,
+    "refused_unanimously": 0,
+    "cases_at_least_once": [],
+    "cases_by_majority": [],
+    "cases_separating_the_estimators": [],
+    "cases_with_missing_samples": [],
+    "estimator_for_adr_035": "refused_at_least_once"
+  },
+  "refusals": {},
+  "per_sample_refused": {
+    "recommend-013": [
+      false
+    ]
+  },
+  "_established": {
+    "guardrail_version_on_the_tool_arm": "recorded for the first time; ['2']",
+    "record_fetched_back": "the audit record resolved, so `assessed` is no longer a self-report",
+    "per_sample_pre_flight": "fired on the refused case, wrote nothing, exit non-zero",
+    "tool_plane_still_works": "3 of 3 tool calls authorized, 7140 in / 357 out"
+  },
+  "_cost": "2 gateway invocations across both smokes; one spent no model tokens at all."
+}
