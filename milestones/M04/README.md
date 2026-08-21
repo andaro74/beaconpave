@@ -15,7 +15,7 @@ comparator they moved against.
 Everything else runs from a clean clone with no AWS account:
 
 ```bash
-make check                                          # 1432 tests, hermetic
+make check                                          # 1438 tests, hermetic
 
 # The L5 lane: re-score committed observations through the current scorer.
 python -m pave.cli adversarial run services/highlights-agent --out verdict-adv.json
