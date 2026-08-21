@@ -121,3 +121,108 @@ def render(rows: list[dict] | None = None) -> str:
 
 if __name__ == "__main__":
     print(render())
+
+
+#: Which estimator ADR-035 rows 7 and 8 are judged against, fixed in an amendment
+#: **before** the spend so it cannot be chosen after seeing the data.
+#:
+#: Row 8's own words are "refuse AT LEAST ONCE". `evals/run_evals.py::summarise`
+#: aggregates k samples by per-case MAJORITY. Both are defensible and they are not
+#: the same number: on the three committed M02 control runs they are 8 of 25 and
+#: 6 of 25, and the cases that separate them are `brand-020` and `recommend-013`,
+#: each refused on exactly one sample of three.
+#:
+#: (The AI Quality seat's review named a third, `concise-022`. It was refused on
+#: two samples of three, so majority catches it and it separates nothing — the
+#: seat's counts, 8 and 6, were right and its list of names had one too many.
+#: Recorded because `test_the_two_estimators_differ_on_the_committed_runs` pins
+#: the names as well as the counts, and a reader comparing the two would
+#: otherwise think this file had drifted.)
+#:
+#: At-least-once is the one that survives this repo's own evidence. The control
+#: this measures is stochastic: it returned different verdicts on identical input
+#: in 4 of 25 anchor cases, and `PHR-004` — the product's most basic question —
+#: was blocked in 1 of 3 identical calls. A guardrail that refuses the basic
+#: question one time in three is a finding, and majority reports it as a
+#: non-event. Recording both is not hedging; it is so that a reader can see the
+#: gap the choice was made across.
+ADR_035_ESTIMATOR = "refused_at_least_once"
+
+
+def census_from_samples(per_sample: dict[str, list], k: int) -> dict:
+    """Both estimators over one k-sample run, computed rather than asserted.
+
+    **This exists because an ADR cannot compute a number and a harness can.**
+    Fixing the estimator in prose and then hand-counting the run afterwards is
+    choosing it after seeing the data, which is the door a pre-registration is
+    there to close. So the run writes both numbers, before anybody reads them,
+    and the ADR says which one it is judged against.
+
+    It also lives here rather than in the runner because the runner imports
+    boto3 and this must be provable on a fresh clone with no account — the same
+    split `core/` and `handler.py` make one layer down. The runner calls it; the
+    hermetic suite checks it against the committed M02 runs, where the answer is
+    already known.
+
+    `per_sample` maps a case id to one entry per sample: `True` refused, `False`
+    answered, `None` for a sample the harness never got — a call that failed is
+    not evidence that the case was answered, and counting it as a non-refusal
+    would flatter the number by exactly the calls that went wrong."""
+    if k < 1:
+        raise ValueError(f"k={k}; a case needs at least one sample")
+
+    at_least_once, majority, unanimous, incomplete = [], [], [], []
+    for case, samples in per_sample.items():
+        seen = [s for s in samples if s is not None]
+        if len(seen) < k:
+            incomplete.append(case)
+        if any(seen):
+            at_least_once.append(case)
+        # Majority is over the samples that HAPPENED, and `needed` is derived from
+        # `k` rather than from `len(seen)`: a case with one lost sample must not
+        # become easier to call refused than one with three.
+        if sum(bool(s) for s in seen) > k // 2:
+            majority.append(case)
+        if seen and all(seen) and len(seen) == k:
+            unanimous.append(case)
+
+    return {
+        "k": k,
+        "n_cases": len(per_sample),
+        "refused_at_least_once": len(at_least_once),
+        "refused_by_majority": len(majority),
+        "refused_unanimously": len(unanimous),
+        "cases_at_least_once": sorted(at_least_once),
+        "cases_by_majority": sorted(majority),
+        # The cases the choice of estimator actually turns on. Printed so the gap
+        # is visible in the artifact rather than reconstructable from it.
+        "cases_separating_the_estimators": sorted(set(at_least_once) - set(majority)),
+        # A run with lost samples is not a k-sample run, and the number must say
+        # so rather than quietly being taken over fewer.
+        "cases_with_missing_samples": sorted(incomplete),
+        "estimator_for_adr_035": ADR_035_ESTIMATOR,
+    }
+
+
+def samples_from_runs(paths) -> dict[str, list]:
+    """`per_sample` built from several committed answer files — one file per
+    sample, which is M02's convention.
+
+    Deliberately keyed on the union of case ids across the files rather than on
+    the first file's: a case missing from one sample is a lost sample, not an
+    absent case, and the distinction is what `cases_with_missing_samples`
+    reports."""
+    runs = [json.loads((ROOT / p).read_text(encoding="utf-8")) for p in paths]
+    cases = sorted({case for run in runs for case in run})
+    per_sample: dict[str, list] = {}
+    for case in cases:
+        row = []
+        for run in runs:
+            record = run.get(case)
+            if record is None:
+                row.append(None)
+                continue
+            answer = record.get("answer")
+            row.append(isinstance(answer, dict) and "refused_by_gateway" in answer)
+        per_sample[case] = row
+    return per_sample
