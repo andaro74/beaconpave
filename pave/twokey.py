@@ -169,6 +169,36 @@ RULES: tuple[Rule, ...] = (
         ("tool-owner", "legal-sp"),
     ),
     Rule(
+        # **The control, not only the corpus that measures it.** Until the ADR-035
+        # review this table protected `quality/adversarial/` — the probe corpus —
+        # and `evals/comparators.json` — the pins those probes score against — and
+        # left the deployed guardrail policy needing one attestation and no ADR.
+        # The thermometer was guarded twice and the thermostat was guarded neither.
+        #
+        # G9: *whoever feels a control's pain never solely controls its strength.*
+        # The person who wants the guardrail to stop refusing their questions is
+        # the person who can widen it, and ADR-035 exists because that pressure is
+        # real — the deployed topic refuses the product's most basic question 1 in
+        # 3, and classifies the product's own catalog as circumvention. A change
+        # that relieves that pain by a sentence is exactly the change that must not
+        # be self-served.
+        #
+        # AI Quality joins because a guardrail change moves what every recorded
+        # observation means without moving a single instrument digest — ADR-018's
+        # hazard, and the seat that owns whether a before/after survives is the
+        # seat that has to see it coming.
+        #
+        # `requires_adr` is ON, matching `quality/adversarial/` rather than
+        # `evals/comparators.json`. A guardrail edit is a policy decision with a
+        # measured cost on both sides, not a routine re-pin, and this repo has now
+        # produced three ADRs about this one topic. If a tightening is worth
+        # deploying it is worth a paragraph saying what it should break.
+        "the deployed guardrail policy — the control itself, not the corpus that measures it",
+        re.compile(r"^platform/infra/lib/gateway-stack\.ts$"),
+        ("security", "ai-quality"),
+        requires_adr=True,
+    ),
+    Rule(
         "the adversarial corpus — only Security may downgrade a probe, and only with an ADR",
         re.compile(r"^quality/adversarial/"),
         ("security",),
