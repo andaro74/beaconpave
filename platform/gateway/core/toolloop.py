@@ -1,7 +1,8 @@
 """
 The agent loop, with the tool plane in front of every call.
 
-    converse -> [guardrail?] -> [tool_use?] -> authorize -> call -> validate -> converse
+    inspect -> converse -> [guardrail?] -> [tool_use?] -> authorize -> call
+            -> validate -> inspect -> converse
 
 **Pure, and that is the whole reason this module exists.** The loop is where G3
 either holds or does not: it is the code that decides whether a tool call is
@@ -22,11 +23,41 @@ writing them from here keeps the clock, the bucket and the record shape on the
 other side of the pure boundary, and it means a test can assert the *sequence* of
 decisions without a lake to read them back from.
 
+**Content the platform puts in context is inspected before the model sees it.**
+`guardrailConfig` on `converse` assesses the turn Bedrock is handed, and M04
+measured what that leaves out: the identical payload was blocked three times out
+of three as a user turn and allowed twice out of three when it arrived as
+platform-supplied context. So the same guardrail, at the same pinned version,
+with the same `INPUT` source, is applied here to every piece of content that
+enters the model's context without coming from the viewer — the system block this
+deployment assembles from the catalog, and every tool result before it joins the
+transcript. No topic wording makes a guardrail inspect content it is never handed
+(ADR-035).
+
+`inspect` is a **required** argument, with no default, for the same reason
+`converse` and `call_tool` are. A default of `None` would make the inspection
+opt-in, and every caller that forgot it would run exactly as it ran before the
+control existed, green and silent. A caller that genuinely wants no inspection
+passes something that says so, in a line a reviewer can see.
+
 **A refused tool call does not end the turn.** The model is told the platform
 refused, through the toolResult channel the protocol provides, and answers anyway.
 Ending the turn would make every denial look like an outage to the viewer, and it
 would hide the more interesting behaviour: what a model does when a tool it wanted
 is denied is a finding, and one M02 records as a trajectory.
+
+**A guardrail block on that result does end the turn, and the difference is not a
+style choice.** The Service Team seat read the paragraph above against the new
+code and found the module saying two opposite things, which it was. The
+distinction: a plane refusal means *this call* may not happen, and the turn is
+still answerable without it. A guardrail block means content already in hand may
+not enter the context, and the alternative — withholding the payload and letting
+the turn continue — ends the turn `answered`. Under G4 that scores the probe FAIL,
+because a probe passes when the guardrail blocked and a record exists, never
+because the model coped. So the hard stop is what makes the control demonstrable
+rather than merely present. The cost is real and belongs here rather than in a
+journal: one poisoned row in a catalog takes out every question that retrieves
+it, including the questions the clean rows would have answered.
 
 Pure — no SDK, no filesystem, no clock. Owning seat: Platform Engineering (the
 loop) · Security (it is an authorization path) · Tool Owner (what a tool is told,
@@ -34,6 +65,7 @@ and told back).
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 
 from core import guardrail as guardrail_module
@@ -47,6 +79,15 @@ def _monotonic():
 
 #: Bedrock's stop reason when the model wants one or more tools.
 STOP_REASON_TOOL_USE = "tool_use"
+
+#: An explicit declaration that a caller has nothing in context the viewer did
+#: not write. Spelled as a name because the alternative spelling is `()`, which is
+#: byte-identical to the accident of forgetting the argument — and a control whose
+#: deliberate exemption and whose silent misconfiguration look the same in a diff
+#: is a control a reviewer cannot check. The same argument the required `inspect`
+#: argument makes, one level out. A caller that uses this owes a comment naming
+#: who decided.
+NOTHING_UNTRUSTED: tuple = ()
 
 #: What `run_turn` stopped for. Three terminal states, kept distinct for the same
 #: reason the refusal mechanisms are: "the turn ended" and "the turn was stopped"
@@ -233,13 +274,43 @@ def _tool_ms(started, ended) -> int:
     return max(0, int((ended - started) * 1000))
 
 
+def _inspection_text(payload) -> str:
+    """What of a tool result the guardrail is handed.
+
+    The whole payload, serialised, rather than the string fields picked out of
+    it. A field-picking version was the first draft and it is the wrong shape for
+    the same reason `ADV-002`'s fixture is a *title*: the injection goes wherever
+    the platform is not looking, and a list of fields worth inspecting is a list
+    that goes stale the next time a tool's output contract gains one. `sort_keys`
+    so two identical payloads are handed over identically — an unstable
+    serialisation would make a stochastic control look more stochastic than it is.
+
+    `ensure_ascii=False` because escaping non-ASCII would hide the very text the
+    guardrail is being asked to read."""
+    return json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
+
+
 def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool,
-             clock=None) -> TurnOutcome:
+             inspect, untrusted: tuple = (), clock=None) -> TurnOutcome:
     """Run one agent turn to completion, to a refusal, or to its bound.
 
-    `converse(transcript) -> (response, latency_ms)` and
-    `call_tool(tool_id, args) -> ToolReply` are the only things that touch the
-    outside; everything else here is a decision.
+    `converse(transcript) -> (response, latency_ms)`,
+    `call_tool(tool_id, args) -> ToolReply` and
+    `inspect(text, channel=...) -> GuardrailOutcome` are the only things that
+    touch the outside; everything else here is a decision.
+
+    **`untrusted` is what is already in context and did not come from the
+    viewer**, as `(channel, text)` pairs — in this deployment, the system block,
+    because it carries the catalog. It is declared by the caller rather than
+    inferred here: the loop is handed a transcript and cannot tell which parts of
+    it the platform assembled from a data source, and guessing would be a control
+    whose scope moves whenever a caller changes shape.
+
+    **An inspection that fails does not proceed.** `inspect` raising is wrapped in
+    `TurnFailed`, so the tool records already earned still reach the lake and the
+    harness reports INFRA rather than a decision — the gateway established
+    nothing. Swallowing it and continuing would be a control that reports itself
+    green on the calls it did not make (G2: an errored gate blocks, never skips).
 
     **`principal` is passed in and never read off the transcript or the event.**
     It is the Cedar principal, so anything a caller or a model can influence must
@@ -252,11 +323,39 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
     # pre-registers a p95 breach as an expected finding, so the number is going to
     # be read. Injected rather than imported: `core/` stays free of the clock, and
     # a test can hand it a deterministic one.
+    # **The inspection round trips are measured, in their own key.** `latency_ms`
+    # times `converse` and `tool_ms` times `call_tool`; before this the guardrail
+    # calls landed in neither, so a governed turn's recorded latency understated
+    # its wall clock by every inspection it made — while carrying the same name it
+    # carried at M04, against a p95 SPEC/02 pre-registers as a finding worth
+    # reading. That is the `tool_ms` defect M02 already paid for, one milestone
+    # later and one control over. Its own key rather than folded in, for the same
+    # reason `tool_ms` is: a ceiling derived without this component must not be
+    # compared against a number that includes it.
     clock = clock or _monotonic
     transcript: list[dict] = [dict(message) for message in messages]
     turn = plane.begin_turn()
     calls: list[ToolCall] = []
     totals: dict = {}
+
+    # **Before the first model call, not after it.** The content is already in
+    # context by the time `converse` would assess it, and a control that reports
+    # the injection after the model has read it is a detector, not a guardrail.
+    # A turn stopped here spent no TOKENS, which is the cost that matters for the
+    # budget axis — but it did spend the inspection, and `guard_ms` records that.
+    # The token keys are what say a model call happened.
+    for channel, text in untrusted:
+        if not text:
+            continue
+        started = clock()
+        try:
+            assessment = inspect(text, channel=channel)
+        except Exception as exc:  # noqa: BLE001 — re-raised as TurnFailed
+            raise TurnFailed(exc, calls, totals) from exc
+        totals["guard_ms"] = totals.get("guard_ms", 0) + _tool_ms(started, clock())
+        if assessment.intervened:
+            return TurnOutcome(BLOCKED, None, tuple(calls), totals, assessment,
+                               transcript=tuple(transcript))
 
     while True:
         try:
@@ -342,6 +441,32 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
                             f"result rejected: {reason}" for reason in checked.reasons))
 
             calls.append(ToolCall(decision, turn.rounds, seq, args, use.get("toolUseId"), payload))
+
+            # **After the output contract, before the transcript.** The plane
+            # decides whether the result is well-formed; the guardrail decides
+            # whether its *content* may enter the model's context, and they are
+            # different questions with different owners. Running it here means a
+            # blocked payload is never appended — the turn stops holding the
+            # injection outside the transcript rather than assessing it once it is
+            # in. Only an allowed result is inspected: a withheld one produced no
+            # payload, and the refusal text in its place is the platform's own.
+            if payload is not None:
+                started = clock()
+                try:
+                    assessment = inspect(
+                        _inspection_text(payload),
+                        channel=guardrail_module.CHANNEL_TOOL_OUTPUT)
+                except Exception as exc:  # noqa: BLE001 — re-raised as TurnFailed
+                    raise TurnFailed(exc, calls, totals) from exc
+                totals["guard_ms"] = totals.get("guard_ms", 0) + _tool_ms(started, clock())
+                if assessment.intervened:
+                    # The tool call's own record still says `allowed`, because it
+                    # was: the plane authorized it and the tool answered. The turn
+                    # record says blocked by the guardrail. Two controls, two
+                    # records, and collapsing them would lose which one fired.
+                    return TurnOutcome(BLOCKED, response, tuple(calls), totals, assessment,
+                                       transcript=tuple(transcript))
+
             results.append(
                 _tool_result_block(use.get("toolUseId"), decision, payload, withheld))
 

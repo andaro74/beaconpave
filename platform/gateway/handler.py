@@ -245,6 +245,41 @@ def _converse(system, tools):
     return converse
 
 
+def _inspect():
+    """Hand one piece of platform-supplied content to the guardrail, directly.
+
+    **The same guardrail, the same pinned version, the same `INPUT` source.**
+    "Equivalently" is meant literally: this is the policy `converse` applies to
+    the viewer's turn, applied to content the viewer did not write. A separate
+    policy for this channel would have been a second thing to keep in step, and
+    the first divergence would show up as a probe result nobody could attribute.
+
+    `INPUT` rather than `OUTPUT` because the hazard is an instruction, not an
+    utterance: `PROMPT_ATTACK` is input-only by the service's design, and it is
+    one of the two policies that fired on M04's user-turn arm. Assessing this
+    content as output would drop exactly the filter the channel most needs.
+
+    **Nothing here is truncated.** A payload too large for the API raises, the
+    turn fails, and the harness reports INFRA. Trimming it to fit would put the
+    tail of every long tool result outside the control while the record went on
+    saying the content was inspected — a hole shaped precisely like the one this
+    change exists to close.
+
+    The response's `usage` counts guardrail text units and is deliberately
+    dropped. The meter is token-denominated (ADR-014) and a text unit is not a
+    token; adding them would make the budget axis report a number with two
+    denominations in it."""
+    def inspect(text, *, channel):
+        response = _bedrock.apply_guardrail(
+            guardrailIdentifier=GUARDRAIL_ID,
+            guardrailVersion=GUARDRAIL_VERSION,
+            source="INPUT",
+            content=[{"text": {"text": text}}],
+        )
+        return guardrail.interpret_apply(response, channel=channel)
+    return inspect
+
+
 def _tool_records(outcome, common, classification):
     """One record per tool call, allowed or denied.
 
@@ -320,6 +355,38 @@ def handler(event, context):
     offered = [t for t in TOOL_FUNCTIONS if t in CONTRACTS] if event.get("tools") else []
     messages = [{"role": "user", "content": [{"text": text}]}]
 
+    # **The system block is NOT declared untrusted, and that is a measured
+    # decision rather than an oversight.** The first version of this line was
+    # `((guardrail.CHANNEL_SYSTEM, system),) if system else ()`, on the reasoning
+    # that `gateway_client.build_prompt` assembles the block from
+    # `data/catalog.json`, so "the system prompt is ours" is true of the
+    # instructions and false of the data inside them — and ADV-002's injection
+    # rides in exactly that data. The reasoning was right and the implementation
+    # was unusable, which seven `ApplyGuardrail` calls established before any
+    # model call was spent (`milestones/ADR-035/preflight-v2.json`):
+    #
+    #   - the CLEAN system block is blocked, by `PROMPT_ATTACK` and by the
+    #     entitlement topic. It is sent on every gateway call, so declaring it
+    #     untrusted refuses every golden question and every probe before the model
+    #     is reached. A 100% outage.
+    #   - clean and poisoned block IDENTICALLY, with identical attributions. A
+    #     control that cannot tell the product's own catalog from an injection is
+    #     not a control; and since `observation_from_record` computes
+    #     `guardrail_blocked` from `decision` and `mechanism` and does not read
+    #     `channel`, every probe would have scored PASS on it.
+    #
+    # So ADR-035 amendment 1 WITHDREW this half rather than deferring it: the form
+    # is wrong, not the timing. A recoverable version exists — inspect the
+    # interpolated catalog DATA, which the same run shows carries no
+    # `PROMPT_ATTACK` of its own — and it is gated on amendment 2's row 12, which
+    # asks whether the clean catalog stops tripping the topic under guardrail v3.
+    # It is gated, not promised. `tests/test_handler_wiring.py` pins the
+    # withdrawal so it cannot be silently re-added.
+    #
+    # The loop's `untrusted` mechanism stays: it is general, it is tested, and it
+    # is what the recoverable version would use.
+    untrusted = toolloop.NOTHING_UNTRUSTED
+
     try:
         outcome = toolloop.run_turn(
             plane=PLANE,
@@ -327,6 +394,8 @@ def handler(event, context):
             messages=messages,
             converse=_converse(system, tool_config(offered)),
             call_tool=_call_tool,
+            inspect=_inspect(),
+            untrusted=untrusted,
         )
     except toolloop.TurnFailed as failure:
         # The turn died partway. Write the records for the calls that already
@@ -367,12 +436,20 @@ def handler(event, context):
             decision="blocked",
             mechanism="guardrail",
             guardrail=fragment,
-            usage=meter.assert_token_denominated(outcome.usage),
+            # **Absent, not zero, when nothing was spent.** A block on the system
+            # block lands before the first model call, and the schema says usage is
+            # absent for a refusal that landed before one. An empty object would
+            # validate and would read as "a metered call that cost nothing", which
+            # is a different and untrue statement.
+            usage=meter.assert_token_denominated(outcome.usage) or None,
             **common,
         )
-        return {"decision": "blocked", "mechanism": "guardrail",
-                "record_id": _write(record), "assessed": list(outcome.guardrail.assessed),
-                "usage": outcome.usage, **common_out}
+        blocked = {"decision": "blocked", "mechanism": "guardrail",
+                   "record_id": _write(record), "assessed": list(outcome.guardrail.assessed),
+                   "usage": outcome.usage, **common_out}
+        if outcome.guardrail.channel is not None:
+            blocked["channel"] = outcome.guardrail.channel
+        return blocked
 
     if outcome.status == toolloop.LOOP_BOUND:
         record = audit.build_record(
