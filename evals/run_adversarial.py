@@ -58,6 +58,57 @@ def dirty_working_tree(root: pathlib.Path) -> str:
     return out.stdout.strip() if out.returncode == 0 else ""
 
 
+INSTRUMENTS = ROOT / "quality" / "adversarial" / "instruments.json"
+
+
+def check_instrument_name(name: str, digests: dict) -> str | None:
+    """Resolve `name` in the registry and confirm it still means what it meant.
+
+    Returns a problem string, or `None` when the name resolves and every
+    registered digest matches what this tree computes.
+
+    **This lives in the recorder, not in `evals/adversarial.py`.** Putting it
+    beside the scorer would have moved `scorer_sha256` — the digest this function
+    exists to check — for a change that alters how no probe is scored, and the
+    first thing it would have reported is that `m04-A` no longer matches itself.
+    A validator that invalidates the record it validates is ADR-018's hazard
+    running backwards. Registry lookup is a recording concern; scoring is not.
+    """
+    if not INSTRUMENTS.is_file():
+        return (f"the instrument registry {INSTRUMENTS.name} is missing. An entry's "
+                "`instrument.name` is a foreign key into it (ADR-027 rule 4); with no "
+                "table there is nothing for the name to mean.")
+    registry = json.loads(INSTRUMENTS.read_text(encoding="utf-8")).get("instruments") or {}
+    if not registry:
+        return (f"{INSTRUMENTS.name} registers no instruments. A registry that is empty "
+                "accepts every name, which is the state this file was added to end.")
+    if name not in registry:
+        known = ", ".join(sorted(registry)) or "<none>"
+        return (f"instrument {name!r} is not registered in {INSTRUMENTS.name}. Known: "
+                f"{known}. A row naming an instrument nobody can look up is a fingerprint "
+                "of an object that does not exist (ADR-027 rule 4). Register it first — "
+                "that file is two-key with Security's key and needs an ADR, which is the "
+                "correct price for defining what read a published number.")
+
+    registered = registry[name].get("digests") or {}
+    if not registered:
+        return f"instrument {name!r} is registered with no digests, so the name means nothing."
+    moved = sorted(f"{k}: registered {registered[k][:8]}, this tree {digests.get(k, '<absent>')[:8]}"
+                   for k in registered if registered[k] != digests.get(k))
+    if moved:
+        return (f"instrument {name!r} is registered, but this tree does not match it — "
+                + "; ".join(moved) + ". The same name would then describe two different "
+                "instruments and every entry citing it would become ambiguous. Register a "
+                "NEW name beside it rather than editing this one: the old row has to keep "
+                "standing, because published numbers cite it.")
+    missing = sorted(set(digests) - set(registered))
+    if missing:
+        return (f"this tree computes digest(s) {missing} that instrument {name!r} does not "
+                "register. A digest outside the registered set is one the name does not "
+                "pin, so it can move without the name changing.")
+    return None
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="run_adversarial")
     p.add_argument("--observations", required=True)
@@ -176,6 +227,16 @@ def main(argv=None) -> int:
             print("error: --instrument-name is required with --record. An entry whose "
                   "instrument has no handle cannot be compared with any other entry "
                   "(ADR-027 rule 4).", file=sys.stderr)
+            return 2
+        # **And the handle has to resolve.** The check above only asked whether a
+        # name was typed, so `--instrument-name does-not-exist` recorded happily:
+        # rule 4's whole subject is the foreign key, and there was no table on the
+        # other side of it. Measured by the AI Quality seat before the M04 entry
+        # was written, and left open at the tag because the registry needed
+        # Security's key rather than a quiet file.
+        registry_problem = check_instrument_name(args.instrument_name, instrument_digests())
+        if registry_problem:
+            print(f"error: {registry_problem}", file=sys.stderr)
             return 2
         if not args.guardrail_policy_sha256:
             print("error: --guardrail-policy-sha256 is required with --record. The version "
