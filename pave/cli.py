@@ -215,14 +215,19 @@ def evals_run(argv=()):
 
     comparators = pathlib.Path(override[0]) if override else ROOT / "evals" / "comparators.json"
     pinned = json.loads(comparators.read_text(encoding="utf-8"))
-    entry = pinned["services"].get(service)
+    # `suites` arrived at M04, when the adversarial lane needed a pin and the
+    # alternative was a third place to keep one. `.get` rather than `[]` on both
+    # halves: a comparator file that has lost its shape must reach the ABSENT
+    # branch below, which the gate blocks on, rather than raising a KeyError that
+    # CI reports as an errored step with no verdict written at all.
+    entry = (pinned["services"].get(service) or {}).get("suites", {}).get("goldens")
     if entry is None:
         # ABSENT, not PASS. The gate's own rule: a suite with nothing to decide on
         # is missing from the verdict list rather than reporting success.
         # Names what IS pinned. A typo'd service path was indistinguishable from a
         # service nobody has onboarded, and in CI both become an absent verdict that
         # pages the platform for a service-team typo.
-        _emit(f"[pave evals] no comparator pinned for {service!r}; emitting nothing. "
+        _emit(f"[pave evals] no goldens comparator pinned for {service!r}; emitting nothing. "
               f"Pinned services: {', '.join(sorted(pinned['services'])) or 'none'}")
         return 0
 

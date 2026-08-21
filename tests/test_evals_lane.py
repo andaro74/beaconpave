@@ -33,6 +33,15 @@ def comparators() -> dict:
     return json.loads(COMPARATORS.read_text(encoding="utf-8"))
 
 
+def goldens(doc: dict | None = None) -> dict:
+    """The golden-suite pin for the reference service.
+
+    Suite-keyed since M04, when the adversarial lane needed a pin of its own and
+    the alternative was a third place to keep one. Reached through one helper so
+    that a later suite cannot be added by copying a path expression eight times."""
+    return (doc or comparators())["services"]["highlights-agent"]["suites"]["goldens"]
+
+
 def run_lane(*args, cwd=ROOT):
     return subprocess.run([sys.executable, "-m", "pave.cli", "evals", "run", *args],
                           cwd=cwd, capture_output=True, text=True)
@@ -49,7 +58,7 @@ def test_the_comparator_is_not_the_recorded_score():
     differ, and a lane that compared against the recorded number would fail on
     every legitimate tightening — which is the pressure that gets tightenings
     reverted."""
-    entry = comparators()["services"]["highlights-agent"]
+    entry = goldens()
     assert entry["recorded_passed"] == 16
     assert entry["expected_passed"] == 15
     assert entry["recorded_passed"] != entry["expected_passed"]
@@ -61,7 +70,7 @@ def test_the_comparator_is_not_the_recorded_score():
 def test_every_comparator_run_exists_and_is_listed_not_globbed():
     """A globbed run set shrinks silently when a file is renamed, and a shrunken
     arm scores differently for a reason no diff shows."""
-    entry = comparators()["services"]["highlights-agent"]
+    entry = goldens()
     arms = [entry] + list((entry.get("also_pinned") or {}).values())
     for arm in arms:
         assert arm["runs"], "an arm with no runs would score nothing and pass"
@@ -73,7 +82,7 @@ def test_both_m02_arms_are_pinned():
     """M02's result is the paired diff, not the total (ADR-021). A comparator that
     moved on one arm only would silently change the delta while both totals still
     looked defensible."""
-    entry = comparators()["services"]["highlights-agent"]
+    entry = goldens()
     assert entry["arm"] == "tools"
     assert "control" in (entry.get("also_pinned") or {})
 
@@ -101,13 +110,16 @@ def test_the_lane_fails_on_comparator_drift_in_either_direction(tmp_path, shift,
     # the tracked, two-key `evals/comparators.json` in the real working tree and
     # restore it in a `finally` — twice per `make check`, and a killed run left a
     # live gate criterion modified on disk.
+    #
+    # Moved through the parsed document rather than a string replace once a second
+    # suite existed: `"expected_passed": 6` is the adversarial m01 pin, and a
+    # first-match textual edit is one reordering away from moving the wrong suite's
+    # number while still asserting the golden lane blocked.
     original = COMPARATORS.read_text(encoding="utf-8")
-    entry = comparators()["services"]["highlights-agent"]
-    moved = original.replace(f'"expected_passed": {entry["expected_passed"]}',
-                             f'"expected_passed": {entry["expected_passed"] + shift}', 1)
-    assert moved != original
+    doc = comparators()
+    goldens(doc)["expected_passed"] += shift
     copy = tmp_path / "comparators.json"
-    copy.write_text(moved, encoding="utf-8")
+    copy.write_text(json.dumps(doc, indent=2), encoding="utf-8")
     result = run_lane("services/highlights-agent", "--comparators", str(copy))
     assert COMPARATORS.read_text(encoding="utf-8") == original, (
         "the tracked comparator file was modified by a test")
@@ -193,11 +205,10 @@ def test_the_control_arm_pin_also_fails_the_lane(tmp_path):
     `comparators.json` argues the control arm is pinned *because the paired diff is
     the result* (ADR-021) — an untested claim is how that pin quietly becomes
     decoration."""
-    original = COMPARATORS.read_text(encoding="utf-8")
-    moved = original.replace('"expected_passed": 17', '"expected_passed": 16', 1)
-    assert moved != original
+    doc = comparators()
+    goldens(doc)["also_pinned"]["control"]["expected_passed"] -= 1
     copy = tmp_path / "comparators.json"
-    copy.write_text(moved, encoding="utf-8")
+    copy.write_text(json.dumps(doc, indent=2), encoding="utf-8")
     result = run_lane("services/highlights-agent", "--comparators", str(copy))
     assert result.returncode == 1
     assert "control" in result.stdout
@@ -210,7 +221,7 @@ def test_dropping_an_arm_does_not_silently_pass(tmp_path):
     an arm passed. Silent-pass on deletion and fail-closed on truncation is the
     wrong way round, and deletion is the easier edit to make by accident."""
     doc = json.loads(COMPARATORS.read_text(encoding="utf-8"))
-    doc["services"]["highlights-agent"].pop("also_pinned")
+    goldens(doc).pop("also_pinned")
     copy = tmp_path / "comparators.json"
     copy.write_text(json.dumps(doc), encoding="utf-8")
     result = run_lane("services/highlights-agent", "--comparators", str(copy))

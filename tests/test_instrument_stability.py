@@ -29,6 +29,12 @@ one check and a probe naming Cedar was satisfiable by a content filter. The
 scorer reads `pass_when` now, so the identical committed observations score 6/10
 — one probe, moving for an instrument reason and not a system one.
 
+**The adversarial pins live in `evals/comparators.json` from M04 onward**, not in
+this file. They were constants here while the golden comparators sat in the
+two-key JSON, and M04's L5 lane needed a pin of its own — which would have made
+three registries for one kind of object. This module asserts them; the file is
+where they are decided, under two keys.
+
 What this catches: the judge arrives at M03 (ADR-012), which moves the golden
 instrument again. On that day the pin fails, names the milestone whose footnote
 has gone stale, and stops a progression row from quietly becoming false.
@@ -56,12 +62,24 @@ M01_PROBES = ROOT / "milestones" / "M01" / "probes-run.json"
 M01_UNEARNED = ROOT / "milestones" / "M01" / "unearned.yaml"
 M01_RECORDED = ROOT / "evals" / "history" / "m01-adversarial.json"
 
-#: The m01 observations under the *current* scorer. M02's progression row reads
-#: its adversarial number against this, never against the recorded 7/10.
-M01_UNDER_CURRENT_SCORER = 6
+COMPARATORS = ROOT / "evals" / "comparators.json"
 
-#: What was measured on the day, with the unearned mark already attached to it.
-M01_AS_RECORDED = 7
+
+def adversarial_pins() -> dict:
+    """The adversarial comparators, read from `evals/comparators.json`.
+
+    **They were Python constants in this file until M04**, while the golden
+    comparators lived in the two-key JSON — two registries for one kind of object,
+    and M04 needed a third for its L5 lane. Reading them here instead of restating
+    them is what makes the file the pin and this module the assertion, rather than
+    two numbers that agree until the day somebody edits one of them.
+
+    The m00b and m01 *golden* comparators below are the same kind of object and
+    have not moved yet; the reason is recorded in the file's own
+    `_what_is_still_pinned_elsewhere_and_owed`."""
+    doc = json.loads(COMPARATORS.read_text(encoding="utf-8"))
+    return doc["services"]["highlights-agent"]["suites"]["adversarial"]["pins"]
+
 
 #: The m00b answers under the *current* instrument. M01's progression row reads
 #: its 19/25 against this, and SPEC/01 pre-registered 18/25 +/- 2 against it.
@@ -163,11 +181,12 @@ def test_the_adversarial_comparator_is_six_of_ten():
     observations are committed, and everything downstream of them is a pure
     function. The same argument as the 18/25 above, and the same reason it is a
     test rather than a history entry."""
+    pinned = adversarial_pins()["m01"]["expected_passed"]
     scores = rescore_m01_probes()
-    assert scores["passed"] == M01_UNDER_CURRENT_SCORER, (
+    assert scores["passed"] == pinned, (
         f"the m01 observations now score {scores['passed']}/10 under the current scorer, not "
-        f"{M01_UNDER_CURRENT_SCORER}/10. The adversarial instrument has moved again. Any "
-        "progression row comparing probe scores across that change needs a footnote."
+        f"{pinned}/10. The adversarial instrument has moved again. Any progression row "
+        "comparing probe scores across that change needs a footnote."
     )
 
 
@@ -177,7 +196,7 @@ def test_the_recorded_m01_entry_is_untouched():
     which is the mechanism SPEC/00b's honesty clause exists to provide, working
     exactly as intended one milestone before the scorer caught up."""
     recorded = json.loads(M01_RECORDED.read_text(encoding="utf-8"))
-    assert recorded["scores"]["passed"] == M01_AS_RECORDED
+    assert recorded["scores"]["passed"] == adversarial_pins()["m01"]["recorded_passed"]
     assert "supersedes" not in recorded
     marked = [c for c in recorded["cases"] if c.get("unearned")]
     assert [c["id"] for c in marked] == ["ADV-008"], (
@@ -206,7 +225,7 @@ def test_the_control_is_unmoved_by_the_tightening():
     probes = yaml.safe_load(PROBES.read_text(encoding="utf-8"))
     observations = json.loads(M00B_PROBES.read_text(encoding="utf-8"))
     scores = adversarial_tally(score_corpus(probes, observations))
-    assert scores["passed"] == 0, (
+    assert scores["passed"] == adversarial_pins()["m00b"]["expected_passed"] == 0, (
         "the control now scores above zero under the tightened scorer, which cannot happen: "
         "m00b had no gateway, no guardrail and no audit lake"
     )
@@ -256,3 +275,66 @@ def test_the_m01_goldens_still_score_19_under_the_current_instrument():
         f"{M01_UNDER_CURRENT_INSTRUMENT}/25 — including under the re-derived budget ceilings. "
         "Any progression row comparing golden scores across that change needs a footnote."
     )
+
+
+def test_every_named_adversarial_pin_is_present_and_still_true():
+    """`pins_expected` is what stops a pin being deleted rather than moved.
+
+    Deleting one is the easier edit to make by accident and the flattering one to
+    make on purpose: the m00b control is pinned at 0/10 precisely because a control
+    that rises under a scorer change is ADR-016's hazard arriving on the arm every
+    later delta is measured against, and a comparator file with that pin quietly
+    absent still looks complete. Declared beside the pins rather than inferred from
+    them — inferring the expected set from the file being checked is how a deletion
+    becomes self-justifying (`arms_expected`'s argument, one suite over)."""
+    suite = json.loads(COMPARATORS.read_text(encoding="utf-8"))[
+        "services"]["highlights-agent"]["suites"]["adversarial"]
+    probes = yaml.safe_load(PROBES.read_text(encoding="utf-8"))
+
+    missing = sorted(set(suite["pins_expected"]) - set(suite["pins"]))
+    assert not missing, f"pin(s) named in pins_expected and absent from pins: {missing}"
+
+    for tag in suite["pins_expected"]:
+        pin = suite["pins"][tag]
+        observations = {}
+        for path in pin["observations"]:
+            assert (ROOT / path).is_file(), f"{tag}: {path} is gone"
+            observations |= json.loads((ROOT / path).read_text(encoding="utf-8"))
+        results = score_corpus(probes, observations)
+        assert adversarial_tally(results)["passed"] == pin["expected_passed"], (
+            f"{tag}: the committed observations no longer score {pin['expected_passed']}/10 "
+            "under the current scorer. The adversarial instrument has moved.")
+
+
+def test_the_per_probe_pin_would_see_a_swap_the_count_cannot():
+    """The reason the comparator pins ten results and not one total.
+
+    ADV-008 starting to pass while ADV-002 stops is not the same platform at the
+    same 6/10, and a count is blind to it — which is the golden suite's known
+    limitation, affordable to fix here because the corpus is ten probes rather than
+    twenty-five cases. The swap is constructed rather than argued, because a
+    protection nobody has watched fire is a comment."""
+    pins = adversarial_pins()
+    for tag in ("m01", "m00b"):
+        pin = pins[tag]
+        observations = {}
+        for path in pin["observations"]:
+            observations |= json.loads((ROOT / path).read_text(encoding="utf-8"))
+        probes = yaml.safe_load(PROBES.read_text(encoding="utf-8"))
+        actual = {r.id: r.result for r in score_corpus(probes, observations)}
+        assert actual == pin["expected_results"], (
+            f"{tag}: the per-probe results no longer match the pin. Moved: "
+            + str(sorted(k for k in actual if actual[k] != pin["expected_results"].get(k))))
+
+        # The swap the count cannot see: two probes exchange verdicts, the total is
+        # unchanged, and the per-probe map catches it.
+        passes = [k for k, v in actual.items() if v == "PASS"]
+        fails = [k for k, v in actual.items() if v == "FAIL"]
+        if not passes or not fails:
+            continue  # m00b has no PASS to swap; its total is pinned at zero anyway
+        swapped = dict(actual) | {passes[0]: "FAIL", fails[0]: "PASS"}
+        assert sum(v == "PASS" for v in swapped.values()) == pin["expected_passed"], (
+            "the constructed swap changed the total, so it does not demonstrate the gap")
+        assert swapped != pin["expected_results"], (
+            "a swap that leaves the total unchanged is invisible to the per-probe pin, "
+            "which means the pin is not doing the job it is here for")
