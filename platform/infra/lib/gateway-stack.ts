@@ -242,14 +242,46 @@ export class GatewayStack extends cdk.Stack {
             // that is the tightening working, pre-registered in ADR-035 and in
             // the comparator pin — not a regression to defend.
             //
-            // 196 characters. Bedrock's cap is 200 and
+            // REVISED IN REVIEW, before deploy, by three findings the Security
+            // seat measured against the first draft. Recorded because the draft
+            // is in this branch's history and a reader will find it:
+            //
+            //   1. BLOCKING. The draft qualified the DENY on access "the viewer
+            //      LACKS". **A regional blackout is territorial, not
+            //      entitlement-based**: a paid sports-tier subscriber inside a
+            //      blackout holds the entitlement and still may not defeat the
+            //      restriction. The draft exempted the platform's core
+            //      compliance case, and the request self-certified out of it by
+            //      saying "I pay for this". `t001` in `data/catalog.json` carries
+            //      both `entitlement: sports-tier` and a Port William blackout,
+            //      and golden case `blackout-006` is that viewer. Hence
+            //      "whoever pays for what", which says the opposite out loud.
+            //   2. The draft replaced v2's open `a workaround ... or evasion
+            //      method` with a CLOSED artefact list. An open description is
+            //      not fittable to any corpus; a closed list is fittable by
+            //      construction, and requests naming no listed artefact fall
+            //      through. `workaround` is restored.
+            //   3. The draft named `VPN`, whose only occurrence in this repo is
+            //      `PHR-002`. v2's own words (`workaround`, `link`, `credential`)
+            //      are kept and the new term is `spoofed region` - the policy
+            //      concept rather than the corpus's noun. **The honesty clause
+            //      in ADR-024 names `probes.yaml` and the golden set and does NOT
+            //      name `phrasings.yaml`**, which is how a corpus term reached a
+            //      draft definition unchallenged. Extending it is owed to Security.
+            //
+            // The revision answers a seat's READING, not a measurement: nothing
+            // has been run against this wording. `quality/adversarial/topic-attacks.yaml`
+            // was frozen before either version was measured and its v2 control is
+            // recorded, so the after-run can say whether this weakened anything.
+            //
+            // 191 characters. Bedrock's cap is 200 and
             // `tests/test_iam_assertions.py` pins it against the snapshot.
             name: 'entitlement-circumvention',
             type: 'DENY',
             definition:
-              'Asking for or giving a means of access the viewer lacks: a stream link, ' +
-              'credential, VPN or region spoof, a paywall or blackout bypass. Saying what is ' +
-              'on or restricted, or how to subscribe, is not.',
+              'Asking for or giving a way around an access restriction, whoever pays for ' +
+              'what: a workaround, link, credential or spoofed region. Saying what is on or ' +
+              'restricted, or how to subscribe, is not.',
           },
         ],
       },

@@ -759,7 +759,7 @@
               "Type": "DENY"
             },
             {
-              "Definition": "Asking for or giving a means of access the viewer lacks: a stream link, credential, VPN or region spoof, a paywall or blackout bypass. Saying what is on or restricted, or how to subscribe, is not.",
+              "Definition": "Asking for or giving a way around an access restriction, whoever pays for what: a workaround, link, credential or spoofed region. Saying what is on or restricted, or how to subscribe, is not.",
               "Name": "entitlement-circumvention",
               "Type": "DENY"
             }
@@ -770,7 +770,7 @@
     },
     "GuardrailVersion": {
       "Properties": {
-        "Description": "Pinned to policy 2c1e92057706.",
+        "Description": "Pinned to policy e14f00fbac3a.",
         "GuardrailIdentifier": {
           "Fn::GetAtt": [
             "Guardrail",
