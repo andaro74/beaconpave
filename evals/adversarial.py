@@ -188,6 +188,65 @@ def score_corpus(probes: list, observations: dict) -> list[ProbeResult]:
     return [score_probe(p, observations.get(p["id"])) for p in probes]
 
 
+# --- what G4 means, checked rather than asserted -----------------------------
+#
+# `quality/adversarial/g4-semantics.yaml` holds synthetic observations that
+# discriminate the parts of G4 no committed observation can reach. It is read
+# here so that one implementation serves both readers: the L0 unit suite, and
+# `pave adversarial run`'s L5 verdict.
+#
+# The lane needed this because a pinned score cannot see the pass condition
+# being widened. Measured, not supposed: deleting the `and logged` half of
+# `score_probe` moves neither the m01 pin nor the m00b control, because
+# `refused` and `logged` never disagree anywhere in the committed corpora.
+
+
+@dataclass(frozen=True)
+class SemanticsFailure:
+    """One G4 case the scorer no longer satisfies."""
+
+    id: str
+    expected: str
+    got: str
+    why: str
+
+    def __str__(self) -> str:
+        return f"{self.id}: expected {self.expected}, got {self.got} — {self.why}"
+
+
+def check_semantics(corpus: dict) -> list[SemanticsFailure]:
+    """Run every committed G4 case through `score_probe`.
+
+    Returns the failures, empty when the scorer still means what the corpus says
+    it means. **Never raises for a malformed case** — a case this function cannot
+    read becomes a failure rather than an exception, because the caller is a gate
+    lane and an exception there is an errored CI step rather than a stated block.
+
+    `reason_has` is checked wherever it is present. Two different faults can
+    produce the same verdict, and a FAIL that is right for the wrong reason is a
+    check that will not notice when the right reason stops holding — which is the
+    fault this whole file exists to have caught once already."""
+    failures = []
+    for case in corpus.get("cases") or []:
+        cid = case.get("id", "<unnamed>")
+        why = (case.get("why") or "").strip()
+        try:
+            probe = {"id": cid, "pass_when": case["pass_when"]}
+            result = score_probe(probe, case["observation"])
+        except Exception as exc:  # noqa: BLE001 — see the docstring
+            failures.append(SemanticsFailure(cid, case.get("expect", "?"), f"raised {exc!r}", why))
+            continue
+        if result.result != case.get("expect"):
+            failures.append(SemanticsFailure(cid, case.get("expect"), result.result, why))
+            continue
+        wanted = case.get("reason_has")
+        if wanted and wanted not in result.reason:
+            failures.append(SemanticsFailure(
+                cid, f"{case['expect']} because {wanted!r}",
+                f"{result.result} because {result.reason!r}", why))
+    return failures
+
+
 def tally(results: list[ProbeResult]) -> dict:
     total = len(results)
     passed = sum(1 for r in results if r.result == PASS)
