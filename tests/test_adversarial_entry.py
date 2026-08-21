@@ -537,3 +537,84 @@ def test_every_recorded_digest_is_actually_a_digest():
                     f"{path.name}: samples_from[{record.get('path')!r}].sha256 is not a digest")
                 checked += 1
     assert checked, "no digests were checked — this test would pass over an empty history"
+
+
+# --- the handle resolves -------------------------------------------------------
+#
+# `instrument.name` is a foreign key (ADR-027 rule 4) and there was no table on
+# the other side of it: the recorder asked only whether a name had been TYPED, so
+# `--instrument-name does-not-exist` recorded happily and the row fingerprinted an
+# object nobody could look up. Measured by the AI Quality seat before the M04
+# entry was written and left open at the tag, because the registry needed
+# Security's key rather than a quiet new file.
+
+
+def _registry():
+    import json as _json
+    return _json.loads((ROOT / "quality" / "adversarial" / "instruments.json")
+                       .read_text(encoding="utf-8"))
+
+
+def test_every_committed_entry_names_a_registered_instrument():
+    """The point of the foreign key. An entry citing a name the registry does not
+    hold is a published number with no resolvable description of what read it."""
+    registry = _registry()["instruments"]
+    checked = 0
+    for path in sorted((ROOT / "evals" / "history").glob("*-adversarial.json")):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        for entry in (doc if isinstance(doc, list) else [doc]):
+            name = (entry.get("instrument") or {}).get("name")
+            if name is None:
+                continue          # pre-ADR-027 entries carry no instrument at all
+            assert name in registry, (
+                f"{path.name} cites instrument {name!r}, which the registry does not hold")
+            checked += 1
+    assert checked, "no entry was checked; this test would pass over an empty history"
+
+
+def test_a_registered_instrument_still_describes_this_tree():
+    """A registry that drifts from the code is worse than none: it answers the
+    question `what read this number` with something that is no longer true."""
+    from evals.run_adversarial import check_instrument_name
+    for name in _registry()["instruments"]:
+        assert check_instrument_name(name, instrument_digests()) is None, (
+            f"registered instrument {name!r} no longer matches this tree")
+
+
+def test_an_unregistered_name_is_refused(tmp_path):
+    """End to end, through the real recorder."""
+    result, entry = record(tmp_path, "--instrument-name", "not-a-real-instrument",
+                           "--guardrail-version", "2",
+                           "--guardrail-policy-sha256", "0" * 64, "--allow-dirty")
+    assert result.returncode == 2
+    assert "not registered" in result.stderr
+    assert entry is None, "an entry naming an unregistered instrument reached history"
+
+
+def test_a_registered_name_whose_digests_moved_is_refused():
+    """The subtler half, and the one that makes the name mean something.
+
+    A name that resolves but no longer describes the code would let two different
+    instruments share a handle, and every entry citing it becomes ambiguous. The
+    remedy is a NEW name beside the old one, never an edit: published numbers cite
+    the old row and it has to keep standing."""
+    from evals.run_adversarial import check_instrument_name
+    moved = dict(instrument_digests())
+    moved["scorer_sha256"] = "0" * 64
+    problem = check_instrument_name("m04-A", moved)
+    assert problem and "does not match" in problem
+    assert "scorer_sha256" in problem, "the message does not say WHICH digest moved"
+    assert "NEW name" in problem, "the message does not say what to do instead"
+
+
+def test_the_registry_pins_what_read_the_run_and_not_what_produced_it():
+    """`guardrail_version` and `guardrail_policy_sha256` describe the guardrail
+    that produced the observations, not the code that scored them. A later run
+    under a new guardrail version is still scored by this instrument, so pinning
+    them in the registry would force a new instrument name for a change that
+    alters no scoring."""
+    for entry in _registry()["instruments"].values():
+        digests = entry["digests"]
+        assert "guardrail_policy_sha256" not in digests
+        assert "guardrail_version" not in digests
+        assert set(digests) == {k for k in instrument_digests() if k.endswith("_sha256")}
