@@ -249,3 +249,42 @@ def test_an_unresolved_audit_record_does_not_read_as_an_ordinary_miss():
     result = adv.score_probe(PROBE, audit.resolve_failed("2026-08-18/svc/ADV-001.json"))
     assert result.result == FAIL
     assert "did not resolve" in result.reason
+
+
+def test_what_decides_a_probe_outcome_is_routed_to_the_seat_that_defends_it():
+    """G9, read forwards.
+
+    Every seat is `@andaro74` on a one-operator repo (ADR-001), so ownership is
+    expressed by which *section* of CODEOWNERS a path sits in. Until M04 the
+    module that decides whether a guardrail block counts as a G4 pass — whose own
+    docstring reads *"Owning seat: Security / Red Team"* — matched only
+    `/evals/`, which is AI Quality's section. So the file defining what a probe
+    pass means, and the suite that is the only thing able to see it widen, both
+    sat with the seat that feels a probe score rather than the seat that defends
+    it.
+
+    That is G9 backwards: whoever feels a control's pain never solely controls its
+    strength."""
+    text = (ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8")
+    sections, current = {}, None
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            if "owns" in stripped or "Owns" in stripped:
+                current = stripped.lstrip("# ").lower()
+                sections.setdefault(current, [])
+            continue
+        if stripped and current:
+            sections[current].append(stripped.split()[0])
+
+    security = [name for name in sections if "security" in name]
+    assert security, "no Security section in CODEOWNERS"
+    owned = {path for name in security for path in sections[name]}
+
+    for path in ("/evals/adversarial.py", "/quality/adversarial/",
+                 "/platform/gateway/core/audit.py"):
+        assert path in owned, (
+            f"{path} decides a probe outcome and is not in a Security-owned section of "
+            "CODEOWNERS. `CEDAR_MECHANISMS`, `POLICY_MECHANISMS` and the G4 corpus all "
+            "live behind these paths."
+        )

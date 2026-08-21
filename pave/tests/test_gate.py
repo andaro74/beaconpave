@@ -166,3 +166,91 @@ def test_typo_in_flag_name_blocks(tmp_path):
     with pytest.raises(SystemExit) as exc:
         cli.main(["gate", "decide", "--verdict", write_verdict(tmp_path)])
     assert exc.value.code == gate.EXIT_CONTRACT
+
+
+# --- claim 2's other half: the gate teaches ----------------------------------
+#
+# `gates fail closed AND teach`. The first half has been enforced since M00a. The
+# second was a table of verdict names printed to stdout: it said which suite
+# failed and never what moved, so a reviewer got a red check and had to open the
+# CI run to learn anything. M04 makes the finding travel with the artifact.
+
+def _verdict(tmp_path, name, **kw):
+    import json
+    record = {"service": "s", "surface": "agent", "commit": "abc", "suite": kw.get("suite", "x"),
+              "layer": "L5", "verdict": kw.get("verdict", "PASS"), "fail_closed": True}
+    for key in ("scores", "notes"):
+        if kw.get(key):
+            record[key] = kw[key]
+    path = tmp_path / name
+    path.write_text(json.dumps(record), encoding="utf-8")
+    return str(path)
+
+
+def test_the_comment_carries_the_scores_each_suite_measured(tmp_path):
+    body = gate.summarize([_verdict(tmp_path, "v.json", suite="adversarial",
+                                    scores={"m01_passed": 6, "m00b_passed": 0})])
+    assert "`m01_passed` 6" in body and "`m00b_passed` 0" in body
+
+
+def test_the_comment_names_what_moved_and_not_only_that_something_did(tmp_path):
+    """The teaching half, stated as the difference it makes.
+
+    `suite reported FAIL` is what the gate said before. It is true, it blocks, and
+    it tells the person who has to fix it nothing at all."""
+    notes = ["m00b: 5/10 is ABOVE the pinned comparator 0/10",
+             "probe result(s) moved against the pin: m00b/ADV-004: FAIL -> PASS"]
+    body = gate.summarize([_verdict(tmp_path, "v.json", suite="adversarial",
+                                    verdict="FAIL", notes=notes)])
+    assert "what moved" in body
+    assert "ADV-004" in body
+    assert "ABOVE the pinned comparator" in body
+    assert "BLOCKED" in body
+
+
+def test_the_comment_says_who_it_pages_and_why(tmp_path):
+    """The exit-code split is the gate's whole design and it is invisible in a red
+    check. A contract failure is the platform's; a quality failure is the team's,
+    and telling the wrong one is how a gate earns a reputation for crying wolf."""
+    quality = gate.summarize([_verdict(tmp_path, "q.json", verdict="FAIL")])
+    assert "owner: service team" in quality and "exit 1" in quality
+
+    contract = gate.summarize([_verdict(tmp_path, "i.json", verdict="INFRA")])
+    assert "owner: platform" in contract and "exit 2" in contract
+
+
+def test_the_comment_carries_a_marker_so_a_rerun_replaces_rather_than_stacks(tmp_path):
+    """A reviewer scrolling past six stale gate comments to find the current one
+    is a gate that has stopped teaching."""
+    body = gate.summarize([_verdict(tmp_path, "v.json")])
+    assert body.startswith(gate.COMMENT_MARKER)
+
+
+def test_the_comment_survives_a_verdict_it_cannot_read(tmp_path):
+    """A comment that crashes takes the explanation away from exactly the merge
+    that is being blocked. `decide` has already recorded what is wrong with the
+    file; this must add to that, never replace it with a traceback."""
+    broken = tmp_path / "broken.json"
+    broken.write_text("{not json", encoding="utf-8")
+    missing = str(tmp_path / "absent.json")
+    body = gate.summarize([str(broken), missing])
+    assert "BLOCKED" in body
+    assert "not valid JSON" in body
+    assert "missing" in body
+
+
+def test_notes_are_rendered_and_never_decide_anything(tmp_path):
+    """Structural. The notes are the runner's prose; a gate that branched on them
+    would be taking a decision from an unvalidated string, and the reason a suite
+    gives for passing is not evidence that it passed."""
+    passing = _verdict(tmp_path, "p.json", verdict="PASS",
+                       notes=["FAIL", "regression", "ABOVE the pinned comparator"])
+    assert gate.decide([passing]).exit_code == gate.EXIT_OK
+    assert "PASS" in gate.summarize([passing])
+
+    import pathlib
+
+    source = pathlib.Path(gate.__file__).read_text(encoding="utf-8")
+    start = source.index("def _inspect(")
+    body = source[start:source.index("\ndef ", start + 10)]
+    assert "notes" not in body, "the decider reads the runner's prose"

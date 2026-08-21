@@ -210,12 +210,79 @@ def render(decision: Decision) -> str:
     return "\n".join(lines)
 
 
+#: Marker the PR comment carries so a later run can find and replace its own
+#: previous comment instead of stacking a new one under every push. A reviewer
+#: scrolling past six stale gate comments to find the current one is a gate that
+#: has stopped teaching.
+COMMENT_MARKER = "<!-- beaconpave-gate -->"
+
+
+def _scores_of(path: str) -> dict:
+    """The `scores` block of a verdict, or empty if it cannot be read.
+
+    Never raises: this feeds the comment, and a comment that crashes takes the
+    explanation away from a merge that is being blocked anyway. `decide` has
+    already recorded whatever is wrong with the file."""
+    try:
+        record = json.loads(pathlib.Path(path).read_text(encoding="utf-8-sig"))
+        return record.get("scores") or {} if isinstance(record, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _notes_of(path: str) -> list:
+    try:
+        record = json.loads(pathlib.Path(path).read_text(encoding="utf-8-sig"))
+        notes = record.get("notes") if isinstance(record, dict) else None
+        return [n for n in notes if isinstance(n, str)] if isinstance(notes, list) else []
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
 def summarize(paths: Sequence[str]) -> str:
-    """The score-diff comment body. M00a prints it; M04 posts it to the PR and
-    adds the baseline comparison that makes it teach."""
+    """The score-diff comment body — claim 2's *teach* half.
+
+    A gate that blocks without saying what moved teaches people to route around
+    it, which is the failure mode `_console_safe` was also written against. So
+    this renders three things, in the order a reviewer needs them: the decision,
+    every score the suites measured, and the runners' own account of what changed.
+
+    **The notes come from the verdict records, not from the CI log.** Until M04
+    the lane printed which probe moved and in which direction, the verdict
+    recorded `FAIL`, and the reviewer got a red check with no way to see the
+    difference without opening the run. A finding that travels with the artifact
+    is one a reader still has next milestone.
+
+    Nothing here can change a decision. `decide` is the only decider, and this
+    function is deliberately incapable of raising: a comment that crashes takes
+    the explanation away from exactly the merge that is being blocked."""
     decision = decide(paths)
-    rows = ["| verdict | suite | layer | file | note |", "|---|---|---|---|---|"]
-    for f in decision.findings:
-        rows.append(f"| {f.verdict or '—'} | {f.suite or '—'} | {f.layer or '—'} | `{f.path}` | {f.reason} |")
     status = "BLOCKED" if decision.blocked else "PASS"
-    return f"### quality gate: {status}\n\n" + "\n".join(rows)
+
+    lines = [COMMENT_MARKER, f"### quality gate: {status}", ""]
+
+    rows = ["| | suite | layer | scores | note |", "|---|---|---|---|---|"]
+    for f in decision.findings:
+        mark = "✅" if not f.blocks else ("🛠" if f.kind == CONTRACT else "❌")
+        scores = _scores_of(f.path)
+        rendered = ", ".join(f"`{k}` {v}" for k, v in sorted(scores.items())) or "—"
+        rows.append(f"| {mark} {f.verdict or '—'} | {f.suite or '—'} | {f.layer or '—'} "
+                    f"| {rendered} | {f.reason} |")
+    lines.extend(rows)
+
+    teaching = [(f, _notes_of(f.path)) for f in decision.findings]
+    teaching = [(f, notes) for f, notes in teaching if notes]
+    if teaching:
+        lines += ["", "#### what moved"]
+        for f, notes in teaching:
+            lines.append(f"**{f.suite or f.path}**")
+            lines += [f"- {n}" for n in notes]
+
+    if decision.blocked:
+        owner = "platform" if decision.exit_code == EXIT_CONTRACT else "service team"
+        why = ("the gate could not establish that the code is good"
+               if decision.exit_code == EXIT_CONTRACT else "a suite reported a regression")
+        lines += ["", f"**Blocked ({why}); exit {decision.exit_code}; owner: {owner}.** "
+                      "This check is required and cannot be merged past — a gate that can be "
+                      "merged past is not a gate."]
+    return "\n".join(lines)

@@ -45,6 +45,17 @@
 # Security / Red Team owns the adversarial corpus and guardrail configs
 /quality/adversarial/     @andaro74
 /platform/gateway/guardrail_config.yaml   @andaro74
+# ...and what a probe pass MEANS, which is a different thing from the corpus and
+# was owned by nobody until M04. `evals/adversarial.py` names this seat in its own
+# docstring -- "Owning seat: Security / Red Team" -- and matched only `/evals/`,
+# which is AI Quality's. So the module deciding whether a guardrail block counts,
+# and the suite that is the only thing able to see it widen, both sat with the
+# seat that feels a probe score rather than the seat that defends it. That is G9
+# read backwards. `CEDAR_MECHANISMS` lives in the first file and
+# `POLICY_MECHANISMS` in `core/audit.py`, whose docstring names this seat too.
+/evals/adversarial.py     @andaro74
+/tests/test_adversarial_scoring.py        @andaro74
+/platform/gateway/core/audit.py           @andaro74
 
 # ...and the authorization path, which M02 created. Both modules name this seat as
 # a co-owner in their docstrings; without these entries a PR relaxing the publish

@@ -135,19 +135,85 @@ def gate_decide(argv):
     sys.exit(decision.exit_code)
 
 
-def gate_comment(argv):
-    """The score-diff comment body. M00a prints it (and appends to the GitHub
-    step summary when running in Actions); M04 posts it to the PR and adds the
-    baseline comparison that makes the gate teach rather than merely block.
+def _post_pr_comment(body: str) -> None:
+    """Upsert the gate's comment on the pull request. Never raises.
 
-    Always exits 0 — this is a reporter, not a decider. The workflow runs it with
-    `if: always()`, so a non-zero exit here would mask which step actually failed."""
+    **Upsert, not append.** A reviewer scrolling past six stale gate comments to
+    find the current one is a gate that has stopped teaching, so a run replaces
+    its own previous comment, found by the marker in the body.
+
+    Silent no-op outside Actions, and silent on any failure. Claim 2's artifact is
+    the blocked merge; the comment is how it teaches. A comment that could not be
+    posted must never turn a correct decision into a red step for a reason that is
+    not the team's fault - that is the failure mode `_console_safe` exists for,
+    arriving over HTTP instead of through a codepage. `gate decide` runs
+    separately and is the only thing that blocks."""
+    import urllib.error
+    import urllib.request
+
+    token = os.environ.get("GITHUB_TOKEN")
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    if not (token and repo and event_path and pathlib.Path(event_path).is_file()):
+        return
+
+    try:
+        event = json.loads(pathlib.Path(event_path).read_text(encoding="utf-8"))
+        number = event["pull_request"]["number"]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        return
+
+    api = f"https://api.github.com/repos/{repo}"
+    headers = {"Authorization": f"Bearer {token}",
+               "Accept": "application/vnd.github+json",
+               "User-Agent": "beaconpave-gate"}
+
+    def call(url, data=None, method="GET"):
+        request = urllib.request.Request(
+            url, method=method, headers=headers,
+            data=json.dumps(data).encode("utf-8") if data is not None else None)
+        if data is not None:
+            request.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return json.loads(response.read().decode("utf-8") or "null")
+
+    try:
+        existing = call(f"{api}/issues/{number}/comments?per_page=100") or []
+        mine = next((c for c in existing
+                     if gate_mod.COMMENT_MARKER in (c.get("body") or "")), None)
+        if mine:
+            call(f"{api}/issues/comments/{mine['id']}", {"body": body}, method="PATCH")
+            print(f"[pave gate] updated comment {mine['id']} on PR #{number}")
+        else:
+            call(f"{api}/issues/{number}/comments", {"body": body}, method="POST")
+            print(f"[pave gate] posted a comment on PR #{number}")
+    except (urllib.error.URLError, OSError, ValueError, KeyError) as exc:
+        # Reported, never raised. See the docstring.
+        print(f"[pave gate] could not post the comment ({exc}); the decision is unaffected "
+              "and `gate decide` still blocks", file=sys.stderr)
+
+
+def gate_comment(argv):
+    """The score-diff comment - claim 2's *teach* half.
+
+    Prints the body, appends it to the GitHub step summary, and from M04 posts it
+    to the pull request. The body carries every suite's scores and the runners'
+    own account of what moved, because until now that account lived only in a CI
+    log: the lane printed which probe moved and in which direction, the verdict
+    recorded `FAIL`, and the reviewer got a red check with no way to see the
+    difference without opening the run.
+
+    Always exits 0 - this is a reporter, not a decider. The workflow runs it with
+    `if: always()`, so a non-zero exit here would mask which step actually
+    failed."""
     body = gate_mod.summarize(_flag_values(argv, "--verdicts"))
     _emit(body)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as fh:
             fh.write(body + "\n")
+    if "--no-post" not in argv:
+        _post_pr_comment(body)
 
 
 def gate_two_key(argv):
@@ -318,7 +384,7 @@ def evals_run(argv=()):
     if out:
         verdict_mod.write(out[0], verdict_mod.build(
             service=service, surface="agent", suite="evals", layer="L2",
-            verdict=decided, fail_closed=True, scores=scores,
+            verdict=decided, fail_closed=True, scores=scores, notes=failures,
             artifacts=[str(r) for spec in arms.values() for r in spec["runs"]]))
 
     for line in failures:
@@ -482,7 +548,7 @@ def adversarial_run(argv=()):
     if out:
         verdict_mod.write(out[0], verdict_mod.build(
             service=service, surface="agent", suite="adversarial", layer="L5",
-            verdict=decided, fail_closed=True, scores=scores,
+            verdict=decided, fail_closed=True, scores=scores, notes=infra + failures,
             artifacts=sorted({o for tag in expected
                               for o in ((suite.get("pins") or {}).get(tag) or {}).get(
                                   "observations", [])})))
