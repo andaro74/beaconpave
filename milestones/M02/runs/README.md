@@ -54,6 +54,35 @@ including the blackout table and the DMA list — and that is entitlement-flavou
 text sitting in every single prompt. `TOPIC:entitlement-circumvention` fires on
 it. Taking the catalog out of the prompt took the trigger out with it.
 
+> **CORRECTION, 2026-08-21. The paragraph above is wrong, and the rest of this
+> file is not.** It is left standing because a milestone record edited to look
+> right afterwards is not a record; this is what was believed on the day, and this
+> is what is now known.
+>
+> The claim cannot be true as arithmetic. The control inlines that catalog on
+> **every** call, so a guardrail assessing it would have refused **75 of 75, not
+> 19**. It does not assess it — `converse` never sees the system block as content,
+> which M04's channel control and ADR-035's pre-flight both measure directly, and
+> which is why the M02 control arm ran at all.
+>
+> What the refusal surface actually was, measured under the same guardrail version
+> ADR-035 kept alive (`milestones/ADR-035/topic-baseline-v2.json`, `k=3`,
+> unanimous): **2 of 25 user turns** blocked at `INPUT` (`blackout-001`,
+> `blackout-009`) and **2 of 22 committed answers** blocked at `OUTPUT`
+> (`blackout-007`, `multi-023`). The viewer's question and the platform's own
+> correct reply — not the prompt.
+>
+> **Which of those two channels produced the 19 → 7 difference cannot be
+> recovered.** M02's audit records carry no channel field: `core/guardrail.py`'s
+> `interpret` reads both `inputAssessment` and `outputAssessments` and flattens
+> them into one list, discarding which side fired (ADR-035 amendment 8). So the
+> honest state of this row is *the numbers, with no mechanism* — and the mechanism
+> it used to assert was the flattering one, because it made a control look
+> understood.
+>
+> The measured delta, the falsified prediction and every count in this file stand
+> unchanged.
+
 **The error was in how the mechanism was derived.** The pilot measured the tools
 arm twice — before and after the retrieval narrowing — and never measured the
 *control's* refusal rate on the same cases on the same day. A within-arm

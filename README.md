@@ -157,10 +157,24 @@ Three things this row needs said before the number is read.
 that flatters the platform.** The largest reason is a pre-registered loss
 mechanism that ran backwards: "mid-loop guardrail refusals rise" was derived by
 measuring the tools arm *twice* and never measuring the control's refusal rate on
-the same cases. Refusals **fell**, 19/75 → 7/75, because the control inlines the
-whole catalog and `TOPIC:entitlement-circumvention` fires on it. A loss mechanism
-stated as a difference between two systems has to be measured across both of them;
-that rule is now an owed tightening rather than a patch.
+the same cases. Refusals **fell**, 19/75 → 7/75. A loss mechanism stated as a
+difference between two systems has to be measured across both of them; that rule
+is now an owed tightening rather than a patch.
+
+**Corrected 2026-08-21, and the answer this row used to give is arithmetically
+impossible.** It said the refusals fell because the control inlines the whole
+catalog and `TOPIC:entitlement-circumvention` fires on it. The control inlines that
+catalog on *every* call, so if the guardrail assessed it, **all 75 would have
+refused rather than 19.** It does not assess it: `converse` never sees the system
+block as content, which M04's channel control and ADR-035's pre-flight both measure
+directly. Under that guardrail version the refusal surface decomposes to **2 of 25
+user turns at `INPUT` and 2 of 22 committed answers at `OUTPUT`**
+(`milestones/ADR-035/topic-baseline-v2.json`) — the viewer's question and the
+platform's own reply, not the prompt. Which of those two produced the 19 → 7
+difference **cannot be recovered**: M02's audit records carry no channel, because
+`interpret` reads which side fired and then discards it (ADR-035 amendment 8). The
+numbers stand exactly as run. Only the explanation was wrong, and it was wrong in
+the direction that made a guardrail sound better understood than it was.
 
 **An identical system sampled three times returned 18, 16 and 14.** The control
 arm's four-point spread on one day is why 19/25 was disqualified as a comparator

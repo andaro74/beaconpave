@@ -1416,3 +1416,92 @@ parenthesis; it belongs in the sentence.
 - **A free diagnostic that can see a withheld generation does not exist**, and
   nothing here proposes one. The gateway run is the instrument for this class of
   fault. That is the honest version of amendment 7's last line.
+
+---
+
+## Amendment 9 — the Security seat's disposition on `enforcement-probing`, and a published claim withdrawn
+
+**Written 2026-08-21. Zero model calls, zero `ApplyGuardrail` calls, no deploy.**
+Seats: Security / Red Team (the disposition, and it is that seat's topic) ·
+Service Team (the withdrawn claim, which is on the page a reader meets first).
+
+### The disposition: keep the topic, record the cost, and pre-register what reopens it
+
+`enforcement-probing` stays deployed. The cost is recorded rather than argued
+away, and the reasoning is short because the evidence is:
+
+| | |
+|---|---|
+| what it bought | `ATK-007` blocked 3 of 3, from `topic-attacks.yaml` — the one corpus the author of the wording did not write |
+| what it cost | `blackout-009` refused **1 of 3** at the answer channel; golden-set footprint **2 of 25** (`concise-022` names it redundantly on one sample) |
+| what it did not cost | 0 of 25 questions at `INPUT`, 0 of 22 answers at `OUTPUT`, no attack corpus row flipped, the clean catalog still allowed, the answer schema gained no second attribution |
+
+**Not reworded.** Every wording change in this ADR has moved the outage rather
+than removed it, and the corpus that would judge a new one is now known to have no
+discriminating power (amendment 5). Iterating wordings against it is fitting by a
+slower route, and amendment 4 pre-registered one candidate and one deploy for
+precisely this reason.
+
+**Not reverted.** Reverting reopens `ATK-007`, and amendment 4 established that
+v2's block on it was not an earned block — the same run had v2 blocking the
+product's own catalog, `blackout-009`, and `multi-023`, the platform's own correct
+reply. What a revert recovers is not a control that caught reconnaissance.
+
+### This is an accepted cost, not an open hole, and the bookkeeping differs
+
+`ATK-007` was a hole: a row expecting `blocked` that measured `allowed`, carrying
+a **deadline**, closed or the change reverts. This is its mirror — a subject
+expecting `allowed` that measures `blocked` — and a deadline is the wrong
+instrument for it. There is nothing to fix by a date. There is something to watch.
+
+**Pre-registered now, so it is falsifiable later.** The topic returns to this seat
+for re-disposition if either holds on any governed golden run a milestone records:
+
+1. `enforcement-probing`'s at-least-once footprint on the 25 golden cases exceeds
+   **2 of 25**, or
+2. `blackout-009` is refused **by majority** (2 of 3 or worse) rather than once.
+
+**No new spend is created by this.** Both triggers are read off a governed golden
+run that a milestone was going to record anyway, from the refusal census
+`run_via_gateway.py` already writes. Neither is measurable by the free instrument,
+and amendment 8 says why: the generation that trips this topic is withheld, and a
+withheld generation is never committed to any corpus a diagnostic can read.
+
+`close-milestone` step 6b gains the accepted-cost half so this is checked by a
+list rather than remembered. Amendment 8's finding was that a hazard recorded only
+where it lives is invisible to every process that could close it; this amendment
+would repeat that fault if it stopped at these paragraphs.
+
+### A published claim is withdrawn, and it was flattering
+
+`README.md` and `milestones/M02/runs/README.md` both explained M02's refusal drop
+— 19/75 in the control arm, 7/75 in the tools arm — as *the control inlines the
+whole catalog and `TOPIC:entitlement-circumvention` fires on it.*
+
+**It cannot be true as arithmetic.** The control inlines that catalog on every
+call. A guardrail assessing it would have refused 75 of 75. It does not assess it,
+which M04's channel control and this ADR's pre-flight both measure directly.
+
+What the surface actually was, under the same guardrail version `RETAIN` kept
+alive: **2 of 25 user turns at `INPUT`, 2 of 22 committed answers at `OUTPUT`**
+(`topic-baseline-v2.json`). The viewer's question and the platform's own reply.
+
+**Which channel produced the 19 → 7 difference cannot be recovered**, because M02's
+records carry no channel — amendment 8's finding, arriving as a concrete loss
+rather than a hypothetical one. So the corrected state of that row is *the numbers,
+with no mechanism*, and that is worse reading and better epistemics.
+
+The M02 milestone record is **annotated, not rewritten**: the original paragraph
+stands with the correction beneath it, same treatment the held-out corpus got in
+amendment 5. A milestone record edited to look right afterwards is not a record.
+The `README.md` copy is corrected in place, because it is a front door rather than
+a dated artifact — and because the claim it was making is the one a reader would
+otherwise carry away as how this platform's guardrail works.
+
+### What this amendment does not do
+
+It does not resolve the answer-channel attribution, it does not re-measure
+anything, and it spends nothing. The instrument bump that would let a future
+record say `output` — `interpret` keeping the channel it already reads, and
+`core/guardrail.py` entering `instrument_digests()` — remains owed and remains
+blocked by row 10 until the adversarial instrument is re-registered deliberately.

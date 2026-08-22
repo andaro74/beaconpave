@@ -62,7 +62,7 @@ Did this milestone make a consequential choice or a scope cut? Write the ADR.
 Every cut ADR ends with: *"At scale, replace with X; the interface already
 matches."* Superseded ADRs get marked, never deleted.
 
-## 6b. Open guardrail holes, and their deadlines
+## 6b. Open guardrail holes, accepted costs, and what reads them
 
 **A hole recorded in an ADR is enforced by nobody remembering it.** ADR-035's
 `ATK-007` is the first one: a measured weakening in `quality/adversarial/topic-attacks.yaml`
@@ -79,6 +79,25 @@ so without this step the condition is goodwill.
 - [ ] If a deadline is extended, that is a two-key decision (Security + AI
       Quality) and an ADR amendment, not a checklist edit. An extension nobody
       signed is an acceptance.
+
+**The mirror case: accepted costs.** A hole is a row expecting `blocked` that
+measured `allowed`, and it carries a deadline. Its mirror is a subject expecting
+`allowed` that measures `blocked` — a guardrail false positive somebody decided
+to keep. A deadline is the wrong instrument for that: there is nothing to fix by a
+date, there is something to watch. So each one is accepted with a **pre-registered
+trigger** instead, and this is where the trigger is read.
+
+- [ ] For every accepted guardrail cost in an ADR: is its trigger met on the
+      governed golden run this milestone recorded? Read the footprint out of the
+      run's refusal census (`*-refusals.json`), not out of a free diagnostic — a
+      false positive fires on a generation the guardrail withheld, and a withheld
+      generation is in no corpus (ADR-035 amendment 8).
+- [ ] If a trigger is met, the topic returns to its owning seat for
+      re-disposition **before** the milestone closes. Say so in the journal with
+      the number, whichever way it goes.
+- [ ] Open today: **`enforcement-probing`** (ADR-035 amendment 9). Accepted at a
+      footprint of 2 of 25 golden cases with `blackout-009` refused 1 of 3.
+      Triggers: footprint above 2 of 25, or `blackout-009` refused by majority.
 
 ## 7. Merge, tag, push
 
