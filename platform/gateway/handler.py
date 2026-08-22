@@ -444,12 +444,14 @@ def handler(event, context):
             usage=meter.assert_token_denominated(outcome.usage) or None,
             **common,
         )
-        blocked = {"decision": "blocked", "mechanism": "guardrail",
-                   "record_id": _write(record), "assessed": list(outcome.guardrail.assessed),
-                   "usage": outcome.usage, **common_out}
-        if outcome.guardrail.channel is not None:
-            blocked["channel"] = outcome.guardrail.channel
-        return blocked
+        # The guardrail-derived keys come from the dataclass that owns them
+        # (ADR-039). They were assembled here, in a module no test can import
+        # because it pulls in boto3 and `tests/` is hermetic — so these lines ran
+        # in CI never, and a field rename crashed this path under a green suite.
+        return {"decision": "blocked", "mechanism": "guardrail",
+                "record_id": _write(record),
+                **outcome.guardrail.as_response_fields(),
+                "usage": outcome.usage, **common_out}
 
     if outcome.status == toolloop.LOOP_BOUND:
         record = audit.build_record(
