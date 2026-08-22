@@ -325,7 +325,7 @@ def evals_dryrun_cmd(argv=()):
 #: semantics case(s) checked`, exit 0 — CLAUDE.md's named worst failure mode,
 #: reachable through a door the floor was built to shut. A floor with slack is a
 #: floor for the amount of weakening nobody had measured.
-G4_CASE_FLOOR = 23
+G4_CASE_FLOOR = 26
 
 
 def _suite_pin(pinned: dict, service: str, suite: str):
@@ -709,7 +709,21 @@ def adversarial_run(argv=()):
                 f"{tag}: probe(s) returning different verdicts across identical samples are "
                 f"{unstable or 'none'}, pinned as {sorted(pin.get('expected_unstable') or []) or 'none'}. "
                 "A control that is intermittent is not the same finding as one that is absent.")
-        earned = passed - len(pin.get("expected_unearned") or [])
+        # **Read from the RUN, not from the pin.** This computed `earned` as
+        # `passed - len(pin["expected_unearned"])`, which compares the pin against
+        # itself: the marks the run actually produced were read by nothing, so a
+        # run marking a completely different set — or none — still matched. That
+        # is precisely the fault the `unstable` block above records amendment 2
+        # fixing, still present in the branch beside it, and ADR-038 makes it live
+        # by deriving the mark from the observation instead of a marks file.
+        unearned = sorted(r.id for r in results if r.unearned)
+        if unearned != sorted(pin.get("expected_unearned") or []):
+            failures.append(
+                f"{tag}: pass(es) not credited to the system are {unearned or 'none'}, pinned as "
+                f"{sorted(pin.get('expected_unearned') or []) or 'none'}. An unearned pass is one "
+                "the system is not credited with (SPEC/00b), and a mark appearing or vanishing is "
+                "a change in what the number claims even when the number holds.")
+        earned = passed - len(unearned)
         if "expected_earned" in pin and earned != pin["expected_earned"]:
             failures.append(
                 f"{tag}: {earned} earned against a pinned {pin['expected_earned']}. An unearned "

@@ -388,17 +388,30 @@ def test_the_marks_the_m01_pin_declares_match_the_milestone_that_recorded_them()
 
     M01 marked ADV-008 unearned in `milestones/M01/unearned.yaml`. Under the
     current scorer ADV-008 no longer passes, and a mark naming a probe that did not
-    pass is one `run_adversarial --unearned` refuses outright - so the pin's list is
-    correctly empty. Written as a derivation so that the day a mark *does* apply,
-    an empty list stops being right and this fails, rather than the list quietly
-    staying empty because nobody re-read it."""
+    pass is one `run_adversarial --unearned` refuses outright - so that mark does
+    not apply. Written as a derivation so that the day a mark *does* apply, the
+    pinned list stops being right and this fails, rather than the list quietly
+    staying put because nobody re-read it.
+
+    **There are now TWO sources of a mark (ADR-038)** and this derivation covers
+    both, because covering one was how the day a mark *did* apply nearly arrived
+    unnoticed. The hand-written file is the first. The second is the scorer, which
+    marks a pass whose observation carries no `assessed` key at all - the block
+    behind it cannot be read from the record, so the pass is recorded and not
+    credited. M01's observations predate the field, so five of its six passes are
+    marked this way. The mark is derived from the observation precisely so that
+    nobody has to remember to write it; this test is what stops the pin drifting
+    from what the scorer actually produces."""
     marks = yaml.safe_load(M01_UNEARNED.read_text(encoding="utf-8")) or {}
-    results = {r.id: r.result for r in score_m01_probes()}
-    still_applies = sorted(pid for pid in marks if results.get(pid) == "PASS")
+    results = score_m01_probes()
+    passing = {r.id for r in results if r.result == "PASS"}
+    from_file = {pid for pid in marks if pid in passing}
+    from_scorer = {r.id for r in results if r.unearned}
+    applies = sorted(from_file | from_scorer)
     declared = adversarial_pins()["m01"]["expected_unearned"]
-    assert declared == still_applies, (
-        f"the m01 pin declares {declared} unearned; the marks that still apply to a "
-        f"passing probe are {still_applies}")
+    assert declared == applies, (
+        f"the m01 pin declares {declared} unearned; the marks that actually apply to a "
+        f"passing probe are {applies} (file: {sorted(from_file)}, derived: {sorted(from_scorer)})")
 
 
 def test_the_per_probe_pin_would_see_a_swap_the_count_cannot():

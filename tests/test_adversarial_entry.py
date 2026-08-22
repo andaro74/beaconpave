@@ -36,6 +36,27 @@ import yaml
 from evals.adversarial import instrument_digests
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+
+
+def _registry():
+    return json.loads((ROOT / "quality" / "adversarial" / "instruments.json")
+                      .read_text(encoding="utf-8"))
+
+
+def _current_instrument_name() -> str:
+    """The most recently registered instrument — the one that must still describe
+    this tree. Ordered by `registered` then by insertion, so two rows registered
+    on one day resolve to the later-written one rather than to whichever the dict
+    happened to yield."""
+    rows = list(_registry()["instruments"].items())
+    return max(enumerate(rows), key=lambda kv: (kv[1][1].get("registered", ""), kv[0]))[1][0]
+
+
+#: Recording tests name the instrument that describes THIS tree. A literal goes
+#: stale at every bump — ADR-038 moved `scorer_sha256` and nine call sites began
+#: recording under a name the recorder correctly refuses.
+CURRENT_INSTRUMENT = _current_instrument_name()
+
 SCHEMA = json.loads((ROOT / "evals" / "history" / "schema.json").read_text(encoding="utf-8"))
 PROBES = yaml.safe_load(
     (ROOT / "quality" / "adversarial" / "probes.yaml").read_text(encoding="utf-8"))
@@ -93,7 +114,7 @@ def full(tmp_path, *extra, obs=None):
     # branch under test is uncommitted while it is being written. The check itself
     # is asserted by `test_recording_refuses_a_dirty_tree`, so opting out here
     # costs nothing and pretending the tree is clean would cost the check.
-    return record(tmp_path, "--instrument-name", "m04-A", "--guardrail-version", "2",
+    return record(tmp_path, "--instrument-name", CURRENT_INSTRUMENT, "--guardrail-version", "2",
                   "--guardrail-policy-sha256", "0" * 64, "--allow-dirty", *extra, obs=obs)
 
 
@@ -102,8 +123,8 @@ def full(tmp_path, *extra, obs=None):
 
 @pytest.mark.parametrize("omit,expect", [
     (["--guardrail-version", "2", "--guardrail-policy-sha256", "0" * 64], "instrument-name"),
-    (["--instrument-name", "m04-A", "--guardrail-policy-sha256", "0" * 64], "guardrail-version"),
-    (["--instrument-name", "m04-A", "--guardrail-version", "2"], "guardrail-policy-sha256"),
+    (["--instrument-name", CURRENT_INSTRUMENT, "--guardrail-policy-sha256", "0" * 64], "guardrail-version"),
+    (["--instrument-name", CURRENT_INSTRUMENT, "--guardrail-version", "2"], "guardrail-policy-sha256"),
 ])
 def test_recording_is_refused_when_the_instrument_cannot_be_named(tmp_path, omit, expect):
     """ADR-027 rule 4: a row naming an instrument nobody can look up is a
@@ -126,7 +147,7 @@ def test_the_guardrail_version_is_asked_for_as_observed_not_intended(tmp_path):
     differed and nothing in the record said why. A stack output is a statement of
     intent — only the record of the call that happened is evidence of what
     enforced it."""
-    result, _ = record(tmp_path, "--instrument-name", "m04-A",
+    result, _ = record(tmp_path, "--instrument-name", CURRENT_INSTRUMENT,
                        "--guardrail-policy-sha256", "0" * 64)
     assert "OBSERVED IN THE AUDIT RECORDS" in result.stderr
 
@@ -142,7 +163,7 @@ def test_a_recorded_entry_validates_and_carries_its_instrument(tmp_path):
     assert "supersedes" not in entry, (
         "a first recording is not a correction; `supersedes` means an entry was wrong")
     instrument = entry["instrument"]
-    assert instrument["name"] == "m04-A"
+    assert instrument["name"] == CURRENT_INSTRUMENT
     assert instrument["guardrail_version"] == "2"
     assert instrument["k"] == 3
     for field in ("scorer_sha256", "semantics_sha256", "probes_sha256",
@@ -399,7 +420,7 @@ def test_the_recorder_refuses_to_write_against_a_dirty_tree(monkeypatch, tmp_pat
     f = tmp_path / "obs.json"
     f.write_text(json.dumps(observations()), encoding="utf-8")
     argv = ["--observations", str(f), "--record", "--tag", "zz", "--target", "highlights-agent",
-            "--instrument-name", "m04-A", "--guardrail-version", "2",
+            "--instrument-name", CURRENT_INSTRUMENT, "--guardrail-version", "2",
             "--guardrail-policy-sha256", "0" * 64, "--history-dir", str(tmp_path)]
 
     assert recorder.main(argv) == 2
@@ -436,7 +457,7 @@ def test_the_recorded_version_must_be_one_the_records_observed(tmp_path):
     assert entry["instrument"]["guardrail_version"] == "2"
 
     obs["_guardrail_versions"] = ["3"]
-    result, _ = record(tmp_path, "--instrument-name", "m04-A", "--guardrail-version", "2",
+    result, _ = record(tmp_path, "--instrument-name", CURRENT_INSTRUMENT, "--guardrail-version", "2",
                        "--guardrail-policy-sha256", "0" * 64, "--allow-dirty", obs=obs)
     assert result.returncode == 2
     assert "not among the versions observed" in result.stderr
@@ -449,7 +470,7 @@ def test_a_ragged_sample_file_is_refused(tmp_path):
     obs = observations()
     first = sorted(obs)[0]
     obs[first]["samples"] = obs[first]["samples"][:2]
-    result, _ = record(tmp_path, "--instrument-name", "m04-A", "--guardrail-version", "2",
+    result, _ = record(tmp_path, "--instrument-name", CURRENT_INSTRUMENT, "--guardrail-version", "2",
                        "--guardrail-policy-sha256", "0" * 64, "--allow-dirty", obs=obs)
     assert result.returncode == 2
     assert "fewer than 3 samples" in result.stderr
@@ -549,12 +570,6 @@ def test_every_recorded_digest_is_actually_a_digest():
 # Security's key rather than a quiet new file.
 
 
-def _registry():
-    import json as _json
-    return _json.loads((ROOT / "quality" / "adversarial" / "instruments.json")
-                       .read_text(encoding="utf-8"))
-
-
 def test_every_committed_entry_names_a_registered_instrument():
     """The point of the foreign key. An entry citing a name the registry does not
     hold is a published number with no resolvable description of what read it."""
@@ -572,13 +587,27 @@ def test_every_committed_entry_names_a_registered_instrument():
     assert checked, "no entry was checked; this test would pass over an empty history"
 
 
-def test_a_registered_instrument_still_describes_this_tree():
+
+def test_the_current_instrument_still_describes_this_tree():
     """A registry that drifts from the code is worse than none: it answers the
-    question `what read this number` with something that is no longer true."""
+    question `what read this number` with something that is no longer true.
+
+    **Scoped to the most recently registered instrument (ADR-038).** It used to
+    loop over every row, which ADR-034's own rule guarantees will fail: "leave the
+    old row standing" means an older row stops describing the tree the moment the
+    tree moves, and the only ways to keep the loop green are to edit a registered
+    row -- forbidden outright -- or to never change the scorer again. Measured
+    when ADR-038 moved `scorer_sha256`: 15 failures here, of which this was one.
+
+    Older rows are historical and exempt. The exemption is scoped to OLD ROWS and
+    is deliberately not a subset check over all of them, which would let a future
+    digest be silently dropped from a registered row -- the failure mode the AI
+    Quality seat named when this scoping was decided."""
     from evals.run_adversarial import check_instrument_name
-    for name in _registry()["instruments"]:
-        assert check_instrument_name(name, instrument_digests()) is None, (
-            f"registered instrument {name!r} no longer matches this tree")
+    name = _current_instrument_name()
+    assert check_instrument_name(name, instrument_digests()) is None, (
+        f"the current instrument {name!r} no longer describes this tree. Register a NEW "
+        f"name beside it rather than editing this one (ADR-034)")
 
 
 def test_an_unregistered_name_is_refused(tmp_path):
@@ -617,4 +646,9 @@ def test_the_registry_pins_what_read_the_run_and_not_what_produced_it():
         digests = entry["digests"]
         assert "guardrail_policy_sha256" not in digests
         assert "guardrail_version" not in digests
-        assert set(digests) == {k for k in instrument_digests() if k.endswith("_sha256")}
+    # The key SET is asserted for the current instrument only, for the reason
+    # given on the test above: a historical row was written against the digest
+    # vocabulary of its own time, and demanding it carry today's keys is the same
+    # instruction to edit a registered row (ADR-038).
+    current = _registry()["instruments"][_current_instrument_name()]["digests"]
+    assert set(current) == {k for k in instrument_digests() if k.endswith("_sha256")}

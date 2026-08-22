@@ -1,7 +1,7 @@
 {
   "_comment": "The adversarial instrument registry. `instrument.name` in an adversarial history entry is a foreign key INTO this file (ADR-027 rule 4), and until it existed the field was a foreign key to nothing: `--instrument-name does-not-exist` recorded happily, which is a row fingerprinting an object nobody can look up. The judge's half of the same idea is `quality/judge/frozen.json`.",
   "_what_a_name_identifies": "The CODE THAT READ THE RUN, and only that. A name resolves to the six computed digests below; two entries naming `m04-A` are comparable exactly because those six were identical both times. `guardrail_version` and `guardrail_policy_sha256` are deliberately NOT here: they describe what PRODUCED the observations, not what scored them, and a later run under a new guardrail version is still scored by this instrument. They stay in the entry, where they vary per run as they should.",
-  "_how_to_add_one": "Never edit a registered instrument's digests. If the scorer, the semantics, the probe corpus, the G4 corpus, `classify.py` or the capture path moves, that is a DIFFERENT instrument: register a new name beside this one and leave the old row standing, so every published number keeps a resolvable description of what read it. Editing digests in place would silently redefine every entry that cites the name -- the exact substitution ADR-018 exists to prevent.",
+  "_how_to_add_one": "Never edit a registered instrument's digests. If the scorer, the semantics, the probe corpus, the G4 corpus, `classify.py` or the capture path moves, that is a DIFFERENT instrument: register a new name beside this one and leave the old row standing, so every published number keeps a resolvable description of what read it. Editing digests in place would silently redefine every entry that cites the name -- the exact substitution ADR-018 exists to prevent. ADR-038: the registration is a PRECONDITION for any scorer change, not a successor to it -- moving `scorer_sha256` makes the previously-registered row stop describing the tree, and the contract test is scoped so that only the MOST RECENTLY registered instrument must match it. Older rows are historical and exempt; that exemption is scoped to old rows and is NOT a subset check, which would let a future digest be dropped from a registered row unnoticed.",
   "instruments": {
     "m04-A": {
       "registered": "2026-08-21",
@@ -14,6 +14,19 @@
         "probes_sha256": "67048382cd49e4243a7d3c2caf8cd4cee9ca0876d12bb3e7b673d22ff1f519b0",
         "scorer_sha256": "83ed4e5af4396f998cf539fc4652a876e8fc685985e2cd8a60dbb05663941ff0",
         "semantics_sha256": "d71c09f5e9bd1dba09d8063f9c99f0f0bf07272613ec265b4d86fb8d90517521"
+      }
+    },
+    "m04-B": {
+      "registered": "2026-08-22",
+      "first_entry": null,
+      "why": "ADR-038. A guardrail block whose attribution names no control no longer satisfies the broad semantics -- the fail-closed reading `_satisfied_by` already argued for the narrow one, applied to the branch nine of the ten probes declare. An observation with NO `assessed` key predates the field and still passes, marked unearned. `semantics_sha256` now covers `_satisfied_by`'s source, because implementing a change to what a probe passing IS left the old digest byte-identical. Three G4 cases were added, including the positive control. NOTHING IS RE-SCORED UNDER THIS NAME HERE: the first entry citing it is produced by whatever run records one next.",
+      "digests": {
+        "capture_sha256": "56ab314e3d57d9b4241b16c4f39ca469ffb8599d22fd354a2ded74759ae28350",
+        "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+        "g4_cases_sha256": "3c37934341b00224ded62b0d02dc42e505d412b79c25ca7ca7cb8bd481fa2964",
+        "probes_sha256": "67048382cd49e4243a7d3c2caf8cd4cee9ca0876d12bb3e7b673d22ff1f519b0",
+        "scorer_sha256": "896ef0bf33209c8d1156302d0a8a04b770eb2c59626b05eecc1aefd775140cad",
+        "semantics_sha256": "8489730c543b5c00dfcc6deb3e95d13514417ee95a7060fdfc40bfc7a9827ecd"
       }
     }
   }
