@@ -1269,3 +1269,150 @@ spots**, and that a gateway run is not an expensive confirmation of it.
   three cases M01 cannot. Owed, and cheap.
 - **Row 7 stays unobtainable.** This number has no before, and any future reader
   finding it beside M02's must find that sentence with it.
+
+---
+
+## Amendment 8 — reviewing amendment 7: its owed fix would not have worked, and the attribution it called unrecoverable was thrown away by a reader
+
+**Written 2026-08-21, zero model calls and zero `ApplyGuardrail` calls.** Every
+number below is re-read out of artifacts already committed. Seats: Security /
+Red Team (the disposition ledger) · Platform Engineering (the reader) · AI
+Quality (the instrument).
+
+Amendment 7 closed with three owed items. Checking the first one against the
+evidence already in the repository falsifies it, and the check costs nothing,
+which is the argument for doing it before the fix is written rather than after.
+
+### The correction: re-sourcing the `answers` arm would not have caught this
+
+Amendment 7 owed *"a source that is not M01 — this run supplies 24 of them —
+would cover the three cases M01 cannot."* It would cover them. It would not have
+caught this false positive, and the file that says so was committed in the same
+amendment:
+
+> `blackout-009`'s final answers from samples 2 and 3 are **allowed at OUTPUT
+> under both v3 and v4** at `k = 3`
+> (`milestones/ADR-035/blackout-009-answer-attribution.json`).
+
+Those are the answers a re-sourced arm would load. It would have reported 0 of
+24 and the topic would still have fired at the gateway. Landing that fix and
+recording it as the response to this finding would have produced a diagnostic
+that looks repaired and is not — the same shape as amendment 5's vacuous rows,
+one step earlier, and caught this time because the control was run before the
+change instead of after.
+
+### The blind spot is permanent, and that is the finding worth keeping
+
+Amendment 7 diagnosed a sourcing bug. It is not one. It is a survivorship
+property of the corpus and no choice of source removes it:
+
+> **A blocked answer is never committed.** An `OUTPUT`-channel arm built from
+> committed answers is, by construction, an arm over the answers that were
+> allowed. The generations a guardrail withheld are exactly the ones it cannot
+> contain, and they are exactly the ones a false-positive hunt is looking for.
+
+Re-sourcing widens *case* coverage from 22 to 25 and is still worth doing on
+that basis alone — it is cheap and it removes a hole nobody should have to
+remember. It must not be recorded as closing this one.
+
+### Where the block actually was, now measured rather than inferred
+
+Amendment 7 said the tripping content was "an intermediate or alternative
+generation nobody can now read." The question channel is already measured and
+narrows it to one side:
+
+| under v4, `k = 3` | result |
+|---|---|
+| `blackout-009`'s user turn at `INPUT` | **allowed 3 of 3** (`topic-baseline-v4.json`, questions arm: 0 blocked, 0 unstable) |
+| `blackout-009`'s committed answers at `OUTPUT` | **allowed 3 of 3** |
+| the gateway, sample 1 | **blocked**, `TOPIC:enforcement-probing` |
+
+The user turn is built by `topic_baseline.py` through the same `gw.user_turn` the
+runner uses, so it is the same content. **The block was at the answer channel**,
+on a generation that was withheld and is gone. That is a narrower and better
+supported statement than amendment 7's, and it was available for free.
+
+### The gateway already has the attribution and discards it
+
+`handler.py` sets `"trace": "enabled"` on the Converse call, and
+`core/guardrail.py::interpret` walks **both** `trace.guardrail.inputAssessment`
+and `trace.guardrail.outputAssessments` — and then flattens them into one sorted
+tuple of names. Which side fired is read and thrown away.
+`GuardrailOutcome.channel` is left at its `None` default on the Converse path,
+which is why **every refusal row in `goldens-v4-refusals.json` carries
+`channel: null`** while the API response that produced it said so.
+
+`interpret_apply` takes `channel` as a required keyword because the caller knows
+it there. On the Converse path the *response* knows it, and nobody asks. The
+comment above the merge is honest about the reason — "the same filter firing on
+input and output is one attribution" — which is right for de-duplicating a name
+and wrong for a record a person reads to decide which seat owns a block.
+
+Had this been kept, `blackout-009`'s audit record would say `output` and the
+paragraph above would be a field rather than an inference. **Recorded as owed,
+not fixed here**: it changes what every audit record contains, and the current
+measurement window is the wrong time.
+
+### `core/guardrail.py` is in no instrument digest, and this was already known
+
+`instrument_digests()` pins six things: the scorer, the semantics, the probe
+corpus, the G4 corpus, `classify.py`, and capture (`core/audit.py` plus
+`run_probes_via_gateway.py`). It does not pin `core/guardrail.py`.
+
+`_blocked_names` is the single reader every verdict in this repository passes
+through — `topic_baseline.py` says exactly that in a comment, and it is why the
+free diagnostics and the gateway agree at all. `observation_from_record` derives
+`guardrail_blocked` from a `decision` that `interpret` decided. **A one-word edit
+to `_blocked_names` changes `intervened` for every observation this repo will
+ever record, and all six digests hold.**
+
+**This was not discovered here.** `interpret_apply`'s own docstring, written
+earlier in this ADR's work, says it in as many words:
+
+> *"…it is not in the adversarial instrument's digests — so a change to it would
+> move what every past number means and move no digest at all (ADR-018's hazard,
+> in the one place nothing is watching)."*
+
+The response at the time was to **avoid** the hazard rather than close it: add a
+separate function so that the only edit to the module was an append, which cannot
+change what a past number meant. That was the right call for that change and it
+is still holding. What it did not do was produce an owed item. The hazard is
+recorded in a docstring, and **a docstring is read by whoever is editing the
+function, which is precisely the person who has already decided to edit it.** No
+ADR row carries it, `close-milestone` does not ask about it, and nothing outside
+that one file would surface it.
+
+So the finding is not the gap. It is that a hazard named accurately in the place
+where it lives has been invisible to every process that could have closed it, and
+it took re-reading the file for an unrelated reason to bring it back. Amendment 6
+found the same shape in a runbook. This is it in a docstring.
+
+Not landed here either. Adding a seventh digest re-registers the instrument and
+orphans `m04-A`'s before/after, which row 10 forbids during the window — the same
+disposition the `audit.py` fixes already carry. **The difference from an hour ago
+is that it now has a row in a document a checklist reads.**
+
+### One number in amendment 7 was reported narrower than it is
+
+`concise-022` sample 3 assessed **both** topics, `enforcement-probing` alongside
+`entitlement-circumvention`. It is redundant there — the case was blocked 3 of 3
+by the older topic and would have been blocked without the new one — so it
+changes no verdict. It does change the footprint: **`enforcement-probing` fired
+on 2 of the 25 golden cases, not 1.** Amendment 7's table carries it in a
+parenthesis; it belongs in the sentence.
+
+### What is owed, after this
+
+- **`enforcement-probing`'s false positive** — Security seat's disposition,
+  unchanged and now better attributed: answer channel, 1 of 3 on `blackout-009`,
+  footprint 2 of 25.
+- **`interpret` should keep the channel it already reads.** Platform seat.
+  Blocked by the window, and it is the fix that would have made this amendment
+  unnecessary.
+- **`core/guardrail.py` into `instrument_digests()`.** AI Quality seat. Blocked
+  by the window, lands with the `audit.py` fixes and the instrument bump.
+- **The `answers` arm re-sourced to 25 cases** — worth doing, and it closes a
+  coverage hole rather than this finding.
+- **A free diagnostic that can see a withheld generation does not exist**, and
+  nothing here proposes one. The gateway run is the instrument for this class of
+  fault. That is the honest version of amendment 7's last line.
