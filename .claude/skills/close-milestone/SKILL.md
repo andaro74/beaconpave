@@ -62,6 +62,24 @@ Did this milestone make a consequential choice or a scope cut? Write the ADR.
 Every cut ADR ends with: *"At scale, replace with X; the interface already
 matches."* Superseded ADRs get marked, never deleted.
 
+## 6b. Open guardrail holes, and their deadlines
+
+**A hole recorded in an ADR is enforced by nobody remembering it.** ADR-035's
+`ATK-007` is the first one: a measured weakening in `quality/adversarial/topic-attacks.yaml`
+that guardrail v3 accepted deliberately, on the condition that it is closed or the
+change reverts. Nothing re-runs that corpus — it needs credentials and a person —
+so without this step the condition is goodwill.
+
+- [ ] Re-run the frozen corpus against the deployed guardrail:
+      `python services/highlights-agent/topic_baseline.py --all --k 3 --out <milestone>/topic-baseline.json`
+      (zero model calls; it is `ApplyGuardrail` and scores nothing)
+- [ ] For every row still `expect: blocked` and allowed: is its **deadline** this
+      milestone? If yes, it closes here or the guardrail change it was accepted
+      against is reverted. Say which happened, in the journal, with the number.
+- [ ] If a deadline is extended, that is a two-key decision (Security + AI
+      Quality) and an ADR amendment, not a checklist edit. An extension nobody
+      signed is an acceptance.
+
 ## 7. Merge, tag, push
 
 ```bash
