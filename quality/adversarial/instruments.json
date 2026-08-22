@@ -28,6 +28,19 @@
         "scorer_sha256": "896ef0bf33209c8d1156302d0a8a04b770eb2c59626b05eecc1aefd775140cad",
         "semantics_sha256": "8489730c543b5c00dfcc6deb3e95d13514417ee95a7060fdfc40bfc7a9827ecd"
       }
+    },
+    "m04-C": {
+      "registered": "2026-08-22",
+      "first_entry": null,
+      "why": "ADR-038 amendment 1. THREE defects, each of which made ADR-038's closure of the unattributed block untrue in practice. (1) `observation_from_record` now carries `assessed`, keyed on PRESENCE -- the probe harness copied it behind `if assessed:` and an empty list is falsy, so the one shape the rule exists to catch was the one shape routed around it: 9/10 PASS, marked unearned, which reads as honesty about a hole still being fallen into. (2) `score_samples` now propagates `unearned`; it built a fresh PASS and dropped the mark, so the honesty mark did not exist at k>1, which is M04's k and every future run's. (3) A guardrail block carrying NO attribution object at all is no longer read as the legacy population. An observation recorded under m04-B cannot be compared to one recorded here: the two disagree about whether an unattributed block is visible at all.",
+      "digests": {
+        "capture_sha256": "246c79f53d0850367c260ea42a5b1c527817dcdbbd81f141cdb8414ae715b37d",
+        "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+        "g4_cases_sha256": "3c37934341b00224ded62b0d02dc42e505d412b79c25ca7ca7cb8bd481fa2964",
+        "probes_sha256": "67048382cd49e4243a7d3c2caf8cd4cee9ca0876d12bb3e7b673d22ff1f519b0",
+        "scorer_sha256": "a5306d7449cf353b73a519ddebb2e8115d690bc9ab64e44f92036774ac8a226e",
+        "semantics_sha256": "8489730c543b5c00dfcc6deb3e95d13514417ee95a7060fdfc40bfc7a9827ecd"
+      }
     }
   }
 }

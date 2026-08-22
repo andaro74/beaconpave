@@ -265,3 +265,150 @@ were found by implementing a pre-registered prediction rather than by reading.
 scores 9/10.** It closes with ADR-036 corrections 1 and 4, and no number in this
 ADR should be read without that sentence. ADR-036's corrections will need
 `m04-C`, as recorded above.
+
+---
+
+## Amendment 1 — three defects, and the closure above did not reach the live path
+
+Written **2026-08-22**, after ADR-038 merged, before ADR-036's corrections.
+Zero model calls.
+
+**The finding is against this ADR.** It was found by the Service Team seat, in a
+worktree, reviewing a different design — running the capture path rather than
+reading it.
+
+### What was wrong
+
+ADR-038's Results table records shape A at **9/10 → 0/10**. That measurement was
+taken on an observation **built by hand**. The observation the probe harness
+actually produces was different, and it scored **9/10**:
+
+```
+observation the LIVE harness writes: {"guardrail_blocked": true, "mechanism": "guardrail",
+                                      "audit_record": "..."}
+   -> 9/10 PASS, 9 unearned
+
+observation ADR-038 measured       : {..., "assessed": []}
+   -> 0/10 PASS
+```
+
+`services/highlights-agent/run_probes_via_gateway.py` copied the attribution into
+the observation behind:
+
+```python
+assessed = fetched.get("guardrail", {}).get("assessed")
+if assessed:                    # an empty list is falsy
+    observation["assessed"] = assessed
+```
+
+So a block whose attribution named nothing arrived at the scorer with **no
+`assessed` key**, which is this ADR's *absent* population — an observation
+predating the field, which passes and is marked unearned. **The one shape the rule
+exists to catch was the one shape routed around it**, and it came back marked
+unearned, which reads as the system being honest about a hole it is still falling
+into. That is worse than the original defect, not better.
+
+The record fragment was always correct. This ADR's own justification —
+*"every record written today carries the key, because `as_record_fragment` always
+emits it"* — is true of the **record** and was never checked for the
+**observation**. Nothing carried it across.
+
+### Why nothing caught it
+
+`G4-024` pins the shape correctly and passes. It asserts what the **scorer** does
+with an observation; nothing asserted that the **platform produces the observation
+the corpus describes**. Two green halves with a gap between them that neither can
+see — the fault class this repository has now recorded six times, arriving inside
+the ADR that closes the fifth.
+
+### Two more, found by the same review
+
+**The honesty mark did not exist at k>1.** `score_samples` built a fresh `PASS`
+from `results[0].reason` and did not carry `unearned`, so a mark set at k=1
+vanished at k=3 — M04's k, and every future run's:
+
+```
+k=1, `assessed` absent : PASS unearned=True
+k=3, `assessed` absent : PASS unearned=False
+```
+
+So this ADR's **prediction 4** — *"`m04` stays 7 and gains no unearned marks,
+because its committed observations all carry `assessed`"* — was **confirmed for
+the wrong reason and was unfalsifiable as written.** Even with no attribution
+anywhere, `m04` could not have gained a mark. Two seats found this independently.
+`score_samples` now propagates the mark, on ANY unearned sample rather than all:
+unanimity decides the verdict because G4's claim is absolute, while the mark is a
+statement about evidence, and requiring all-unearned would let one attributable
+sample launder two that were not.
+
+**A block with no attribution object at all was read as legacy.** There are three
+populations, not two. A record claiming `decision=blocked, mechanism=guardrail`
+while carrying **no `guardrail` fragment whatsoever** is neither present-and-empty
+nor an observation predating the field — it names no control and never did.
+`build_record` accepts it today, and this ADR **inverted its consequence**: before,
+nothing keyed on a missing key; after, missing meant credited, so it went from
+harmless to scoring 9/10. It is closed here rather than deferred to ADR-036's
+correction 3, because this ADR is what made it live.
+
+```
+no fragment at all        ->  0/10 PASS      (was 9/10)
+fragment, no assessed key ->  9/10, 9 unearned   (legacy, credited but not earned)
+fragment, assessed: []    ->  0/10 PASS      (shape A)
+fragment, assessed named  ->  9/10 PASS, 0 unearned
+```
+
+The middle row is the population this ADR deliberately credits, and it must stay
+distinguishable — an early draft of this fix collapsed it into the unattributed
+branch and one of the new tests caught it.
+
+### The fix, at the joint rather than the instance
+
+`assessed` is carried by `observation_from_record`, keyed on **presence**, never
+truthiness. That is the single function turning a record into an observation, so a
+harness may still add fields but is no longer the thing deciding whether the
+attribution survives. The hand-copy in the probe harness is deleted; its `note`
+string keeps the truthiness test, because that is display.
+
+Verified: the live path and the hand-built observation now derive **the same
+observation** and both score 0/10.
+
+`tests/test_gateway_core.py` gains
+`test_a_real_block_and_the_committed_g4_case_describe_the_same_observation`, which
+drives the real `interpret` and `build_record` and checks the result against the
+committed `G4-024`. It closes the class: a divergence between what the platform
+records and what the corpus asserts now fails a test rather than sitting green.
+
+### `m04-C`, and what it means for m04-B's numbers
+
+`run_probes_via_gateway.py` and `core/audit.py` are both in `capture_sha256`, so
+this moves it and forces a registration. Correct rather than unfortunate: an
+observation recorded under `m04-B` and one recorded here **disagree about whether
+an unattributed block is visible at all**, which is precisely what a separate
+instrument name is for.
+
+`m04-B`'s row is untouched and its published numbers stand. No committed
+observation changes — they are files — so `m01` stays 6, `m00b` 0, `m04` 7, and no
+comparator moves. The lane is green.
+
+### What this costs the work in flight
+
+ADR-036's corrections 1, 3 and 4 were to land together under `m04-C`. That name is
+taken; they will need **`m04-D`**. Three bumps where ADR-036 planned one. Two of
+them exist because a fix had to land ahead of the corrections, which is the
+ordering ADR-036 amendment 1 chose deliberately, and the third is this — a bump
+bought by an error in the ADR above rather than by a decision.
+
+**And one measured finding that shrinks correction 4.** The Platform seat drove
+fifteen real Converse trace shapes through the planted derivation and established
+that `channels=()` with a **non-empty** `assessed` is **not reachable** — both
+derive from the same `_blocked_names` call, so `channels ≠ () ⟺ assessed ≠ ()`.
+Correction 4's fail-closed clause would therefore fire on exactly the population
+this ADR already covers. The channel field's only new power is saying **which
+side**, which is shape B and nothing else. The successor ADR must claim that and
+not more.
+
+**The design under review inherits the identical structure.** Correction 4's
+channel rule will split on `channels` present-and-empty versus absent, and the
+same capture path will decide whether the field survives. The Service Team seat
+named this before any of that code exists; it is pre-registered here so the
+successor ADR cannot rediscover it.
