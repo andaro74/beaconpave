@@ -1,0 +1,25 @@
+{
+  "_what_this_is": "The platform's own correct answer to blackout-009, assessed at OUTPUT against guardrail v3 and v4. It attributes the refusal the v4 gateway run produced. Zero model calls, and only possible because v3 was RETAINED.",
+  "answer": "{\"answer\": \"No, the Jefferson Derby is not blacked out in Granite Falls. The blackout for the Jefferson Derby applies only to the jefferson-city and port-william DMAs. Since you are in granite-falls, you should be able to watch it.\", \"cited_titles\": [\"t001\"], \"entitlement\": {\"entitled\": true, \"reason\": \"ok\", \"source\": \"entitlement-check\"}}",
+  "k": 3,
+  "results": {
+    "v3": {
+      "blocked_samples": 0,
+      "assessed": [],
+      "per_sample_assessed": [
+        [],
+        [],
+        []
+      ]
+    },
+    "v4": {
+      "blocked_samples": 0,
+      "assessed": [],
+      "per_sample_assessed": [
+        [],
+        [],
+        []
+      ]
+    }
+  }
+}
