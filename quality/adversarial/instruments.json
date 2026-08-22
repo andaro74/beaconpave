@@ -41,6 +41,20 @@
         "scorer_sha256": "a5306d7449cf353b73a519ddebb2e8115d690bc9ab64e44f92036774ac8a226e",
         "semantics_sha256": "8489730c543b5c00dfcc6deb3e95d13514417ee95a7060fdfc40bfc7a9827ecd"
       }
+    },
+    "m04-D": {
+      "registered": "2026-08-23",
+      "first_entry": null,
+      "why": "ADR-040. A record says WHICH SIDE fired (`channels`, emitted on every intervention including empty), a probe declares the channels its payload travels on, and a block attributed only to channels the probe never reached no longer credits it -- shape B, measured 9/10 before and 0/10 after. Subset, never intersection. Observations with no `channels` key predate the field and are out of scope, a population that is closed because every intervention now emits the key and `test_contracts.py` pins it. `build_record`'s consistency check is symmetric in both directions with a test that it FIRES. A SEVENTH digest, `guardrail_sha256`, covers `core/guardrail.py` and `core/toolloop.py` -- the derivation and the assignment the verdict now turns on, which were in no digest and on no two-key path.",
+      "digests": {
+        "capture_sha256": "5a5a80647445f696f2439ca9284229879e10fdd209c327cf298fd0c8f0db0fe9",
+        "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+        "g4_cases_sha256": "41b39df5fea08a9a766c900b2eca2c38ba4e7255975487db8cfc383a7203dd10",
+        "guardrail_sha256": "a92dfc1d300d913d95453c3014b7e34bee2b6d620eb3e8d8403422660c8b060f",
+        "probes_sha256": "7e6f522c6801e547453bdcff9718f09806c5383403fbfd2eb725db7b0caf731a",
+        "scorer_sha256": "24f16df89bbc1585e7788915fc41e164ee5094faa947f5f003bf31e73afbbf71",
+        "semantics_sha256": "860eb2b8e7fec72ce3be3b7db2aa44ff04e584f80e9ef55c55e7ed61e0125103"
+      }
     }
   }
 }

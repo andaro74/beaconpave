@@ -247,6 +247,28 @@ RULES: tuple[Rule, ...] = (
         re.compile(r"^platform/gateway/core/audit\.py$"),
         ("platform-eng", "security"),
     ),
+    Rule(
+        # **The decision path (ADR-040 decision 5).** From ADR-040 a G4 verdict
+        # turns on which channel `interpret` derives and which channel
+        # `toolloop.py` hands `interpret_apply` — and both files, plus the schema
+        # validating the result, were one key, any seat, and in no digest. Three
+        # seats found it independently across the ADR-036 and ADR-040 reviews, and
+        # ADR-037 and ADR-039 each named it and declined to pre-empt it. This is
+        # the change that makes the value scoring-relevant, so it is decided here
+        # rather than owed a fourth time.
+        #
+        # `handler.py` is included because it is the other reader of the outcome,
+        # and the place ADR-039 had to move logic OUT of after finding two lines
+        # there that no test could reach.
+        #
+        # `requires_adr` off, for the reason `evals/comparators.json` records: an
+        # ADR gate on files that change often and legitimately prices routine
+        # tightenings high enough to discourage them.
+        "the gateway decision path and the record contract — which channel a block is "
+        "attributed to, and what shape may be written",
+        re.compile(r"^platform/gateway/(core/(guardrail|toolloop)\.py|handler\.py|audit\.schema\.json)$"),
+        ("platform-eng", "security"),
+    ),
 )
 
 

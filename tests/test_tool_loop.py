@@ -109,7 +109,7 @@ class Inspect:
         self.saw.append((channel, text))
         if self.verdicts:
             return self.verdicts.pop(0)
-        return guardrail_module.GuardrailOutcome(False, channel=channel)
+        return guardrail_module.GuardrailOutcome(False, channels=(channel,))
 
 
 def NEVER_BLOCKS():  # noqa: N802 — it is a constant with a call site, and reads as one
@@ -616,7 +616,7 @@ POISONED = {"results": [dict(RESULT["results"][0],
 
 
 def blocks(channel, *assessed):
-    return guardrail_module.GuardrailOutcome(True, tuple(assessed), channel=channel)
+    return guardrail_module.GuardrailOutcome(True, tuple(assessed), (channel,))
 
 
 def test_run_turn_cannot_be_called_without_an_inspection():
@@ -657,7 +657,7 @@ def test_the_system_block_is_inspected_before_the_model_is_reached():
     assert outcome.usage == {"guard_ms": 120}
     assert "tokens_in" not in outcome.usage, "no model call happened"
     assert outcome.calls == ()
-    assert outcome.guardrail.channel == "system"
+    assert outcome.guardrail.channels == ("system",)
     assert outcome.guardrail.assessed == ("TOPIC:entitlement-circumvention",)
 
 
@@ -694,7 +694,7 @@ def test_a_tool_result_is_inspected_before_it_reaches_the_transcript():
     outcome = run(converse, Tool(toolloop.ToolReply(payload=POISONED)), inspect=inspect)
 
     assert outcome.status == toolloop.BLOCKED
-    assert outcome.guardrail.channel == "tool_output"
+    assert outcome.guardrail.channels == ("tool_output",)
     assert len(converse.transcripts) == 1, "the loop went back to the model with the payload"
 
     # **Against the transcript, not against what `converse` was called with.** The
@@ -854,7 +854,7 @@ def test_the_second_result_is_still_blocked_when_the_first_was_clean():
     hard stop is what makes the control demonstrable under G4 — see the module
     docstring — and this is where it would be tempting to let the turn through on
     the strength of the rows that were fine."""
-    inspect = Inspect(guardrail_module.GuardrailOutcome(False, channel="tool_output"),
+    inspect = Inspect(guardrail_module.GuardrailOutcome(False, channels=("tool_output",)),
                       blocks("tool_output", "PROMPT_ATTACK"))
     outcome = run(Converse(tool_use(use_id="tu-1"), tool_use(use_id="tu-2"), final()),
                   Tool(), inspect=inspect)

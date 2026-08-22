@@ -623,3 +623,59 @@ def test_every_second_codeowners_handle_has_a_rule_that_can_collect_it():
         "that collects it, so the second key is decorative on a repo where CODEOWNERS "
         f"enforces nothing (ADR-013, ADR-037): {', '.join(unenforced)}"
     )
+
+
+# --- the channel vocabulary, and the population the rule exempts ----------------
+
+def test_the_channel_names_are_pinned_literally():
+    """`CHANNELS` is `interpret_apply`'s validation set, not a registry.
+
+    Adding `question` made `interpret_apply(..., channel="question")` LEGAL, so a
+    caller can now hand the loop the system block labelled as the viewer's turn.
+    Nothing else pins this set: a third spelling was measured invisible to the
+    lane, the suite and every digest. Written literally, in the shape of the
+    policy-mechanism pin, so widening it is a diff somebody has to defend."""
+    from core import guardrail
+
+    assert frozenset({"system", "tool_output", "question", "answer"}) == guardrail.CHANNELS
+    assert guardrail.CHANNEL_QUESTION == "question"
+    assert guardrail.CHANNEL_ANSWER == "answer"
+
+
+def test_no_committed_observation_gains_a_channel_and_the_exempt_set_is_closed():
+    """The check that keeps ADR-040's exemption honest.
+
+    The channel rule skips observations with no `channels` key, because m01's and
+    m04's predate the field. An exemption is how a weak reading ships, so it is
+    made checkable: `as_record_fragment` emits the key on EVERY intervention, so
+    no future observation can lack it, and the exempt population is therefore
+    closed and finite.
+
+    This pins it. If a new arm is recorded whose blocks carry no channel, the
+    exemption has started growing and this fails — which is what ADR-038 amendment
+    1 had no equivalent of, and why an absent key silently became the escape
+    hatch for the live shape."""
+    import json
+
+    exempt, carried = [], []
+    for path in sorted((ROOT / "milestones").rglob("probes-run.json")):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+
+        def walk(node, where=path):
+            if isinstance(node, dict):
+                if "guardrail_blocked" in node:
+                    (carried if "channels" in node else exempt).append(where.parent.name)
+                    return
+                for v in node.values():
+                    walk(v, where)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v, where)
+
+        walk(doc)
+
+    assert set(exempt) <= {"M00b", "M01", "M04"}, (
+        f"an observation outside the pre-ADR-040 arms carries no `channels` key: "
+        f"{sorted(set(exempt) - {'M00b', 'M01', 'M04'})}. The exempt population must not grow — "
+        "every intervention recorded from ADR-040 onward emits the key, so a new arm without "
+        "it means the recorder stopped emitting it and the channel rule silently stopped applying")

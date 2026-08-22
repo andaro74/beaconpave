@@ -325,7 +325,7 @@ def evals_dryrun_cmd(argv=()):
 #: semantics case(s) checked`, exit 0 — CLAUDE.md's named worst failure mode,
 #: reachable through a door the floor was built to shut. A floor with slack is a
 #: floor for the amount of weakening nobody had measured.
-G4_CASE_FLOOR = 26
+G4_CASE_FLOOR = 31
 
 
 def _suite_pin(pinned: dict, service: str, suite: str):

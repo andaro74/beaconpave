@@ -98,7 +98,7 @@ def _refusal(response: dict, record: dict | None) -> dict:
         "decision": (record or {}).get("decision", response.get("decision")),
         "mechanism": (record or {}).get("mechanism", response.get("mechanism")),
         "assessed": guard.get("assessed") or response.get("assessed") or [],
-        "channel": guard.get("channel"),
+        "channels": guard.get("channels"),
         "record_id": response.get("record_id"),
         "record_resolved": record is not None,
     }
@@ -184,13 +184,13 @@ def main(argv=None) -> int:
                 refusal_detail.setdefault(case["id"], {})[f"s{sample}"] = detail
                 per_sample[case["id"]].append(True)
                 refused.append((case["id"], detail["mechanism"], detail["assessed"],
-                                detail["channel"]))
+                                detail["channels"]))
                 answers[case["id"]] = {
                     "answer": {"refused_by_gateway": detail["mechanism"],
                                "record_id": detail["record_id"]},
                     "usage": {"tokens_in": 0, "tokens_out": 0, "latency_ms": 0},
                 }
-                where = f" [{detail['channel']}]" if detail.get("channel") else ""
+                where = f" [{','.join(detail['channels'])}]" if detail.get("channels") else ""
                 print(f"[{index}/{len(cases)}] {case['id']}: REFUSED by "
                       f"{detail['mechanism']}{where} {detail['assessed'] or ''}")
                 continue

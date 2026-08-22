@@ -24,6 +24,15 @@ MODEL = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 def a_record(**overrides):
+    """A record the gateway could actually have written.
+
+    **Blocked-by-guardrail defaults to carrying an intervening fragment
+    (ADR-040).** `build_record`'s symmetric check refuses a guardrail block whose
+    attribution says nothing intervened, and three fixtures here modelled exactly
+    that shape — a record no `BLOCKED` return in `toolloop.py` can produce, since
+    every one carries `intervened=True`. Supplying the fragment keeps each test
+    testing what it was written for instead of a shape the platform cannot emit.
+    Pass `guardrail=None` explicitly to build the contradiction on purpose."""
     base = dict(
         request_id="req-1",
         ts=TS,
@@ -38,6 +47,11 @@ def a_record(**overrides):
         mechanism="none",
         model_id=MODEL,
     )
+    if (overrides.get("decision") == "blocked" and overrides.get("mechanism") == "guardrail"
+            and "guardrail" not in overrides):
+        overrides = dict(overrides, guardrail={
+            "id": "gr-1", "version": "4", "action": "GUARDRAIL_INTERVENED",
+            "assessed": ["PROMPT_ATTACK"], "channels": [guardrail.CHANNEL_QUESTION]})
     base.update(overrides)
     return audit.build_record(**base)
 
@@ -335,6 +349,7 @@ def test_attribution_is_deduplicated_and_ordered():
 def test_the_record_fragment_carries_a_pinned_version():
     fragment = guardrail.GuardrailOutcome(True, ("PROMPT_ATTACK",)).as_record_fragment("gr-1", "3")
     assert fragment == {"id": "gr-1", "version": "3", "action": "GUARDRAIL_INTERVENED",
+                        "channels": [],
                         "assessed": ["PROMPT_ATTACK"]}
 
 
@@ -366,23 +381,45 @@ def test_the_meter_refuses_to_store_money():
 # the two readers agree about what a block is — and, first, that adding the
 # second one did not move the first.
 
-def test_a_converse_block_still_records_no_channel():
-    """**The byte-identity guarantee this whole change rests on.** M04's per-probe
-    pins were recorded before the channel existed; if `interpret` started emitting
-    a `channel` key, every future record of the same event would differ from the
-    committed one and the before/after would be comparing record shapes rather
-    than controls. `test_the_record_fragment_carries_a_pinned_version` pins the
-    fragment; this pins where the value comes from."""
-    outcome = guardrail.interpret({"stopReason": "guardrail_intervened"})
-    assert outcome.channel is None
-    assert "channel" not in outcome.as_record_fragment("gr-1", "2")
+def test_a_converse_block_now_records_which_side_fired():
+    """**This test used to assert the opposite, and the change is the decision.**
 
+    It was `test_a_converse_block_still_records_no_channel` and called itself "the
+    byte-identity guarantee this whole change rests on": a converse block wrote no
+    channel key, so its fragment matched M04's byte for byte.
+
+    ADR-040 decision 1 gives that up deliberately. Keeping it means omitting the
+    key on an empty tuple, and then *absent* is ambiguous between a new untraced
+    block and a record predating the field — which is precisely how ADR-038's
+    closure came to be routed into the historical population and credited 9/10.
+    Byte-identity for blocked turns was worth less than an unambiguous key.
+
+    What is preserved is the half that carries information: an UNASSESSED turn's
+    fragment is unchanged, asserted below."""
+    outcome = guardrail.interpret({
+        "stopReason": "guardrail_intervened",
+        "trace": {"guardrail": {"inputAssessment": {"gr-1": {
+            "topicPolicy": {"topics": [{"name": "entitlement-circumvention",
+                                        "action": "BLOCKED"}]}}}}},
+    })
+    fragment = outcome.as_record_fragment("gr-1", "4")
+    assert fragment["channels"] == [guardrail.CHANNEL_QUESTION]
+    assert fragment["assessed"] == ["TOPIC:entitlement-circumvention"]
+
+
+def test_an_unassessed_turn_writes_the_fragment_m04_recorded():
+    """The byte-identity that survives, and the one that mattered: a turn the
+    guardrail did not stop carries no `channels` key at all, so every allowed
+    record M04 wrote still compares."""
+    fragment = guardrail.interpret({}).as_record_fragment("gr-1", "4")
+    assert fragment == {"id": "gr-1", "version": "4", "action": "NONE", "assessed": []}
+    assert "channels" not in fragment
 
 def test_the_action_alone_is_an_intervention():
     outcome = guardrail.interpret_apply(
         {"action": "GUARDRAIL_INTERVENED"}, channel=guardrail.CHANNEL_TOOL_OUTPUT)
     assert outcome.intervened is True
-    assert outcome.channel == "tool_output"
+    assert outcome.channels == ("tool_output",)
 
 
 def test_an_assessment_alone_is_an_intervention():
@@ -448,7 +485,7 @@ def test_a_channel_block_records_which_channel_and_still_validates():
              {"type": "PROMPT_ATTACK", "action": "BLOCKED"}]}}]},
         channel=guardrail.CHANNEL_SYSTEM)
     fragment = outcome.as_record_fragment("gr-1", "2")
-    assert fragment["channel"] == "system"
+    assert fragment["channels"] == ["system"]
 
     record = a_record(decision="blocked", mechanism="guardrail", guardrail=fragment)
     jsonschema.validate(record, AUDIT_SCHEMA)
@@ -560,7 +597,7 @@ def test_a_mixed_assessment_names_only_what_blocked():
 def test_the_block_response_carries_the_names_that_blocked_it():
     outcome = guardrail.GuardrailOutcome(True, ("TOPIC:enforcement-probing", "PROMPT_ATTACK"))
     assert outcome.as_response_fields() == {
-        "assessed": ["TOPIC:enforcement-probing", "PROMPT_ATTACK"]}
+        "assessed": ["TOPIC:enforcement-probing", "PROMPT_ATTACK"], "channels": []}
 
 
 def test_the_block_response_names_the_channel_only_when_there_is_one():
@@ -568,7 +605,7 @@ def test_the_block_response_names_the_channel_only_when_there_is_one():
     parsing the response must not have to tell `channel: null` apart from a turn
     where the question is not meaningful."""
     plain = guardrail.GuardrailOutcome(True, ("PROMPT_ATTACK",))
-    assert "channel" not in plain.as_response_fields()
+    assert plain.as_response_fields()["channels"] == []
 
     on_tool_output = guardrail.interpret_apply(
         {"action": guardrail.APPLY_ACTION_INTERVENED,
@@ -577,7 +614,7 @@ def test_the_block_response_names_the_channel_only_when_there_is_one():
         channel=guardrail.CHANNEL_TOOL_OUTPUT,
     )
     fields = on_tool_output.as_response_fields()
-    assert fields["channel"] == guardrail.CHANNEL_TOOL_OUTPUT
+    assert fields["channels"] == [guardrail.CHANNEL_TOOL_OUTPUT]
     assert fields["assessed"] == ["TOPIC:entitlement-circumvention"]
 
 
@@ -676,22 +713,46 @@ def test_a_real_block_and_the_committed_g4_case_describe_the_same_observation():
             "produce, which is how ADR-038 measured 0/10 while the live path scored 9/10")
 
 
-def test_a_guardrail_block_with_no_attribution_object_at_all_is_not_legacy():
-    """Three populations, not two.
+def test_a_guardrail_block_with_no_attribution_object_at_all_cannot_be_written():
+    """Three populations, and this one is now refused at the door.
 
-    ADR-038 split on `assessed` present-and-empty versus absent. A record claiming
-    a guardrail block while carrying **no guardrail fragment whatsoever** is
-    neither: the legacy population had a fragment that predated the field, and
-    this one names no control and never did.
-
-    It matters because ADR-038 inverted the consequence of absence. Before it,
-    nothing keyed on the missing key; after it, missing means credited — so this
-    record went from harmless to scoring 9/10. `build_record` accepts it today."""
-    no_fragment = audit.observation_from_record(audit.build_record(
-        request_id="r", ts="2026-08-22T00:00:00Z", principal="p", service="s",
-        classification="internal", decision="blocked", mechanism="guardrail",
-        model_id="m"))
-    assert no_fragment["assessed"] == [], "a block with no attribution object must not read as legacy"
+    ADR-038 amendment 1 made an unattributed block score 0/10 in the reader,
+    because `build_record` accepted a guardrail block carrying no `guardrail`
+    fragment at all. ADR-040's symmetric check refuses to write it — the stronger
+    outcome, and the reason the reader's guard stays as defence-in-depth rather
+    than being removed: a record that cannot be built cannot be scored."""
+    with pytest.raises(ValueError, match="no intervening guardrail"):
+        audit.build_record(
+            request_id="r", ts=TS, principal="p", service="s",
+            classification="internal", decision="blocked", mechanism="guardrail",
+            model_id=MODEL)
 
     legacy = audit.observation_from_record(_blocked_record())
     assert "assessed" not in legacy, "a fragment predating the field is still the legacy population"
+
+def test_the_symmetric_guardrail_check_actually_fires():
+    """Both directions, asserted to RAISE.
+
+    ADR-036 finding 8 measured that planting this check correctly and planting it
+    dead produce identical suites: the only signal was `capture_sha256` noticing
+    `audit.py` changed, and registering a new instrument in the same PR turns even
+    that green. A digest is a change detector, never a correctness detector, so
+    the check that it fires is part of the change rather than owed by it."""
+    common = dict(request_id="r", ts=TS, principal="p", service="s",
+                  classification="internal", model_id=MODEL)
+    intervened = {"id": "gr-1", "version": "4", "action": "GUARDRAIL_INTERVENED",
+                  "assessed": ["PROMPT_ATTACK"], "channels": ["question"]}
+
+    # The direction ADR-036 wrote: an allowed call whose attribution says it was stopped.
+    with pytest.raises(ValueError, match="GUARDRAIL_INTERVENED beside decision"):
+        audit.build_record(decision="allowed", mechanism="none", guardrail=intervened, **common)
+
+    # The direction it left open, and the only one that can produce a false pass.
+    with pytest.raises(ValueError, match="no intervening guardrail"):
+        audit.build_record(decision="blocked", mechanism="guardrail",
+                           guardrail={"id": "gr-1", "version": "4", "action": "NONE",
+                                      "assessed": [], "channels": []}, **common)
+
+    # ...and the honest record still builds, so this proves rightness and not strictness.
+    assert audit.build_record(decision="blocked", mechanism="guardrail",
+                              guardrail=intervened, **common)["decision"] == "blocked"
