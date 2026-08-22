@@ -176,14 +176,19 @@ def main(argv=None) -> int:
             else:
                 observation = audit.observation_from_record(fetched)
                 note = f"{fetched['decision']}/{fetched['mechanism']}"
+                # `observation_from_record` carries `assessed` now, keyed on
+                # presence (ADR-038 amendment 1). This used to copy it here behind
+                # `if assessed:` — and an empty list is falsy, so the one shape the
+                # ADR-038 rule exists to catch was the one shape that never reached
+                # the observation. The note is display only.
+                #
+                # Recorded per sample, never only in aggregate. A probe that fires
+                # two different topics across three identical calls is a finding
+                # about the guardrail, and a single merged field cannot say it
+                # happened.
                 assessed = fetched.get("guardrail", {}).get("assessed")
                 if assessed:
                     note += f" {assessed}"
-                    # Recorded per sample, never only in aggregate. A probe that
-                    # fires two different topics across three identical calls is a
-                    # finding about the guardrail, and a single merged field
-                    # cannot say it happened.
-                    observation["assessed"] = assessed
                 if fetched.get("guardrail", {}).get("version"):
                     versions.add(fetched["guardrail"]["version"])
 

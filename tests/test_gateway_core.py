@@ -608,3 +608,90 @@ def test_the_handler_reads_these_fields_from_the_dataclass_and_not_by_hand():
         "handler.py reads `outcome.guardrail.channel` directly again. That attribute "
         "access is unexecuted by any test (boto3 keeps this module out of the hermetic "
         "surface), and a rename of the field crashes the guardrail-block path silently")
+
+
+# --- assessed reaches the observation (ADR-038 amendment 1) ---------------------
+
+def _blocked_record(**frag):
+    return audit.build_record(
+        request_id="r1", ts="2026-08-22T00:00:00Z", principal="p", service="s",
+        classification="internal", decision="blocked", mechanism="guardrail",
+        model_id="m", guardrail={"id": "gr-1", "version": "4",
+                                 "action": "GUARDRAIL_INTERVENED", **frag})
+
+
+def test_the_observation_carries_an_empty_attribution_as_a_value():
+    """The bug ADR-038 amendment 1 records, at the joint where it lived.
+
+    ADR-038's rule turns on `assessed` present-and-empty versus absent, and the
+    thing copying the field used `if assessed:`. An empty list is falsy, so the one
+    shape the rule exists to catch was the one shape that arrived looking like a
+    pre-field legacy observation — 9/10 PASS, every one marked unearned, which
+    reads as the system being honest about a hole it is still falling into.
+
+    Keyed on PRESENCE. There is no truthiness test anywhere on this path."""
+    obs = audit.observation_from_record(_blocked_record(assessed=[]))
+    assert "assessed" in obs, "an empty attribution must survive as an empty list"
+    assert obs["assessed"] == []
+
+
+def test_the_observation_omits_the_attribution_only_when_the_record_has_none():
+    """The other population must stay distinguishable, or the fix trades one
+    collapse for the other: absent means an observation predating the field, which
+    passes and is marked unearned."""
+    assert "assessed" not in audit.observation_from_record(_blocked_record())
+    named = audit.observation_from_record(_blocked_record(assessed=["PROMPT_ATTACK"]))
+    assert named["assessed"] == ["PROMPT_ATTACK"]
+
+
+def test_a_real_block_and_the_committed_g4_case_describe_the_same_observation():
+    """The class, not the instance.
+
+    ADR-038 measured shape A at 0/10 on an observation **built by hand in a test**,
+    while the capture path produced a different one and scored it 9/10. Both were
+    green. Nothing compared them, because the corpus asserts what the scorer does
+    with an observation and never that the platform produces the observation the
+    corpus describes.
+
+    So this drives the real `interpret` and the real `build_record`, then checks the
+    derived observation against the committed case that pins the same shape. A
+    future divergence between what the platform records and what the corpus asserts
+    fails here rather than in six months."""
+    import yaml
+    case = next(c for c in yaml.safe_load(
+        (pathlib.Path(__file__).resolve().parents[1]
+         / "quality" / "adversarial" / "g4-semantics.yaml").read_text(encoding="utf-8"))["cases"]
+        if c["id"] == "G4-024")
+
+    outcome = guardrail.interpret({"stopReason": guardrail.STOP_REASON_INTERVENED})
+    derived = audit.observation_from_record(
+        _blocked_record(**{k: v for k, v in outcome.as_record_fragment("gr-1", "4").items()
+                           if k not in ("id", "version", "action")}))
+
+    pinned = case["observation"]
+    for key in ("guardrail_blocked", "mechanism", "assessed"):
+        assert derived[key] == pinned[key], (
+            f"G4-024 pins {key}={pinned[key]!r} but a real unattributed block derives "
+            f"{derived.get(key)!r}. The corpus is describing a shape the platform does not "
+            "produce, which is how ADR-038 measured 0/10 while the live path scored 9/10")
+
+
+def test_a_guardrail_block_with_no_attribution_object_at_all_is_not_legacy():
+    """Three populations, not two.
+
+    ADR-038 split on `assessed` present-and-empty versus absent. A record claiming
+    a guardrail block while carrying **no guardrail fragment whatsoever** is
+    neither: the legacy population had a fragment that predated the field, and
+    this one names no control and never did.
+
+    It matters because ADR-038 inverted the consequence of absence. Before it,
+    nothing keyed on the missing key; after it, missing means credited — so this
+    record went from harmless to scoring 9/10. `build_record` accepts it today."""
+    no_fragment = audit.observation_from_record(audit.build_record(
+        request_id="r", ts="2026-08-22T00:00:00Z", principal="p", service="s",
+        classification="internal", decision="blocked", mechanism="guardrail",
+        model_id="m"))
+    assert no_fragment["assessed"] == [], "a block with no attribution object must not read as legacy"
+
+    legacy = audit.observation_from_record(_blocked_record())
+    assert "assessed" not in legacy, "a fragment predating the field is still the legacy population"

@@ -189,12 +189,56 @@ def observation_from_record(record: dict) -> dict:
     evidence."""
     decision = record.get("decision")
     mechanism = record.get("mechanism")
-    return {
+    observation = {
         "guardrail_blocked": decision == "blocked" and mechanism == "guardrail",
         "policy_denied": decision == "denied" and mechanism in POLICY_MECHANISMS,
         "mechanism": mechanism,
         "audit_record": record.get("record_id"),
     }
+    # **`assessed` travels with the verdict, and an EMPTY list is a value.**
+    #
+    # ADR-038 made an unattributed block fail: `assessed` present-and-empty is the
+    # recorder saying it looked and found nothing, while an absent key means an
+    # observation predating the field, which passes and is marked unearned. That
+    # split is only as good as the thing that copies the field, and this function
+    # did not copy it at all — the probe harness did, at
+    # `run_probes_via_gateway.py`, behind `if assessed:`. An empty list is falsy,
+    # so every shape-A block was written into the observation WITHOUT the key and
+    # scored as legacy: 9/10 PASS, nine of them marked unearned, which reads as the
+    # system being honest about a hole it is in fact still falling into.
+    #
+    # ADR-038's results table said 0/10. It was measured on an observation built by
+    # hand in a test, not on one the capture path produces. The record fragment was
+    # always right; nothing carried it across. Recorded in ADR-038 amendment 1.
+    #
+    # So the copy lives here, in the single function that turns a record into an
+    # observation, rather than in each harness that happens to need one — and it is
+    # keyed on presence, never on truthiness. A harness may still add fields; it
+    # must not be the thing that decides whether the attribution survives.
+    fragment = record.get("guardrail")
+    if isinstance(fragment, dict):
+        # A fragment PRESENT without `assessed` is the legacy population: a record
+        # written before the field existed. The key stays absent, which is what
+        # ADR-038 credits and marks unearned. Only a wholly missing fragment is
+        # treated as unattributed below.
+        if "assessed" in fragment:
+            observation["assessed"] = fragment["assessed"]
+    elif observation["guardrail_blocked"]:
+        # **A guardrail block with no guardrail fragment at all is not "legacy".**
+        # The absent-key population ADR-038 credits is an observation whose record
+        # HAD a fragment that predated the `assessed` field. A record claiming a
+        # guardrail block while carrying no attribution object whatsoever is a
+        # different thing: it names no control and there is nothing that once did.
+        #
+        # It matters because ADR-038 inverted the consequence. Before it, an absent
+        # key meant nothing keyed on it; after it, absent means credited. So this
+        # record went from harmless to scoring 9/10 — the amendment's own change
+        # made the latent hole live, which is why it is closed here and not left to
+        # correction 3. `build_record` accepts such a record today (measured), and
+        # every `BLOCKED` return in `toolloop.py` does carry a fragment, so this is
+        # a guard against a future wiring error rather than a live gateway path.
+        observation["assessed"] = []
+    return observation
 
 
 def resolve_failed(record_id: str | None) -> dict:
