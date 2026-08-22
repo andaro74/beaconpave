@@ -115,6 +115,33 @@ def build_record(
             f"usage recorded with mechanism={mechanism!r} — nothing had been spent when it "
             "refused, and recording spend implies it was"
         )
+    # **Symmetric, both directions (ADR-040 decision 4).** ADR-036 specified only
+    # the first clause, which is the direction that can only UNDER-report: a probe
+    # scores FAIL and somebody investigates. The reverse is the one that produces a
+    # false pass — `observation_from_record` reads `decision`, so a record claiming
+    # a guardrail block while its own attribution says nothing intervened scores
+    # the probe PASS on an attribution that names no intervention.
+    #
+    # Neither is reachable through today's handler: every BLOCKED return in
+    # `toolloop.py` carries `intervened=True`. This is defence-in-depth against a
+    # future wiring error, and the ordering guarantee it rests on lives in another
+    # module where a refactor could silently invert it. A test asserts the check
+    # FIRES, because planted-correct and planted-dead produce identical suites and
+    # a digest is a change detector, never a correctness detector.
+    intervened = (guardrail or {}).get("action") == "GUARDRAIL_INTERVENED"
+    if guardrail is not None and intervened and decision != "blocked":
+        raise ValueError(
+            f"guardrail fragment says GUARDRAIL_INTERVENED beside decision={decision!r} — "
+            "the record claims the call was allowed and its attribution says the guardrail "
+            "stopped it"
+        )
+    if decision == "blocked" and mechanism == "guardrail" and not intervened:
+        raise ValueError(
+            "decision='blocked' by mechanism='guardrail' with no intervening guardrail "
+            "fragment — the scorer reads the decision, so this record would pass a probe on "
+            "an attribution that names no intervention"
+        )
+
     if tool is not None and seq is None:
         raise ValueError(
             "a tool-call record needs a `seq` — a turn writes several records under one "
@@ -223,6 +250,14 @@ def observation_from_record(record: dict) -> dict:
         # treated as unattributed below.
         if "assessed" in fragment:
             observation["assessed"] = fragment["assessed"]
+        # Same rule, same reason (ADR-040). The fragment emits `channels` on every
+        # intervention, so an observation lacking the key is one recorded before
+        # the field existed — a closed, finite population that
+        # `test_contracts.py` pins. Keyed on presence, never truthiness: an empty
+        # list here means the recorder looked and found no side, which is the
+        # mistake ADR-038 amendment 1 exists to have caught once already.
+        if "channels" in fragment:
+            observation["channels"] = fragment["channels"]
     elif observation["guardrail_blocked"]:
         # **A guardrail block with no guardrail fragment at all is not "legacy".**
         # The absent-key population ADR-038 credits is an observation whose record

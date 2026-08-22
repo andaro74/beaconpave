@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://beaconpave/platform/gateway/audit.schema.json",
   "title": "Gateway Audit Record",
-  "description": "One record per attempt to reach a model, written by the gateway to the audit lake. Written for BLOCKED and DENIED attempts exactly as for allowed ones — a control that only records its successes cannot evidence a refusal, and the refusal is the half G4 asks for. The gateway writes; the caller cannot. A record is the second half of an adversarial pass (G4): `blocked` alone is an assertion, `blocked` plus a resolvable record is evidence.",
+  "description": "One record per attempt to reach a model, written by the gateway to the audit lake. Written for BLOCKED and DENIED attempts exactly as for allowed ones \u2014 a control that only records its successes cannot evidence a refusal, and the refusal is the half G4 asks for. The gateway writes; the caller cannot. A record is the second half of an adversarial pass (G4): `blocked` alone is an assertion, `blocked` plus a resolvable record is evidence.",
   "type": "object",
   "required": [
     "record_id",
@@ -18,7 +18,7 @@
   "properties": {
     "record_id": {
       "type": "string",
-      "description": "The lake key. Must resolve: the probe harness fetches the record by this id rather than trusting the gateway response that named it. An unresolvable id is not a pass. A turn that used tools writes several records under one request_id, so those carry a three-digit call ordinal before the .json suffix — without it they would share a key, and on a versioned bucket that collision is silent: every record is still there, and every one of them is behind the last."
+      "description": "The lake key. Must resolve: the probe harness fetches the record by this id rather than trusting the gateway response that named it. An unresolvable id is not a pass. A turn that used tools writes several records under one request_id, so those carry a three-digit call ordinal before the .json suffix \u2014 without it they would share a key, and on a versioned bucket that collision is silent: every record is still there, and every one of them is behind the last."
     },
     "ts": {
       "type": "string",
@@ -30,7 +30,7 @@
     },
     "principal": {
       "type": "string",
-      "description": "The calling role. At runtime this is the invoked function's ARN. Committed fixtures use an account-less form instead: this repo is public, and tests/test_no_account_identifiers.py rejects an account-qualified ARN even when the account field is redacted — the redaction habit is what lets a real one through later."
+      "description": "The calling role. At runtime this is the invoked function's ARN. Committed fixtures use an account-less form instead: this repo is public, and tests/test_no_account_identifiers.py rejects an account-qualified ARN even when the account field is redacted \u2014 the redaction habit is what lets a real one through later."
     },
     "service": {
       "type": "string",
@@ -67,7 +67,7 @@
         "iam",
         "none"
       ],
-      "description": "What made the decision. `none` is only valid with decision=allowed. `routing` means a tool the policy permits has no endpoint in this deployment — a deployment gap, named rather than folded into `schema`, and deliberately outside POLICY_MECHANISMS so that it can never satisfy a probe. `iam` records a direct-call attempt refused by an identity policy — claim 4's runtime artifact. `policy` means Cedar and only Cedar: a probe declaring `cedar_denied_or_approval_required_and_logged` is satisfiable by this value and by no other, so a contract violation (`schema`) and a turn that ran past its round bound (`loop`) are named separately rather than folded into it. Both are still platform refusals and both count for the broad G4 semantics; neither is an authorization decision."
+      "description": "What made the decision. `none` is only valid with decision=allowed. `routing` means a tool the policy permits has no endpoint in this deployment \u2014 a deployment gap, named rather than folded into `schema`, and deliberately outside POLICY_MECHANISMS so that it can never satisfy a probe. `iam` records a direct-call attempt refused by an identity policy \u2014 claim 4's runtime artifact. `policy` means Cedar and only Cedar: a probe declaring `cedar_denied_or_approval_required_and_logged` is satisfiable by this value and by no other, so a contract violation (`schema`) and a turn that ran past its round bound (`loop`) are named separately rather than folded into it. Both are still platform refusals and both count for the broad G4 semantics; neither is an authorization decision."
     },
     "guardrail": {
       "type": "object",
@@ -98,15 +98,21 @@
           },
           "description": "Policy types that fired, e.g. PROMPT_ATTACK. Recorded so a pass can be attributed to a mechanism rather than to an aggregate."
         },
-        "channel": {
-          "type": "string",
-          "enum": [
-            "system",
-            "tool_output"
-          ],
-          "description": "Which channel the blocked content arrived on, when the block came from the gateway inspecting content it was about to put in the model's context rather than from Bedrock assessing the turn. Absent on every block of the viewer's turn, which keeps the `guardrail` object such a block writes byte-identical to the one M04 recorded - the object every per-probe pin is derived from. The surrounding record is not byte-identical: a turn that inspected anything also carries `usage.guard_ms`. Nothing an observation reads moves, which is the claim that matters, and it is stated here in the form that is true rather than the form that is flattering. Present, it says which seat owns the finding: `tool_output` is a result the plane authorized and the guardrail then refused to let into context. `system` is in the enum and is written by nothing: that half of ADR-035's Change B was withdrawn by amendment 1 after a pre-flight measured it as a total outage with no discrimination. The value is kept because the diagnostics use the vocabulary and a recoverable, data-scoped version is gated on row 12."
+        "channels": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "system",
+              "tool_output",
+              "question",
+              "answer"
+            ]
+          },
+          "uniqueItems": true,
+          "description": "Which channels the blocked content arrived on. Present on EVERY intervention, including as an empty list, and absent when the guardrail did not intervene (ADR-040). It replaces the singular `channel`: an array because both sides of a Converse turn can fire at once. `question` is the input side and `answer` the output side; `system` and `tool_output` are the ApplyGuardrail planes. **`question` is a semantic name for a mechanical thing** -- Bedrock's inputAssessment covers the whole input, and in this deployment that is the user turn only because converse does not assess the system block. If that changes, `question` silently absorbs system-block blocks and the name lies. **Empty is a value, not a gap**: it means the recorder looked and attributed the block to no side, which the adversarial scorer refuses to credit. An ABSENT key on a block means a record written before this field existed."
         }
-      }
+      },
+      "additionalProperties": false
     },
     "model_id": {
       "type": "string",
@@ -155,11 +161,11 @@
         "cloudtrail",
         "couriered"
       ],
-      "description": "Who observed the event. `gateway` and `cloudtrail` are independent of the caller. `couriered` means the attempting principal reported its own refusal — weaker, permitted only where no independent witness exists, and it must be named as a limitation in the milestone journal rather than counted as equivalent."
+      "description": "Who observed the event. `gateway` and `cloudtrail` are independent of the caller. `couriered` means the attempting principal reported its own refusal \u2014 weaker, permitted only where no independent witness exists, and it must be named as a limitation in the milestone journal rather than counted as equivalent."
     },
     "tool": {
       "type": "object",
-      "description": "The tool-plane decision for one tool call. A round may carry several calls and a turn several rounds, so a turn produces several of these records rather than one — `round` is what lets a reader put them back in order. Present on every tool call, allowed or denied: a plane that recorded only its refusals could not evidence that an allowed call was authorized either.",
+      "description": "The tool-plane decision for one tool call. A round may carry several calls and a turn several rounds, so a turn produces several of these records rather than one \u2014 `round` is what lets a reader put them back in order. Present on every tool call, allowed or denied: a plane that recorded only its refusals could not evidence that an allowed call was authorized either.",
       "required": [
         "id",
         "round",
@@ -203,7 +209,7 @@
         },
         "principal": {
           "type": "string",
-          "description": "The Cedar principal this call was authorized against. Deployment configuration, never the caller's `service` field (ADR-023) — and recorded here because the top-level `principal` is the gateway's own ARN and `service` is a claim, so without this an ALLOWED tool call could not evidence which identity permitted it."
+          "description": "The Cedar principal this call was authorized against. Deployment configuration, never the caller's `service` field (ADR-023) \u2014 and recorded here because the top-level `principal` is the gateway's own ARN and `service` is a claim, so without this an ALLOWED tool call could not evidence which identity permitted it."
         },
         "args": {
           "type": "object",
@@ -214,7 +220,7 @@
           "items": {
             "type": "string"
           },
-          "description": "Context attributes that exempted this call from a forbid — e.g. an approval interlock granting `approval_granted`. Empty or absent at M02, where nothing grants one. Without this field an approved publish-class call at M06 would record `allowed`/`none` and be indistinguishable from an ungated read, so the interlock would leave no evidence that it was exercised. Added while the interlock is being modelled rather than after."
+          "description": "Context attributes that exempted this call from a forbid \u2014 e.g. an approval interlock granting `approval_granted`. Empty or absent at M02, where nothing grants one. Without this field an approved publish-class call at M06 would record `allowed`/`none` and be indistinguishable from an ungated read, so the interlock would leave no evidence that it was exercised. Added while the interlock is being modelled rather than after."
         }
       }
     }

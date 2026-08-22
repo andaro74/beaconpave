@@ -30,10 +30,22 @@ BLOCKING_ACTIONS = frozenset({"BLOCKED"})
 class GuardrailOutcome:
     intervened: bool
     assessed: tuple[str, ...] = ()
-    #: Which channel the assessed content arrived on, when the assessment was of
-    #: something other than the turn Bedrock assessed for us. `None` on every
-    #: outcome `interpret` produces, so the FRAGMENT a user-turn block writes is
-    #: byte-identical to the one M04 recorded — the key is emitted only when set.
+    #: Which channels the blocked content arrived on. A TUPLE because both sides
+    #: can fire on one turn, and the alternatives are worse: a compound string
+    #: invents a third spelling for two things, and a second parallel field is two
+    #: sources for one decision.
+    #:
+    #: **Emitted whenever the guardrail intervened, including when empty** — not
+    #: "only when set" (ADR-040 decision 1). ADR-036 specified when-set, to keep a
+    #: blocked turn's fragment byte-identical to M04's. ADR-038 amendment 1 is why
+    #: that is wrong: `assessed` used the same rule one layer up, and an absent key
+    #: became ambiguous between a new untraced block and a record predating the
+    #: field — so the live false-pass shape was routed into the historical
+    #: population and credited. Omitting this key on an empty tuple reintroduces
+    #: that bug verbatim.
+    #:
+    #: The cost is real and was conceded in ADR-036 amendment 1: a BLOCKED turn's
+    #: fragment is no longer byte-identical to M04's. An UNASSESSED turn's is.
     #:
     #: **The fragment, not the whole record.** The AI Quality seat checked the
     #: wider claim and it does not hold: a turn now also records `guard_ms`, so
@@ -42,7 +54,7 @@ class GuardrailOutcome:
     #: `mechanism` and this fragment, and none of those change — but the claim is
     #: written here in the form that is true rather than the form that is
     #: flattering.
-    channel: str | None = None
+    channels: tuple[str, ...] = ()
 
     def as_record_fragment(self, guardrail_id: str, version: str) -> dict:
         """The `guardrail` object in an audit record. `version` is required and
@@ -53,8 +65,8 @@ class GuardrailOutcome:
             "action": "GUARDRAIL_INTERVENED" if self.intervened else "NONE",
             "assessed": list(self.assessed),
         }
-        if self.channel is not None:
-            fragment["channel"] = self.channel
+        if self.intervened:
+            fragment["channels"] = list(self.channels)
         return fragment
 
     def as_response_fields(self) -> dict:
@@ -78,8 +90,8 @@ class GuardrailOutcome:
         thing to defend". A field read is small enough to look like an exception
         and was exactly big enough to hide a crash."""
         fields = {"assessed": list(self.assessed)}
-        if self.channel is not None:
-            fields["channel"] = self.channel
+        if self.intervened:
+            fields["channels"] = list(self.channels)
         return fields
 
 
@@ -126,22 +138,36 @@ def interpret(response: dict) -> GuardrailOutcome:
     intervened on output while the turn still reported a normal stop. Trusting
     only `stopReason` would under-report, and under-reporting a block is how a
     probe silently stops passing after a service update."""
-    assessments: list[dict] = []
     guardrail_trace = response.get("trace", {}).get("guardrail", {})
 
-    for by_id in guardrail_trace.get("inputAssessment", {}).values():
-        assessments.append(by_id)
-    for per_guardrail in guardrail_trace.get("outputAssessments", {}).values():
-        assessments.extend(per_guardrail)
-
+    # **Which SIDE produced each name, not just the names.** The channel is derived
+    # from the assessment map a blocked name came out of, which is the only reading
+    # that cannot disagree with `assessed`.
+    #
+    # A consequence worth stating, because it decides how much this field can do:
+    # `channels == ()` if and only if `assessed == ()`. Both come from the same
+    # `_blocked_names` calls, so an empty channel tuple is always an unattributed
+    # block — which ADR-038 already fails on `assessed`. **This field's only new
+    # power is saying which side**, and ADR-040 claims that and nothing more.
     names: list[str] = []
-    for assessment in assessments:
-        names.extend(_blocked_names(assessment))
+    channels: list[str] = []
+
+    for by_id in guardrail_trace.get("inputAssessment", {}).values():
+        found = _blocked_names(by_id)
+        if found:
+            names.extend(found)
+            channels.append(CHANNEL_QUESTION)
+    for per_guardrail in guardrail_trace.get("outputAssessments", {}).values():
+        for assessment in per_guardrail:
+            found = _blocked_names(assessment)
+            if found:
+                names.extend(found)
+                channels.append(CHANNEL_ANSWER)
 
     intervened = response.get("stopReason") == STOP_REASON_INTERVENED or bool(names)
     # Sorted and de-duplicated: the same filter firing on input and output is one
     # attribution, and an unstable order would make two identical runs diff.
-    return GuardrailOutcome(intervened, tuple(sorted(set(names))))
+    return GuardrailOutcome(intervened, tuple(sorted(set(names))), tuple(sorted(set(channels))))
 
 
 #: `ApplyGuardrail`'s verdict when it stopped the content. The Converse path
@@ -160,7 +186,22 @@ APPLY_ACTION_INTERVENED = "GUARDRAIL_INTERVENED"
 #: not content the platform wrote.
 CHANNEL_SYSTEM = "system"
 CHANNEL_TOOL_OUTPUT = "tool_output"
-CHANNELS = frozenset({CHANNEL_SYSTEM, CHANNEL_TOOL_OUTPUT})
+#: The two sides of a Converse turn, added by ADR-040 so a record can say which
+#: fired. `question` is a semantic name for a mechanical thing: Bedrock's
+#: `inputAssessment` covers the WHOLE input, and in this deployment that is the
+#: user turn only because `converse` does not assess the system block — measured
+#: twice, and the reason M02's control arm ran at all (178 allowed of 185; the
+#: clean system block blocks 3/3 under `ApplyGuardrail`).
+#:
+#: **If that ever changes, `question` silently absorbs system-block blocks and the
+#: name lies** — and it is a cliff rather than a drift, because the same content
+#: blocks unanimously. ADR-040 records it as open, alongside the fact that adding
+#: these names makes `interpret_apply(..., channel="question")` LEGAL, so a caller
+#: can now label platform content as the viewer's turn. `test_contracts.py` pins
+#: this set literally for that reason.
+CHANNEL_QUESTION = "question"
+CHANNEL_ANSWER = "answer"
+CHANNELS = frozenset({CHANNEL_SYSTEM, CHANNEL_TOOL_OUTPUT, CHANNEL_QUESTION, CHANNEL_ANSWER})
 
 
 def interpret_apply(response: dict, *, channel: str) -> GuardrailOutcome:
@@ -191,4 +232,4 @@ def interpret_apply(response: dict, *, channel: str) -> GuardrailOutcome:
     # Trusting `action` alone would under-report, and under-reporting a block is
     # how a probe silently stops passing after a service update.
     intervened = response.get("action") == APPLY_ACTION_INTERVENED or bool(names)
-    return GuardrailOutcome(intervened, tuple(sorted(set(names))), channel=channel)
+    return GuardrailOutcome(intervened, tuple(sorted(set(names))), (channel,))

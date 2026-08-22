@@ -88,7 +88,7 @@ def _refusal(response: dict, record: dict | None) -> dict:
         "decision": (record or {}).get("decision", response.get("decision")),
         "mechanism": (record or {}).get("mechanism", response.get("mechanism")),
         "assessed": guard.get("assessed") or response.get("assessed") or [],
-        "channel": guard.get("channel"),
+        "channels": guard.get("channels"),
         "reasons": response.get("reasons") or [],
         "record_id": response.get("record_id"),
         "record_resolved": record is not None,
@@ -213,7 +213,7 @@ def main(argv=None) -> int:
                     "usage": {"tokens_in": 0, "tokens_out": 0, "latency_ms": None},
                 }
                 calls = len(trajectories[case["id"]]["trajectory"])
-                where = f" [{detail['channel']}]" if detail.get("channel") else ""
+                where = f" [{','.join(detail['channels'])}]" if detail.get("channels") else ""
                 print(f"[{index}/{len(cases)}] {case['id']}: REFUSED by "
                       f"{detail['mechanism']}{where} {detail['assessed'] or ''} "
                       f"after {calls} tool call(s)")
@@ -276,7 +276,7 @@ def main(argv=None) -> int:
             print(f"\n{len(refused)} case(s) refused by the gateway on sample {sample}:")
             for case_id, detail in refused:
                 print(f"  {case_id}: {detail['mechanism']} {detail['assessed'] or ''} "
-                      f"{detail['channel'] or ''}")
+                      f"{','.join(detail['channels'] or [])}")
             print("SPEC/02 measured 5/15 guardrail refusals at pre-flight, up from 2/15 "
                   "before the retrieval narrowing, because a longer turn hands the guardrail "
                   "more of the model's own reasoning to assess. That rise is a pre-registered "

@@ -81,7 +81,7 @@ M01_ANSWERS = ROOT / "milestones" / "M01" / "goldens-run.json"
 TOPIC = "TOPIC:entitlement-circumvention"
 
 
-def _assess(runtime, guardrail_id, version, text, source, k):
+def _assess(runtime, guardrail_id, version, text, source, k, channel):
     """`k` samples, and the split is recorded rather than resolved.
 
     **This guardrail returns different verdicts on identical input** — 4 of 25
@@ -99,7 +99,7 @@ def _assess(runtime, guardrail_id, version, text, source, k):
         # Read through the same `_blocked_names` every other verdict in this repo
         # is read through. A second reader that could disagree would split one
         # finding into two nobody joins up.
-        outcome = guardrail.interpret_apply(response, channel=guardrail.CHANNEL_SYSTEM)
+        outcome = guardrail.interpret_apply(response, channel=channel)
         blocked += int(outcome.intervened)
         per_sample.append(sorted(outcome.assessed))
     assessed = sorted({name for a in per_sample for name in a})
@@ -184,20 +184,26 @@ def main(argv=None) -> int:
                 "k": args.k, "arms": {}}
     arms = []
     if args.questions:
-        arms.append(("questions", "INPUT", questions()))
+        arms.append(("questions", "INPUT", questions(), guardrail.CHANNEL_QUESTION))
     if args.answers:
-        arms.append(("answers", "OUTPUT", answers()))
+        arms.append(("answers", "OUTPUT", answers(), guardrail.CHANNEL_ANSWER))
     if args.attacks:
-        arms.append(("attacks", "INPUT", attacks()))
+        arms.append(("attacks", "INPUT", attacks(), guardrail.CHANNEL_QUESTION))
     if args.heldout:
-        arms.append(("heldout", "INPUT", heldout()))
+        arms.append(("heldout", "INPUT", heldout(), guardrail.CHANNEL_QUESTION))
 
-    for arm, source, items in arms:
+    # **The channel is the arm's own, not `system` for all four (ADR-040).** This
+    # file calls its modes "the question channel" and "the answer channel" in its
+    # own docstring and passed `CHANNEL_SYSTEM` for every one of them, so a reader
+    # of a committed artifact saw prose naming one channel beside a record naming
+    # another. Harmless while `question` and `answer` were not legal values; the
+    # moment they are, it is the two-spellings misread `CHANNELS` exists to stop.
+    for arm, source, items, channel in arms:
         print(f"--- {arm} ({len(items)} items, source={source}) " + "-" * 26)
         results, blocked, unstable, by_topic = {}, 0, 0, 0
         for item_id, text in items:
             hits, assessed, per_sample = _assess(
-                runtime, guardrail_id, version, text, source, args.k)
+                runtime, guardrail_id, version, text, source, args.k, channel)
             unanimous = hits in (0, args.k)
             results[item_id] = {"blocked_samples": hits, "unanimous": unanimous,
                                 "assessed": assessed, "per_sample_assessed": per_sample}
