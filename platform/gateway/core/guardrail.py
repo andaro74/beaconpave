@@ -57,6 +57,31 @@ class GuardrailOutcome:
             fragment["channel"] = self.channel
         return fragment
 
+    def as_response_fields(self) -> dict:
+        """The guardrail-derived keys the gateway returns to the caller on a block.
+
+        **This lived in `handler.py` and had to move (ADR-039).** That module is
+        deliberately outside the hermetic surface because it imports boto3, and
+        `tests/` is in `HERMETIC_ROOTS`, so nothing under `tests/` can import it —
+        which is why `test_handler_wiring.py` parses the handler's source rather
+        than running it, and why the two lines that read this dataclass on the
+        BLOCKED path were executed by no test at all.
+
+        Measured before the move: renaming a field on this frozen dataclass and
+        updating every test a diligent implementer would update left the full
+        suite green at 1526 while `handler.py` raised `AttributeError` on the
+        guardrail-block path — the path G4 exists to evidence. A green gate over a
+        crashing gateway.
+
+        This module's own docstring names the rule: everything the gateway
+        *decides* lives in `core/`, and growing logic in `handler.py` is "the first
+        thing to defend". A field read is small enough to look like an exception
+        and was exactly big enough to hide a crash."""
+        fields = {"assessed": list(self.assessed)}
+        if self.channel is not None:
+            fields["channel"] = self.channel
+        return fields
+
 
 def _blocked_names(assessment: dict) -> list[str]:
     """Pull the names of every policy that blocked, across the four policy types.

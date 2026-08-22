@@ -545,3 +545,66 @@ def test_a_mixed_assessment_names_only_what_blocked():
         }],
     }, channel=guardrail.CHANNEL_TOOL_OUTPUT)
     assert outcome.assessed == ("PROMPT_ATTACK",)
+
+
+# --- the keys the gateway returns on a block (ADR-039) --------------------------
+#
+# These ran in CI never. `handler.py` assembled them inline, and no test can
+# import that module: it pulls in boto3 and `tests/` is in `HERMETIC_ROOTS`, so
+# `test_handler_wiring.py` parses the handler's source instead of executing it.
+# Measured before the move — rename a field on the frozen dataclass, update every
+# test a diligent implementer would update, and the suite stayed green at 1526
+# while the guardrail-block path raised `AttributeError`. The path G4 exists to
+# evidence, crashing under a green gate.
+
+def test_the_block_response_carries_the_names_that_blocked_it():
+    outcome = guardrail.GuardrailOutcome(True, ("TOPIC:enforcement-probing", "PROMPT_ATTACK"))
+    assert outcome.as_response_fields() == {
+        "assessed": ["TOPIC:enforcement-probing", "PROMPT_ATTACK"]}
+
+
+def test_the_block_response_names_the_channel_only_when_there_is_one():
+    """Same when-set rule as the record fragment, for the same reason: a caller
+    parsing the response must not have to tell `channel: null` apart from a turn
+    where the question is not meaningful."""
+    plain = guardrail.GuardrailOutcome(True, ("PROMPT_ATTACK",))
+    assert "channel" not in plain.as_response_fields()
+
+    on_tool_output = guardrail.interpret_apply(
+        {"action": guardrail.APPLY_ACTION_INTERVENED,
+         "assessments": [{"topicPolicy": {"topics": [
+             {"name": "entitlement-circumvention", "action": "BLOCKED"}]}}]},
+        channel=guardrail.CHANNEL_TOOL_OUTPUT,
+    )
+    fields = on_tool_output.as_response_fields()
+    assert fields["channel"] == guardrail.CHANNEL_TOOL_OUTPUT
+    assert fields["assessed"] == ["TOPIC:entitlement-circumvention"]
+
+
+def test_the_response_fields_are_a_plain_json_shape():
+    """`assessed` is a tuple on the dataclass and must reach the caller as a list.
+    A tuple survives an equality assertion in a test and does not survive
+    `json.dumps` in the Lambda's response, which is the difference between a
+    passing test and a 500 on the refusal path."""
+    fields = guardrail.GuardrailOutcome(True, ("PROMPT_ATTACK",)).as_response_fields()
+    assert isinstance(fields["assessed"], list)
+    assert json.loads(json.dumps(fields)) == fields
+
+
+def test_the_handler_reads_these_fields_from_the_dataclass_and_not_by_hand():
+    """The reason the move is the fix rather than a tidy-up.
+
+    An executing test on `as_response_fields` protects nothing if `handler.py`
+    goes back to assembling the dict inline — the rename would break the handler
+    again and this file would stay green again. So the source is asserted too,
+    the way `test_handler_wiring.py` asserts the rest of this module. Two checks,
+    because neither alone can see what the other sees."""
+    source = (pathlib.Path(__file__).resolve().parents[1]
+              / "platform" / "gateway" / "handler.py").read_text(encoding="utf-8")
+    assert "as_response_fields()" in source, (
+        "handler.py no longer calls as_response_fields — if the block response is "
+        "being assembled by hand again, the executing tests above cover nothing")
+    assert "outcome.guardrail.channel" not in source, (
+        "handler.py reads `outcome.guardrail.channel` directly again. That attribute "
+        "access is unexecuted by any test (boto3 keeps this module out of the hermetic "
+        "surface), and a rename of the field crashes the guardrail-block path silently")
