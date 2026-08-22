@@ -453,3 +453,25 @@ def test_the_contract_lane_has_a_remediation_and_it_is_actionable():
     assert "policy generate" in only_rules
     assert "ruff check --fix" not in only_rules, (
         "the remediation names a fix for a failure that did not happen")
+
+
+def test_two_key_refuses_to_report_compliance_it_was_never_asked_for(capsys):
+    """`gate two-key` with no `--changed` printed "not required" in green.
+
+    `_flag_values`' docstring says a typo'd flag "can never be read as 'nothing to
+    check, therefore fine'" — true of `gate decide`, false here until ADR-037.
+    Found by running `--base origin/main` (a flag this command does not take) on a
+    diff that edits `pave/twokey.py` itself: the one change the rule protecting the
+    rules must catch, reported as needing no key at all.
+
+    An empty `--changed` stays legal — a PR that changed nothing is vacuously
+    compliant. Never being told is what is refused."""
+    from pave import cli
+
+    with pytest.raises(SystemExit) as exc:
+        cli.gate_two_key(["--base", "origin/main"])
+    assert exc.value.code != 0
+    assert "BLOCKED" in capsys.readouterr().out
+
+    # ...and the legal empty case still passes, so the fix is not just "always block".
+    cli.gate_two_key(["--changed"])

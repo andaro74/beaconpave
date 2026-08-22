@@ -587,3 +587,39 @@ def test_gate_classifies_every_verdict_the_schema_permits():
     permitted = set(schema["properties"]["verdict"]["enum"])
     known = gate.NON_BLOCKING | {"FAIL", "INFRA"}
     assert permitted <= known, f"verdict states the gate does not classify: {permitted - known}"
+
+
+# --- the two path lists that claim to be the same list ------------------------
+
+def test_every_second_codeowners_handle_has_a_rule_that_can_collect_it():
+    """`pave/twokey.py` says of itself: *"the path list here and the path list
+    there are the same list — the interface already matches."* This asserts it.
+
+    A CODEOWNERS line carrying two or more handles is that file's ONLY way to say
+    "this path needs a second key". ADR-013 established that CODEOWNERS cannot
+    collect a second key on a one-operator repo — GitHub will not let a PR's
+    author approve their own PR — so a second handle recorded there and nowhere
+    else is a second key written in the one place that provably cannot collect
+    it. Three of the four such paths were exactly that until ADR-037.
+
+    One-directional on purpose. A two-key rule with no multi-handle CODEOWNERS
+    line is fine: `evals/history/` and the rest are single-handle paths whose
+    second key is AI Quality's by rule, and demanding a second handle for each
+    would be a CODEOWNERS edit with no meaning while every handle resolves to the
+    same person. The direction that failed is the one checked here."""
+    from pave import twokey
+
+    unenforced = []
+    for line in (ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8").splitlines():
+        fields = line.split("#")[0].split()
+        if len(fields) < 3:          # a path plus TWO OR MORE handles, or not ours
+            continue
+        path = fields[0].lstrip("/")
+        if not twokey.triggered([path]):
+            unenforced.append(f"{fields[0]} ({len(fields) - 1} handles)")
+
+    assert not unenforced, (
+        "CODEOWNERS gives these paths a second key and `pave/twokey.py` has no rule "
+        "that collects it, so the second key is decorative on a repo where CODEOWNERS "
+        f"enforces nothing (ADR-013, ADR-037): {', '.join(unenforced)}"
+    )

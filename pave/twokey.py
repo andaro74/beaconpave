@@ -204,6 +204,49 @@ RULES: tuple[Rule, ...] = (
         ("security",),
         requires_adr=True,
     ),
+    Rule(
+        # **The second key CODEOWNERS already recorded, in the file that can
+        # collect it.** This module's own docstring says "the path list here and
+        # the path list there are the same list — the interface already matches."
+        # Measured at ADR-037: of the four CODEOWNERS paths carrying two handles,
+        # ONE had a rule here. A second handle is the only way CODEOWNERS can say
+        # "second key", and ADR-013 established that on a one-operator repo it can
+        # collect none of them — so those three were second keys written in the one
+        # place that provably cannot collect them.
+        #
+        # CODEOWNERS says why both seats: the module "names this seat in its own
+        # docstring -- Owning seat: Security / Red Team -- and matched only
+        # `/evals/`, which is AI Quality's. So the module deciding whether a
+        # guardrail block counts ... sat with the seat that feels a probe score
+        # rather than the seat that defends it. That is G9 read backwards."
+        #
+        # **The scorer and its test are ONE rule, not two.** They are weakened
+        # together or not at all — a scorer relaxed in the same PR as the test that
+        # would have caught it is the shape G9 makes expensive — and two rules would
+        # let a PR attest to one and move the other quietly.
+        #
+        # `requires_adr` is OFF, for the reason `evals/comparators.json` above
+        # already records: an ADR gate on a file that changes often and legitimately
+        # prices routine tightenings high enough to discourage them. The written
+        # rationale is the control here. `gateway-stack.ts` keeps its ADR because a
+        # published policy version is an instrument, not a routine edit.
+        "the adversarial scorer and its test — what a probe passing MEANS, and every "
+        "instrument digest",
+        re.compile(r"^(evals/adversarial\.py|tests/test_adversarial_scoring\.py)$"),
+        ("security", "ai-quality"),
+    ),
+    Rule(
+        # Same finding, same ADR. The docstring names both seats already:
+        # "Owning seat: Platform Engineering (record shape) · Security (G4
+        # semantics)." It holds `POLICY_MECHANISMS`, `build_record`'s consistency
+        # checks, and `observation_from_record` — the function that turns a record
+        # into the observation the scorer reads. The ADR-036 review measured that a
+        # record can assert a guardrail block while its own attribution says nothing
+        # fired, and score the probe PASS; the fix for that lands under this rule.
+        "the audit record shape and the observation the scorer reads",
+        re.compile(r"^platform/gateway/core/audit\.py$"),
+        ("platform-eng", "security"),
+    ),
 )
 
 

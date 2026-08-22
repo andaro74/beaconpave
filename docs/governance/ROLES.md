@@ -83,6 +83,8 @@ Whoever feels a control's pain never solely controls its strength.
 | Probe downgrade to advisory | Security alone, **plus an ADR** |
 | Consequence class increase | Tool owner + Legal/S&P |
 | Comparator move (`evals/comparators.json`) | AI Quality + Platform Eng + Security |
+| Adversarial scorer + its test (`evals/adversarial.py`, `tests/test_adversarial_scoring.py`) | Security + AI Quality |
+| Audit record shape and the scorer's observation (`platform/gateway/core/audit.py`) | Platform Eng + Security |
 | Any invariant (G1–G10) change | Platform Eng + the seat that defends it |
 
 **Why the comparator needs three keys.** From M04 that file holds the pinned
@@ -92,6 +94,13 @@ when the adversarial pins moved in: without it, a probe number could be moved on
 two attestations, neither from the seat that owns G4. Over-broad for a purely
 golden re-pin, and over-broad in the direction of more review is the fail-closed
 direction.
+
+**Why the last two rows exist.** ADR-037 measured that of the four CODEOWNERS
+paths carrying a second handle — that file's only way to say "second key" — just
+one had a rule in `pave/twokey.py`. Since ADR-013 established that CODEOWNERS
+collects nothing on a one-operator repo, the other three were second keys recorded
+in the one place that cannot collect them. `tests/test_contracts.py` now asserts
+the two lists agree in that direction.
 
 **How the second key is collected here.** CODEOWNERS cannot enforce this on a
 one-operator repo — GitHub does not let a PR's author approve their own PR, so
