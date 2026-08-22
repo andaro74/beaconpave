@@ -73,17 +73,35 @@ Before changing a file, know which seat owns it. Role subagents in
 `.claude/agents/` run first-pass review from each seat; their output is advisory
 input to a human, never an approval (G6).
 
-Two-key paths (owning seat **plus** AI Quality): eval thresholds, baselines,
-`gate.yml` gate criteria, and **the deployed guardrail policy**
-(`platform/infra/lib/gateway-stack.ts`, Security + AI Quality, ADR required).
+Some paths take **two keys**: the owning seat's disposition plus a second seat's,
+both recorded as attestations in the PR body and checked by the required `two-key`
+job. **`pave/twokey.py` is the enforced list and the only authority.** Read it
+before assuming a path is or is not covered — do not rely on this section, and do
+not rely on `.github/CODEOWNERS`, which collects nothing on a one-operator repo
+(ADR-013).
 
-The last one was added after the ADR-035 review found the probe corpus and the
-comparator pins both guarded twice while the control they measure was guarded
-neither — the thermometer protected and the thermostat not. G9 is the reason:
-whoever feels a control's pain never solely controls its strength, and the seat
-that wants a guardrail to stop refusing its questions is the seat that can widen
-it by a sentence. `pave/twokey.py` is the enforced list; this one is the summary,
-and they must not disagree.
+**The second seat is not always AI Quality.** It is whichever seat does not feel
+that control's pain: the adversarial corpus is Security alone plus an ADR,
+consequence classes are Tool Owner plus Legal/S&P, and `evals/comparators.json`
+takes three. This paragraph used to name AI Quality as the universal second key
+over a list of four paths; the enforced list had ten, several without AI Quality
+at all, and the summary had drifted twice by ADR-037.
+
+G9 is the reason for all of it: *whoever feels a control's pain never solely
+controls its strength.* The seat that wants a guardrail to stop refusing its
+questions is the seat that can widen it by a sentence. Two findings are worth
+carrying because each was a protection that was **stated and absent**, which is
+worse than one that is missing — it stops anyone looking for the real one:
+
+- ADR-035 found the probe corpus and the comparator pins both guarded twice while
+  the control they measure was guarded neither. The thermometer protected and the
+  thermostat not. `gateway-stack.ts` is two-key with an ADR because of it.
+- ADR-037 found three paths given a second key in `CODEOWNERS` — the one file that
+  provably cannot collect one here — and no rule in the file that can. Among them
+  the adversarial scorer, which decides what a probe passing means and computes
+  every instrument digest, editable on one key by any seat.
+  `tests/test_contracts.py` now asserts the two lists agree, so the next one is a
+  red check rather than a fourth discovery.
 
 ## Style
 

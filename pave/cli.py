@@ -255,6 +255,25 @@ def gate_two_key(argv):
     Changed files come from `--changed`; the PR body from the PR_BODY environment
     variable (passed as env rather than interpolated into the workflow's shell,
     so a PR body cannot inject shell)."""
+    # **Absence of `--changed` is blocking, not "nothing to check".** `_flag_values`
+    # says in its own docstring that a typo'd flag "can never be read as 'nothing to
+    # check, therefore fine'" — and that was true of `gate decide` and false here:
+    # this command read [] as no changed files, found no rule triggered, and printed
+    # `two-key: not required` in green. Measured at ADR-037 by running it with
+    # `--base origin/main` on a diff that edits `pave/twokey.py` itself. A stated
+    # protection that holds for one caller and not the other is the fault this ADR
+    # is about, arriving in the parser that describes it.
+    #
+    # An EMPTY list stays legal: `--changed` with nothing after it is a PR that
+    # changed nothing, which is vacuously compliant. What is refused is never being
+    # told at all.
+    if "--changed" not in argv:
+        _emit(
+            "two-key: BLOCKED — no `--changed` given, so nothing was checked. "
+            "This command cannot report compliance for a file list it was never "
+            "handed; pass `--changed <paths...>` (the workflow does)."
+        )
+        sys.exit(gate_mod.EXIT_QUALITY)
     changed = _flag_values(argv, "--changed")
     body = os.environ.get("PR_BODY", "")
     body_file = _flag_values(argv, "--body-file")
