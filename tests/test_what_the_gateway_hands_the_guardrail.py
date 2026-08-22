@@ -91,9 +91,9 @@ def untrusted_assignments(tree: ast.Module) -> list[ast.AST]:
             for target in node.targets:
                 if isinstance(target, ast.Name) and target.id == "untrusted":
                     found.append(node.value)
-        elif isinstance(node, ast.AnnAssign):
-            if isinstance(node.target, ast.Name) and node.target.id == "untrusted" and node.value:
-                found.append(node.value)
+        elif (isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)
+                and node.target.id == "untrusted" and node.value):
+            found.append(node.value)
     return found
 
 

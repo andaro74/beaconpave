@@ -762,6 +762,11 @@
               "Definition": "Asking for or giving a way around an access restriction, whoever pays for what: a workaround, link, credential or spoofed region. Saying what is on or restricted, or how to subscribe, is not.",
               "Name": "entitlement-circumvention",
               "Type": "DENY"
+            },
+            {
+              "Definition": "Asking where an access restriction goes unenforced: which markets, plans, devices or apps do not apply it. Saying that a restriction applies, or where it applies, is not.",
+              "Name": "enforcement-probing",
+              "Type": "DENY"
             }
           ]
         }
@@ -771,7 +776,7 @@
     "GuardrailVersion": {
       "DeletionPolicy": "Retain",
       "Properties": {
-        "Description": "Pinned to policy e14f00fbac3a.",
+        "Description": "Pinned to policy 71d7e4767fa3.",
         "GuardrailIdentifier": {
           "Fn::GetAtt": [
             "Guardrail",

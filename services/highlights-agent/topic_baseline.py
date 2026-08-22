@@ -75,6 +75,7 @@ from core import guardrail  # noqa: E402
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CASES = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
 ATTACKS = ROOT / "quality" / "adversarial" / "topic-attacks.yaml"
+HELDOUT = ROOT / "quality" / "adversarial" / "topic-attacks-heldout.yaml"
 M01_ANSWERS = ROOT / "milestones" / "M01" / "goldens-run.json"
 
 TOPIC = "TOPIC:entitlement-circumvention"
@@ -137,20 +138,40 @@ def attacks() -> list[tuple[str, str]]:
     return [(a["id"], " ".join(a["text"].split())) for a in corpus["attacks"]]
 
 
+def heldout() -> list[tuple[str, str]]:
+    """The held-out corpus, frozen before the wording it judges existed.
+
+    **Its expectations run in BOTH directions and that is not decoration.** A
+    corpus of nothing but `expect: blocked` is satisfied by a topic that blocks
+    everything, which is what guardrail v2 did and what ADR-035 exists to undo. So
+    the run prints the expectation beside the verdict: an `expect: allowed` row
+    that blocks is a finding of exactly the same weight as an `expect: blocked`
+    row that does not."""
+    corpus = yaml.safe_load(HELDOUT.read_text(encoding="utf-8"))
+    return [(r["id"], " ".join(r["text"].split())) for r in corpus["heldout"]]
+
+
+def expectations() -> dict:
+    corpus = yaml.safe_load(HELDOUT.read_text(encoding="utf-8"))
+    return {r["id"]: r["expect"] for r in corpus["heldout"]}
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="what the deployed guardrail does, per channel")
     p.add_argument("--questions", action="store_true")
     p.add_argument("--answers", action="store_true")
     p.add_argument("--attacks", action="store_true")
+    p.add_argument("--heldout", action="store_true")
     p.add_argument("--all", action="store_true")
     p.add_argument("--k", type=int, default=3,
                    help="samples per item. k=1 is not a result against this guardrail")
     p.add_argument("--out")
     args = p.parse_args(argv)
     if args.all:
-        args.questions = args.answers = args.attacks = True
-    if not (args.questions or args.answers or args.attacks):
-        p.error("nothing selected; pass --all or one of --questions/--answers/--attacks")
+        args.questions = args.answers = args.attacks = args.heldout = True
+    if not (args.questions or args.answers or args.attacks or args.heldout):
+        p.error("nothing selected; pass --all or one of "
+                "--questions/--answers/--attacks/--heldout")
 
     cf = boto3.client("cloudformation")
     outputs = {o["OutputKey"]: o["OutputValue"]
@@ -168,6 +189,8 @@ def main(argv=None) -> int:
         arms.append(("answers", "OUTPUT", answers()))
     if args.attacks:
         arms.append(("attacks", "INPUT", attacks()))
+    if args.heldout:
+        arms.append(("heldout", "INPUT", heldout()))
 
     for arm, source, items in arms:
         print(f"--- {arm} ({len(items)} items, source={source}) " + "-" * 26)
@@ -181,11 +204,28 @@ def main(argv=None) -> int:
             blocked += int(hits == args.k)
             unstable += int(not unanimous)
             by_topic += int(TOPIC in assessed)
-            if hits:
+            expected = expectations().get(item_id) if arm == "heldout" else None
+            verdict = ("blocked" if hits == args.k else "allowed" if hits == 0
+                       else f"unstable-{hits}/{args.k}")
+            if expected is not None:
+                # Both directions carry equal weight, so both are printed and
+                # both can fail. A topic that blocks everything passes a
+                # blocked-only corpus, and that is the failure ADR-035 exists to
+                # undo rather than to repeat.
+                mark = "  ok " if verdict == expected else "MISS "
+                results[item_id]["expected"] = expected
+                results[item_id]["met"] = verdict == expected
+                print(f"  {mark} {item_id:20s} expect {expected:8s} got {verdict:14s} {assessed}")
+            elif hits:
                 label = "BLOCKED" if hits == args.k else f"UNSTABLE {hits}/{args.k}"
                 print(f"  {label:12s} {item_id:20s} {assessed}")
-        print(f"  {blocked}/{len(items)} blocked unanimously, {unstable} unstable, "
-              f"{by_topic} naming the entitlement topic")
+        if arm == "heldout":
+            missed = [i for i, r in results.items() if not r.get("met", True)]
+            print(f"  {len(items) - len(missed)}/{len(items)} met their expectation"
+                  + (f"   MISSED: {missed}" if missed else ""))
+        else:
+            print(f"  {blocked}/{len(items)} blocked unanimously, {unstable} unstable, "
+                  f"{by_topic} naming the entitlement topic")
         print()
         recorded["arms"][arm] = {"source": source, "n": len(items), "k": args.k,
                                  "blocked_unanimously": blocked, "unstable": unstable,
