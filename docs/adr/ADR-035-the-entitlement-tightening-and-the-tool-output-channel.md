@@ -1116,3 +1116,76 @@ turned out to be worth more than the reason it was retained for.
 `ApplyGuardrail` verdicts, no gateway, no audit record, nothing satisfying either
 half of G4, nothing entering a corpus or a comparator. Rows 7 and 8 are still
 unmeasured and still need the 195 model calls.
+
+---
+
+## Amendment 6 — step 0 was never taken, and it is no longer obtainable
+
+**Written before any of the 195 model calls is spent, which is the only reason
+this is a recorded loss rather than a fabricated number.**
+
+Step 0 — *"golden questions under **v2**, 25 × 3 = 75, row 8. The baseline that
+does not exist. **Must precede A**"* — was never run. The gateway is pinned to
+version 4; `evals/history/` contains no ADR-035 golden entry.
+
+**Row 7 as pre-registered — "the same 25 golden questions, `k = 3`, both
+versions, same instrument", judged on strictly fewer refusals v2 → v3 — cannot
+now be measured through the gateway.** Neither can row 8's v2 arm. Both are
+recorded as **unobtainable**, not as failed and not as pending.
+
+### Whose error, and it was flagged in advance
+
+Mine, and specifically a sequencing error in the runbook I handed the operator: I
+put step 0 *after* the deploy, under a heading that read "after the deploy,
+before spending anything". A baseline of the policy being replaced cannot follow
+the replacement.
+
+Two seats named this hazard before it happened. The Service Team seat, finding D:
+*"If `sec-entitlement-v3` deploys before that runner lands, step 0 becomes
+impossible and row 7 is unmeasurable forever… The diff itself is clean; the merge
+order is the risk."* The AI Quality seat said the same. The remedy they asked for
+— land the golden runner first — was done, and it was the wrong half of the
+problem: the runner landed in time and then nobody ran it.
+
+**A precondition satisfied is not a step taken**, and the checklist tracked the
+precondition.
+
+### What is NOT being done about it
+
+**The gateway is not being re-pinned to version 2 to manufacture the baseline.**
+`RETAIN` makes it technically possible — v2 still resolves — and it is the wrong
+trade. It would mean deploying a policy this ADR has measured as classifying the
+product's own catalog as circumvention, in order to produce a tidier number, and
+what came back would be a reconstruction rather than the baseline: the runner,
+the handler and the topic set have all moved since v2 served traffic. A number
+assembled that way would be *more* misleading than an acknowledged gap, because
+it would look controlled.
+
+### What remains, stated with its limits
+
+- **A v2-era gateway baseline exists in substance and not in provenance.** The
+  three M02 control runs are `k = 3` under v2's policy in fact — **8 of 25
+  at-least-once, 6 by majority** — and carry `guardrail_version: null`, which is
+  exactly why this ADR called it "the baseline that does not exist". It is usable
+  as a *before* only with that caveat attached every time it is cited.
+- **The controlled before/after that does exist is the free instrument's.**
+  `topic-baseline-v2/v3/v4.json`: the 25 golden questions at INPUT go 2 → 0, the
+  22 committed answers at OUTPUT go 2 → 0, k = 3, unanimous, same corpus, same
+  scorer, differing only in the guardrail version. It is an `ApplyGuardrail`
+  measurement, not a gateway refusal — no classifier, no audit record — and row
+  11 still forbids comparing it against anything measured differently.
+- **Step 4 remains worth taking**: 75 calls for the golden set under v4 through
+  the gateway, which yields an FP rate with real provenance for the first time
+  (`_guardrail_versions` recorded, per-sample lake keys, refusal detail
+  persisted). It answers *"what does governed traffic experience now"* and it
+  does not answer row 7.
+
+### The lesson, which is not "be careful"
+
+Every irreversible step in this plan was identified in advance, and the one that
+was lost was lost because a checklist tracked *readiness* to take it rather than
+*taking* it. The close-milestone skill gained step 6b for open holes; it has no
+step for **measurements that must happen before a deploy**. That is the gap this
+amendment leaves owed, and it is a mechanism rather than a resolution: a
+pre-registered step whose window closes at a deploy should be enforced by the
+thing that runs the deploy, not by the order of a document.
