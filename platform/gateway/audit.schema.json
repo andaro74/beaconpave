@@ -104,7 +104,7 @@
             "system",
             "tool_output"
           ],
-          "description": "Which channel the blocked content arrived on, when the block came from the gateway inspecting content it was about to put in the model's context rather than from Bedrock assessing the turn (ADR-035). Absent on every block of the viewer's turn, which keeps the `guardrail` object such a block writes byte-identical to the one M04 recorded - the object every per-probe pin is derived from. Present, it says which seat owns the finding: `system` is data the platform assembled into the prompt, `tool_output` is a result the plane authorized and the guardrail then refused to let into context. **Nothing writes this yet**: the reader that produces it landed ahead of the gateway wiring, so that the diagnostic which measured whether that wiring could work at all could be built without it."
+          "description": "Which channel the blocked content arrived on, when the block came from the gateway inspecting content it was about to put in the model's context rather than from Bedrock assessing the turn. Absent on every block of the viewer's turn, which keeps the `guardrail` object such a block writes byte-identical to the one M04 recorded - the object every per-probe pin is derived from. The surrounding record is not byte-identical: a turn that inspected anything also carries `usage.guard_ms`. Nothing an observation reads moves, which is the claim that matters, and it is stated here in the form that is true rather than the form that is flattering. Present, it says which seat owns the finding: `tool_output` is a result the plane authorized and the guardrail then refused to let into context. `system` is in the enum and is written by nothing: that half of ADR-035's Change B was withdrawn by amendment 1 after a pre-flight measured it as a total outage with no discrimination. The value is kept because the diagnostics use the vocabulary and a recoverable, data-scoped version is gated on row 12."
         }
       }
     },
@@ -114,7 +114,7 @@
     },
     "usage": {
       "type": "object",
-      "description": "What the turn spent, summed across its rounds. Present on `guardrail` and `loop` refusals too: a turn blocked at round four had already paid for three, and recording zero would understate a runaway turn by exactly the amount that makes it worth catching. Absent when the refusal landed before any model call — classification, IAM, and every tool-plane decision. Token-denominated per ADR-014; dollars are rendered at report time and never stored here.",
+      "description": "What the turn spent, summed across its rounds. Present on `loop` refusals and on a `guardrail` refusal that Bedrock returned from a model call: a turn blocked at round four had already paid for three, and recording zero would understate a runaway turn by exactly the amount that makes it worth catching. Absent when nothing at all was spent - classification, IAM, every tool-plane decision. **The token keys are what say a model call happened.** Read the presence of `tokens_in` rather than the presence of this object: since ADR-035 a turn can spend guardrail time without spending tokens, and the `system`-channel inspection that would have produced exactly that shape is withdrawn rather than deferred, so no record carries `guard_ms` without token counts today. Written this way because the recoverable version would produce one, and a reader should not have to guess whether such a record is malformed. An empty `usage` object is never written, because it would validate while reading as a metered call that cost nothing. Token-denominated per ADR-014; dollars are rendered at report time and never stored here.",
       "properties": {
         "tokens_in": {
           "type": "number"
@@ -124,6 +124,10 @@
         },
         "latency_ms": {
           "type": "number"
+        },
+        "guard_ms": {
+          "type": "number",
+          "description": "Wall-clock milliseconds spent in guardrail inspections of platform-supplied content (ADR-035). Its own key rather than part of `latency_ms`, for the same reason `tool_ms` is: the p95 ceiling was derived from model time alone, and a number that quietly grew a new component would be compared against a ceiling that never included it. Absent on a turn that inspected nothing."
         }
       }
     },
