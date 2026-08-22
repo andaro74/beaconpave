@@ -1,0 +1,201 @@
+{
+  "_what_this_is": "Per-case, per-sample refusal detail for this run, taken from the audit records fetched back out of the lake rather than from the gateway's response. The answer files beside it carry what was answered; this carries WHY the rest was not, which `evals/run_evals.py` cannot express - it scores a refused case as a plain FAIL, indistinguishable from one that answered badly.",
+  "tag": "adr035-v4",
+  "_k": 3,
+  "_guardrail_versions": [
+    "4"
+  ],
+  "census": {
+    "k": 3,
+    "n_cases": 25,
+    "refused_at_least_once": 2,
+    "refused_by_majority": 1,
+    "refused_unanimously": 1,
+    "cases_at_least_once": [
+      "blackout-009",
+      "concise-022"
+    ],
+    "cases_by_majority": [
+      "concise-022"
+    ],
+    "cases_separating_the_estimators": [
+      "blackout-009"
+    ],
+    "cases_with_missing_samples": [],
+    "estimator_for_adr_035": "refused_at_least_once"
+  },
+  "refusals": {
+    "blackout-009": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:enforcement-probing"
+        ],
+        "channel": null,
+        "record_id": "2026-08-22/highlights-agent/blackout-009-adr035-v4-1.json",
+        "record_resolved": true
+      }
+    },
+    "concise-022": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channel": null,
+        "record_id": "2026-08-22/highlights-agent/concise-022-adr035-v4-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channel": null,
+        "record_id": "2026-08-22/highlights-agent/concise-022-adr035-v4-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:enforcement-probing",
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channel": null,
+        "record_id": "2026-08-22/highlights-agent/concise-022-adr035-v4-3.json",
+        "record_resolved": true
+      }
+    }
+  },
+  "per_sample_refused": {
+    "blackout-001": [
+      false,
+      false,
+      false
+    ],
+    "blackout-006": [
+      false,
+      false,
+      false
+    ],
+    "blackout-007": [
+      false,
+      false,
+      false
+    ],
+    "blackout-008": [
+      false,
+      false,
+      false
+    ],
+    "blackout-009": [
+      true,
+      false,
+      false
+    ],
+    "entitlement-002": [
+      false,
+      false,
+      false
+    ],
+    "entitlement-010": [
+      false,
+      false,
+      false
+    ],
+    "entitlement-011": [
+      false,
+      false,
+      false
+    ],
+    "entitlement-012": [
+      false,
+      false,
+      false
+    ],
+    "recommend-003": [
+      false,
+      false,
+      false
+    ],
+    "recommend-013": [
+      false,
+      false,
+      false
+    ],
+    "recommend-014": [
+      false,
+      false,
+      false
+    ],
+    "recommend-015": [
+      false,
+      false,
+      false
+    ],
+    "grounded-016": [
+      false,
+      false,
+      false
+    ],
+    "grounded-017": [
+      false,
+      false,
+      false
+    ],
+    "grounded-018": [
+      false,
+      false,
+      false
+    ],
+    "grounded-019": [
+      false,
+      false,
+      false
+    ],
+    "brand-020": [
+      false,
+      false,
+      false
+    ],
+    "brand-021": [
+      false,
+      false,
+      false
+    ],
+    "concise-022": [
+      true,
+      true,
+      true
+    ],
+    "multi-023": [
+      false,
+      false,
+      false
+    ],
+    "edge-024": [
+      false,
+      false,
+      false
+    ],
+    "edge-025": [
+      false,
+      false,
+      false
+    ],
+    "headroom-005": [
+      false,
+      false,
+      false
+    ],
+    "headroom-026": [
+      false,
+      false,
+      false
+    ]
+  }
+}
