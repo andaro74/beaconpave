@@ -55,7 +55,7 @@ Five two-key rules, one new assertion, two prose corrections. **No mechanism.**
 | `pave/infra.py`, `tests/test_iam_assertions.py` | security, platform-eng, **ADR** |
 | `cedar.py`, `test_cedar_policy.py`, `tools/*/schema.(in\|out).json` | platform-eng, security, tool-owner, legal-sp |
 | `toolplane.py`, `test_toolplane.py` | platform-eng, security, tool-owner |
-| `conftest.py` (any dir), `pyproject.toml`, `pytest.ini`, `tox.ini`, `setup.cfg` | platform-eng, security |
+| `conftest.py` (any dir), `pyproject.toml`, `pytest.ini`, `.pytest.ini`, `tox.ini`, `setup.cfg` | platform-eng, security |
 | `tests/test_twokey_seats.py` | all five — it pins every other rule's seats |
 
 The one new check: no registered tool may declare a bypass-shaped property at any
@@ -69,6 +69,13 @@ its approver reads.
   `policy ⊆ registry` belongs with M05's verifier.
 - **A key on the harness is collectable, not red.** A harness that rewrites its
   own reports can report anything, and no count sees it.
+- **The harness rule is a denylist too, and is not claimed complete.** Six
+  entry points were found across two rounds by three seats — `tests/conftest.py`,
+  `pyproject.toml`, a repo-root `conftest.py`, `pave/tests/conftest.py`,
+  `pytest.ini`, `.pytest.ini` — **each one after the previous fix**, plus a
+  seventh surface that is not a config file at all (`pave/cli.py`'s own pytest
+  argv, now pinned exactly). The structural answer is ADR-042 decision 3's —
+  the deciding instance must not be a pytest — and it is owed, not claimed.
 - **`BYPASS_SHAPED` is a denylist.** Nesting and output schemas are covered; an
   unlisted name is not. The replacement — pin the exact property set per gated
   tool — is named as owed.
@@ -76,7 +83,12 @@ its approver reads.
   duplicate registry id is a forgery `policy ⊆ registry` would not catch;
   `semver` is decorative; `cedar.py` is in no instrument digest.
 
-## The review found eleven defects and eight were in the fixes, not the code
+## The review found twelve defects in these fixes, against six in `main`
+
+Seven found by the four seats that reviewed the implementation, five more by the
+deletability audit — against the six holes found on `main`. **Most of this
+review's output was defects in the fix, not in the code being fixed**, and the
+tally is stated that way rather than folded into one flattering number.
 
 Recorded in the ADR because the pattern is the ADR's own subject at successive
 depths: a check written for a vacuous protection was vacuous; the anti-vacuity
@@ -86,7 +98,7 @@ flag could be deleted at 1814 passed; a correction to the ADR named a test that
 the seat-set pins were defended by three of the four seats they pin; a rename
 detached them entirely; and a **prose correction landed in model-facing text** —
 `handler.py:157` sends the input schema's `description` to Bedrock as the tool
-spec, and the "fix" grew it from 309 to 708 bytes of repo governance. It escaped
+spec, and the "fix" grew it from 309 to 568 characters of repo governance. It escaped
 `TOOL_SPECS_SHA256` only because that pin iterates *routed* tools and
 `publish-highlight` has none at M02.
 
@@ -95,7 +107,7 @@ more that the audit itself had not reached. All are now loud.
 
 ## Verification
 
-`make check` green at **1815 passed**, ruff clean, hermetic, zero model calls, no
+`make check` green at **1818 passed**, ruff clean, hermetic, zero model calls, no
 new dependency. All seven adversarial instrument digests and all five judge
 digests byte-identical. No `evals/history/` entry, no `pins.json`, no
 `evals/comparators.json`, no README number moved.
