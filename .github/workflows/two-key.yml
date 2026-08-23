@@ -46,7 +46,14 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > changed.txt
+          # `--no-renames` is load-bearing (ADR-042 decision 4). With rename
+          # detection on, `git mv evals/run_adversarial.py evals/record_adversarial.py`
+          # plus an edit under ~50% is reported under the NEW path only, which
+          # matches no rule: "two-key: not required", exit 0. Measured on the
+          # adversarial recorder and on a history entry moved one directory up.
+          # Without detection the old path is reported as deleted, the deletion
+          # matches the rule, and the key is collected.
+          git diff --name-only --no-renames "$BASE_SHA" "$HEAD_SHA" > changed.txt
           echo "--- changed paths ---"
           cat changed.txt
 

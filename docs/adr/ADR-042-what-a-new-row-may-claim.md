@@ -78,8 +78,9 @@ reads an entry's `scores.total` into a gate failure condition while
 The seats' plants added these:
 
 - **`two-key.yml:49` runs `git diff --name-only` with rename detection.** A
-  renamed two-key file is reported under its new path only. `pave gate two-key
-  --base` has the same defect.
+  renamed two-key file is reported under its new path only. That line is the
+  only place a changed-file list is computed — `pave gate two-key` takes
+  `--changed` and never diffs — so the defect has one home.
 - **The floor read is unreachable on an honest tree.** All three committed arms
   are enumerated in `ASKED_FLOOR`, so the `recorded_total` branch runs for no
   arm that exists, and no violating-tree test exercises it.
@@ -275,7 +276,7 @@ rewrite) is withdrawn: two of the four were artefacts of counting, one was
 wrong in the under-claiming direction (an evil merge was seen), and the fourth
 is not this check's concern because a new row is not merged history.
 
-### 4. `two-key.yml` and `pave gate two-key` read the diff with `--no-renames`
+### 4. `two-key.yml` reads the diff with `--no-renames`, and a test pins the flag
 
 The cheapest bypass in the repository as it stands, found by Security:
 
@@ -289,9 +290,10 @@ git mv evals/run_adversarial.py evals/record_adversarial.py
 
 Same result moving `m04-adversarial.json` one directory up and editing it. With
 `--no-renames` both the old and the new path appear, the old path matches the
-rule, and the key is collected. One flag in the workflow, one in
-`pave gate two-key`'s `--base` path, and a test that runs `triggered` over a
-rename's *both* paths.
+rule, and the key is collected. One flag in the workflow, and a test that
+reads the workflow's diff line and asserts the flag is on it — the workflow is
+two-key and the test file is three-key, so removing the flag is red in a file
+that takes more keys than the workflow.
 
 This is in this ADR rather than its own because every key decisions 1 and 8 add
 is collected by this workflow, and a key the workflow cannot collect is the
@@ -500,7 +502,7 @@ B-0 false accusation.
 | 3 | the base-diff check fires on: a one-commit rewrite of a committed entry with its digest re-pinned; the same squash-merged; an evil merge; a rename-plus-rewrite (`D` seen because `--no-renames`); a deletion | any is missed — then the count was not the only thing wrong with decision 3 |
 | 4 | the base-diff check does **not** fire on: an honest two-commit PR under `refs/pull/N/merge`; an intra-PR edit of an entry the PR created; an honest branch behind an advanced `main` that added an entry; `main` as it stands with `m00b-judged-B-goldens.json`'s two commits | any fires — then it teaches squashing or rebasing, and rebasing is how ADR-041's B-0 arrived |
 | 5 | it **refuses**, with a named message, on a shallow clone, on a tree with no `.git`, with `git` absent from PATH, and with no resolvable base — never passes, never raises a bare traceback | any passes quietly — the `rules_validate` hazard; any raises — an errored step is not a stated block |
-| 6 | `two-key.yml` and `pave gate two-key` with `--no-renames` collect the key on `git mv evals/run_adversarial.py evals/record_adversarial.py` + edit, and on a history entry moved out of the directory; without the flag neither is collected | the flag does not collect it — then rename detection was not the whole of the bypass |
+| 6 | `two-key.yml`'s diff with `--no-renames` collects the key on `git mv evals/run_adversarial.py evals/record_adversarial.py` + edit, and on a history entry moved out of the directory; without the flag neither is collected; and the test that pins the flag is red when it is removed | the flag does not collect it — then rename detection was not the whole of the bypass |
 | 7 | `pave gate two-key` demands **ai-quality, security AND platform-eng** for every path shape under `evals/history/` and for both recorders, and no path in the directory drops to fewer keys than today; the seat-set test is red when `security` is removed from any three-seat rule | one drops, or the removal is green — then prediction 7 of draft 2 has failed a fourth time |
 | 8 | with `corpus_size` registered, an unenumerated arm recorded asking three of eleven **FAILS the lane** with a message naming 3 and 11, and replacing the floor read with a literal is red | it passes, or the literal is green — then the denominator is still the PR's number |
 | 9 | `samples_from.sha256` matches the committed evidence for every entry that carries it, via the `m04` revision row and no other exemption; and a new row without `samples_from` is refused by the committed-tree test | a second exemption is needed — then the revision record is a grandfather list with a better name |
