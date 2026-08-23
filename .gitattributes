@@ -1,0 +1,15 @@
+# Line endings are normalised to LF in the repository.
+#
+# Without this the working tree is MIXED: `core.autocrlf` is true in the system
+# gitconfig and false in this repo, so files land differently depending on when
+# and how they were checked out. That is not cosmetic. ADR-041 pinned SHA-256
+# digests of the committed history entries -- the anchor every arm-scoping check
+# rests on -- and the pins were taken from a mixed tree: one entry LF, two CRLF,
+# against three pure-LF blobs. No uniform checkout could satisfy all three, so
+# CI would have failed on an honest tree and accused the PR of rewriting
+# append-only history. Found by the Platform Engineering seat.
+#
+# The digest itself now normalises, so it no longer depends on this. This exists
+# so the NEXT byte-level check does not have to rediscover it, and so a diff
+# stops showing every line of a file as changed when only three were.
+* text=auto eol=lf
