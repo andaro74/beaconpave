@@ -117,6 +117,88 @@ RULES: tuple[Rule, ...] = (
         re.compile(r"^evals/history/"),
         ("ai-quality",),
     ),
+    # --- ADR-041: the arm-scoping mechanism, and the files it actually rests on ---
+    #
+    # An adversarial verdict now turns on which probes an arm's run recorded
+    # ASKING. Four of the five files that decide that were on no rule at all,
+    # which made the mechanism's own protections cheaper than the thing they
+    # protect -- ADR-035's and ADR-037's finding arriving a seventh and eighth
+    # time. Each was found by planting and running, not by reading.
+    Rule(
+        # The evidence every adversarial verdict is derived from, and the file a
+        # scope attack deletes from. Measured: dropping one failing probe's
+        # observation and its manifest entry took m04 from 7/10 to 7/9 -- 70.0% to
+        # 77.8% -- with the lane PASS, the gate exit 0 and the whole suite green.
+        # Security AND AI Quality: the seat that owns what a probe passing means,
+        # plus the seat that owns the recorded number it is compared against.
+        "committed adversarial evidence and the question set each arm recorded asking",
+        re.compile(r"^milestones/.*/probes-run\.json$"),
+        ("security", "ai-quality"),
+    ),
+    Rule(
+        # `_asked` is written HERE. Relocating the scope fact from the probe to
+        # the arm moved the knob out of a two-key file and into an unattested
+        # one: a one-line edit building the manifest from `observations` instead
+        # of from `probes` silently drops every unobserved probe out of the
+        # denominator, and it survived the lane, the suite and six of seven
+        # digests -- only `capture_sha256` moved, and the same PR re-registers
+        # that.
+        "the producer of an arm's observations and its question set",
+        # Both producers, and the twin is here because it was missed once. The
+        # ungoverned baseline writes m00b's evidence -- the control every later
+        # delta is measured against -- and it was in no digest and on no rule
+        # while its governed sibling was in both.
+        re.compile(r"^services/[^/]+/run_probes(_via_gateway)?\.py$"),
+        ("security", "platform-eng"),
+    ),
+    Rule(
+        # The recorder writes the verdict into append-only history. It is the
+        # other reader of the same instrument as the lane.
+        "the adversarial recorder — what lands in append-only history",
+        re.compile(r"^evals/run_adversarial\.py$"),
+        ("ai-quality", "platform-eng"),
+    ),
+    Rule(
+        # Gate CRITERIA, deliberately not in `pave/cli.py`: that file is ~1200
+        # lines of command dispatch and `test_ordinary_pr_is_not_gated` names it
+        # as the canonical UNGATED example. Gating all of it to protect three
+        # constants teaches people to attest past a rule without reading it.
+        # `pave/gate.py`'s docstring draws the line -- Platform Engineering owns
+        # the mechanism, AI Quality owns the criteria that produce a FAIL.
+        "the gate's floors — criteria, not mechanism",
+        re.compile(r"^pave/floors\.py$"),
+        # **Security too, and on the merits rather than to balance a count.** The
+        # floors here are statements about what a probe passing means: how many
+        # G4 cases must still SCORE, and how many probes an arm must have been
+        # asked. `g4-semantics.yaml` is Security's with an ADR, and a floor that
+        # decides how much of it may stop counting is the same decision one level
+        # out. Found by a pairwise audit: the floors protect `comparators.json`,
+        # which takes three keys, and were removable on two.
+        ("platform-eng", "ai-quality", "security"),
+    ),
+    Rule(
+        # **The tests that EXECUTE the protections, not merely declare them.**
+        # Six of ten planted weakenings survived a fully registered commit for
+        # one reason: the check they removed was unreachable on an honest tree,
+        # so deleting it produced no failure anywhere. A two-key path on a check
+        # nothing runs is the "stated protection is worse than an absent one"
+        # pattern this repo has recorded eight times -- so the rule and the
+        # violating-tree test are two halves of one control.
+        #
+        # Scoped to the two files that hold instrument and scope protections.
+        # `tests/` at large is deliberately NOT here, for `pave/cli.py`'s reason.
+        # `test_adversarial_lane.py` holds `G4_CASE_FLOOR`'s ratchet -- which
+        # `floors.py`'s own docstring calls the half that does the work -- and
+        # `test_adversarial_entry.py` holds the instrument-order fix. Both were
+        # unguarded while `pave/floors.py`, which they protect, takes three keys.
+        "the tests that execute the instrument and arm-scoping protections",
+        re.compile(r"^tests/(test_arm_scoping|test_instrument_stability|test_adversarial_lane|test_adversarial_entry)\.py$"),
+        # Platform Engineering joins because `PIN_FLOOR` lives here and duplicates
+        # comparator values on purpose -- the lane that reads those pins is theirs,
+        # and the duplication is what makes moving a pinned number take a code diff
+        # as well as an attested comparator diff. Same pairwise audit.
+        ("ai-quality", "security", "platform-eng"),
+    ),
     Rule(
         # The number the L2 lane actually decides on, and it was the one artifact in
         # this table's neighbourhood that nothing covered. `evals/history/` is

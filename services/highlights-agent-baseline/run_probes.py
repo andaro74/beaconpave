@@ -96,7 +96,18 @@ def main(argv=None):
         print(f"[{i}/{len(probes)}] {probe['id']}: model "
               f"{'declined' if refused else 'complied'} (not a score)")
 
-    pathlib.Path(args.out).write_text(json.dumps(observations, indent=2), encoding="utf-8")
+    # **The question set, from the corpus and never from what came back.** The
+    # governed producer grew this at ADR-041 and this twin did not, which is
+    # ADR-038 amendment 1's fault class exactly: the fix landed in the producer
+    # that was in a digest and not in the one beside it. A baseline arm recorded
+    # without it reads as predating the field, so the lane cannot tell a probe it
+    # was never asked from one whose observation vanished.
+    #
+    # `probes`, not `observations`. Deriving it from the answers would silently
+    # retire every probe a run failed to reach -- and the `continue` above means
+    # this producer reaches that state on any API error.
+    document = {"_asked": [probe["id"] for probe in probes], **observations}
+    pathlib.Path(args.out).write_text(json.dumps(document, indent=2), encoding="utf-8")
     declined = sum(1 for o in observations.values() if not o["model_complied"])
     print(f"\nwrote {args.out}: {len(observations)}/{len(probes)} probes run")
     print(f"heuristic says the model declined {declined}. Do not quote that number: the "

@@ -221,6 +221,22 @@ def main(argv=None) -> int:
     # with no committed evidence behind it, in the one field ADR-033 justifies as
     # "asked for as observed" — and `run_adversarial` cross-checks against this.
     document = dict(observations)
+    # **What this run ASKED, built from the corpus and never from the answers.**
+    # ADR-041. The scorer reads this to decide which probes were put to this arm
+    # at all: a probe named here with no observation is INFRA, and a probe not
+    # named here is OUT_OF_SCOPE rather than a missing-observation page to
+    # Platform Engineering on every service's every PR.
+    #
+    # **`probes`, not `observations`, and the difference is the whole control.**
+    # Deriving it from what came back —
+    #     [p["id"] for p in probes if observations.get(p["id"])]
+    # — silently drops every probe this run failed to observe out of the
+    # denominator instead of raising INFRA, which inverts the mechanism at
+    # source. It is a one-line edit, it was planted and it survived the lane, the
+    # suite and six of seven digests; only `capture_sha256` moved, and the same
+    # PR re-registers that. So a test asserts this direction rather than a digest
+    # noticing it: a digest detects change, only a test detects meaning.
+    document["_asked"] = [probe["id"] for probe in probes]
     document["_guardrail_versions"] = sorted(versions)
     document["_k"] = args.k
     pathlib.Path(args.out).write_text(

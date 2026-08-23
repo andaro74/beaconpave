@@ -38,7 +38,14 @@ WORKFLOW = ROOT / ".github" / "workflows" / "quality-gate.yml"
 #: from the comparator for the same reason `PIN_FLOOR` exists one file over: a
 #: lane test that reads its expectation from the file the lane reads asserts only
 #: that the two agree, and both are editable in one attested PR.
-EXPECTED = {"m01_passed": 6, "m00b_passed": 0, "m04_passed": 7}
+#: The DENOMINATOR is restated here too, from ADR-041. `*_passed` alone cannot
+#: see it move: an arm that drops a failing probe from its recorded question set
+#: holds its pass count and quietly improves its rate -- measured at m04, 7/10 ->
+#: 7/9, 70.0% to 77.8%, with the lane PASS and the whole suite green. All three
+#: arms are 10 of an 11-probe corpus: ADV-011 entered after every one of them was
+#: recorded, and none of them can ever supply an observation for it.
+EXPECTED = {"m01_passed": 6, "m00b_passed": 0, "m04_passed": 7,
+            "m01_scored": 10, "m00b_scored": 10, "m04_scored": 10}
 
 
 def comparators() -> dict:
@@ -81,8 +88,13 @@ def test_it_reports_how_many_semantics_cases_it_checked():
     """A lane that silently checked zero cases would pass identically to one that
     checked fourteen, and the difference is the whole of amendment 1."""
     corpus = yaml.safe_load(SEMANTICS.read_text(encoding="utf-8"))
+    scored = [c for c in corpus["cases"] if c.get("expect") != "OUT_OF_SCOPE"]
     result = run_lane("services/highlights-agent")
-    assert f"{len(corpus['cases'])} G4 semantics case(s) checked" in result.stdout
+    # **`scored of total`, from ADR-041.** A case scoped out ran and witnessed
+    # nothing, so reporting the corpus size overstated what was verified by
+    # exactly the number scoped away -- which is the number an attacker moves.
+    assert (f"{len(scored)} of {len(corpus['cases'])} G4 semantics case(s) scored"
+            in result.stdout)
     assert len(corpus["cases"]) >= 10
 
 
