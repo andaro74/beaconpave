@@ -416,6 +416,24 @@ RULES: tuple[Rule, ...] = (
         re.compile(r"^tests/test_twokey_seats\.py$"),
         ("ai-quality", "security", "platform-eng", "tool-owner", "legal-sp"),
     ),
+    Rule(
+        # **The plane that RELEASES the interlock, found by Security against the
+        # code.** `toolplane.py:1` says "nothing reaches a tool except through
+        # here (G3)" and `:30` names three seats -- Platform Engineering
+        # (mechanism), Tool Owner (the contracts), Security (it is an
+        # authorization path). It was on no rule, and neither was its test.
+        #
+        # Measured: neutering `Approval.__post_init__`'s guard so `Approval("","")`
+        # validates, plus the one test that catches it, left **1814 passed** and
+        # `two-key: not required`. ADR-043 gave four keys to the constant that
+        # DECLARES which classes are gated while the code that decides an approval
+        # is good enough to RELEASE one kept zero -- the asymmetry ADR-035 was
+        # written about, inside the ADR written to remove it.
+        "the tool plane — nothing reaches a tool except through here, and what counts "
+        "as an approval",
+        re.compile(r"^(platform/gateway/core/toolplane\.py|tests/test_toolplane\.py)$"),
+        ("platform-eng", "security", "tool-owner"),
+    ),
     # --- ADR-043: paths that decide an invariant and collected no key ---
     #
     # All five were found by the six-seat SPEC/05 review PLANTING against `main`,

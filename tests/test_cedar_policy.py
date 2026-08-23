@@ -358,6 +358,35 @@ def _input_schema(tool):
     return yaml.safe_load((ROOT / tool["schemas"]["input"]).read_text(encoding="utf-8"))
 
 
+def _all_property_names(node):
+    """Every property name anywhere in a schema, not just at the top level.
+
+    **The first version read `set(schema["properties"])` and the Security seat
+    walked straight past it**: a nested `options.properties.skip_approval` reached
+    `tools.contracts.json` -- the artifact inside the gateway bundle -- at 1814
+    passed, carrying the literal name the check blacklists. A top-level read is a
+    check on where a field is declared, not on whether it exists."""
+    names = set()
+    if isinstance(node, dict):
+        props = node.get("properties")
+        if isinstance(props, dict):
+            names |= set(props)
+            for sub in props.values():
+                names |= _all_property_names(sub)
+        for key in ("items", "additionalProperties"):
+            names |= _all_property_names(node.get(key))
+    elif isinstance(node, list):
+        for sub in node:
+            names |= _all_property_names(sub)
+    return names
+
+
+def _schema_paths(tool):
+    """Both schemas. The rule covers `schema.out.json` and the first version of
+    this check never read it."""
+    return [tool["schemas"][k] for k in ("input", "output") if k in tool["schemas"]]
+
+
 def test_no_registered_tool_can_express_skipping_its_own_interlock():
     """The absence IS the contract, so the absence gets an assertion.
 
@@ -367,13 +396,15 @@ def test_no_registered_tool_can_express_skipping_its_own_interlock():
     no probe in the corpus reads a schema. The description is corrected in the
     same commit as this test (ADR-043)."""
     for tool in REGISTRY:
-        props = set(_input_schema(tool).get("properties", {}))
-        offending = sorted(props & set(BYPASS_SHAPED))
-        assert not offending, (
-            f"{tool['id']}'s input schema declares {offending}. A consequence class is "
-            "enforced by Cedar's forbid, and a tool that can ASK to skip it makes the "
-            "registry's declaration decorative. Owning seats: tool-owner, legal-sp."
-        )
+        for rel in _schema_paths(tool):
+            schema = yaml.safe_load((ROOT / rel).read_text(encoding="utf-8"))
+            offending = sorted(_all_property_names(schema) & set(BYPASS_SHAPED))
+            assert not offending, (
+                f"{tool['id']} ({rel}) declares {offending} — at any depth. A consequence "
+                "class is enforced by Cedar's forbid, and a tool that can ASK to skip it "
+                "makes the registry's declaration decorative. Owning seats: tool-owner, "
+                "legal-sp."
+            )
 
 
 def test_a_gated_tool_keeps_the_fields_its_approver_reads():

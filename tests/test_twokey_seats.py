@@ -48,6 +48,8 @@ ADR043_SEATS = {
     "pytest.ini": {"platform-eng", "security"},
     "tests/test_twokey_seats.py": {"ai-quality", "security", "platform-eng",
                                    "tool-owner", "legal-sp"},
+    "platform/gateway/core/toolplane.py": {"platform-eng", "security", "tool-owner"},
+    "tests/test_toolplane.py": {"platform-eng", "security", "tool-owner"},
 }
 
 
@@ -58,6 +60,11 @@ def _seats_for(path: str) -> set:
 def test_the_seat_sets_adr043_decided_are_exactly_these():
     """Not a subset check. A rule that gained a seat is a decision too, and a
     rule that lost one is the change this file exists to make visible."""
+    assert len(ADR043_SEATS) >= 8, (
+        f"ADR043_SEATS holds {len(ADR043_SEATS)} paths. Emptying or thinning it makes every "
+        "assertion in this file vacuous — the Security seat measured `{}` at 1814 passed, "
+        "and narrowing a rule plus neutering this loop at 1815."
+    )
     for path, expected in ADR043_SEATS.items():
         assert _seats_for(path) == expected, (
             f"{path}: seats are {sorted(_seats_for(path))}, ADR-043 decided "
@@ -79,13 +86,33 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
              if any(k in r.what for k in ("G1's model-invoke allowlist",
                                           "the Cedar generator",
                                           "the test harness",
-                                          "the seat-set pins"))]
-    assert len(added) == 4, (
-        f"expected ADR-043's four rules, found {[r.what[:40] for r in added]}. If a rule "
+                                          "the seat-set pins",
+                                          "the tool plane"))]
+    assert len(added) == 5, (
+        f"expected ADR-043's five rules, found {[r.what[:40] for r in added]}. If a rule "
         "was renamed, update this ratchet in the same diff — it is what stops the pin "
         "below being emptied."
     )
+    #: Paths each ADR-043 rule MUST still cover. "At least one path matches" let a
+    #: regex be narrowed to drop the other file it names -- decision 1 says the G1
+    #: constant and its pin are "weakened together or not at all", and a two-line
+    #: diff separated them green.
+    required = {
+        "G1's model-invoke allowlist": ["pave/infra.py", "tests/test_iam_assertions.py"],
+        "the Cedar generator": ["platform/gateway/core/cedar.py", "tests/test_cedar_policy.py",
+                                "tools/publish-highlight/schema.in.json"],
+        "the test harness": ["tests/conftest.py", "pyproject.toml", "conftest.py", "pytest.ini"],
+        "the seat-set pins": ["tests/test_twokey_seats.py"],
+        "the tool plane": ["platform/gateway/core/toolplane.py", "tests/test_toolplane.py"],
+    }
     for rule in added:
+        key = next(k for k in required if k in rule.what)
+        for path in required[key]:
+            assert rule.pattern.search(path), (
+                f"the rule {rule.what[:50]!r} no longer covers {path}. Narrowing a regex "
+                "to drop one of the files it names is the two-line separation decision 1 "
+                "forbids in as many words."
+            )
         covered = [p for p in ADR043_SEATS if rule.pattern.search(p)]
         assert covered, (
             f"no path in ADR043_SEATS exercises the rule {rule.what[:60]!r}. An unpinned "
@@ -133,7 +160,8 @@ def test_this_file_is_itself_on_a_rule_that_carries_securitys_key():
     ADR-042 closed the same shape by having `HISTORY_DIGESTS` assert its own
     relationship to `pins.json`. Self-referential and correct -- a protection
     test whose own rule can be deleted quietly protects nothing."""
-    seats = _seats_for("tests/test_twokey_seats.py")
+    here = pathlib.Path(__file__).resolve().relative_to(ROOT).as_posix()
+    seats = _seats_for(here)
     pinned = {s for expected in ADR043_SEATS.values() for s in expected}
     missing = sorted(pinned - seats)
     assert not missing, (
