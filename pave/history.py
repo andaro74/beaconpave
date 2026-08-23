@@ -278,7 +278,11 @@ def enumerate_entries(history: pathlib.Path = HISTORY) -> tuple[list[pathlib.Pat
 
 
 def _load(path: pathlib.Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(doc, dict):
+        raise Refusal(f"{path.name} is not a JSON object; an entry, the pins and the schema are "
+                      "objects, and anything else in evals/history/ is not a record of anything.")
+    return doc
 
 
 def load_pins(history: pathlib.Path = HISTORY) -> dict[str, str]:
@@ -490,6 +494,13 @@ def check_second_rows(history: pathlib.Path = HISTORY) -> list[str]:
             problems.append(f"{name} supersedes {target} with identical scores and cases. A "
                             "correction that corrects nothing is a second row with the same number "
                             "under one sha, which is the ambiguity ADR-027 forbids.")
+    def root_of(name: str) -> str:
+        seen = set()
+        while name in entries and entries[name].get("supersedes") in entries and name not in seen:
+            seen.add(name)
+            name = entries[name]["supersedes"]
+        return name
+
     groups: dict[tuple, list[str]] = {}
     for name, entry in entries.items():
         groups.setdefault(_identity(entry), []).append(name)
@@ -497,10 +508,13 @@ def check_second_rows(history: pathlib.Path = HISTORY) -> list[str]:
         for i, a in enumerate(names):
             for b in names[i + 1:]:
                 ea, eb = entries[a], entries[b]
+                # Two rows in one correction chain differ by being that chain: a
+                # correction of a correction shares sha, suite, arm and
+                # instrument with the original and is the sanctioned shape.
                 differs = (ea.get("arm") != eb.get("arm")
                            or (ea.get("instrument") or {}).get("name") != (eb.get("instrument") or {}).get("name")
                            or ("instrument" in ea) != ("instrument" in eb)
-                           or ea.get("supersedes") == b or eb.get("supersedes") == a)
+                           or (("supersedes" in ea or "supersedes" in eb) and root_of(a) == root_of(b)))
                 if not differs:
                     problems.append(f"{a} and {b} share sha {key[0][:7]} and suite {key[1]} and declare "
                                     "no difference -- not arm, not instrument, not supersedes. A reader "
@@ -571,7 +585,8 @@ def check_evidence(history: pathlib.Path = HISTORY, root: pathlib.Path = ROOT) -
     return problems
 
 
-def check_registry(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT) -> list[str]:
+def check_registry(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT,
+                   base: str | None = None) -> list[str]:
     """Decision 6: every registered `probes_sha256` is the digest of a committed
     revision of the corpus, and `corpus_size` is that revision's probe count; an
     entry's instrument digests equal the registry row it names; and the corpus
@@ -582,10 +597,16 @@ def check_registry(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT) ->
     import yaml
     require_repository(cwd)
     registry = _load(INSTRUMENTS)["instruments"]
-    listing = _git("rev-list", "--all", "--objects", "--", PROBES, cwd=cwd)
+    # Revisions reachable from the BASE, plus the corpus as it stands at HEAD --
+    # not `--all`, which sees every blob on every ref including the PR's own
+    # intermediate commits: a seat committed a three-probe corpus, restored it
+    # in the next commit, and registered the throwaway blob with corpus_size 3.
+    # A PR that grows the corpus and registers the new instrument in one go
+    # still resolves, through HEAD; a shrink that never reaches the base does not.
+    listing = _git("rev-list", base or "HEAD", "--objects", "--", PROBES, cwd=cwd)
     if listing.returncode != 0:
-        raise Refusal("`git rev-list --all --objects` failed; the corpus's committed revisions "
-                      "are unreachable.")
+        raise Refusal(f"`git rev-list {base or 'HEAD'} --objects` failed; the corpus's committed "
+                      "revisions are unreachable.")
     sizes: dict[str, int] = {}
     for line in _out(listing).splitlines():
         parts = line.split(maxsplit=1)
@@ -593,6 +614,10 @@ def check_registry(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT) ->
             blob = _git("cat-file", "-p", parts[0], cwd=cwd)
             text = _out(blob)
             sizes[corpus_digest(text)] = len(yaml.safe_load(normalised(text)) or [])
+    live = cwd / PROBES
+    if live.is_file():
+        text = live.read_text(encoding="utf-8")
+        sizes[corpus_digest(text)] = len(yaml.safe_load(normalised(text)) or [])
     problems = []
     for name, row in registry.items():
         digest = (row.get("digests") or {}).get("probes_sha256")
@@ -606,8 +631,15 @@ def check_registry(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT) ->
             problems.append(f"instrument {name}: corpus_size is {size!r}; the corpus at its digest has "
                             f"{sizes[digest]} probes.")
     for name, entry in _entries(history).items():
+        if entry.get("suite") != "adversarial":
+            continue
         inst = entry.get("instrument")
-        if not inst or entry.get("suite") != "adversarial":
+        if not inst:
+            if name not in LEGACY_ENTRIES:
+                problems.append(f"{name} names no instrument. A new adversarial row names what read "
+                                "it, or the corpus it ran under cannot be resolved and the "
+                                "denominator bound is skipped -- which is the shape a fabricated row "
+                                "would take.")
             continue
         row = registry.get(inst.get("name"))
         if row is None:
@@ -695,6 +727,46 @@ def check_readme(history: pathlib.Path = HISTORY, readme: pathlib.Path | None = 
     return problems
 
 
+def check_reachable(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT) -> list[str]:
+    """Every entry's `sha` is reachable from `main` or a tag. `m01`'s sha
+    `fb52a8e` was reachable only through the unmerged `m01-gateway` branch --
+    squash-merged, never tagged -- so the routine "delete merged branches"
+    would have turned `git show fb52a8e:...` into a refusal on every PR, with a
+    remedy nobody can apply from a PR. Tagged `evidence-m01`; this catches the
+    next one at record time."""
+    require_repository(cwd)
+    problems = []
+    for name, entry in _entries(history).items():
+        sha = entry.get("sha")
+        if not sha:
+            problems.append(f"{name} records no sha.")
+            continue
+        on_main = any(_git("merge-base", "--is-ancestor", sha, ref, cwd=cwd).returncode == 0
+                      for ref in ("origin/main", "main", "HEAD"))
+        tagged = _out(_git("tag", "--contains", sha, cwd=cwd)).strip()
+        if not on_main and not tagged:
+            problems.append(f"{name}: its sha {sha[:7]} is on no branch that merges and under no tag. "
+                            "A squash-merged branch is deleted as routine, and then the commit a "
+                            "recorded number names is gone. Tag it (a name no branch shares).")
+    return problems
+
+
+def check_modes(cwd: pathlib.Path = ROOT) -> list[str]:
+    """Every tracked file under the directory is a regular file, mode 100644 --
+    not a symlink (120000), not executable. The enumerator refuses a symlink in
+    the working tree; this refuses one in the index, which is what a Linux
+    runner checks out and follows."""
+    require_repository(cwd)
+    listing = _git("ls-files", "-s", "--", "evals/history/", cwd=cwd)
+    problems = []
+    for line in _out(listing).splitlines():
+        mode = line.split(maxsplit=1)[0] if line.strip() else ""
+        if mode and mode != "100644":
+            problems.append(f"{line.split()[-1]} is tracked with mode {mode}; an entry is a regular "
+                            "file (100644), because a link is read as its target.")
+    return problems
+
+
 # --- everything, for the gate -------------------------------------------------
 
 def run_all(base: str | None, history: pathlib.Path = HISTORY,
@@ -711,12 +783,23 @@ def run_all(base: str | None, history: pathlib.Path = HISTORY,
     problems += check_evidence(history, cwd)
     problems += check_schema(history)
     problems += check_readme(history)
-    for check in (lambda: check_case_ids(history, cwd), lambda: check_registry(history, cwd),
-                  lambda: append_only_violations(resolve_base(base, cwd=cwd), cwd)):
+    resolved: list[str] = []
+
+    def with_base():
+        if not resolved:
+            resolved.append(resolve_base(base, cwd=cwd))
+        return resolved[0]
+
+    for check in (lambda: check_modes(cwd),
+                  lambda: check_reachable(history, cwd),
+                  lambda: check_case_ids(history, cwd),
+                  lambda: check_registry(history, cwd, with_base()),
+                  lambda: append_only_violations(with_base(), cwd)):
         try:
             problems += check()
         except Refusal as exc:
-            refusals.append(str(exc))
+            if str(exc) not in refusals:
+                refusals.append(str(exc))
     return problems, refusals
 
 

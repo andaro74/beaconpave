@@ -105,8 +105,12 @@ def _sources(paths) -> list[dict]:
     from pave import history
     found = []
     for path in paths:
-        text = pathlib.Path(path).read_text(encoding="utf-8")
-        found.append({"path": str(path).replace(chr(92), "/"),
+        p = pathlib.Path(path)
+        text = p.read_text(encoding="utf-8")
+        # Recorded relative to the repository, forward slashes, no `./`: the
+        # evidence check compares this string to `milestones/<TAG>/...`.
+        shown = p.resolve().relative_to(ROOT.resolve()) if p.resolve().is_relative_to(ROOT.resolve()) else p
+        found.append({"path": str(shown).replace(chr(92), "/"),
                       "sha256": history.entry_digest(text)})
     return found
 
@@ -147,7 +151,12 @@ def _load_superseded(history_dir: pathlib.Path, name: str, suite: str) -> dict:
 
 
 def _correction_stem(history_dir: pathlib.Path, target: str, suite: str) -> str:
-    base = target[: -len(f"-{suite}.json")]
+    """`{stem}-correction{N}-{suite}.json`, where N counts corrections of the
+    ORIGINAL stem. Correcting a correction must not nest
+    (`-correction1-correction1-`): the Platform seat measured the recorder
+    writing that name and `check_second_rows` refusing it."""
+    import re as _re
+    base = _re.sub(r"-correction\d+$", "", target[: -len(f"-{suite}.json")])
     n = 1
     while (history_dir / f"{base}-correction{n}-{suite}.json").exists():
         n += 1

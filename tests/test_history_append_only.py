@@ -476,6 +476,74 @@ def test_a_fabricated_instrument_with_a_small_corpus_is_red(tmp_path, monkeypatc
     assert any("m04-A2" in p and "no committed revision" in p for p in problems), problems
 
 
+def test_a_new_adversarial_row_without_an_instrument_is_red(tmp_path):
+    h = _copy_history(tmp_path)
+    row = json.loads((h / "m04-adversarial.json").read_text(encoding="utf-8"))
+    del row["instrument"]
+    row["tag"] = "m05"
+    (h / "m05-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
+    assert any("m05-adversarial.json names no instrument" in p for p in check_registry(h))
+
+
+def test_a_corpus_committed_only_inside_the_pr_does_not_register(tmp_path, monkeypatch):
+    """Platform plant: commit a three-probe corpus, restore it, register the
+    throwaway blob. `--all` saw it; the base does not."""
+    registry = json.loads(history.INSTRUMENTS.read_text(encoding="utf-8"))
+    repo = tmp_path / "repo"
+    (repo / "quality" / "adversarial").mkdir(parents=True)
+    (repo / "evals" / "history").mkdir(parents=True)
+    shutil.copy(ROOT / "quality" / "adversarial" / "probes.yaml", repo / "quality" / "adversarial" / "probes.yaml")
+    _git("init", "-q", "-b", "main", cwd=repo)
+    _git("config", "user.email", "t@example.invalid", cwd=repo)
+    _git("config", "user.name", "t", cwd=repo)
+    _git("add", "-A", cwd=repo)
+    _git("commit", "-q", "-m", "base", cwd=repo)
+    _git("checkout", "-q", "-b", "pr", cwd=repo)
+    import yaml
+    full = yaml.safe_load((repo / "quality" / "adversarial" / "probes.yaml").read_text(encoding="utf-8"))
+    shrunk = yaml.safe_dump(full[:3], sort_keys=False)
+    (repo / "quality" / "adversarial" / "probes.yaml").write_text(shrunk, encoding="utf-8")
+    _git("add", "-A", cwd=repo)
+    _git("commit", "-q", "-m", "shrink", cwd=repo)
+    shutil.copy(ROOT / "quality" / "adversarial" / "probes.yaml", repo / "quality" / "adversarial" / "probes.yaml")
+    _git("add", "-A", cwd=repo)
+    _git("commit", "-q", "-m", "restore", cwd=repo)
+    registry["instruments"]["m04-F"] = {**registry["instruments"]["m04-E"], "corpus_size": 3,
+                                        "digests": {**registry["instruments"]["m04-E"]["digests"],
+                                                    "probes_sha256": history.corpus_digest(shrunk)}}
+    planted = tmp_path / "instruments.json"
+    planted.write_text(json.dumps(registry), encoding="utf-8")
+    monkeypatch.setattr(history, "INSTRUMENTS", planted)
+    problems = check_registry(repo / "evals" / "history", cwd=repo, base="main")
+    assert any("m04-F" in p and "no committed revision" in p for p in problems), problems
+
+
+def test_every_entry_sha_is_reachable_from_main_or_a_tag():
+    """`fb52a8e` (m01) lived only on the unmerged `m01-gateway` branch; tagged
+    `evidence-m01` so a branch cleanup cannot turn every PR into a refusal."""
+    try:
+        assert history.check_reachable() == [], history.check_reachable()
+    except Refusal as exc:
+        pytest.fail(str(exc))
+
+
+def test_gate_history_never_raises_a_bare_traceback(tmp_path, monkeypatch):
+    """Prediction 5: `{bad` in pins.json wrote no verdict and paged platform."""
+    h = _copy_history(tmp_path)
+    (h / "pins.json").write_text("{bad", encoding="utf-8")
+    monkeypatch.setattr(history, "HISTORY", h)
+    out = tmp_path / "verdict.json"
+    proc = subprocess.run([sys.executable, "-c",
+                           "import pathlib, sys; from pave import history, cli; "
+                           f"history.HISTORY = pathlib.Path({str(h)!r}); "
+                           f"cli.gate_history(['--base', 'main', '--out', {str(out)!r}])"],
+                          cwd=ROOT, capture_output=True, text=True)
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "Traceback" not in proc.stderr
+    assert "JSONDecodeError" in proc.stdout
+    assert json.loads(out.read_text(encoding="utf-8"))["verdict"] == "FAIL"
+
+
 def test_a_lowered_corpus_size_is_red(tmp_path, monkeypatch):
     registry = json.loads(history.INSTRUMENTS.read_text(encoding="utf-8"))
     registry["instruments"]["m04-E"]["corpus_size"] = 3
@@ -721,6 +789,13 @@ def test_a_correction_can_be_recorded_end_to_end(tmp_path, monkeypatch):
     # a second correction of the same entry: refused -- the chain is linear
     with pytest.raises(SystemExit, match="already superseded"):
         run_evals.record(results, scores, Args())
+    # correcting the correction: counts, never nests, and the chain is one difference
+    results[1].result = "PASS" if results[1].result != "PASS" else "FAIL"
+    scores = history.derive_scores({"suite": "goldens", "cases": [{"id": r.id, "result": r.result} for r in results]})
+    Args.supersedes = "m01-correction1-goldens.json"
+    path = run_evals.record(results, scores, Args(), sources=sources)
+    assert path.name == "m01-correction2-goldens.json"
+    assert check_second_rows(h) == [], check_second_rows(h)
 
 
 def test_the_schema_may_not_gain_a_requirement_a_committed_entry_fails(tmp_path):
@@ -777,6 +852,20 @@ def test_the_history_rule_requires_an_attestation_from_all_three():
     for missing in THREE:
         partial = "\n".join(f"Two-Key-Disposition: {s}" for s in THREE - {missing}) + body.split("\n", 3)[3]
         assert twokey.evaluate(["evals/history/m05-goldens.json"], partial), f"green without {missing}"
+
+
+def test_every_anchored_arm_cites_the_evidence_its_anchor_names():
+    """Decision 5's `ARMS[tag][0] == entry.samples_from[0].path`."""
+    from tests.test_arm_scoping import ARMS
+    checked = 0
+    for tag, (obs, entry_path) in ARMS.items():
+        entry = json.loads((ROOT / entry_path).read_text(encoding="utf-8"))
+        if "samples_from" not in entry:
+            assert entry_path.rsplit("/", 1)[-1] in history.LEGACY_WITHOUT_EVIDENCE
+            continue
+        assert entry["samples_from"][0]["path"] == obs, tag
+        checked += 1
+    assert checked >= 1
 
 
 def test_the_adversarial_anchor_agrees_with_the_complete_pin():

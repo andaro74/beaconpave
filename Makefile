@@ -30,12 +30,11 @@ snapshot-check:
 	cd platform/infra && npx cdk synth --quiet
 	python -m pave.cli infra snapshot --check
 
-OBSERVATIONS ?= milestones/M04/probes-run.json
-
 evals:
 	python -m evals.run_evals --answers $(ANSWERS) --record
 
 adversarial:
+	@test -n "$(OBSERVATIONS)" || { echo "set OBSERVATIONS=milestones/MNN/probes-run.json -- a default would record a second row over another milestone's evidence"; exit 2; }
 	python -m evals.run_adversarial --observations $(OBSERVATIONS) --record
 
 drill:

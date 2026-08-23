@@ -319,7 +319,9 @@ and ran the check from an older honest branch — `R097 m05-goldens.json ->
 zz-honest-goldens.json`, an honest PR accused of renaming someone else's entry.
 Three-dot diffs against the merge-base and reported nothing. The base is
 `origin/$GITHUB_BASE_REF` in CI, else `$PAVE_BASE` if set, else `origin/main`,
-else `main`. **If `PAVE_BASE` is set and does not resolve, the check refuses
+else `main` — with **`PAVE_BASE` ahead of `GITHUB_BASE_REF`**, because the
+workflow sets `PAVE_BASE` from the event payload and a `conftest.py` can set
+`GITHUB_BASE_REF`; draft 3 had them the other way round. **If `PAVE_BASE` is set and does not resolve, the check refuses
 with its name** rather than falling through — a seat measured `PAVE_BASE=typo`
 passing on `origin/main`, which is `_flag_values`' lesson at `cli.py:263`
 arriving again: a typo'd explicit input must never read as "use the default".
@@ -328,7 +330,12 @@ shallow clone (`git rev-parse --is-shallow-repository`), outside any git
 repository **as `git rev-parse --git-dir` reports it** — not by testing for a
 `.git` directory, which is a *file* in every worktree, including the ones the
 seats reviewed this ADR in — and with `git` absent from PATH. It never passes
-quietly and never raises a bare traceback. In `pave check` a refusal is a
+quietly and never raises a bare traceback — `gate history` treats any exception as a
+refusal naming the exception, writes the FAIL verdict and exits 1, because the
+Platform seat measured six malformed inputs (`{bad` in `pins.json`, a missing
+registry, a non-UTF-8 entry, a symlink checked out as text, an entry that is a
+list, an entry with no `sha`) each raising, writing no verdict, and paging
+platform as a harness failure naming no file. In `pave check` a refusal is a
 failed test, which is the fail-closed direction, and it is knowingly the one
 place the FAIL/INFRA split is lost: a shallow clone pages the service team for
 a platform condition, and that is preferred to a skip.
@@ -497,11 +504,12 @@ and `corpus_size: 3` recorded a 3/3 arm green, lane PASS. "Registered under
 Security's key" bounds nothing on this repo. What bounds it is a test, in the
 three-key file, that resolves the registry against git:
 
-- every registered instrument's `probes_sha256` **is the digest of some
-  committed revision** of `quality/adversarial/probes.yaml`
-  (`git rev-list --all --objects -- quality/adversarial/probes.yaml`, each blob
-  normalised and hashed), and its `corpus_size` equals the probe count of that
-  revision — measured by two seats: `m04-A/B/C` → `0c4a852`, 10; `m04-D` →
+- every registered instrument's `probes_sha256` **is the digest of a revision
+  of `quality/adversarial/probes.yaml` reachable from the BASE, or the file at
+  HEAD** (`git rev-list <base> --objects`, each blob normalised and hashed, plus
+  the live file) — not `--all`, which the Platform seat measured sees a
+  three-probe corpus committed and restored inside the PR itself — and its
+  `corpus_size` equals the probe count of that revision — measured by two seats: `m04-A/B/C` → `0c4a852`, 10; `m04-D` →
   `bd0e247`, 10; `m04-E` → the live file, 11; the planted row → **the digest of
   no revision that ever existed**;
 - every committed entry's `instrument.*_sha256` equal the registry row it
@@ -559,6 +567,14 @@ value the same PR can invent" becomes true again by construction, and the
 docstring says how: the floor is read from a registry keyed by a name the entry
 declares, and the entry's total must match the registry.
 
+**Every entry's `sha` must be reachable from `main` or a tag.** Found against
+the code: `m01`'s `fb52a8e` was reachable only through the unmerged
+`m01-gateway` branch — squash-merged as #12, never tagged — so the routine
+"delete merged branches" would have turned `git show fb52a8e:…` into a refusal
+on every PR, with a remedy nobody can apply from a PR. It is tagged
+`evidence-m01` (a name no branch shares, per CLAUDE.md), and `check_reachable`
+catches the next one at record time.
+
 ### 7. A second row under one `sha` must say why, and `supersedes` becomes writable — by filename
 
 Two entries sharing `sha` and `suite` must differ in `arm`, differ in
@@ -579,7 +595,12 @@ superseded entry's `sha` is copied rather than re-derived, which is the one case
 where `--sha` without `--judged` is correct and the recorder's refusal is
 lifted. The filename gains a component that says what differs — ADR-027 rule 3
 — `{stem}-correction{N}-{suite}.json`, where N counts corrections of that stem.
-Three refusals the Platform seat's prototype showed were needed: a correction
+`N` counts corrections of the *original* stem — the first implementation
+nested (`-correction1-correction1-`) and the check then refused the row its own
+message had told the operator to write. `run_adversarial.py` has no `--sha`, so
+the wrong-commit correction exists for the goldens recorder only; an
+adversarial row recorded against the wrong commit is re-recorded under a new
+tag. Three refusals the Platform seat's prototype showed were needed: a correction
 whose `scores` and `cases` equal the superseded entry's is refused (two such
 corrections both landed, same digest — the identical-numbers ambiguity this
 decision exists to prevent); **`supersedes` values are unique across the
@@ -727,6 +748,30 @@ Prediction 1 is load-bearing, for ADR-037's reason. Prediction 7 is draft 2's
 prediction 7, which has failed three times and is carried as a discipline.
 Prediction 8 is the G4 prediction: it is the one that says a probe count cannot
 be invented by the PR that reports it.
+
+## What the code got wrong, found by planting against it
+
+Three seats reviewed the implementation, not the design. Each of these was
+measured, fixed, and given a test that records the honest or dishonest shape:
+
+- **The goldens recorder wrote `samples_from` only at k > 1**, so the exact
+  command decision 9 prescribes wrote a row decision 5 refused. Two seats.
+- **`derive_scores` used `passed/total` for adversarial `pass_rate`**; the
+  scorer writes `passed/scored`, and an honest ADR-041 arm asking ten of
+  eleven was refused. Two seats.
+- **A goldens k > 1 row could contradict its own samples** and stay green.
+- **`check_readme` was one-directional**: a row filled in with a number and no
+  entry behind it passed.
+- **`EVIDENCE_REVISIONS` was read per row, not as the chain its docstring
+  described.**
+- **Correcting a correction nested the filename** and the check refused it.
+- **`m01`'s sha was on no branch that merges and under no tag.**
+- **`gate history` raised bare tracebacks on six malformed inputs.**
+- **A new adversarial row with no `instrument` skipped the denominator bound.**
+- **`git rev-list --all` saw the PR's own throwaway corpus.**
+- **`check()` captured pytest's output and sat silent for 45 s.**
+- **The Makefile's default `OBSERVATIONS`** would have recorded a second row
+  over M04's evidence, which the evidence check refuses.
 
 ## What draft 3 got wrong
 

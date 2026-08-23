@@ -309,7 +309,14 @@ def gate_history(argv):
         sys.exit(gate_mod.EXIT_QUALITY)
     base = _flag_values(argv, "--base")
     out = _flag_values(argv, "--out")
-    problems, refusals = history.run_all(base[0] if base else None)
+    try:
+        problems, refusals = history.run_all(base[0] if base else None, history=history.HISTORY)
+    except Exception as exc:  # noqa: BLE001 -- a bare traceback is an errored step, not a stated block
+        # Measured: `{bad` in pins.json, a missing registry, a non-UTF-8 entry,
+        # a symlink checked out as text, an entry that is a list. Each raised,
+        # wrote no verdict, and paged platform as a harness failure naming no
+        # file. A refusal with the exception's name is a FAIL with a remedy.
+        problems, refusals = [], [f"{type(exc).__name__}: {exc}"]
     _emit(history.render(problems, refusals))
     if out:
         verdict_mod.write(out[0], verdict_mod.build(
@@ -1150,15 +1157,21 @@ def check(argv=()):
     # deselected protection test is a protection test that did not run
     # (ADR-042). The mirror's harness is still zero-key; the instance that
     # decides in CI is `pave gate history`, which does not go through pytest.
-    proc = subprocess.run([sys.executable, "-m", "pytest", "-q", "-o", "addopts="],
-                          cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
-    sys.stdout.write(proc.stdout)
-    sys.stderr.write(proc.stderr)
+    # Streamed, not captured: `capture_output=True` sat silent for the whole
+    # 45 s run. Lines are echoed as they arrive and kept for the summary regex.
+    with subprocess.Popen([sys.executable, "-m", "pytest", "-q", "-o", "addopts="],
+                          cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          text=True, encoding="utf-8", errors="replace") as proc:
+        seen = []
+        for line in proc.stdout:
+            sys.stdout.write(line)
+            seen.append(line)
+        proc.wait()
     if proc.returncode == 5:
         failures.append("pytest collected zero tests — an empty suite is a failing suite, not a passing one")
     elif proc.returncode != 0:
         failures.append(f"pytest failed (exit {proc.returncode})")
-    if re.search(r"\b[1-9]\d* deselected\b", proc.stdout):
+    if re.search(r"\b[1-9]\d* deselected\b", "".join(seen)):
         failures.append("pytest deselected tests — a protection test that did not run protects nothing")
 
     print("==> guardrail-refusal band (SPEC/01, reporting only)")
