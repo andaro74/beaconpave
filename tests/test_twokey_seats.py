@@ -43,6 +43,11 @@ ADR043_SEATS = {
     "tools/catalog-search/schema.out.json": {"platform-eng", "security", "tool-owner", "legal-sp"},
     "tests/conftest.py": {"platform-eng", "security"},
     "pyproject.toml": {"platform-eng", "security"},
+    "conftest.py": {"platform-eng", "security"},
+    "pave/tests/conftest.py": {"platform-eng", "security"},
+    "pytest.ini": {"platform-eng", "security"},
+    "tests/test_twokey_seats.py": {"ai-quality", "security", "platform-eng",
+                                   "tool-owner", "legal-sp"},
 }
 
 
@@ -58,6 +63,33 @@ def test_the_seat_sets_adr043_decided_are_exactly_these():
             f"{path}: seats are {sorted(_seats_for(path))}, ADR-043 decided "
             f"{sorted(expected)}. Changing a rule's seat set is a G9 decision — "
             "amend the ADR, do not edit this constant to match the code."
+        )
+
+
+def test_the_seat_pin_covers_every_rule_this_adr_added():
+    """**The audit did not reach this one and the Tool Owner seat did.**
+    `ADR043_SEATS = {}` left 1814 passed -- every seat pin decision 5 rests on,
+    and prediction 6's whole basis, deleted by one token.
+
+    Ratcheted against `twokey.RULES` the way `HISTORY_DIGESTS` is ratcheted
+    against `pins.json`: each pattern ADR-043 added must have at least one
+    representative path pinned above, so emptying or thinning the constant is red
+    rather than silent."""
+    added = [r for r in twokey.RULES
+             if any(k in r.what for k in ("G1's model-invoke allowlist",
+                                          "the Cedar generator",
+                                          "the test harness",
+                                          "the seat-set pins"))]
+    assert len(added) == 4, (
+        f"expected ADR-043's four rules, found {[r.what[:40] for r in added]}. If a rule "
+        "was renamed, update this ratchet in the same diff — it is what stops the pin "
+        "below being emptied."
+    )
+    for rule in added:
+        covered = [p for p in ADR043_SEATS if rule.pattern.search(p)]
+        assert covered, (
+            f"no path in ADR043_SEATS exercises the rule {rule.what[:60]!r}. An unpinned "
+            "rule can have a seat removed with the suite green."
         )
 
 

@@ -118,12 +118,35 @@ python -m pytest -q                                           -> 15 failed, 1780
 two-key                                                       -> NOT REQUIRED
 ```
 
-**Corrected before this ADR was reviewed, and the correction is the finding.**
+**Corrected twice before this ADR was reviewed, and the second correction is
+the sharper finding.**
+
 The first draft of this section omitted the suite line while its four neighbours
-all reported a passing suite, which reads as green. It is not:
-`test_every_gated_tool_in_the_registry_carries_a_forbid` exists in
-`tests/test_cedar_policy.py` and catches this, along with fourteen others in
-`test_tool_loop.py` and `test_toolplane.py`. **The interlock has real coverage.**
+all reported a passing suite, which reads as green. It is not — fifteen
+assertions fire on `main`.
+
+The correction then **named the wrong defender**, twice, and the Tool Owner seat
+measured it: `test_every_gated_tool_in_the_registry_carries_a_forbid` **passes
+under this plant**. It iterates `cedar.GATED_CONSEQUENCES` — the constant being
+attacked — so when `"publish"` is dropped the loop body never runs for
+`publish-highlight`. That test defends the *registry* half (a tool promoted to a
+gated class without gaining a forbid) and is vacuous against the *generator*
+half. A protection named in an ADR and absent in the file the ADR names is this
+ADR's own subject, arriving inside the paragraph that calls itself "the
+correction is the finding."
+
+What actually fires, measured: fourteen in `tests/test_cedar_policy.py` —
+`test_a_publish_class_tool_is_unreachable_without_an_approval_interlock`,
+`test_the_forbid_is_what_denies_it_and_not_a_missing_permit`,
+`test_an_explicit_forbid_beats_a_permit`, `test_only_a_real_approval_exempts_the_forbid`
+(six cases), `test_the_forbid_guards_its_context_access`,
+`test_a_forbid_whose_guard_and_test_disagree_is_rejected`,
+`test_an_unreadable_forbid_cannot_be_dropped_while_its_permit_survives`,
+`test_nothing_reaches_policy_text_without_passing_a_validator` — plus
+`test_tool_loop.py::test_a_publish_class_tool_is_denied_while_no_approval_interlock_is_deployed`
+and `test_toolplane.py::test_a_publish_class_tool_is_denied_until_an_approval_grants_it`.
+**The interlock has real coverage; it is simply not the coverage this ADR first
+claimed.**
 
 So this finding is narrower than it first looked, and it is still live in two
 ways. **The key**: fifteen red tests and `two-key: not required` means a PR can
@@ -248,10 +271,11 @@ This is the honest limit of this ADR and it is stated rather than implied.
 
 **Already red, and this ADR adds only the key** — corrected during drafting:
 
-- **The interlock.** `test_every_gated_tool_in_the_registry_carries_a_forbid`
-  exists and fires, with fourteen others. The first draft of this ADR proposed
-  adding that assertion, having failed to run the suite on its own plant. What
-  finding 4 actually needs is decision 2's key and decision 3's, not a new check.
+- **The interlock.** Fifteen assertions fire on `main` — named in finding 4,
+  after a first correction named a test that is vacuous against this exact plant.
+  The first draft proposed adding an assertion, having failed to run the suite at
+  all. What finding 4 actually needs is decision 2's key and decision 3's, not a
+  new check.
 
 **Red here**, because it costs one small assertion that genuinely does not exist:
 
@@ -284,6 +308,55 @@ It also asserts every seat string in `RULES` is one of the seats `ROLES.md`
 lists. `ROLES.md`'s own heading says **eight**, and `pave/twokey.py` uses five
 today; nothing checks that a rule's seat is a real seat, so a typo is an
 unsatisfiable rule with no diagnostic.
+
+## What the code got wrong, found by planting against it
+
+Four seats reviewed the implementation in their own worktrees, forbidden from
+touching AWS or any deploy path. Each finding below was measured, fixed, and
+given a test.
+
+- **This ADR's own anti-vacuity guard was vacuous one level in.** It tested
+  `set(GATED_REQUIRED_PROPERTIES)` — a dict's *keys* — so
+  `{"publish-highlight": set()}` satisfied it while the check it guards skipped
+  on `if not wanted: continue`. **MER-AI-0001's disclosure flag deleted from the
+  deployed contract set at 1814 passed.** Found by Legal/S&P, whose requirement
+  it protects. Falsified prediction 5 in this ADR's single new assertion.
+- **The seat-set pins were defended by three of the four seats they pin.**
+  `tests/test_twokey_seats.py` sat on the enumerated protection-test rule, so
+  ai-quality, security and platform-eng could drop `legal-sp` from decision 2's
+  rule *and* edit the pin in one diff, with the seat losing its key never asked.
+  ADR-037's shape on the rule this ADR added to close it. It now carries its own
+  rule with the union of every seat it pins.
+- **`ADR043_SEATS = {}` was silent at 1814 passed** — every pin decision 5 rests
+  on, deleted by one token. Now ratcheted against `twokey.RULES`: each pattern
+  this ADR adds must have a representative path pinned.
+- **The harness rule named two entry points and the harness has five.** A
+  repo-root `conftest.py` is an ancestor of both testpaths, so its hookwrapper
+  applies to every item (1814 passed, G1 pin genuinely red); a new
+  `pave/tests/conftest.py` drops the two-key mechanism's own test (1743 passed);
+  a root `pytest.ini` outranks `[tool.pytest.ini_options]` entirely (1734
+  passed). All three collected nothing. `tox.ini` and `setup.cfg` are the same
+  precedence chain and are covered rather than measured.
+- **A "prose correction" landed in model-facing text.** `handler.py:157` hands
+  the input schema's `description` to Bedrock as the tool's spec. The correction
+  grew that field from 309 to 708 bytes of repo governance — naming the enforcing
+  test file to the model. It escaped `TOOL_SPECS_SHA256` only because that pin
+  iterates *routed* tools and `publish-highlight` has no routed Lambda at M02, so
+  prediction 7 held by a coverage gap rather than by inertness. The description
+  is now main's text minus the one false sentence, 272 bytes, and the record
+  lives here and in the test. `$comment` was tried and correctly refused by
+  `test_every_tool_schema_stays_inside_the_supported_subset`.
+- **The disclosure flag's TYPE was unpinned** — `boolean` → `string` with
+  `default: "no"` shipped green. Pinned.
+
+**Owed, not fixed here**, each named by a seat with a measurement: the denylist
+in `BYPASS_SHAPED` is defeated by a differently-named field, a nested property,
+or the output schema (three forms measured reaching `tools.contracts.json`
+green); the schema *rule* is path-shaped while the *check* follows the registry
+pointer, so a schema moved out of `tools/<id>/` leaves the rule; a duplicate
+registry id is a working forgery that `policy ⊆ registry` would not catch;
+`semver` in the registry is decorative; and `cedar.py` is in no instrument
+digest while ADV-008's `pass_when` turns on what it emits.
 
 ## Pre-registered predictions
 

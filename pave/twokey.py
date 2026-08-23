@@ -496,12 +496,23 @@ RULES: tuple[Rule, ...] = (
         # eight lines of `pytest_runtest_makereport` hookwrapper report the EXACT
         # honest count of 1795 with a G1 pin genuinely failing.
         #
+        # **Five entry points, not two.** The first version named
+        # `tests/conftest.py` and `pyproject.toml` -- the two the plant used --
+        # and the Platform seat measured three equivalents at zero keys: a
+        # repo-ROOT `conftest.py` (an ancestor of both testpaths, so its
+        # hookwrapper applies to every item, 1814 passed with a G1 pin red), a
+        # new `pave/tests/conftest.py` (`collect_ignore` dropping the two-key
+        # mechanism's own test, 1743 passed), and a root `pytest.ini` (higher
+        # precedence than `[tool.pytest.ini_options]`, 1734 passed). `tox.ini`
+        # and `setup.cfg` are the same precedence chain and are included rather
+        # than measured.
+        #
         # **Honest limit (ADR-043 decision 3):** a key makes that COLLECTABLE, not
         # red. A harness that rewrites its own reports can report anything and no
         # count sees it. Stated here and in the ADR rather than left to be
         # discovered a second time.
         "the test harness — a file that can decide what the suite reports",
-        re.compile(r"^(tests/conftest\.py|pyproject\.toml)$"),
+        re.compile(r"^((.*/)?conftest\.py|pyproject\.toml|pytest\.ini|tox\.ini|setup\.cfg)$"),
         ("platform-eng", "security"),
     ),
 )
