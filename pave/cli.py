@@ -583,7 +583,13 @@ def adversarial_backfill_asked(argv=()):
                 _emit(f"  {tag}: {rel} is unreadable ({exc}); nothing written for it.")
                 continue
             have = doc.get(adversarial_mod.ASKED_KEY)
-            if have == recorded:
+            # **UNION, never replace.** The anchor's rule is `recorded <= asked`,
+            # a superset — so removing an id from a manifest is never legitimate,
+            # and a tool that does it against a trimmed entry hands the operator
+            # half of a scope attack with a runbook attached. Pointed at a
+            # tampered entry this now widens or does nothing, never shrinks.
+            target = sorted(set(recorded) | set(have or []))
+            if have == target:
                 _emit(f"  {tag}: {rel} already records asking {len(recorded)} probe(s).")
                 continue
             _emit(f"  {tag}: {rel}")
@@ -592,10 +598,10 @@ def adversarial_backfill_asked(argv=()):
             changed += 1
             if write:
                 path.write_text(
-                    json.dumps({adversarial_mod.ASKED_KEY: recorded,
+                    json.dumps({adversarial_mod.ASKED_KEY: target,
                                 **{k: v for k, v in doc.items()
                                    if k != adversarial_mod.ASKED_KEY}},
-                               indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                               indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     if not changed:
         _emit(f"[pave backfill-asked] {service}: every arm already records what it asked.")
         return 0

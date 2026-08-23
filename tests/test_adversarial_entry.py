@@ -45,9 +45,15 @@ def _registry():
 
 def _current_instrument_name() -> str:
     """The most recently registered instrument — the one that must still describe
-    this tree. Ordered by `registered` then by insertion, so two rows registered
-    on one day resolve to the later-written one rather than to whichever the dict
-    happened to yield."""
+    this tree.
+
+    **The file's own order, not the `registered` date.** This ordered by date
+    with insertion only as a tie-break, and `m04-D` was then registered carrying
+    `2026-08-23` against a `2026-08-22` commit. The effect was not cosmetic: a
+    row dated in the future resolves as current, so the instrument that actually
+    describes the tree stops being the one required to describe it — the check
+    exempts exactly the row it exists to check. The registry is append-only
+    (ADR-034), so its order is a fact and a typed date is not."""
     rows = list(_registry()["instruments"].items())
     return rows[-1][0]
 

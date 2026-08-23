@@ -144,7 +144,11 @@ RULES: tuple[Rule, ...] = (
         # digests -- only `capture_sha256` moved, and the same PR re-registers
         # that.
         "the producer of an arm's observations and its question set",
-        re.compile(r"^services/[^/]+/run_probes_via_gateway\.py$"),
+        # Both producers, and the twin is here because it was missed once. The
+        # ungoverned baseline writes m00b's evidence -- the control every later
+        # delta is measured against -- and it was in no digest and on no rule
+        # while its governed sibling was in both.
+        re.compile(r"^services/[^/]+/run_probes(_via_gateway)?\.py$"),
         ("security", "platform-eng"),
     ),
     Rule(
@@ -183,8 +187,12 @@ RULES: tuple[Rule, ...] = (
         #
         # Scoped to the two files that hold instrument and scope protections.
         # `tests/` at large is deliberately NOT here, for `pave/cli.py`'s reason.
+        # `test_adversarial_lane.py` holds `G4_CASE_FLOOR`'s ratchet -- which
+        # `floors.py`'s own docstring calls the half that does the work -- and
+        # `test_adversarial_entry.py` holds the instrument-order fix. Both were
+        # unguarded while `pave/floors.py`, which they protect, takes three keys.
         "the tests that execute the instrument and arm-scoping protections",
-        re.compile(r"^tests/(test_arm_scoping|test_instrument_stability)\.py$"),
+        re.compile(r"^tests/(test_arm_scoping|test_instrument_stability|test_adversarial_lane|test_adversarial_entry)\.py$"),
         # Platform Engineering joins because `PIN_FLOOR` lives here and duplicates
         # comparator values on purpose -- the lane that reads those pins is theirs,
         # and the duplication is what makes moving a pinned number take a code diff

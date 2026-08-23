@@ -516,3 +516,69 @@ scored. They establish that the wording is blockable, that its block is
 attributable to the intended control, and that its legitimate clause is not
 refused. **`ADV-011` remains scored by nothing until an arm is recorded**, and
 every sentence above must be read with that one.
+
+---
+
+## Round 3 — the seats attacked the implementation, and found six more
+
+The first two rounds reviewed a document. This one had code. All four seats
+planted against the tree with `m04-E` re-registered in the same commit, which is
+prediction 9's stated condition.
+
+**The mechanism itself held.** No seat broke the `asked` rule, the manifest
+contradiction clauses, the malformed-shape handling, or the history anchor on the
+arms it covered. Every finding below is in what surrounds it.
+
+| # | found by | what it was |
+|---|---|---|
+| **B-0** | Platform Eng, AI Quality, Security — independently | The history digest pin hashed **raw bytes** and was captured from a mixed working tree: one entry LF, two CRLF, against three pure-LF blobs. **No uniform checkout could satisfy all three**, so CI would have failed on an honest tree and accused the PR of rewriting append-only history — from the one check guarding the anchor everything rests on. Worse, its obvious remedy ("re-pin the hash") *is* a step of the attack it exists to stop |
+| **Y2** | AI Quality | A G4 case can be **repurposed in place**. Both floors count cases; neither counts distinctions. `G4-028` was the sole witness of ADR-040's subset rule, so replacing its body and flipping subset to intersection shipped shape B back at **9 of 11** with the lane PASS and the suite green |
+| **P7 / P13** | Security | `ARMS` and `HISTORY_DIGESTS` were three-entry literals, so every protection covered exactly the three arms that **cannot** score `ADV-011` and not the one that can. Retiring it from a new arm cost four files and fired nothing; an arm could also be pinned and scored having published **no entry at all** |
+| **F2** | Service Team | **The cap moved from ten to eleven and was recorded in a test that forbids the fix.** An unenumerated arm owed *today's* corpus, so landing `m05` and adding a twelfth probe put `m05` permanently beneath its floor with no legal remedy — this ADR's own opening defect, one level up |
+| **P5** | Security | The README cross-check was a substring search over 270 lines, satisfied by an HTML comment while the visible row kept claiming the old number. `m01` and `m04` both publish `**7/10**`, so one occurrence satisfied both arms |
+| **B-1/B-2/B-3** | Platform Eng | The lane's manifest union guarded the **container** type and not the **elements**, so four shapes raised `TypeError` and left no verdict file; `sorted(set(...))` deduplicated, making the duplicate rule unreachable from the gate. And the remediation router matched **prose**: one clause was dead, and the arm-predates-the-field population — this ADR's problem statement — got the sentence the ADR exists to delete |
+
+All six are fixed and each was replayed against the fix. Two structural lessons
+are recorded in the decisions above rather than as patches:
+
+- **Pin what a case WITNESSES, not how many cases there are.** Counting is blind
+  to substitution. Five one-line weakenings are now applied to a copy of the
+  scorer and the set of cases catching each is an exact pin.
+- **Every protection must be reachable by a test at the level the gate uses.**
+  The producer check was a substring match that two real truncations walked past;
+  the malformed-shape tests called `asked_from` directly and could not see the
+  lane raising before it. Both now execute.
+
+### Predictions, as-run
+
+**9 is FALSIFIED for a third time** and is recorded that way. Six survivals
+across the round, each with the instrument re-registered. It should not be
+carried into a PR body as a claim; what it names is a discipline, not a result.
+
+**1 is narrowed once more.** `G4-033` cannot discriminate by construction — it
+asserts that a deletion *stays* INFRA, which is also `main`'s behaviour. The
+prediction covers the cases that assert a **changed** verdict: `G4-032` (INFRA →
+OUT_OF_SCOPE) and `G4-034` (PASS → INFRA, a real false pass on `main`).
+
+**6 held after a pairwise audit**, which found the floors removable on fewer keys
+than they protect. Two seats were added on the merits.
+
+**7 and 8 confirmed by measurement** and 8 now has a reader — it had none, which
+made it half its own falsifier.
+
+### What is NOT closed, and is not claimed to be
+
+- **The stated residual stands.** A determined edit across the evidence, the
+  entry, the digest pin, the comparator, the floors, the tests and `README.md` —
+  seven files, seat union exactly this PR's own — is not preventable in a
+  repository. Security measured it at seven files against round 2's five. It is
+  more expensive, not impossible.
+- **`evals/history/` is still one key** while carrying the anchor. Decision 3
+  names it with an owner; it is its own ADR.
+- **A G4 case can be retired in place** if its semantic has sibling witnesses
+  (Security's P10). That is a loss of redundancy rather than of coverage, and the
+  witness pin above is what makes the *last* witness leaving visible.
+- **The L5 lane reports PASS on the knob attack**; the contract lane blocks. See
+  the section above — that split is deliberate and must not be read as
+  redundancy.
+
