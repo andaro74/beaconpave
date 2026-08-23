@@ -30,11 +30,13 @@ snapshot-check:
 	cd platform/infra && npx cdk synth --quiet
 	python -m pave.cli infra snapshot --check
 
+OBSERVATIONS ?= milestones/M04/probes-run.json
+
 evals:
 	python -m evals.run_evals --answers $(ANSWERS) --record
 
 adversarial:
-	python evals/run_adversarial.py --record
+	python -m evals.run_adversarial --observations $(OBSERVATIONS) --record
 
 drill:
 	python -m pave.cli drill --event jefferson-derby --tier 3

@@ -632,12 +632,12 @@ plausible name for the new module resolved to `[]`. So, the list:
 |---|---|---|---|
 | `evals/history/*` incl. `schema.json`, `pins.json` | the rows, the contract, the pins | aiq · sec · plat | decision 1 |
 | `evals/run_evals.py`, `evals/run_adversarial.py` | write rows and pins | aiq · sec · plat | decision 1 |
-| `pave/history.py` (**new**) | every check this ADR adds, as functions; `pave gate history` runs them | aiq · sec · plat | a new rule, because the deciding instance cannot be a pytest (decision 3) and a module on no rule is draft 2's prediction 7 failing a fourth time |
+| `pave/history.py` (**new**) | every check this ADR adds, as functions, plus `LEGACY_ENTRIES`, `EVIDENCE_REVISIONS` and the README mapping; `pave gate history` runs them | aiq · sec · plat | a new rule, because the deciding instance cannot be a pytest (decision 3) and a module on no rule is draft 2's prediction 7 failing a fourth time |
 | `tests/test_history_append_only.py` (**new**) | the local mirror, the violating-tree tests, the seat-set test, the `--no-renames` pin | aiq · sec · plat | added to the protection-test regex, which already carries these three |
 | `tests/test_adversarial_entry.py` | `test_the_committed_entries_still_validate` — the schema ratchet | aiq · sec · plat | already on the regex |
 | `milestones/*/goldens-run.json`, `milestones/*/runs/*.json` | goldens evidence | aiq · plat | decision 5 — was on no rule |
 | `tests/conftest.py`, `pyproject.toml`, `Makefile` | the harness the mirror runs under | none — **stated** | they can deselect or re-base the mirror; they cannot touch the workflow step that decides, which is why that step exists |
-| `tests/test_arm_scoping.py` | `HISTORY_DIGESTS`, `ARMS`, `EVIDENCE_REVISIONS` | aiq · sec · plat | already |
+| `tests/test_arm_scoping.py` | `HISTORY_DIGESTS`, `ARMS` | aiq · sec · plat | already; `HISTORY_DIGESTS` must agree with `pins.json` |
 | `pave/floors.py` | the denominator floor and its read | plat · aiq · sec | already |
 | `quality/adversarial/instruments.json` | `corpus_size` | sec + ADR | already |
 | `pave/twokey.py`, `.github/workflows/two-key.yml` | the rules and the collector | aiq · plat | already — and a protection on the *mechanism* rather than on a number; decision 4's `--no-renames` lands here |

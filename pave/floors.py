@@ -144,6 +144,16 @@ def asked_floor(tag: str, corpus_size: int, registered: int | None = None) -> in
     recorded in a test that forbids the fix.** Found by the Service Team seat
     walking a second service through the mechanism.
 
+    **ADR-041's version read the entry's own `scores.total` here** and its
+    docstring said that was "not a value the same PR can invent". It was: the
+    entry is written by the PR that records the arm, and an arm asking three of
+    eleven set its own floor at three (ADR-042). The instrument name the entry
+    declares is the corpus snapshot it ran under -- that is why `probes_sha256`
+    is in the registry -- so the floor is the registry's `corpus_size` for that
+    name, the entry's `total` must equal it, and `pave/history.py` verifies the
+    registered size against the committed revision of the corpus at that digest
+    and against the corpus at the entry's own sha.
+
     Fail-closed still: with no entry to read, an arm owes the whole corpus. A
     truncated run is refused exactly as before, because `tally` counts the whole
     corpus rather than what came back, so a short run's own entry records the

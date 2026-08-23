@@ -18,13 +18,42 @@ actually built.
 ## 2. Run and record the evals
 
 ```bash
-make check                                  # hermetic, must be green
-python evals/run_evals.py --record          # appends to evals/history/
-python evals/run_adversarial.py --record    # if this milestone touches L5
+make check                                                        # hermetic, must be green
+python -m evals.run_evals --answers milestones/MNN/goldens-run.json \
+    --record --tag mNN --target <service>                         # writes the entry AND its pin
+python -m evals.run_adversarial --observations milestones/MNN/probes-run.json \
+    --record --tag mNN --target <service> --instrument-name <registered> \
+    --guardrail-version <v> --guardrail-policy-sha256 <sha>       # if this milestone touches L5
+make check                                                        # green again: every entry on disk is pinned
 ```
 
-History is append-only, keyed by git SHA + suite. Never edit a past entry; a
-wrong entry gets a superseding one.
+(The old form `python evals/run_evals.py --record` did not run — no module
+`evals` from that invocation, and `--answers` is required. ADR-042.)
+
+Each `--record` appends one entry and writes its normalised digest to
+`evals/history/pins.json`, and prints that digest. The pin set must equal the
+set of entries on disk, so `make check` is red between a record and its pin only
+if you wrote an entry by hand — don't. Every new entry must name its committed
+evidence (`samples_from`); the recorder does that for you.
+
+History is append-only, keyed by git SHA + suite. **Never edit a committed
+entry.** A wrong row gets a new one: `--supersedes <entry filename>` on either
+recorder (ADR-027's verb, writable since ADR-042), which lands as
+`<stem>-correctionN-<suite>.json` with the same sha. An entry *this PR created*
+may be fixed in place — it is not on `main` yet; the append-only check diffs
+against the merge-base. A correction is a record for readers; the gate still
+reads the original, and an arm is re-pointed only by a three-key `ARMS` edit.
+
+**Seats.** `evals/history/` and both recorders take three keys. The close PR
+body needs `Two-Key-Disposition:` lines for `ai-quality`, `security` and
+`platform-eng` plus one `Two-Key-Rationale:` that says what was measured and
+that no threshold, baseline or probe moved. Adversarial closes already needed
+all three (ADR-041); goldens-only closes now do too. `pave/twokey.py` is the
+enforced list.
+
+An adversarial arm's `instrument.name` must be registered with a `corpus_size`
+(Security, with an ADR), and the entry's `scores.total` must equal it — the
+lane fails otherwise, by design (ADR-042 decision 6).
 
 **Honesty check:** compare against `m00b`. If a number improved, can you name the
 mechanism? If a number improved and you cannot explain why, that is a finding —
