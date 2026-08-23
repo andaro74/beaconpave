@@ -380,3 +380,26 @@ def test_a_gated_tool_keeps_the_fields_its_approver_reads():
             "is MER-AI-0001's disclosure flag and the approver reads it. Owning seats: "
             "tool-owner, legal-sp."
         )
+
+
+def test_the_bypass_vocabulary_and_the_gated_field_map_are_not_empty():
+    """**The audit found both silent.** Emptying `BYPASS_SHAPED` or
+    `GATED_REQUIRED_PROPERTIES` left 1812 passed, because each check iterates a
+    collection and a vacuous loop asserts nothing -- `pave/floors.py`'s "a floor
+    is only half a floor without its ratchet" in a new place.
+
+    `GATED_REQUIRED_PROPERTIES` is ratcheted against the registry rather than
+    pinned as a literal, so promoting a tool to a gated consequence class also
+    requires declaring what its approver reads."""
+    assert "skip_approval" in BYPASS_SHAPED, (
+        "BYPASS_SHAPED no longer names the field measured to reach the deployed "
+        "contract set. Emptying it makes the check above vacuous."
+    )
+    gated = {t["id"] for t in REGISTRY if t["consequence"] in cedar.GATED_CONSEQUENCES}
+    assert gated, "no gated tool in the registry — GATED_CONSEQUENCES may have been emptied"
+    missing = sorted(gated - set(GATED_REQUIRED_PROPERTIES))
+    assert not missing, (
+        f"{missing} are gated by consequence class but declare no required properties. "
+        "A gated tool's approver reads specific fields; say which, or the check that "
+        "they survive is vacuous."
+    )

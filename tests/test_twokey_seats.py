@@ -93,6 +93,23 @@ def test_every_seat_string_is_a_seat_roles_md_lists():
     )
 
 
+def test_this_file_is_itself_on_a_rule_that_carries_securitys_key():
+    """**The audit found this one silent.** Dropping `test_twokey_seats` from the
+    enumerated protection-test regex left 1812 passed: the file that pins
+    Security's key was removable without Security's key.
+
+    ADR-042 closed the same shape by having `HISTORY_DIGESTS` assert its own
+    relationship to `pins.json`. Self-referential and correct -- a protection
+    test whose own rule can be deleted quietly protects nothing."""
+    seats = _seats_for("tests/test_twokey_seats.py")
+    assert "security" in seats and "platform-eng" in seats, (
+        f"tests/test_twokey_seats.py is on rule(s) carrying {sorted(seats)}. It pins the "
+        "seat sets of rules that name security (G1's allowlist, the Cedar generator); "
+        "removing it from the protection-test regex would make those pins deletable "
+        "without the seat they defend."
+    )
+
+
 # --- the plants, each measured green and keyless on 07e8cd1 --------------------
 
 def _blocked_for(files: list, expected: set) -> None:
