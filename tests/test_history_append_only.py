@@ -60,12 +60,20 @@ def _git(*args, cwd):
     return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True)
 
 
-def _repo(tmp_path: pathlib.Path) -> pathlib.Path:
+def _repo(tmp_path: pathlib.Path, keep: set | None = None) -> pathlib.Path:
     """A throwaway repository holding a copy of `evals/history/`, with one commit
-    on `main`. Tests branch from it and plant."""
+    on `main`. Tests branch from it and plant.
+
+    `keep` narrows it to named entries: the committed shas do not exist in a
+    throwaway repo, so a test about reachability or about a corpus at a sha must
+    hold only the entry it is about."""
     repo = tmp_path / "repo"
     (repo / "evals").mkdir(parents=True)
     shutil.copytree(HISTORY, repo / "evals" / "history")
+    if keep is not None:
+        for child in (repo / "evals" / "history").glob("*.json"):
+            if child.name not in keep | {"schema.json", "pins.json"}:
+                child.unlink()
     _git("init", "-q", "-b", "main", cwd=repo)
     _git("config", "user.email", "t@example.invalid", cwd=repo)
     _git("config", "user.name", "t", cwd=repo)
@@ -689,6 +697,140 @@ def test_a_published_number_with_no_entry_behind_it_is_red(tmp_path):
     assert any("m05 row publishes a goldens number" in p for p in check_readme(readme=moved))
 
 
+def test_an_entry_whose_sha_is_on_no_ref_and_under_no_tag_is_red(tmp_path):
+    """`check_reachable` was deletable in silence: `return []` left 1784 green.
+    Its own subject -- `fb52a8e`, reachable only through a branch that
+    squash-merged and would be deleted as routine -- is why it exists."""
+    repo = _repo(tmp_path, keep={"m01-goldens.json"})
+    entry = json.loads((repo / "evals" / "history" / "m01-goldens.json").read_text(encoding="utf-8"))
+    entry["sha"] = "0" * 40
+    (repo / "evals" / "history" / "m01-goldens.json").write_text(json.dumps(entry), encoding="utf-8")
+    problems = history.check_reachable(repo / "evals" / "history", cwd=repo)
+    assert any("on no branch that merges and under no tag" in p for p in problems), problems
+
+
+def test_a_sha_reachable_only_from_head_is_not_reachable(tmp_path):
+    """`HEAD` used to count. In CI that is the PR's own merge commit, so a commit
+    made inside the PR was "reachable" -- and the PR's branch is exactly the one
+    that may not survive as that sha."""
+    repo = _repo(tmp_path, keep={"m01-goldens.json"})
+    (repo / "note.txt").write_text("x", encoding="utf-8")
+    _git("add", "-A", cwd=repo)
+    _git("commit", "-q", "-m", "inside the pr", cwd=repo)
+    head = _git("rev-parse", "HEAD", cwd=repo).stdout.strip()
+    entry = json.loads((repo / "evals" / "history" / "m01-goldens.json").read_text(encoding="utf-8"))
+    entry["sha"] = head
+    (repo / "evals" / "history" / "m01-goldens.json").write_text(json.dumps(entry), encoding="utf-8")
+    problems = history.check_reachable(repo / "evals" / "history", cwd=repo)
+    assert any("m01-goldens.json" in p for p in problems), problems
+    _git("tag", "evidence-test", head, cwd=repo)
+    assert history.check_reachable(repo / "evals" / "history", cwd=repo) == [], (
+        "a tagged commit is reachable; only an untagged PR-local one is not")
+
+
+def test_an_entry_tracked_as_a_symlink_in_the_index_is_red(tmp_path):
+    """`check_modes` had no reference outside `run_all` -- nothing asserted it on
+    an honest tree, let alone a violating one. A 120000 blob resolves on a Linux
+    runner and is pinned as its target."""
+    repo = _repo(tmp_path)
+    blob = subprocess.run(["git", "hash-object", "-w", "--stdin"], input="m02-tools-goldens.json",
+                          cwd=repo, capture_output=True, text=True, check=True).stdout.strip()
+    _git("update-index", "--cacheinfo", f"120000,{blob},evals/history/m01-goldens.json", cwd=repo)
+    problems = history.check_modes(cwd=repo)
+    assert any("mode 120000" in p for p in problems), problems
+
+
+def test_a_goldens_entry_whose_case_ids_disagree_with_its_own_commit_is_red(tmp_path):
+    """`check_case_ids` was deletable in silence too."""
+    repo = _repo(tmp_path, keep={"m01-goldens.json"})
+    cases = repo / "services" / "highlights-agent" / "evals" / "golden"
+    cases.mkdir(parents=True)
+    (cases / "cases.yaml").write_text("- id: only-case\n", encoding="utf-8")
+    _git("add", "-A", cwd=repo)
+    _git("commit", "-q", "-m", "a golden file", cwd=repo)
+    sha = _git("rev-parse", "HEAD", cwd=repo).stdout.strip()
+    entry = json.loads((repo / "evals" / "history" / "m01-goldens.json").read_text(encoding="utf-8"))
+    entry["sha"] = sha
+    (repo / "evals" / "history" / "m01-goldens.json").write_text(json.dumps(entry), encoding="utf-8")
+    problems = check_case_ids(repo / "evals" / "history", cwd=repo)
+    assert any("apart from the golden file" in p for p in problems), problems
+
+
+def test_the_asked_floor_literals_are_ratcheted_to_what_each_arm_recorded():
+    """`ASKED_FLOOR` set to all zeros left 1784 green, in the file whose own
+    docstring says "a floor is only half a floor without its ratchet". Each
+    literal is what that arm's own published entry scored: an arm cannot be
+    given an allowance below the run it recorded."""
+    from pave.floors import ASKED_FLOOR
+    for tag, floor in ASKED_FLOOR.items():
+        entry = json.loads((HISTORY / f"{tag}-adversarial.json").read_text(encoding="utf-8"))
+        scored = sum(1 for c in entry["cases"] if c["result"] != "OUT_OF_SCOPE")
+        assert floor == scored, (
+            f"{tag}'s floor is {floor} and its published entry scored {scored}. A floor beneath "
+            "the run it describes is an allowance for probes to stop counting.")
+
+
+def test_a_new_arm_may_not_name_a_superseded_instrument(tmp_path):
+    """Security, against the code: `corpus_size` on the four stale registry rows
+    made each a valid floor-setting denominator. A fabricated `m05` naming
+    `m04-A` claimed 10/10, was never asked ADV-011 -- the newest probe -- and
+    every check was clean. The recorder refuses this; a hand-written row never
+    goes through the recorder."""
+    repo = _repo(tmp_path, keep=set())
+    _git("checkout", "-q", "main", cwd=repo)   # the corpus belongs to the BASE
+    shutil.copytree(ROOT / "quality", repo / "quality")
+    _git("add", "-A", cwd=repo)
+    _git("commit", "-q", "-m", "corpus", cwd=repo)
+    _git("checkout", "-q", "-b", "pr2", cwd=repo)
+    registry = json.loads((repo / "quality" / "adversarial" / "instruments.json").read_text(encoding="utf-8"))
+    stale = registry["instruments"]["m04-A"]
+    row = json.loads((HISTORY / "m04-adversarial.json").read_text(encoding="utf-8"))
+    row["tag"] = "m05"
+    # A sha that exists in this throwaway repo, so the corpus-at-sha tie can run
+    # rather than refusing before the check under test is reached.
+    row["sha"] = _git("rev-parse", "main", cwd=repo).stdout.strip()
+    row["instrument"] = {**row["instrument"], "name": "m04-A", **stale["digests"]}
+    (repo / "evals" / "history" / "m05-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
+    _git("add", "-A", cwd=repo)
+    _git("commit", "-q", "-m", "a new arm on a superseded instrument", cwd=repo)
+    problems = check_registry(repo / "evals" / "history", cwd=repo, base="main")
+    assert any("is a new arm naming instrument" in p for p in problems), problems
+    # and the committed arm, which legitimately names m04-A, stays green
+    assert not any("m04-adversarial.json is a new arm" in p for p in check_registry())
+
+
+def test_one_unreadable_file_does_not_erase_every_other_finding(tmp_path):
+    """Security plant: a fabricated unpinned row plus one file containing
+    `[1,2,3]` reported ONE problem naming the junk, because `_entries` raised
+    out of the first check and the collected problems were discarded."""
+    h = _copy_history(tmp_path)
+    row = json.loads((h / "m01-goldens.json").read_text(encoding="utf-8"))
+    row["scores"]["passed"] = 24
+    (h / "m05-goldens.json").write_text(json.dumps(row), encoding="utf-8")
+    (h / "m06-goldens.json").write_text("[1,2,3]", encoding="utf-8")
+    problems, refusals = history.run_all(None, history=h, cwd=ROOT)
+    assert any("m06-goldens.json is not a JSON object" in p for p in problems), problems
+    assert any("m05-goldens.json is on disk and not in pins.json" in p for p in problems), problems
+    assert len(problems) > 3, problems
+
+
+def test_gate_history_refuses_an_empty_base():
+    """`--base ""` -- what the event expression expands to the day this workflow
+    gains merge_group or push -- fell through to `origin/main` and printed PASS
+    at exit 0."""
+    proc = subprocess.run([sys.executable, "-m", "pave.cli", "gate", "history", "--base", ""],
+                          cwd=ROOT, capture_output=True, text=True)
+    assert proc.returncode == 1, proc.stdout
+    assert "was given no value" in proc.stdout
+
+
+def test_the_schema_is_byte_pinned():
+    """The ratchet refuses a requirement no entry meets and cannot see the schema
+    LOOSENED -- a `pattern` dropped from `sha`, the instrument sub-schema removed."""
+    assert entry_digest(
+        (HISTORY / "schema.json").read_text(encoding="utf-8")) == history.SCHEMA_DIGEST
+
+
 # --- decision 7: a second row must say why -----------------------------------
 
 def test_a_second_row_under_one_sha_that_declares_nothing_is_refused(tmp_path):
@@ -817,7 +959,10 @@ def test_the_schema_may_not_gain_a_requirement_a_committed_entry_fails(tmp_path)
     schema = json.loads((HISTORY / "schema.json").read_text(encoding="utf-8"))
     schema["allOf"].append({"if": {"required": ["supersedes"]}, "then": {"required": ["samples_from"]}})
     (h / "schema.json").write_text(json.dumps(schema), encoding="utf-8")
-    assert check_schema(h) == []
+    # The byte pin fires (the file changed, deliberately, in this copy); what must
+    # NOT fire is a committed entry ceasing to validate.
+    assert not any("no longer validates" in p for p in check_schema(h)), check_schema(h)
+    assert any("digests to" in p for p in check_schema(h))
 
 
 # --- decision 8: every protection on the keys of what it protects -------------

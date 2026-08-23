@@ -107,6 +107,14 @@ EVIDENCE_REVISIONS: dict[str, list[tuple[str, str, str]]] = {
     ],
 }
 
+#: `schema.json`'s own digest. `check_schema` is a one-way ratchet -- it refuses a
+#: requirement no committed entry meets and says nothing about the schema being
+#: LOOSENED (a `pattern` dropped from `sha`, the `instrument` sub-schema removed).
+#: The file is three-key, so this is a residual rather than a hole; pinning it
+#: costs one line and makes a loosening a diff in a file with the same keys.
+#: Found by the Security seat against the code.
+SCHEMA_DIGEST = "99d4d72b65abfb56cfb3fecfb289975224e02b18a8e738ee2b9a560ef9e38683"
+
 #: README progression rows tied to a goldens entry, by tag (ADR-042 decision 2).
 #: Pinned per tag because `m00b` has two goldens entries and `m02` two arms, so
 #: "some entry with this tag matches" lets a row move to the other one.
@@ -285,6 +293,28 @@ def _load(path: pathlib.Path) -> dict:
     return doc
 
 
+def check_parseable(history: pathlib.Path = HISTORY) -> list[str]:
+    """One unreadable file must not erase every other finding.
+
+    Measured by the Security seat: a tree with a fabricated unpinned row AND one
+    file containing `[1,2,3]` reported **one** problem naming the junk file,
+    because `_entries` raised out of the first check and `gate_history` replaced
+    the thirteen problems already collected with the exception. The blocked
+    merge was still recorded, so the gate did not false-pass -- but the audit
+    record named the junk and not the forgery, which buys a review cycle of
+    misdirection. Unparseable files are reported here, by name, and every other
+    check runs over the rest."""
+    problems = []
+    for path in enumerate_entries(history)[0]:
+        try:
+            _load(path)
+        except Refusal as exc:
+            problems.append(str(exc))
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+            problems.append(f"{path.name} cannot be read as an entry: {type(exc).__name__}: {exc}")
+    return problems
+
+
 def load_pins(history: pathlib.Path = HISTORY) -> dict[str, str]:
     path = history / PINS_NAME
     if not path.is_file():
@@ -343,8 +373,16 @@ def check_pins(history: pathlib.Path = HISTORY) -> list[str]:
 # --- what a row may claim -------------------------------------------------------
 
 def _entries(history: pathlib.Path) -> dict[str, dict]:
+    """The parseable entries. Unreadable ones are `check_parseable`'s problem --
+    skipped here so that one junk file cannot erase every other check's findings."""
     entries, _ = enumerate_entries(history)
-    return {p.name: _load(p) for p in entries}
+    out = {}
+    for p in entries:
+        try:
+            out[p.name] = _load(p)
+        except (Refusal, json.JSONDecodeError, UnicodeDecodeError, OSError):
+            continue
+    return out
 
 
 def derive_scores(entry: dict) -> dict:
@@ -603,9 +641,13 @@ def check_registry(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT,
     # in the next commit, and registered the throwaway blob with corpus_size 3.
     # A PR that grows the corpus and registers the new instrument in one go
     # still resolves, through HEAD; a shrink that never reaches the base does not.
-    listing = _git("rev-list", base or "HEAD", "--objects", "--", PROBES, cwd=cwd)
+    # No silent `HEAD` fallback: `rev-list HEAD` sees the PR's own intermediate
+    # commits, which is the throwaway-blob attack the base argument closes. The
+    # mirror resolves a base exactly as the gate does, or refuses.
+    base = base if base is not None else resolve_base(None, cwd=cwd)
+    listing = _git("rev-list", base, "--objects", "--", PROBES, cwd=cwd)
     if listing.returncode != 0:
-        raise Refusal(f"`git rev-list {base or 'HEAD'} --objects` failed; the corpus's committed "
+        raise Refusal(f"`git rev-list {base} --objects` failed; the corpus's committed "
                       "revisions are unreachable.")
     sizes: dict[str, int] = {}
     for line in _out(listing).splitlines():
@@ -630,9 +672,35 @@ def check_registry(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT,
         if size != sizes[digest]:
             problems.append(f"instrument {name}: corpus_size is {size!r}; the corpus at its digest has "
                             f"{sizes[digest]} probes.")
+    live = cwd / PROBES
+    live_digest = corpus_digest(live.read_text(encoding="utf-8")) if live.is_file() else None
     for name, entry in _entries(history).items():
         if entry.get("suite") != "adversarial":
             continue
+        # **A new arm may not name a superseded instrument (Security, against the
+        # code).** Adding `corpus_size` to the four stale rows made each one a
+        # valid, floor-setting denominator: a fabricated `m05` naming `m04-A`
+        # claimed 10/10 with a floor of 10 and was never asked ADV-011 -- the
+        # newest probe -- with every check here clean. `run_adversarial`'s
+        # `check_instrument_name` refuses that at RECORD time, and a hand-written
+        # row never goes through the recorder, which is decision 3's own thesis
+        # about where a deciding check may live.
+        #
+        # Scoped to entries this change ADDS: `m04-adversarial.json` names
+        # `m04-A` and is committed, so a blanket rule would turn the tree red.
+        new_here = base is not None and _git("cat-file", "-e",
+                                             f"{base}:evals/history/{name}", cwd=cwd).returncode != 0
+        if new_here and not entry.get("supersedes") and live_digest:
+            named = ((registry.get((entry.get("instrument") or {}).get("name")) or {})
+                     .get("digests") or {}).get("probes_sha256")
+            if named != live_digest:
+                problems.append(
+                    f"{name} is a new arm naming instrument "
+                    f"{(entry.get('instrument') or {}).get('name')!r}, whose corpus is not the "
+                    "corpus on this tree. An arm recorded today is asked every probe that exists "
+                    "today: naming a superseded instrument is how a run opts out of the probes "
+                    "added since, and sets its own floor while doing it. Register the instrument "
+                    "that reads this tree (Security, with an ADR) and re-record.")
         inst = entry.get("instrument")
         if not inst:
             if name not in LEGACY_ENTRIES:
@@ -667,11 +735,18 @@ def check_registry(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT,
 
 
 def check_schema(history: pathlib.Path = HISTORY) -> list[str]:
-    """Decision 7's ratchet: top-level `required` is exactly the five, and every
-    entry on disk validates against the schema as it stands."""
+    """Decision 7's ratchet: top-level `required` is exactly the five, the schema
+    is byte-pinned, and every entry on disk validates against it as it stands."""
     import jsonschema
-    schema = _load(history / SCHEMA_NAME)
+    schema_path = history / SCHEMA_NAME
+    schema = _load(schema_path)
     problems = []
+    actual = entry_digest(schema_path.read_text(encoding="utf-8"))
+    if SCHEMA_DIGEST not in ("PLACEHOLDER", actual):
+        problems.append(f"schema.json digests to {actual[:12]}... against a pinned "
+                        f"{SCHEMA_DIGEST[:12]}.... The ratchet refuses a requirement no committed "
+                        "entry meets and cannot see the schema LOOSENED; the pin can. Re-pin it "
+                        "deliberately (three keys) if the change is intended.")
     if tuple(schema.get("required", [])) != SCHEMA_REQUIRED:
         problems.append(f"schema.json top-level required is {schema.get('required')}; it is pinned to "
                         f"{list(SCHEMA_REQUIRED)}. A new requirement lives under an if/then that no "
@@ -741,8 +816,15 @@ def check_reachable(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT) -
         if not sha:
             problems.append(f"{name} records no sha.")
             continue
+        # **Not `HEAD`.** In CI that is the PR's own merge commit, so a commit
+        # created inside the PR would count as reachable -- and the PR's branch is
+        # exactly the branch that may not survive as that sha. This repo
+        # squash-merges and deletes branches as routine, which is how `fb52a8e`
+        # was lost. Measured: every committed entry is on `main` or tagged, so
+        # dropping `HEAD` costs nothing and a recording PR tags its evidence
+        # commit, as `evidence-m01` established.
         on_main = any(_git("merge-base", "--is-ancestor", sha, ref, cwd=cwd).returncode == 0
-                      for ref in ("origin/main", "main", "HEAD"))
+                      for ref in ("origin/main", "main"))
         tagged = _out(_git("tag", "--contains", sha, cwd=cwd)).strip()
         if not on_main and not tagged:
             problems.append(f"{name}: its sha {sha[:7]} is on no branch that merges and under no tag. "
@@ -775,14 +857,6 @@ def run_all(base: str | None, history: pathlib.Path = HISTORY,
     reported under its own heading so the remedy is the named one."""
     problems: list[str] = []
     refusals: list[str] = []
-    _, dir_problems = enumerate_entries(history)
-    problems += dir_problems
-    problems += check_pins(history)
-    problems += check_derivable(history)
-    problems += check_second_rows(history)
-    problems += check_evidence(history, cwd)
-    problems += check_schema(history)
-    problems += check_readme(history)
     resolved: list[str] = []
 
     def with_base():
@@ -790,17 +864,39 @@ def run_all(base: str | None, history: pathlib.Path = HISTORY,
             resolved.append(resolve_base(base, cwd=cwd))
         return resolved[0]
 
+    problems += enumerate_entries(history)[1]
+    for check in (lambda: check_parseable(history),
+                  lambda: check_pins(history),
+                  lambda: check_derivable(history),
+                  lambda: check_second_rows(history),
+                  lambda: check_evidence(history, cwd),
+                  lambda: check_schema(history),
+                  lambda: check_readme(history)):
+        problems += _guarded(check, refusals)
+
     for check in (lambda: check_modes(cwd),
                   lambda: check_reachable(history, cwd),
                   lambda: check_case_ids(history, cwd),
                   lambda: check_registry(history, cwd, with_base()),
                   lambda: append_only_violations(with_base(), cwd)):
-        try:
-            problems += check()
-        except Refusal as exc:
-            if str(exc) not in refusals:
-                refusals.append(str(exc))
+        problems += _guarded(check, refusals)
     return problems, refusals
+
+
+def _guarded(check, refusals: list[str]) -> list[str]:
+    """Run one check; a refusal or an exception is recorded and the rest still
+    run. `gate_history` used to replace every problem already collected with the
+    first exception's message."""
+    try:
+        return check()
+    except Refusal as exc:
+        if str(exc) not in refusals:
+            refusals.append(str(exc))
+    except Exception as exc:  # noqa: BLE001 -- an errored step is not a stated block
+        message = f"{type(exc).__name__}: {exc}"
+        if message not in refusals:
+            refusals.append(message)
+    return []
 
 
 def render(problems: Sequence[str], refusals: Sequence[str]) -> str:

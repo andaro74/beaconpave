@@ -528,7 +528,18 @@ by moving the number: a lowered `corpus_size` is red in a three-key file no
 matter who edits the registry, because the blob at that digest has the probes
 it has.
 
-**The residual, stated.** A new row may carry a `sha` older than HEAD, and its
+**A new arm may not name a superseded instrument.** Registering `corpus_size`
+on the four stale rows made each of them a valid, floor-setting denominator:
+the Security seat recorded a fabricated `m05` naming `m04-A`, claiming 10/10
+with a floor of 10, **never asked `ADV-011` — the newest probe — and every check
+here was clean.** `run_adversarial`'s `check_instrument_name` refuses that at
+record time, and a hand-written row never goes through the recorder, which is
+decision 3's own thesis about where a deciding check may live. So a row this
+change *adds*, carrying no `supersedes`, must name the instrument whose
+`probes_sha256` is the corpus on this tree. Scoped to new rows because
+`m04-adversarial.json` legitimately names `m04-A`.
+
+**The residual, stated.** A correction carries a `sha` older than HEAD, and its
 floor is then the corpus *on that day* — bounded to the probes added since,
 legible from `recorded_at` and the registry's `registered` date, and not a
 number the PR chose. An arm that names `m04-A` today and asks ten probes is an
@@ -723,6 +734,56 @@ B-0 false accusation. The `Makefile`'s `adversarial:` target has the same
 defect as the skill (`python evals/run_adversarial.py --record`, no
 `--observations`) and is fixed with it.
 
+## What the code got wrong that the design did not
+
+A fourth seat round planted against the implementation. Two findings were
+blocking and both are the same shape the ADR is about — a protection that is
+stated and absent:
+
+- **Prediction 7 failed a fourth time, inside the module the prediction is
+  about.** `check_reachable`, `check_modes`, `check_case_ids` and
+  `floors.ASKED_FLOOR` could each be deleted or zeroed with **1784 passed** —
+  no failure anywhere. `check_modes` had no reference outside `run_all`; the
+  other two had only honest-tree assertions, which `return []` satisfies; and
+  `ASKED_FLOOR` sits in the file whose own docstring says *"a floor is only half
+  a floor without its ratchet, and the missing half is the one that does the
+  work."* Four violating-tree tests now cover them, and deleting each produces
+  2–3 named failures.
+- **`corpus_size` on four superseded registry rows** gave a new arm a way to opt
+  out of every probe added since, described above.
+
+And four more, each measured:
+
+- **`--base ""` reported PASS at exit 0.** `_flag_values` returns `[""]`,
+  `resolve_base`'s `if explicit:` is false for it, and the check fell through to
+  `PAVE_BASE` and then `origin/main` — with the workflow setting `PAVE_BASE` two
+  steps above. Not live today, because `quality-gate.yml` is `on: pull_request`
+  only and the event expression is always populated; live the day it gains
+  `merge_group`, `push` or `workflow_dispatch`. An empty value is now absence.
+- **One unreadable file erased every other finding.** A tree with a fabricated
+  unpinned row *and* a file containing `[1,2,3]` reported **one** problem naming
+  the junk file: `_entries` raised out of the first check and `gate_history`
+  replaced the thirteen problems already collected with the exception. The
+  merge was still blocked, so the gate did not false-pass — but the audit record
+  named the junk and not the forgery, which buys a review cycle of misdirection.
+  Every check is guarded individually now, and unparseable files are their own
+  named problem.
+- **`check_reachable` accepted `HEAD`**, which in CI is the PR's own merge
+  commit — so a commit created inside the PR counted as reachable, and the PR's
+  branch is exactly the one that may not survive as that sha. That is verbatim
+  the scenario the check was written for. Dropped; every committed entry is on
+  `main` or tagged, so it costs nothing.
+- **The local mirror's `check_registry` was weaker than the gate's**, falling
+  back to `rev-list HEAD` and seeing the PR's own intermediate commits — the
+  throwaway-blob attack the `base` argument closes. The mirror resolves a base
+  or refuses.
+
+One note taken as a decision rather than deferred: **`check_schema` is a
+one-way ratchet.** It refuses a requirement no committed entry meets and cannot
+see the schema *loosened* — a `pattern` dropped from `sha`, the `instrument`
+sub-schema removed. `schema.json` is byte-pinned in `pave/history.py`, the same
+three keys, one line.
+
 ## Pre-registered predictions
 
 | # | prediction | what falsifies it |
@@ -735,6 +796,8 @@ defect as the skill (`python evals/run_adversarial.py --record`, no
 | 5b | the deciding instance is `pave gate history --base <event sha>` in `quality-gate.yml`, whose verdict `gate decide` requires; `tests/conftest.py` setting `GITHUB_BASE_REF` and `pyproject.toml` setting `addopts = "-k …"` change **nothing** about that step's result on a rewritten entry | either changes it — then the harness is still the decider and Security's plant C/F stands |
 | 6 | `two-key.yml`'s diff with `--no-renames` collects the key on `git mv evals/run_adversarial.py evals/record_adversarial.py` + edit, and on a history entry moved out of the directory; without the flag neither is collected; and the test that pins the flag is red when it is removed | the flag does not collect it — then rename detection was not the whole of the bypass |
 | 7 | `pave gate two-key` demands **ai-quality, security AND platform-eng** for every path shape under `evals/history/` and for both recorders, and no path in the directory drops to fewer keys than today; the seat-set test is red when `security` is removed from any three-seat rule | one drops, or the removal is green — then prediction 7 of draft 2 has failed a fourth time |
+| 7b | **every check this ADR adds is deletable only loudly**: neutering any of the ten checks in `pave/history.py`, `registered_denominator`, or any floor literal produces at least one named failure — audited by neutering each in turn | any is silent — **this failed on the first implementation for four of them, and is carried as the discipline prediction 7 has become** |
+| 7c | a new adversarial row naming a **superseded** instrument is refused, and the committed `m04` row naming `m04-A` stays green | the plant is green — then registering `corpus_size` on stale rows handed every new arm an opt-out from the probes added since |
 | 8 | with `corpus_size` registered, an unenumerated arm recorded asking three of eleven **FAILS the lane** with a message naming `beneath its floor of 11`, and replacing the floor read with a literal is red | it passes, or the literal is green — then the denominator is still the PR's number |
 | 8b | every registered `probes_sha256` resolves to a committed revision of `probes.yaml` whose probe count equals its `corpus_size`; a mid-registry row with a fabricated digest and `corpus_size: 3` is **red**; `m04`'s corpus at `729fba0` digests to `m04-A`'s `probes_sha256` | the plant is green — then the registry bounds nothing and Security's key is one line of text |
 | 9 | `samples_from.sha256` matches the committed evidence for every entry that carries it — normalised for new rows; normalised **or its CRLF rendering** for the eight legacy entries by name; via the one `m04` revision row — and a new row without `samples_from`, citing another tag's directory, or sharing an evidence path with a non-correction row is refused | a second revision row or a second tolerance is needed — then the record is a grandfather list with a better name |

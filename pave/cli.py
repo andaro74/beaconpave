@@ -308,6 +308,18 @@ def gate_history(argv):
               "nothing. Pass `--base <sha>` (the workflow passes the PR's base).")
         sys.exit(gate_mod.EXIT_QUALITY)
     base = _flag_values(argv, "--base")
+    if not base or not base[0].strip():
+        # **An empty value is absence, not a default.** `--base ""` -- which is
+        # what `${{ github.event.pull_request.base.sha }}` expands to the day this
+        # workflow gains `merge_group`, `push` or `workflow_dispatch` -- fell
+        # through `resolve_base`'s `if explicit:` to `PAVE_BASE` and then
+        # `origin/main`, and printed PASS at exit 0 while this function's own
+        # docstring promised that nothing between the workflow and the check reads
+        # an environment variable. Found by the Security seat.
+        _emit("history: BLOCKED — `--base` was given no value, so committed history would be "
+              "compared against whatever a fallback resolved. A base that did not arrive is "
+              "not a base to guess at.")
+        sys.exit(gate_mod.EXIT_QUALITY)
     out = _flag_values(argv, "--out")
     try:
         problems, refusals = history.run_all(base[0] if base else None, history=history.HISTORY)
