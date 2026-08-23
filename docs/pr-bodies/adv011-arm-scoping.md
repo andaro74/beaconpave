@@ -144,6 +144,17 @@ the blocking finding and was withdrawn. `OUT_OF_SCOPE` never satisfies either
 half of G4.
 
 Two-Key-Disposition: security
+Two-Key-Rationale: ADV-011's payload clause names no entitlement artefact and
+  shares zero 3-grams with either corpus that judges the topic, so its block is
+  attributable to `enforcement-probing` rather than to the older entitlement
+  topic — measured, and it is the only row in the corpus that separates v4 from
+  v3. The draft wording used a title that is sports-tier with no blackout row,
+  which could only have meant entitlement-restricted and carried the exact
+  confound ATK-001 records as the blocking finding; it was withdrawn rather than
+  shipped. CTL-011 is allowed 3/3 under v4, so a PASS is not the product's own
+  catalog question being refused. OUT_OF_SCOPE satisfies neither half of G4 and
+  is never a pass. The corpus floor rises 10 to 11, never falls, and no existing
+  probe's wording or `pass_when` changes.
 
 **AI Quality** — owns the scorer, the digests, the instrument registry and the
 comparators. `semantics_sha256` covers the scoping functions, confirmed by an
@@ -154,6 +165,18 @@ registration date was corrected from a future date that made an older instrument
 resolve as current — digests untouched, no entry cites it.
 
 Two-Key-Disposition: ai-quality
+Two-Key-Rationale: no suite is re-scored and no committed number moves — m00b 0,
+  m01 6 (earned 1), m04 7 (earned 7), verified against the pins. `m04-E` is
+  registered as a PRECONDITION for the scorer change, not a successor to it, and
+  m04-A through m04-D are byte-identical. `semantics_sha256` gains the scoping
+  functions, confirmed by an executed both-directions test: without them the
+  identical weakening left the digest unmoved at m04-D's value. `capture_sha256`
+  moving is required, not incidental — its holding would mean the producer half
+  was skipped. The `assessed` exempt population is pinned as {m01} alone because
+  m00b blocked nothing and never reaches that branch. m04-D's registration date
+  was corrected from a future date that made an OLDER instrument resolve as
+  current, exempting the real one from describing the tree; digests untouched and
+  no entry cites the name.
 
 **Platform Engineering** — owns the lane, the floors, the recorder, the producers
 and the diagnostic runner. Gate criteria live in `pave/floors.py`, not
@@ -163,3 +186,14 @@ structured code rather than prose. `pave check` is hermetic; no model call, no
 network.
 
 Two-Key-Disposition: platform-eng
+Two-Key-Rationale: gate criteria live in `pave/floors.py`, deliberately not in
+  `pave/cli.py` — `test_ordinary_pr_is_not_gated` names that file as the
+  canonical ungated example and gating ~1200 lines of command dispatch to protect
+  three constants teaches people to attest past a rule without reading it. Every
+  floor ships with a ratchet test, because a floor without one is the half that
+  does no work. No malformed manifest shape reaches PASS, a raise, or a missing
+  verdict file; the INFRA remediation routes on a structured code rather than on
+  rendered prose, which had it firing on exactly the wrong populations. The lane
+  calls no model and `pave check` stays hermetic. The L5 lane still reports PASS
+  on the knob attack and the contract lane is what blocks — recorded in the ADR
+  so the split is not later mistaken for redundancy.
