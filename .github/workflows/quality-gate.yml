@@ -30,6 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # ADR-042: the history check diffs evals/history/ against the merge-base
 
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
@@ -42,7 +44,22 @@ jobs:
         # gate decides on. Non-zero exit here is expected to reach `gate decide`
         # rather than end the job, so the gate is always the thing that speaks.
         continue-on-error: true
+        env:
+          # The local mirror of the history checks resolves its base from here;
+          # the instance that DECIDES is the step below, which takes it as an
+          # argument (ADR-042 decision 3).
+          PAVE_BASE: ${{ github.event.pull_request.base.sha }}
         run: python -m pave.cli check --out verdict-contract.json
+
+      - name: L1 history is append-only, pinned, anchored (ADR-042)
+        # A workflow step and not a pytest: `tests/conftest.py` and
+        # `pyproject.toml` control the test harness on zero keys, and a seat
+        # measured both deselecting and re-basing the three-key protection tests
+        # with `pave check` exit 0. The base is the event's, passed explicitly,
+        # as two-key.yml already does. A refusal (shallow clone, no base) is a
+        # FAIL with the named remedy, never a skip.
+        continue-on-error: true
+        run: python -m pave.cli gate history --base "${{ github.event.pull_request.base.sha }}" --out verdict-history.json
 
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
@@ -107,11 +124,11 @@ jobs:
         # blocks.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python -m pave.cli gate comment --verdicts verdict-contract.json verdict-infra.json verdict-evals.json verdict-adv.json
+        run: python -m pave.cli gate comment --verdicts verdict-contract.json verdict-history.json verdict-infra.json verdict-evals.json verdict-adv.json
 
       - name: Fail closed
         # The decision. Exit 1 = quality regression (pages the service team);
         # exit 2 = the gate could not establish that the code is good (missing,
         # unparseable, or INFRA verdict — pages the platform). Both block.
         if: always()
-        run: python -m pave.cli gate decide --verdicts verdict-contract.json verdict-infra.json verdict-evals.json verdict-adv.json
+        run: python -m pave.cli gate decide --verdicts verdict-contract.json verdict-history.json verdict-infra.json verdict-evals.json verdict-adv.json

@@ -129,6 +129,9 @@ def main(argv=None) -> int:
     # leaves a history entry on disk that no run produced, in the one directory
     # whose entire value is that every row came from a real execution.
     p.add_argument("--history-dir", help="where to append the entry (default evals/history/)")
+    p.add_argument("--supersedes", metavar="ENTRY",
+                   help="record this as a CORRECTION of an adversarial entry, named by filename; "
+                        "copies its sha, lands under a -correctionN- filename (ADR-042 decision 7)")
     p.add_argument("--allow-dirty", action="store_true",
                    help="record even though the working tree differs from HEAD. The entry's "
                         "digests then fingerprint code that is in no commit.")
@@ -309,12 +312,14 @@ def main(argv=None) -> int:
             # five and recording the best three produces an entry
             # byte-indistinguishable from an honest one. `close-milestone` checks
             # the named files are committed and their hashes still match.
+            # Normalised text, not raw bytes (ADR-042): every digest this wrote
+            # on a CRLF tree was of a rendering no blob has.
             "samples_from": [{
                 "path": str(observations_path.relative_to(ROOT)
                             if observations_path.is_absolute() and ROOT in observations_path.parents
                             else observations_path).replace("\\", "/"),
-                "sha256": __import__("hashlib").sha256(
-                    observations_path.read_bytes()).hexdigest(),
+                "sha256": __import__("pave.history", fromlist=["entry_digest"]).entry_digest(
+                    observations_path.read_text(encoding="utf-8")),
             }],
             "cases": [
                 {"id": r.id, "result": r.result}
@@ -328,15 +333,32 @@ def main(argv=None) -> int:
             entry["k"] = k
         if args.tag:
             entry["tag"] = args.tag
-        import jsonschema
-        jsonschema.validate(entry, json.loads((HISTORY / "schema.json").read_text(encoding="utf-8")))
         history = pathlib.Path(args.history_dir) if args.history_dir else HISTORY
         history.mkdir(parents=True, exist_ok=True)
-        path = history / f"{args.tag or sha[:7]}-adversarial.json"
+        stem = f"{args.tag or sha[:7]}"
+        if args.supersedes:
+            from evals.run_evals import _correction_stem, _load_superseded
+            old = _load_superseded(history, args.supersedes, "adversarial")
+            entry["sha"] = old["sha"]
+            entry["supersedes"] = args.supersedes
+            if old.get("scores") == entry["scores"] and old.get("cases") == entry["cases"]:
+                print(f"error: scores and cases equal {args.supersedes}'s; a correction that corrects "
+                      "nothing is refused (ADR-042 decision 7)", file=sys.stderr)
+                return 2
+            if old.get("instrument") != entry["instrument"]:
+                print("error: a correction carries the instrument of the entry it corrects; a "
+                      "different instrument is a second reading, not a correction", file=sys.stderr)
+                return 2
+            stem = _correction_stem(history, args.supersedes, "adversarial")
+        import jsonschema
+        jsonschema.validate(entry, json.loads((HISTORY / "schema.json").read_text(encoding="utf-8")))
+        path = history / f"{stem}-adversarial.json"
         if path.exists():
-            print(f"error: {path.name} exists — history is append-only", file=sys.stderr)
+            print(f"error: {path.name} exists — history is append-only; a correction is recorded "
+                  f"with `--supersedes {path.name}`", file=sys.stderr)
             return 2
-        path.write_text(json.dumps(entry, indent=2) + "\n", encoding="utf-8")
+        from evals.run_evals import write_entry
+        write_entry(path, entry)
         try:
             shown = path.relative_to(ROOT)
         except ValueError:

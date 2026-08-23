@@ -81,12 +81,58 @@ ASKED_FLOOR = {
 }
 
 
-def asked_floor(tag: str, corpus_size: int, recorded_total: int | None = None) -> int:
+def registered_denominator(tag: str, root) -> tuple[int | None, str | None]:
+    """The corpus size arm `tag` ran under, from the REGISTRY, not from its entry.
+
+    ADR-041 read the entry's own `scores.total` here and said it was "not a
+    value the same PR can invent". It was: a new arm's entry is written by the
+    PR that records it, and the Security seat recorded an arm asking three of
+    eleven probes, `total: 3`, floor 3, lane PASS, gate exit 0 (ADR-042). So the
+    number now comes from `quality/adversarial/instruments.json`'s `corpus_size`
+    for the instrument the entry NAMES -- and `pave/history.py` verifies that
+    every registered size is the probe count of a committed revision of the
+    corpus whose digest the registry carries, and that the corpus at the entry's
+    own sha is that revision. The entry's `total` must equal it.
+
+    Returns `(size, problem)`. `(None, None)` means the arm has no entry, or is
+    an enumerated arm whose entry predates `instrument` (m00b, m01): the caller
+    uses `ASKED_FLOOR` or the whole corpus. A problem is a lane FAILURE."""
+    import json as _json
+    entry_file = root / "evals" / "history" / f"{tag}-adversarial.json"
+    if not entry_file.is_file():
+        return None, None
+    try:
+        entry = _json.loads(entry_file.read_text(encoding="utf-8"))
+    except _json.JSONDecodeError:
+        return None, f"{tag}: its history entry is not valid JSON."
+    name = (entry.get("instrument") or {}).get("name")
+    if not name:
+        if tag in ASKED_FLOOR:
+            return None, None
+        return None, (f"{tag}: its history entry names no instrument, so the corpus it ran under "
+                      "cannot be resolved. A recorded arm names what read it (ADR-027).")
+    registry = _json.loads((root / "quality" / "adversarial" / "instruments.json")
+                           .read_text(encoding="utf-8"))["instruments"]
+    row = registry.get(name)
+    if row is None:
+        return None, f"{tag}: its entry names instrument {name!r}, which is not registered."
+    size = row.get("corpus_size")
+    if not isinstance(size, int):
+        return None, f"{tag}: instrument {name!r} registers no `corpus_size`; the floor has no anchor."
+    total = (entry.get("scores") or {}).get("total")
+    if total != size:
+        return None, (f"{tag}: its entry records `scores.total` {total!r} but the instrument it names "
+                      f"({name}) registers a corpus of {size}. An arm asks the whole corpus it ran "
+                      "under; a total the registry does not know is a denominator the PR chose.")
+    return size, None
+
+
+def asked_floor(tag: str, corpus_size: int, registered: int | None = None) -> int:
     """The fewest probes arm `tag` must have asked.
 
-    **`recorded_total` is the corpus size on the day that arm RAN**, read from
-    the entry it published -- which is append-only and digest-pinned, so it is
-    not a value the same PR can invent.
+    **`registered` is the corpus size on the day that arm RAN**, from the
+    registry via `registered_denominator` -- never from the entry the same PR
+    wrote. Enumerated arms keep their literal.
 
     Without it this re-created ADR-041's own opening defect one level up.
     "An unenumerated arm owes today's whole corpus" is right for an arm recorded
@@ -104,4 +150,4 @@ def asked_floor(tag: str, corpus_size: int, recorded_total: int | None = None) -
     full number and the floor still catches it."""
     if tag in ASKED_FLOOR:
         return ASKED_FLOOR[tag]
-    return corpus_size if recorded_total is None else min(recorded_total, corpus_size)
+    return corpus_size if registered is None else registered
