@@ -114,14 +114,29 @@ two-key; `platform/gateway/core/cedar.py` is on no rule.
 python -m pave.cli policy generate
 grep -c '^forbid(' platform/gateway/policy/tools.cedar        -> 0
 python -m pave.cli policy generate --check                    -> exit 0
+python -m pytest -q                                           -> 15 failed, 1780 passed
 two-key                                                       -> NOT REQUIRED
 ```
 
-`GATED_CONSEQUENCES` lives at `cedar.py:38`. **Which consequence classes get an
-approval interlock is decided in the generator, not in the registry** — so
-`publish-highlight` becomes reachable with no approver, and Legal/S&P, the seat
-CLAUDE.md names for exactly this (*"consequence classes are Tool Owner plus
-Legal/S&P"*), is never asked.
+**Corrected before this ADR was reviewed, and the correction is the finding.**
+The first draft of this section omitted the suite line while its four neighbours
+all reported a passing suite, which reads as green. It is not:
+`test_every_gated_tool_in_the_registry_carries_a_forbid` exists in
+`tests/test_cedar_policy.py` and catches this, along with fourteen others in
+`test_tool_loop.py` and `test_toolplane.py`. **The interlock has real coverage.**
+
+So this finding is narrower than it first looked, and it is still live in two
+ways. **The key**: fifteen red tests and `two-key: not required` means a PR can
+weaken claim 10 with no seat's written reason attached to the diff, and Legal/S&P
+— the seat CLAUDE.md names for consequence classes (*"consequence classes are
+Tool Owner plus Legal/S&P"*) — is never asked. **The harness**: the three files
+that catch it are exactly the three the Tool Owner seat named in finding 6's
+`collect_ignore` line, and that combination is measured at `pave check` **exit 0,
+"All checks passed!"** with `publish-highlight` reachable and no approver.
+
+`GATED_CONSEQUENCES` lives at `cedar.py:38`, so **which consequence classes get
+an approval interlock is decided in the generator, not in the registry** — the
+one place Legal/S&P's key cannot reach it.
 
 The Security seat recommended a seat set for `cedar.py` that excluded
 `legal-sp` in one review round and **retracted it in the next**, on this
@@ -231,16 +246,21 @@ rule rather than by another check.
 
 This is the honest limit of this ADR and it is stated rather than implied.
 
-**Red here**, because each costs one small assertion:
+**Already red, and this ADR adds only the key** — corrected during drafting:
 
-- **The interlock.** A test asserting that every registry tool whose consequence
-  is in `GATED_CONSEQUENCES` carries a `forbid` in the generated policy set,
-  guarded by `approval_granted`. Finding 4's plant produces zero forbids and goes
-  red.
+- **The interlock.** `test_every_gated_tool_in_the_registry_carries_a_forbid`
+  exists and fires, with fourteen others. The first draft of this ADR proposed
+  adding that assertion, having failed to run the suite on its own plant. What
+  finding 4 actually needs is decision 2's key and decision 3's, not a new check.
+
+**Red here**, because it costs one small assertion that genuinely does not exist:
+
 - **The schema.** A test asserting `ai_generated` is present in
-  `publish-highlight`'s input schema and that no property named `skip_approval`
-  or equivalent exists in any registered tool's input. The schema's own
-  description already claims this; nothing executed it.
+  `publish-highlight`'s input schema and that no `skip_approval`-shaped property
+  exists in any registered tool's input. The schema's own description claims this
+  is enforced *and names the probe that supposedly enforces it*; measured, the
+  edit is **1795 passed** and no probe reads a schema. This is the only new
+  assertion in this ADR.
 
 **Collectable but not red**, until M05 lands the checks that would see them:
 
@@ -270,7 +290,7 @@ unsatisfiable rule with no diagnostic.
 | # | prediction | what falsifies it |
 |---|---|---|
 | 1 | Each of the five plants, re-run after this ADR, **collects the keys named in decisions 1–3** — G1's widening, the `attacker-svc` permit, the `GATED_CONSEQUENCES` word, the schema edit, and the `conftest.py` hookwrapper | any still reports "two-key: not required" |
-| 2 | The interlock plant and the schema plant are **red**, each with a named failure and a remedy | either stays green — then decision 4's "red here" half is a claim rather than a check |
+| 2 | The schema plant is **red** with a named failure and a remedy; the interlock plant was **already** red at 15 failures and this ADR adds only its key | the schema plant stays green — then decision 4's one new assertion is a claim rather than a check |
 | 3 | G1's plant and the generator's plant remain **green and key-collecting**, and this ADR says so rather than implying otherwise | the ADR is read as closing them — the residual must survive review in the text |
 | 4 | `--no-renames` (ADR-042 decision 4) collects the key on `git mv pave/infra.py pave/iam.py` + edit, and on `cedar.py` moved out of `core/` | either escapes — then the new rules are bypassable exactly as every pre-ADR-042 rule was |
 | 5 | **Every check this ADR adds is deletable only loudly** — neutering each in turn produces at least one named failure, audited by neutering each in turn | any is silent — ADR-042 prediction 7b, which failed for four of ten checks on its first implementation |
@@ -287,9 +307,12 @@ CLAUDE.md's "stated and absent" rule exists to protect.
 
 - Four paths that decide an invariant stop being editable on zero keys, and the
   two whose prose claimed a seat now collect that seat.
-- **Claim 10 acquires its first executed protection.** The approval interlock was
-  defended by three test files, all reachable only through a harness that one
-  zero-key line disables.
+- **Claim 10's existing protection acquires a key and a keyed harness.** The
+  interlock is defended by fifteen assertions across three test files — real
+  coverage, corrected in drafting after this ADR first implied otherwise — and
+  all three are reachable only through a harness that one zero-key line disables.
+  Decisions 2 and 3 close the key and the harness; the assertions were never the
+  gap.
 - **`ADV-008`'s stated relationship to the tool schema is corrected in the
   schema.** It was false in both halves and it was the reason given for deferring
   this rule.
