@@ -407,6 +407,31 @@ def test_no_registered_tool_can_express_skipping_its_own_interlock():
             )
 
 
+def test_the_bypass_walk_is_recursive_and_reads_both_schemas():
+    """**The audit ratcheted the constants and not the code path that reads them.**
+    Dropping `_all_property_names`' recursion, or making `_schema_paths` return the
+    input schema only, each left 45 passed while re-opening the nested and
+    output-schema forms the Security seat measured reaching `tools.contracts.json`
+    green. A ratchet on the data does not defend the traversal."""
+    nested = {"properties": {"a": {"type": "object",
+                                   "properties": {"skip_approval": {"type": "boolean"}}}}}
+    assert "skip_approval" in _all_property_names(nested), (
+        "_all_property_names no longer recurses into nested `properties`. A top-level "
+        "read is a check on where a field is declared, not on whether it exists."
+    )
+    in_items = {"properties": {"a": {"type": "array",
+                                     "items": {"properties": {"skip_approval": {}}}}}}
+    assert "skip_approval" in _all_property_names(in_items), (
+        "_all_property_names no longer descends through `items`."
+    )
+    for tool in REGISTRY:
+        declared = [k for k in ("input", "output") if k in tool["schemas"]]
+        assert len(_schema_paths(tool)) == len(declared), (
+            f"_schema_paths reads {len(_schema_paths(tool))} of {tool['id']}'s "
+            f"{len(declared)} schemas. The rule covers `schema.out.json`; the check must too."
+        )
+
+
 def test_a_gated_tool_keeps_the_fields_its_approver_reads():
     """`additionalProperties: false` stops a field being added and says nothing
     about one being removed. The disclosure flag is the field the human in the

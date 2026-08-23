@@ -100,8 +100,15 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     required = {
         "G1's model-invoke allowlist": ["pave/infra.py", "tests/test_iam_assertions.py"],
         "the Cedar generator": ["platform/gateway/core/cedar.py", "tests/test_cedar_policy.py",
-                                "tools/publish-highlight/schema.in.json"],
-        "the test harness": ["tests/conftest.py", "pyproject.toml", "conftest.py", "pytest.ini"],
+                                "tools/publish-highlight/schema.in.json",
+                                # `schema.out.json` too: narrowing `(in|out)` to `in` was a
+                                # two-line diff removing every output schema from the rule,
+                                # green — the separation decision 1 forbids, one file short.
+                                "tools/catalog-search/schema.out.json"],
+        "the test harness": ["tests/conftest.py", "pyproject.toml", "conftest.py", "pytest.ini",
+                             # covered rather than measured when the rule was widened, so
+                             # pinned here rather than left to a reader's trust
+                             "tox.ini", "setup.cfg"],
         "the seat-set pins": ["tests/test_twokey_seats.py"],
         "the tool plane": ["platform/gateway/core/toolplane.py", "tests/test_toolplane.py"],
     }

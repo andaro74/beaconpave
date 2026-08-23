@@ -135,7 +135,7 @@ half. A protection named in an ADR and absent in the file the ADR names is this
 ADR's own subject, arriving inside the paragraph that calls itself "the
 correction is the finding."
 
-What actually fires, measured: fourteen in `tests/test_cedar_policy.py` —
+What actually fires, measured on `main`: thirteen in `tests/test_cedar_policy.py` —
 `test_a_publish_class_tool_is_unreachable_without_an_approval_interlock`,
 `test_the_forbid_is_what_denies_it_and_not_a_missing_permit`,
 `test_an_explicit_forbid_beats_a_permit`, `test_only_a_real_approval_exempts_the_forbid`
@@ -339,20 +339,29 @@ given a test.
   precedence chain and are covered rather than measured.
 - **A "prose correction" landed in model-facing text.** `handler.py:157` hands
   the input schema's `description` to Bedrock as the tool's spec. The correction
-  grew that field from 309 to 708 bytes of repo governance — naming the enforcing
+  grew that field from 309 to 568 characters of repo governance — naming the enforcing
   test file to the model. It escaped `TOOL_SPECS_SHA256` only because that pin
   iterates *routed* tools and `publish-highlight` has no routed Lambda at M02, so
   prediction 7 held by a coverage gap rather than by inertness. The description
-  is now main's text minus the one false sentence, 272 bytes, and the record
+  is now main's text minus the one false sentence, 274 characters, and the record
   lives here and in the test. `$comment` was tried and correctly refused by
   `test_every_tool_schema_stays_inside_the_supported_subset`.
+- **The bypass check read only top-level input properties.** A nested
+  `options.properties.skip_approval` reached `tools.contracts.json` at 1814
+  passed carrying the literal blacklisted name, and output schemas were never
+  read though the rule covers them. Now a recursive walk over both, with the
+  traversal itself ratcheted — the first fix ratcheted the constants and left
+  the code path that reads them silently revertible.
 - **The disclosure flag's TYPE was unpinned** — `boolean` → `string` with
   `default: "no"` shipped green. Pinned.
 
 **Owed, not fixed here**, each named by a seat with a measurement: the denylist
-in `BYPASS_SHAPED` is defeated by a differently-named field, a nested property,
-or the output schema (three forms measured reaching `tools.contracts.json`
-green); the schema *rule* is path-shaped while the *check* follows the registry
+in `BYPASS_SHAPED` is defeated by a **differently-named** field — the nested and
+output-schema forms the Security seat measured are closed by a recursive walk over
+both schemas, and only the naming half survives, with `preapproved` measured
+reaching `tools.contracts.json` green; the replacement is to pin the exact
+property set per gated tool, which `additionalProperties: false` makes exact; **an unrouted tool's description is outside `TOOL_SPECS_SHA256`** and becomes
+model-facing at M06 with no pin having watched it; the schema *rule* is path-shaped while the *check* follows the registry
 pointer, so a schema moved out of `tools/<id>/` leaves the rule; a duplicate
 registry id is a working forgery that `policy ⊆ registry` would not catch;
 `ai_generated` is **not in `required`** and nothing reads its value, so what is defended is its declaration and its type, never that a caller sent it — M07's disposition is what makes the flag live; `semver` in the registry is decorative; and `cedar.py` is in no instrument
