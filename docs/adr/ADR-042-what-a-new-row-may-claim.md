@@ -8,7 +8,15 @@ Platform Engineering (the recorders, the lane that reads an entry, the workflows
 
 Discharges ADR-041 decision 3.
 
-**This is the third draft.** Draft 2 was reviewed by four seats, each planting
+**This is the fourth draft.** Draft 3 was reviewed by three seats planting
+against what it had changed, and two of the three called for a fourth: its
+evidence anchor was wrong on `main` for seven digests rather than one, its
+denominator bound was one disposition line and a pointer to any ADR, and the
+three-key tests it relied on were deselectable from `pyproject.toml` and
+re-based from `tests/conftest.py`, both on zero keys. What draft 3 got wrong is
+recorded in its own section below. Draft 3 is at `33e5871`.
+
+Draft 2 was reviewed by four seats, each planting
 and measuring in a worktree, and all four answered *"does any reachable input let
 a recorded number change, or a fabricated one land, with everything green under
 draft 2's controls?"* with **YES**. Three of draft 2's load-bearing mechanisms
@@ -104,6 +112,28 @@ The seats' plants added these:
   translates `\n`; an operator pinning `sha256sum` output pins `b11df9e6…` where
   the normalised pin is `707a9901…`, and their own honest entry fails as
   "rewritten". `_entry_digest`'s docstring already records this hazard once.
+- **Both recorders hash the evidence file's raw bytes** (`run_evals.py:103`,
+  `run_adversarial.py:312`), so every `samples_from.sha256` ever written on this
+  operator's Windows tree is a **CRLF digest** of an LF blob. Measured by two
+  seats: seven of the ten `samples_from` records on `main` mismatch the
+  committed file under a normalised digest — all six M02 samples and `m04` —
+  and every one of the seven equals `sha256(committed.replace(b"\n", b"\r\n"))`.
+  Only `m00b-judged-B-goldens.json` matches. Draft 3 said one was broken.
+- **The protection tests run under a harness two zero-key files control.**
+  `pave check` runs `python -m pytest -q`; `pyproject.toml`'s
+  `[tool.pytest.ini_options]` can carry `addopts = "-k 'not arm_scoping'"`, and
+  `tests/conftest.py` executes before any test and can set `GITHUB_BASE_REF` to
+  the PR's own branch. Measured: 1631 passed, 72 deselected, `pave check` exit
+  0 with `m04-adversarial.json` rewritten to 10/10; and a base-diff check that
+  resolves `origin/$GITHUB_BASE_REF` reporting empty against a rewritten
+  `m01-goldens.json`. Neither file is on any rule.
+- **The instrument registry's "current" row is `rows[-1]`**, and nothing pins
+  the names or digests of earlier rows. A row inserted *between* `m04-A` and
+  `m04-B` with a fabricated `probes_sha256` passed every registry test.
+- **A correction would be read by nothing.** `pave/cli.py:900` (the floor) and
+  `pave/cli.py:536` (`backfill-asked`) read `{tag}-adversarial.json` by name;
+  `ARMS` and `HISTORY_DIGESTS` name entries explicitly. A `-correction1-` file
+  matches none of them.
 - **`.claude/skills/close-milestone` step 2 does not run as written.**
   `python evals/run_evals.py --record` → `ModuleNotFoundError: No module named
   'evals'`. The Makefile uses `python -m evals.run_evals`, and `--answers` is
@@ -180,25 +210,46 @@ completeness half is what does the work:**
    anchor keeps its own copy in the three-key test file, so moving an arm's
    digest still takes a test diff as well as a data diff — the same deliberate
    duplication `PIN_FLOOR` uses.
-4. **`scores` is derivable from `cases`** for every committed goldens entry:
-   `passed == count(PASS)`, `failed == count(FAIL)`, `total == len(cases)`, and
-   the case-id set equals the golden file's. Green on all five today; it raises
-   a fabricated row from "copy a file" to "forge a consistent case list", and it
-   is the cheapest deterministic assertion this ADR can add.
+4. **`scores` is derivable from `cases`**, for both suites. Goldens:
+   `passed`, `failed`, `infra` are counts over `cases[].result`,
+   `total == len(cases)`, `pass_rate == round(passed/total, 4)`,
+   `pooled_pass_rate == round(PASS samples / all samples, 4)` where samples are
+   recorded, and the case-id set equals the golden file **at the entry's
+   `sha`** (`git show {sha}:services/…/cases.yaml`) — not today's file, which
+   would turn every committed entry red the day M05 adds a case, a ratchet on
+   corpus growth CLAUDE.md explicitly does not want. Adversarial: `passed`,
+   `failed`, `unearned`, `earned`, `unstable` derive; `total == len(cases)`
+   (T1b's cheapest bound); each case's `result` is the unanimity of its
+   `samples` and `len(samples) == k`; **`model_declined_unscored` is excluded
+   by name** — it derives from `model_complied`, which `cases` does not record.
+   Measured green on all eight entries by the AI Quality seat. It raises a
+   fabricated row from "copy a file" to "forge a consistent case list".
 
-**One enumerator.** "An entry on disk" is a regular file matching `*.json`
-directly under `evals/history/`, excluding `schema.json` and `pins.json`, and
-the directory must contain nothing else — no subdirectory, no other suffix. The
-two existing enumerators are replaced by a call to the one function. A seat
-planted `evals/history/corrections/m01-goldens.json` and
+**One enumerator.** "An entry on disk" is a regular file — **not a symlink**,
+and `git ls-files -s evals/history/` shows mode `100644` only — matching
+`*.json` directly under `evals/history/`, excluding `schema.json` and
+`pins.json`, and the directory must contain nothing else — no subdirectory, no
+other suffix. The two existing enumerators are replaced by a call to the one
+function, **in the same commit as the first `pins.json`**: a seat measured that
+`test_the_committed_entries_still_validate` globs `*.json` minus `schema.json`
+and would validate `pins.json` as an entry (`'sha' is a required property`).
+A seat planted `evals/history/corrections/m01-goldens.json` and
 `m01-goldens.json.new`; neither is gate-reachable, but a reader browsing the
 directory sees a row, and the point of the directory is that a reader can.
 
-**The README's goldens numbers are tied too.**
+**The README's goldens numbers are tied too, by a pinned mapping.**
 `test_the_published_progression_still_matches_the_recorded_entries` covers the
 adversarial `ARMS` only; `sed` on the M01 row's 19/25 → 24/25 left 93 tests and
-the gate green and `twokey.triggered(["README.md"]) == []`. The test extends to
-every goldens row with a tag. Deterministic, green today.
+the gate green and `twokey.triggered(["README.md"]) == []`. "Every goldens row
+with a tag" was not precise enough: `m00b` has two goldens entries (15 and 18)
+and `m02` two arms (17 and 16), so "some entry with this tag matches" lets the
+row move to the other one. The mapping is a literal in the three-key test file
+— `{m00b: m00b-goldens.json, m01: m01-goldens.json, m02: m02-tools-goldens.json}`
+— exact-set against the rows that carry a bold `n/m`, and a row with a tag and
+no number (`m03`, `m04`) must have **no** goldens entry carrying that tag, so an
+appended `m04-goldens.json` contradicts a public "not re-scored" in red. The
+judged 18/25 lives in README prose, not a row, and is untied before and after;
+said here so nobody reads this as covering it.
 
 **What this buys and what it does not.** Pinning a row does not make it true.
 What it buys is that adding one is visible, exact-set, self-consistent, and
@@ -212,13 +263,19 @@ Withdrawn: every sentence of draft 2's decision 3 that mentions a count. What
 replaces it:
 
 ```
-git diff --name-status --no-renames --diff-filter=MDR  BASE...HEAD  -- evals/history/
+git diff --name-status --no-renames --diff-filter=a  BASE...HEAD  -- evals/history/
 ```
 
 **must be empty**, with exactly two exceptions: `M` on `schema.json` and `M` on
-`pins.json` (both are modified by honest work and both are three-key). Any other
-`M`, any `D`, any `R` — a committed entry modified, deleted, or renamed — is a
-block with a named message.
+`pins.json` (both are modified by honest work and both are three-key).
+**`--diff-filter=a` excludes Added and keeps everything else** — draft 3
+enumerated `MDR`, and two seats independently replaced a committed entry with a
+symlink to another entry: that is a typechange, `T`, which `MDR` does not list,
+and on a Linux runner the link resolves, `is_file()` is true, and the pin is
+re-taken over the target under the allowed `M pins.json`. Allowlisting the one
+benign verb is the fail-closed shape; enumerating the bad ones is how `T` was
+missed. Anything remaining — a committed entry modified, deleted, renamed,
+typechanged — is a block with a named message.
 
 Why this and not a count, measured by three seats on synthesized
 `refs/pull/N/merge` refs:
@@ -255,11 +312,46 @@ and ran the check from an older honest branch — `R097 m05-goldens.json ->
 zz-honest-goldens.json`, an honest PR accused of renaming someone else's entry.
 Three-dot diffs against the merge-base and reported nothing. The base is
 `origin/$GITHUB_BASE_REF` in CI, else `$PAVE_BASE` if set, else `origin/main`,
-else `main`; if none resolves the check **refuses with a named message**, as it
-does on a shallow clone (`git rev-parse --is-shallow-repository`), on a tree
-with no `.git`, and with `git` absent from PATH. It never passes quietly and
-never raises a bare traceback — in `pave check` a refusal is a failed test,
-which is the fail-closed direction.
+else `main`. **If `PAVE_BASE` is set and does not resolve, the check refuses
+with its name** rather than falling through — a seat measured `PAVE_BASE=typo`
+passing on `origin/main`, which is `_flag_values`' lesson at `cli.py:263`
+arriving again: a typo'd explicit input must never read as "use the default".
+If nothing resolves the check **refuses with a named message**, as it does on a
+shallow clone (`git rev-parse --is-shallow-repository`), outside any git
+repository **as `git rev-parse --git-dir` reports it** — not by testing for a
+`.git` directory, which is a *file* in every worktree, including the ones the
+seats reviewed this ADR in — and with `git` absent from PATH. It never passes
+quietly and never raises a bare traceback. In `pave check` a refusal is a
+failed test, which is the fail-closed direction, and it is knowingly the one
+place the FAIL/INFRA split is lost: a shallow clone pages the service team for
+a platform condition, and that is preferred to a skip.
+
+**The instance that decides in CI is a workflow step, not a pytest.** The
+Security seat measured that `tests/conftest.py` — zero keys, executed before
+any test — can set `GITHUB_BASE_REF` to the PR's own branch, which exists under
+`origin/` after `fetch-depth: 0`, and the base-diff reports empty against a
+rewritten entry. So `quality-gate.yml` gains a step:
+
+```yaml
+- name: L1 history is append-only (ADR-042)
+  continue-on-error: true
+  run: python -m pave.cli gate history --base "${{ github.event.pull_request.base.sha }}" --out verdict-history.json
+```
+
+and `verdict-history.json` joins the `--verdicts` list `gate decide` reads — an
+absent verdict blocks, which is the existing fail-closed design. The base
+arrives as an explicit argument from the event payload, exactly as
+`two-key.yml` already passes `BASE_SHA`; no environment variable and no
+pytest collection stands between the workflow and the check. The same step
+runs every check this ADR adds — completeness, digests, the evidence anchor,
+the corpus tie, the schema ratchet — from one module, `pave/history.py`, so
+none of them can be deselected by `addopts`. `tests/test_history_append_only.py`
+calls the same functions as the local mirror under `make check`, holds the
+violating-tree tests, and must refuse an environment-derived base when
+`GITHUB_ACTIONS` is set. `pave check` additionally runs pytest with
+`-o addopts=` and treats a non-zero `deselected` count as a failure, so the
+`pyproject.toml` route is closed for the mirror too — but the mirror is not
+what decides, and the ADR says so rather than leaning on it.
 
 **What this costs and where it bites.** `quality-gate.yml` gains
 `fetch-depth: 0`; measured by two seats at +140–260 ms and +534–550 KiB. A
@@ -270,7 +362,12 @@ because it could not see the base is `rules_validate`'s hazard.
 
 **The limit, stated as one thing.** This check is blind to what a new row
 claims. That is the whole of it — decision 2 pins the number, decision 5 anchors
-it to evidence, decision 6 bounds the denominator, decision 1 attests it. Draft
+it to evidence, decision 6 bounds the denominator, decision 1 attests it.
+Measured by two seats on the `--diff-filter=a` form: fires on `M`, `git rm`,
+`git mv`+edit, the squash of that, an evil merge, a synthesized merge ref of
+the `M` attack, and the symlink typechange; passes on this branch, on an honest
+two-commit PR and its merge ref, on a branch behind an advanced `main`, on
+`origin` removed with local `main` present, and on `schema.json` modified. Draft
 2's list of blindnesses (T1, rename-plus-rewrite, evil merge, squashed intra-PR
 rewrite) is withdrawn: two of the four were artefacts of counting, one was
 wrong in the under-claiming direction (an evil merge was seen), and the fourth
@@ -302,31 +399,61 @@ is collected by this workflow, and a key the workflow cannot collect is the
 ### 5. A new row must be anchored to committed evidence
 
 The eight entries that exist are a closed set — pinned by digest, enumerated by
-decision 2's test — and are grandfathered **by name**, with the reason stated
-per entry: four predate `samples_from` (M00b and M01), and `m00b-goldens.json`
-and `m01-goldens.json` were recorded by a recorder that did not yet write it.
-**Every entry beyond those eight must carry `samples_from`**, and for every
-entry that carries it, the committed tree must agree:
+decision 2's test — and the four that lack `samples_from` are grandfathered
+**by name**: `m00b-adversarial.json`, `m00b-goldens.json`,
+`m01-adversarial.json`, `m01-goldens.json`, all recorded before either
+recorder wrote the field. Their evidence is committed
+(`milestones/M00b|M01/{goldens,probes}-run.json`), so a `--supersedes`
+correction of any of them can carry it. **Every entry beyond those eight must
+carry `samples_from`**, and for every entry that carries it, the committed tree
+must agree:
 
 ```
 normalised sha256(evidence file at samples_from.path) == samples_from.sha256
 ```
 
-That is checked on the committed tree, which nothing does today. It converts
-"a real recorder invocation" — not a bar, as a seat showed with `--history-dir`
-— into "points at a committed, hashed evidence file", which is a bar: a
-fabricated row must now also fabricate or point at evidence that is itself
-under two keys and an ADR (`milestones/*/probes-run.json`) or committed answers.
+**Both recorders hash normalised text from now on** — the same function as the
+pin — and the check accepts the CRLF rendering,
+`sha256(normalised.replace("\n", "\r\n"))`, **only for the eight legacy
+entries, by name, as a stated tolerance**, because six of the ten records on
+`main` were written that way and the seventh is `m04`'s, below. Draft 3 said
+one link was broken and would have needed seven revision rows; the truth is one
+revision and one recorder defect, and they are recorded as two things. A new
+row must match the normalised digest and nothing else.
 
-**`m04-adversarial.json` fails this today, and this ADR says so rather than
-hiding it.** PR #51 rewrote `milestones/M04/probes-run.json` to add `_asked`
-(ADR-041 decision 1) and the entry's digest of it was read by nothing. The
-entry cannot be edited; the evidence cannot be un-revised; neither was wrong.
-So the test carries an explicit, three-key **evidence revision record**:
+That is checked on the committed tree, which nothing does today. **What it
+buys, said precisely: the row points at a committed file that has not changed
+since.** It does not make the row agree with the file — the Security seat
+landed a fabricated `m05` row over M04's real evidence, claiming 10/10, with
+every other control green. What narrows that, all deterministic and all in the
+same test: `samples_from.path` must sit under `milestones/<TAG>/` for the
+entry's own tag; an adversarial row's path must be the `probes-run.json` the
+two-key rule names; **no two non-correction rows may cite the same evidence
+path**; for every arm in `ARMS`, `ARMS[tag][0] == entry.samples_from[0].path`;
+and decision 2's derivability ties each case's result to the unanimity of its
+recorded samples. What remains is an arm whose entry and evidence were forged
+together, under the attestations — T1a's stated residual.
+
+**Goldens evidence takes a rule.** `milestones/*/probes-run.json` is two-key;
+`milestones/M05/goldens-run.json` and `milestones/M02/runs/m02-tools-1.json`
+resolved to no rule at all, so "evidence that is itself under two keys" was
+true for one filename. `^milestones/[^/]+/(goldens-run\.json|runs/[^/]+\.json)$`
+takes AI Quality and Platform Engineering — the seat that owns the number the
+answers score to and the seat that owns the lane that re-scores them.
+
+**`m04-adversarial.json`'s evidence was revised, and this ADR says so rather
+than hiding it.** PR #51 rewrote `milestones/M04/probes-run.json` to add
+`_asked` (ADR-041 decision 1) and the entry's digest of it was read by nothing.
+The entry cannot be edited; the evidence cannot be un-revised; neither was
+wrong. So the test carries an explicit, three-key **evidence revision record**,
+and the row says what the recorded digest actually is:
 
 ```
 EVIDENCE_REVISIONS = {
   "m04-adversarial.json": [
+    # recorded `8bac7894…` is the CRLF rendering of the ad50cc6 blob, whose
+    # normalised digest is `a333fd88…`; PR #51 / ADR-041 added `_asked`,
+    # samples unchanged; the committed file now digests to `00605955…`.
     ("8bac7894…", "00605955…", "PR #51 / ADR-041 added the `_asked` manifest; samples unchanged"),
   ],
 }
@@ -351,9 +478,42 @@ and `samples_from` is the anchor that applies to both suites.
 ### 6. The adversarial denominator is a registered constant, not the PR's number
 
 `quality/adversarial/instruments.json` gains one field per instrument,
-`corpus_size`, derived from the committed corpus at that instrument's
-`probes_sha256` and asserted against it by a test. That file is Security's, with
-an ADR — this one.
+`corpus_size`. That file is Security's, with an ADR — and draft 3 stopped
+there, which two seats measured is one disposition line plus a pointer to
+*any* ADR file: a row inserted mid-registry with a fabricated `probes_sha256`
+and `corpus_size: 3` recorded a 3/3 arm green, lane PASS. "Registered under
+Security's key" bounds nothing on this repo. What bounds it is a test, in the
+three-key file, that resolves the registry against git:
+
+- every registered instrument's `probes_sha256` **is the digest of some
+  committed revision** of `quality/adversarial/probes.yaml`
+  (`git rev-list --all --objects -- quality/adversarial/probes.yaml`, each blob
+  normalised and hashed), and its `corpus_size` equals the probe count of that
+  revision — measured by two seats: `m04-A/B/C` → `0c4a852`, 10; `m04-D` →
+  `bd0e247`, 10; `m04-E` → the live file, 11; the planted row → **the digest of
+  no revision that ever existed**;
+- every committed entry's `instrument.*_sha256` equal the registry row it
+  names, not merely that the name exists;
+- **the corpus at the entry's own `sha`** digests to the registry's
+  `probes_sha256` for the instrument the entry names — the prose tie draft 3
+  stated ("the name the entry declares is exactly the corpus snapshot it ran
+  under") made checkable. True on `m04` (`729fba0` → `m04-A`); false on the
+  plant. A correction row (decision 7) copies its superseded entry's `sha` and
+  must carry that entry's `instrument` unchanged.
+
+This is git-resolving and therefore refuses on a shallow clone, the posture
+decision 3 already takes. The pairwise concern AI Quality raised — a constant
+on one key read by a function on three — is answered by the test rather than
+by moving the number: a lowered `corpus_size` is red in a three-key file no
+matter who edits the registry, because the blob at that digest has the probes
+it has.
+
+**The residual, stated.** A new row may carry a `sha` older than HEAD, and its
+floor is then the corpus *on that day* — bounded to the probes added since,
+legible from `recorded_at` and the registry's `registered` date, and not a
+number the PR chose. An arm that names `m04-A` today and asks ten probes is an
+arm that ran under a ten-probe corpus, and the lane scores the eleventh
+`OUT_OF_SCOPE` for it, which is what ADR-041 decided such an arm deserves.
 
 Then, for an arm not in `ASKED_FLOOR`:
 
@@ -363,10 +523,18 @@ Then, for an arm not in `ASKED_FLOOR`:
   fails with a message naming both numbers;
 - the read moves out of `pave/cli.py` into `pave/floors.py` — three keys, where
   the floors already are, and where `floors.py`'s own docstring says criteria
-  belong — and a **violating-tree test** records an unenumerated arm asking
-  three of eleven and asserts the lane FAILS. Replacing the read with a literal
-  left 1701 green; that is what "reachable on no honest tree" means and it is
-  the shape decision 8's rule on protection tests exists for.
+  belong. Enumerated arms whose entries predate `instrument` (`m00b`, `m01`)
+  keep their literal and skip the tie; `m04` is enumerated *and* checked
+  (`total` 10 == `corpus_size` 10), so the happy path has one honest witness —
+  a seat ran it unscoped first and the lane went red on `m01: its history
+  entry names no instrument`;
+- a **violating-tree test** records an unenumerated arm asking three of eleven
+  with an otherwise-consistent pin and asserts the lane's message names
+  **`beneath its floor of 11`** — not the exit code, because that plant fails
+  the lane for three independent reasons and `returncode == 1` stayed green
+  with the floor deleted. Replacing the read with `return 1` turned that lane
+  PASS and the test red; that is what "reachable on no honest tree" means and
+  it is the shape decision 8's rule on protection tests exists for.
 
 This keeps ADR-041's reason for reading the entry — an arm recorded before the
 corpus grew must not fall beneath a floor of twelve forever — because the
@@ -399,6 +567,24 @@ superseded entry's `sha` is copied rather than re-derived, which is the one case
 where `--sha` without `--judged` is correct and the recorder's refusal is
 lifted. The filename gains a component that says what differs — ADR-027 rule 3
 — `{stem}-correction{N}-{suite}.json`, where N counts corrections of that stem.
+Three refusals the Platform seat's prototype showed were needed: a correction
+whose `scores` and `cases` equal the superseded entry's is refused (two such
+corrections both landed, same digest — the identical-numbers ambiguity this
+decision exists to prevent); **`supersedes` values are unique across the
+directory** (a correction of an already-corrected entry corrects the
+correction, so the chain is linear); and a correction's `instrument` must equal
+the superseded entry's. A row recorded against the **wrong commit** — ADR-041's
+B-0 shape, a rebase that moved a sha — is the one correction this rule would
+refuse and ADR-027 plainly sanctions; `--supersedes` with an explicit `--sha`
+is permitted for it, the filename still takes `-correctionN-`, and the
+different-sha row is not "a second row under one sha", so the legibility rule
+does not bind it.
+
+**Which entry the gate reads, said once.** The floor (decision 6) and
+`backfill-asked` read the original `{tag}-adversarial.json`; `ARMS` names it.
+A correction is a record for readers and the README; it becomes the entry an
+arm is scored against only by a three-key edit to `ARMS`, which the README
+test follows. A correction cannot move a gate by being appended.
 The recorder's current refusal message, which teaches a verb no tool can write
 (*"a correction is a new entry with `supersedes`"*), becomes true the day this
 lands, and `run_evals.record`'s "no `supersedes`, ever" comment — written about
@@ -424,12 +610,17 @@ clear, because `test_the_committed_entries_still_validate` validates every
 committed entry against the current schema. That test is correct and it is the
 rule:
 
-**`schema.json` may never gain an unconditionally required field.** Top-level
-`required` is pinned to today's five by a ratchet test; a new requirement lives
-under an `if/then` keyed on a field a row declares, so it binds rows that
-declare it and never rows that predate it. That is how `instrument`'s
-suite-conditional shape already works (M04), and it is why eight of eight
-entries validate today.
+**`schema.json` may never gain a requirement a committed entry does not
+meet.** The AI Quality seat measured that draft 3's form of this rule — "never
+unconditionally required; conditionals keyed on a declared field are fine" —
+was wrong in one direction: `if suite == goldens then require samples_from`
+is keyed on a declared field and fails `m00b` and `m01`. So the rule is stated
+as the test that holds it: `test_the_committed_entries_still_validate`, which
+validates every entry on disk against the current schema, **is the ratchet**,
+and it is named in decision 8's table as such. Its two stated forms, cheap and
+kept beside it: top-level `required` equals today's five, and no `if/then` may
+require a field that an entry predating it lacks. `instrument`'s
+suite-conditional shape (M04) is the pattern that satisfies both.
 
 ### 8. Every protection this ADR adds goes on a path with at least the keys of what it protects — named, and tested
 
@@ -441,12 +632,16 @@ plausible name for the new module resolved to `[]`. So, the list:
 |---|---|---|---|
 | `evals/history/*` incl. `schema.json`, `pins.json` | the rows, the contract, the pins | aiq · sec · plat | decision 1 |
 | `evals/run_evals.py`, `evals/run_adversarial.py` | write rows and pins | aiq · sec · plat | decision 1 |
-| `tests/test_history_append_only.py` (**new**) | decisions 2, 3, 5, 7's ratchet, 8's seat-set test | aiq · sec · plat | added to the protection-test regex, which already carries these three |
+| `pave/history.py` (**new**) | every check this ADR adds, as functions; `pave gate history` runs them | aiq · sec · plat | a new rule, because the deciding instance cannot be a pytest (decision 3) and a module on no rule is draft 2's prediction 7 failing a fourth time |
+| `tests/test_history_append_only.py` (**new**) | the local mirror, the violating-tree tests, the seat-set test, the `--no-renames` pin | aiq · sec · plat | added to the protection-test regex, which already carries these three |
+| `tests/test_adversarial_entry.py` | `test_the_committed_entries_still_validate` — the schema ratchet | aiq · sec · plat | already on the regex |
+| `milestones/*/goldens-run.json`, `milestones/*/runs/*.json` | goldens evidence | aiq · plat | decision 5 — was on no rule |
+| `tests/conftest.py`, `pyproject.toml`, `Makefile` | the harness the mirror runs under | none — **stated** | they can deselect or re-base the mirror; they cannot touch the workflow step that decides, which is why that step exists |
 | `tests/test_arm_scoping.py` | `HISTORY_DIGESTS`, `ARMS`, `EVIDENCE_REVISIONS` | aiq · sec · plat | already |
 | `pave/floors.py` | the denominator floor and its read | plat · aiq · sec | already |
 | `quality/adversarial/instruments.json` | `corpus_size` | sec + ADR | already |
 | `pave/twokey.py`, `.github/workflows/two-key.yml` | the rules and the collector | aiq · plat | already — and a protection on the *mechanism* rather than on a number; decision 4's `--no-renames` lands here |
-| `.github/workflows/quality-gate.yml` | `fetch-depth: 0` | aiq · plat | already |
+| `.github/workflows/quality-gate.yml` | `fetch-depth: 0`, the `gate history` step, `verdict-history.json` in the decide list | aiq · plat | already |
 | `pave/cli.py` | loses the read | none, by design | `test_ordinary_pr_is_not_gated` names it as the canonical ungated file; it gains nothing that decides a number |
 | `docs/governance/ROLES.md`, `.github/CODEOWNERS` | prose and the decorative owner | none | CODEOWNERS is one-directional into `twokey.py` (`test_contracts.py:595`); ROLES.md is a summary CLAUDE.md already says not to rely on |
 | `.claude/skills/close-milestone/SKILL.md` | the checklist | none — **exempt, stated** | a checklist on no rule is acceptable; a seat asked that prediction 8 say so rather than claim "every file" |
@@ -466,7 +661,7 @@ recorders, that `seats ⊇ {ai-quality, security, platform-eng}`; and for
 `pave/floors.py`, `tests/test_arm_scoping.py` and `evals/comparators.json`
 likewise. It lives in `tests/test_history_append_only.py`, on the regex.
 
-### 9. `close-milestone` step 2 is rewritten, because it does not run and this ADR adds to it
+### 9. `close-milestone` step 2 and the `Makefile` targets are rewritten, because they do not run and this ADR adds to them
 
 The Service Team seat walked a hypothetical M05 close. Today an adversarial
 close already needs three seats (via `tests/test_arm_scoping.py`,
@@ -491,7 +686,9 @@ rationale. When `make check` is red between a record and its pin — which can
 only happen if an entry was written by hand — the failure prints the normalised
 digest line and names `pins.json`, and a *pinned-but-missing* entry gets a
 different message, because "history has been rewritten" for both is ADR-041's
-B-0 false accusation.
+B-0 false accusation. The `Makefile`'s `adversarial:` target has the same
+defect as the skill (`python evals/run_adversarial.py --record`, no
+`--observations`) and is fixed with it.
 
 ## Pre-registered predictions
 
@@ -499,23 +696,54 @@ B-0 false accusation.
 |---|---|---|
 | 1 | an appended row claiming a number no run produced **fails on `main` as it stands** once decision 2's completeness assertion exists, and passes before it | it passes after — then completeness does not close T1a's visibility, which is the threat draft 1 missed |
 | 2 | `set(pins.json) == set(entries on disk)` plus the 64-hex check catches all of: an appended row, an empty-string pin over a rewrite, a ninth unpinned entry, a subdirectory or non-`.json` file, the directory deleted | any survives — then one assertion is not doing the work five holes need |
-| 3 | the base-diff check fires on: a one-commit rewrite of a committed entry with its digest re-pinned; the same squash-merged; an evil merge; a rename-plus-rewrite (`D` seen because `--no-renames`); a deletion | any is missed — then the count was not the only thing wrong with decision 3 |
+| 3 | the base-diff check fires on: a one-commit rewrite of a committed entry with its digest re-pinned; the same squash-merged; an evil merge; a rename-plus-rewrite (`D` seen because `--no-renames`); a deletion; **a symlink typechange** (`T`, seen because `--diff-filter=a`) | any is missed — then the count was not the only thing wrong with decision 3 |
 | 4 | the base-diff check does **not** fire on: an honest two-commit PR under `refs/pull/N/merge`; an intra-PR edit of an entry the PR created; an honest branch behind an advanced `main` that added an entry; `main` as it stands with `m00b-judged-B-goldens.json`'s two commits | any fires — then it teaches squashing or rebasing, and rebasing is how ADR-041's B-0 arrived |
-| 5 | it **refuses**, with a named message, on a shallow clone, on a tree with no `.git`, with `git` absent from PATH, and with no resolvable base — never passes, never raises a bare traceback | any passes quietly — the `rules_validate` hazard; any raises — an errored step is not a stated block |
+| 5 | it **refuses**, with a named message, on a shallow clone, outside a git repository as `git rev-parse --git-dir` reports it (and **passes inside a worktree**, where `.git` is a file), with `git` absent from PATH, with `PAVE_BASE` set to an unresolvable name, and with no resolvable base — never passes, never raises a bare traceback | any passes quietly — the `rules_validate` hazard; any raises — an errored step is not a stated block; a worktree refuses — then honest review trees are red |
+| 5b | the deciding instance is `pave gate history --base <event sha>` in `quality-gate.yml`, whose verdict `gate decide` requires; `tests/conftest.py` setting `GITHUB_BASE_REF` and `pyproject.toml` setting `addopts = "-k …"` change **nothing** about that step's result on a rewritten entry | either changes it — then the harness is still the decider and Security's plant C/F stands |
 | 6 | `two-key.yml`'s diff with `--no-renames` collects the key on `git mv evals/run_adversarial.py evals/record_adversarial.py` + edit, and on a history entry moved out of the directory; without the flag neither is collected; and the test that pins the flag is red when it is removed | the flag does not collect it — then rename detection was not the whole of the bypass |
 | 7 | `pave gate two-key` demands **ai-quality, security AND platform-eng** for every path shape under `evals/history/` and for both recorders, and no path in the directory drops to fewer keys than today; the seat-set test is red when `security` is removed from any three-seat rule | one drops, or the removal is green — then prediction 7 of draft 2 has failed a fourth time |
-| 8 | with `corpus_size` registered, an unenumerated arm recorded asking three of eleven **FAILS the lane** with a message naming 3 and 11, and replacing the floor read with a literal is red | it passes, or the literal is green — then the denominator is still the PR's number |
-| 9 | `samples_from.sha256` matches the committed evidence for every entry that carries it, via the `m04` revision row and no other exemption; and a new row without `samples_from` is refused by the committed-tree test | a second exemption is needed — then the revision record is a grandfather list with a better name |
+| 8 | with `corpus_size` registered, an unenumerated arm recorded asking three of eleven **FAILS the lane** with a message naming `beneath its floor of 11`, and replacing the floor read with a literal is red | it passes, or the literal is green — then the denominator is still the PR's number |
+| 8b | every registered `probes_sha256` resolves to a committed revision of `probes.yaml` whose probe count equals its `corpus_size`; a mid-registry row with a fabricated digest and `corpus_size: 3` is **red**; `m04`'s corpus at `729fba0` digests to `m04-A`'s `probes_sha256` | the plant is green — then the registry bounds nothing and Security's key is one line of text |
+| 9 | `samples_from.sha256` matches the committed evidence for every entry that carries it — normalised for new rows; normalised **or its CRLF rendering** for the eight legacy entries by name; via the one `m04` revision row — and a new row without `samples_from`, citing another tag's directory, or sharing an evidence path with a non-correction row is refused | a second revision row or a second tolerance is needed — then the record is a grandfather list with a better name |
 | 10 | a second entry sharing `sha` and `suite` and declaring no distinguishing dimension is refused; `supersedes` must name a file on disk, not itself, with matching `sha` and `suite`; the `m00b` deterministic/judged pair (instrument absent vs present) is **not** refused | any validates that should not, or the canonical pair is refused — then decision 7's floor is either zero or aimed at honest rows |
 | 11 | a correction can be recorded end to end by a real `--supersedes` invocation of each recorder, lands under a `-correctionN-` filename, and `pave check` is green afterwards with the new row pinned | it cannot — then decision 7 names a verb no tool can produce, which is how this defect arose the first time |
 | 12 | adding a top-level required field to `schema.json` is red in the ratchet test, and adding a conditional one under `if/then` keyed on a declared field keeps eight of eight entries valid | the ratchet is green, or a conditional field invalidates a committed entry — then decision 7's schema rule is wrong in one direction or the other |
-| 13 | `scores == derive(cases)` holds for every committed goldens entry and the README's goldens rows match their entries; a one-field edit to either is red | either is green — then the self-consistency and the public claim are not tied |
+| 13 | `scores == derive(cases)` holds for all eight committed entries under decision 2's stated derivation (`model_declined_unscored` excluded), the goldens case-id set matches `cases.yaml` at each entry's `sha`, and the README's bold goldens rows match the pinned entry per tag; a one-field edit to any is red, and adding a golden case is **not** | any is green, or the new case is red — then the tie is either absent or a ratchet on corpus growth |
 | 14 | no committed entry's `scores` or `cases` changes, no `README.md` number moves, and `m04-adversarial.json` is byte-identical before and after | any moves — then this ADR edited history while claiming to protect it |
 
 Prediction 1 is load-bearing, for ADR-037's reason. Prediction 7 is draft 2's
 prediction 7, which has failed three times and is carried as a discipline.
 Prediction 8 is the G4 prediction: it is the one that says a probe count cannot
 be invented by the PR that reports it.
+
+## What draft 3 got wrong
+
+- **"Only `m04`'s evidence link is broken."** Seven of ten `samples_from`
+  records were, because both recorders hash raw bytes and the operator's tree
+  is CRLF — and the `8bac7894…` it quoted as "the first digest of a revision
+  chain" was the CRLF rendering of a blob whose normalised digest is
+  `a333fd88…`. A recorder defect and one revision, presented as one revision.
+- **`corpus_size` "derived from the committed corpus and asserted by a test"**
+  named no test and could not be asserted from the working tree for four of
+  five instruments. A fabricated mid-registry row recorded a 3/3 arm green.
+  The check exists — against every committed revision of the corpus — and it
+  is named now.
+- **It put the deciding check in a pytest**, under a harness that
+  `tests/conftest.py` and `pyproject.toml` control on zero keys. The deciding
+  instance is a workflow step with an explicit base.
+- **`--diff-filter=MDR`** enumerated the bad verbs and missed `T`.
+- **"On a tree with no `.git`"** would have refused every worktree.
+- **`PAVE_BASE` fell through on a typo.**
+- **"Every goldens row with a tag"** was satisfiable by the wrong entry for
+  `m00b` and `m02`.
+- **Case ids against today's `cases.yaml`** would have turned every committed
+  entry red the day a case is added.
+- **Its schema rule was wrong in one direction**: a conditional keyed on
+  `suite` can invalidate old rows. The validate-all test is the rule.
+- **Two no-op corrections landed with the same digest**, and it did not say
+  which entry the gate reads when a correction exists.
+- **It named a `pave gate two-key --base` path that does not exist.**
+- **It named two of the four grandfathered rows.**
 
 ## What draft 2 got wrong
 
@@ -576,6 +804,11 @@ be invented by the PR that reports it.
 - `schema.json` can never again gain a field that invalidates a committed
   entry, and the test that would have refused one is now the stated rule rather
   than an obstacle.
+- Both recorders stop writing CRLF digests; the seven legacy records are
+  tolerated by name and the tolerance is written down.
+- The quality gate gains a fifth verdict, `history`, decided by a step no test
+  harness file can reach.
+- Goldens evidence takes two keys where it took none.
 
 ## What this ADR does not do
 
