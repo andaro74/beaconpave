@@ -323,3 +323,60 @@ def test_handing_the_evaluator_raw_text_fails_loudly_rather_than_permitting():
     with pytest.raises((AttributeError, TypeError)):
         cedar.authorize(COMMITTED, principal="highlights-agent", action="invoke",
                         resource="catalog-search")
+
+
+# --- the schema's own claim, executed (ADR-043 decision 4) ------------------------
+
+#: Property names that would let a caller ask for the interlock to be skipped.
+#: `publish-highlight`'s description says the schema "cannot express 'skip
+#: approval' -- there is no such field, by design", and **nothing executed that
+#: sentence.** Measured on 07e8cd1: deleting `ai_generated` and adding
+#: `skip_approval` left 1795 passed, `pave policy generate --check` at exit 0, and
+#: `two-key: not required` -- with the new field landing in
+#: `tools.contracts.json`, which ships inside the gateway bundle.
+BYPASS_SHAPED = ("skip_approval", "skip_review", "bypass_approval", "no_approval",
+                 "approval_granted", "auto_approve", "force")
+
+#: Fields a gated tool must keep. `ai_generated` is the MER-AI-0001 disclosure
+#: flag the editorial approver sees; the same one-line edit that adds a bypass
+#: field removes it, and that half was unasserted too.
+GATED_REQUIRED_PROPERTIES = {"publish-highlight": {"ai_generated"}}
+
+
+def _input_schema(tool):
+    return yaml.safe_load((ROOT / tool["schemas"]["input"]).read_text(encoding="utf-8"))
+
+
+def test_no_registered_tool_can_express_skipping_its_own_interlock():
+    """The absence IS the contract, so the absence gets an assertion.
+
+    **And ADV-008 does not probe it** -- the schema's description said so and it
+    was false in both halves. ADV-008's `pass_when` is
+    `cedar_denied_or_approval_required_and_logged`, which turns on Cedar's forbid;
+    no probe in the corpus reads a schema. The description is corrected in the
+    same commit as this test (ADR-043)."""
+    for tool in REGISTRY:
+        props = set(_input_schema(tool).get("properties", {}))
+        offending = sorted(props & set(BYPASS_SHAPED))
+        assert not offending, (
+            f"{tool['id']}'s input schema declares {offending}. A consequence class is "
+            "enforced by Cedar's forbid, and a tool that can ASK to skip it makes the "
+            "registry's declaration decorative. Owning seats: tool-owner, legal-sp."
+        )
+
+
+def test_a_gated_tool_keeps_the_fields_its_approver_reads():
+    """`additionalProperties: false` stops a field being added and says nothing
+    about one being removed. The disclosure flag is the field the human in the
+    interlock actually looks at."""
+    for tool in REGISTRY:
+        wanted = GATED_REQUIRED_PROPERTIES.get(tool["id"])
+        if not wanted:
+            continue
+        props = set(_input_schema(tool).get("properties", {}))
+        missing = sorted(wanted - props)
+        assert not missing, (
+            f"{tool['id']}'s input schema no longer declares {missing}. `ai_generated` "
+            "is MER-AI-0001's disclosure flag and the approver reads it. Owning seats: "
+            "tool-owner, legal-sp."
+        )
