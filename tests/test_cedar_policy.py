@@ -337,10 +337,21 @@ def test_handing_the_evaluator_raw_text_fails_loudly_rather_than_permitting():
 BYPASS_SHAPED = ("skip_approval", "skip_review", "bypass_approval", "no_approval",
                  "approval_granted", "auto_approve", "force")
 
-#: Fields a gated tool must keep. `ai_generated` is the MER-AI-0001 disclosure
-#: flag the editorial approver sees; the same one-line edit that adds a bypass
-#: field removes it, and that half was unasserted too.
-GATED_REQUIRED_PROPERTIES = {"publish-highlight": {"ai_generated"}}
+#: Fields a gated tool must keep, and the JSON type each must keep.
+#:
+#: `ai_generated` is the MER-AI-0001 disclosure flag; the same one-line edit that
+#: adds a bypass field removes it, and that half was unasserted too. **The type is
+#: pinned because the name alone is a weak reading of a disclosure control**: the
+#: Legal/S&P seat measured `"type": "boolean"` -> `"string"` with `"default": "no"`
+#: shipping into the deployed contract set at 1814 passed.
+#:
+#: NOTE the value is a MAPPING and the guard below ratchets on it being non-empty.
+#: The first version was a set, and the guard tested `set(GATED_REQUIRED_PROPERTIES)`
+#: -- the dict's KEYS -- so `{"publish-highlight": set()}` satisfied it while the
+#: check skipped on `if not wanted: continue`, and the disclosure flag could be
+#: deleted at 1814 passed. That is this file's own anti-vacuity guard being vacuous
+#: one level in, found by the seat whose requirement it protects.
+GATED_REQUIRED_PROPERTIES = {"publish-highlight": {"ai_generated": "boolean"}}
 
 
 def _input_schema(tool):
@@ -370,16 +381,22 @@ def test_a_gated_tool_keeps_the_fields_its_approver_reads():
     about one being removed. The disclosure flag is the field the human in the
     interlock actually looks at."""
     for tool in REGISTRY:
-        wanted = GATED_REQUIRED_PROPERTIES.get(tool["id"])
-        if not wanted:
-            continue
-        props = set(_input_schema(tool).get("properties", {}))
-        missing = sorted(wanted - props)
+        wanted = GATED_REQUIRED_PROPERTIES.get(tool["id"], {})
+        props = _input_schema(tool).get("properties", {})
+        missing = sorted(set(wanted) - set(props))
         assert not missing, (
             f"{tool['id']}'s input schema no longer declares {missing}. `ai_generated` "
-            "is MER-AI-0001's disclosure flag and the approver reads it. Owning seats: "
-            "tool-owner, legal-sp."
+            "is MER-AI-0001's disclosure flag, which the approval interlock will present "
+            "to the approver when M07 disposes that rule. Owning seats: tool-owner, "
+            "legal-sp."
         )
+        for name, expected_type in wanted.items():
+            actual = props[name].get("type")
+            assert actual == expected_type, (
+                f"{tool['id']}.{name} is declared `{actual}`, not `{expected_type}`. A "
+                "disclosure flag retyped to a string is a flag that can ship the word "
+                '"no" as its default. Owning seats: tool-owner, legal-sp.'
+            )
 
 
 def test_the_bypass_vocabulary_and_the_gated_field_map_are_not_empty():
@@ -397,7 +414,9 @@ def test_the_bypass_vocabulary_and_the_gated_field_map_are_not_empty():
     )
     gated = {t["id"] for t in REGISTRY if t["consequence"] in cedar.GATED_CONSEQUENCES}
     assert gated, "no gated tool in the registry — GATED_CONSEQUENCES may have been emptied"
-    missing = sorted(gated - set(GATED_REQUIRED_PROPERTIES))
+    # On the VALUES, not the keys. `{"publish-highlight": {}}` is a key with nothing
+    # behind it, and the check above skips a tool whose entry is empty.
+    missing = sorted(t for t in gated if not GATED_REQUIRED_PROPERTIES.get(t))
     assert not missing, (
         f"{missing} are gated by consequence class but declare no required properties. "
         "A gated tool's approver reads specific fields; say which, or the check that "

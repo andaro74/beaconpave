@@ -102,11 +102,13 @@ def test_this_file_is_itself_on_a_rule_that_carries_securitys_key():
     relationship to `pins.json`. Self-referential and correct -- a protection
     test whose own rule can be deleted quietly protects nothing."""
     seats = _seats_for("tests/test_twokey_seats.py")
-    assert "security" in seats and "platform-eng" in seats, (
-        f"tests/test_twokey_seats.py is on rule(s) carrying {sorted(seats)}. It pins the "
-        "seat sets of rules that name security (G1's allowlist, the Cedar generator); "
-        "removing it from the protection-test regex would make those pins deletable "
-        "without the seat they defend."
+    pinned = {s for expected in ADR043_SEATS.values() for s in expected}
+    missing = sorted(pinned - seats)
+    assert not missing, (
+        f"tests/test_twokey_seats.py is on rule(s) carrying {sorted(seats)}, but it pins "
+        f"keys for {sorted(pinned)}. Seat(s) {missing} could be dropped from the rules "
+        "below AND from this pin in one diff, without the seat losing the key ever being "
+        "asked — the shape ADR-037 recorded and ADR-043 exists to close."
     )
 
 

@@ -239,13 +239,7 @@ RULES: tuple[Rule, ...] = (
         # seat-set test -- every protection that ADR adds, in one file on the
         # rule, because its draft 2 named no file and every plausible name
         # resolved to no rule at all.
-        # `test_twokey_seats` holds ADR-043's seat-set assertions and its
-        # violating-tree tests. It lives on THIS rule rather than beside
-        # `pave/twokey.py` (ai-quality + platform-eng) because it asserts the seat
-        # sets of rules that name **security** -- G1's allowlist and the Cedar
-        # generator -- and a test that pins Security's key must not be removable
-        # without it.
-        re.compile(r"^tests/(test_arm_scoping|test_instrument_stability|test_adversarial_lane|test_adversarial_entry|test_history_append_only|test_twokey_seats)\.py$"),
+        re.compile(r"^tests/(test_arm_scoping|test_instrument_stability|test_adversarial_lane|test_adversarial_entry|test_history_append_only)\.py$"),
         # Platform Engineering joins because `PIN_FLOOR` lives here and duplicates
         # comparator values on purpose -- the lane that reads those pins is theirs,
         # and the duplication is what makes moving a pinned number take a code diff
@@ -403,6 +397,24 @@ RULES: tuple[Rule, ...] = (
         "attributed to, and what shape may be written",
         re.compile(r"^platform/gateway/(core/(guardrail|toolloop)\.py|handler\.py|audit\.schema\.json)$"),
         ("platform-eng", "security"),
+    ),
+    Rule(
+        # **The file that pins every other rule's seat set, on the union of the
+        # seats it pins.** ADR-043 first put this on the enumerated
+        # protection-test rule (ai-quality, security, platform-eng), and the
+        # Legal/S&P seat measured the consequence: those three seats could drop
+        # `legal-sp` from the generator rule AND edit the pin here in one diff, at
+        # 1814 passed, with the seat losing its key never asked. That is ADR-037's
+        # shape -- a protection guarded by a seat set excluding the seat it
+        # protects -- on the very rule ADR-043 added to close it.
+        #
+        # Five seats on one small file is heavy and correct: its whole job is to
+        # hold other rules' seat sets, so every seat whose key it pins signs its
+        # removal. `ai-quality` is here because `twokey.py`'s own docstring names
+        # it as the owner of the rules list.
+        "the seat-set pins — every rule's seats, held where each of those seats must sign",
+        re.compile(r"^tests/test_twokey_seats\.py$"),
+        ("ai-quality", "security", "platform-eng", "tool-owner", "legal-sp"),
     ),
     # --- ADR-043: paths that decide an invariant and collected no key ---
     #

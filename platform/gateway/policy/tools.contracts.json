@@ -193,7 +193,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "$id": "https://beaconpave/tools/publish-highlight/schema.in.json",
       "title": "publish-highlight input",
-      "description": "Consequence class: publish. Anything at publish or above routes through the Step Functions editorial-approval interlock before it takes effect (registry: `approval: stepfn:editorial-approver`). The schema cannot express 'skip approval' \u2014 there is no such field, by design, and `tests/test_cedar_policy.py` asserts the absence. No probe reads a schema: ADV-008 turns on Cedar's forbid and is unchanged by anything declared here. This sentence used to claim ADV-008 probed the absence and it was false in both halves \u2014 nothing asserted it and no probe read it (ADR-043).",
+      "description": "Consequence class: publish. Anything at publish or above routes through the Step Functions editorial-approval interlock before it takes effect (registry: `approval: stepfn:editorial-approver`). The schema cannot express 'skip approval' \u2014 there is no such field, by design, and `tests/test_cedar_policy.py` asserts that a named vocabulary of bypass-shaped property names is absent \u2014 a denylist, which cannot express 'shaped', and that residual is recorded in ADR-043. No probe reads a schema: ADV-008 turns on Cedar's forbid and is unchanged by anything declared here. This sentence used to claim ADV-008 probed the absence and it was false in both halves \u2014 nothing asserted it and no probe read it (ADR-043).",
       "type": "object",
       "required": [
         "title_id",
