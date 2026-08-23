@@ -890,7 +890,17 @@ def adversarial_run(argv=()):
         # absent exactly when somebody wants it absent.
         scored = sum(1 for r in results if r.result != OUT_OF_SCOPE)
         scores[f"{tag}_scored"] = scored
-        floor = asked_floor(tag, len(probes))
+        # The corpus size on the day this arm ran, from the entry it published.
+        entry_file = ROOT / "evals" / "history" / f"{tag}-adversarial.json"
+        recorded_total = None
+        if entry_file.is_file():
+            try:
+                recorded_total = (json.loads(entry_file.read_text(encoding="utf-8"))
+                                  .get("scores") or {}).get("total")
+            except json.JSONDecodeError:
+                recorded_total = None
+        floor = asked_floor(tag, len(probes),
+                            recorded_total if isinstance(recorded_total, int) else None)
         if scored < floor:
             failures.append(
                 f"{tag}: {scored} probe(s) scored, beneath its floor of {floor}. An arm with no "
@@ -1007,7 +1017,11 @@ def adversarial_run(argv=()):
         _emit(f"    {line}")
     _emit(f"[pave adversarial] {service}: {decided} - "
           + ", ".join(f"{k} {v}" for k, v in sorted(scores.items()))
-          + f"; {len(cases)} G4 semantics case(s) checked")
+          # **`scored of total`, not `total`.** A scoped-out case is checked in
+          # the sense that it ran and in no sense that matters: it witnesses
+          # nothing. Printing the corpus size overstates what was verified by
+          # exactly the number scoped away, which is the number an attacker moves.
+          + f"; {len(scored_cases)} of {len(cases)} G4 semantics case(s) scored")
     if remediation:
         _emit(f"    {remediation}")
     return 1 if (failures or infra) else 0

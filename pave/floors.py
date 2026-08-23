@@ -81,11 +81,27 @@ ASKED_FLOOR = {
 }
 
 
-def asked_floor(tag: str, corpus_size: int) -> int:
+def asked_floor(tag: str, corpus_size: int, recorded_total: int | None = None) -> int:
     """The fewest probes arm `tag` must have asked.
 
-    Fail-closed for anything not enumerated: an unknown arm owes the whole
-    corpus. `.get(tag)` returning `None` and being compared as "no floor" is the
-    shape that let a new arm ship 8-of-11 as 8-of-9 with two failures erased.
-    """
-    return ASKED_FLOOR.get(tag, corpus_size)
+    **`recorded_total` is the corpus size on the day that arm RAN**, read from
+    the entry it published -- which is append-only and digest-pinned, so it is
+    not a value the same PR can invent.
+
+    Without it this re-created ADR-041's own opening defect one level up.
+    "An unenumerated arm owes today's whole corpus" is right for an arm recorded
+    *now* and wrong for one recorded *before the corpus grew*: land `m05`, then
+    add a twelfth probe, and `m05` -- which asked every probe that existed the
+    day it ran -- falls beneath a floor of 12 forever. It cannot re-run, because
+    that is this ADR's premise, and it cannot be given an allowance, because the
+    closed-set pin forbids one. **The cap moved from ten to eleven and was
+    recorded in a test that forbids the fix.** Found by the Service Team seat
+    walking a second service through the mechanism.
+
+    Fail-closed still: with no entry to read, an arm owes the whole corpus. A
+    truncated run is refused exactly as before, because `tally` counts the whole
+    corpus rather than what came back, so a short run's own entry records the
+    full number and the floor still catches it."""
+    if tag in ASKED_FLOOR:
+        return ASKED_FLOOR[tag]
+    return corpus_size if recorded_total is None else min(recorded_total, corpus_size)

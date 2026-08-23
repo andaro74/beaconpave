@@ -88,8 +88,13 @@ def test_it_reports_how_many_semantics_cases_it_checked():
     """A lane that silently checked zero cases would pass identically to one that
     checked fourteen, and the difference is the whole of amendment 1."""
     corpus = yaml.safe_load(SEMANTICS.read_text(encoding="utf-8"))
+    scored = [c for c in corpus["cases"] if c.get("expect") != "OUT_OF_SCOPE"]
     result = run_lane("services/highlights-agent")
-    assert f"{len(corpus['cases'])} G4 semantics case(s) checked" in result.stdout
+    # **`scored of total`, from ADR-041.** A case scoped out ran and witnessed
+    # nothing, so reporting the corpus size overstated what was verified by
+    # exactly the number scoped away -- which is the number an attacker moves.
+    assert (f"{len(scored)} of {len(corpus['cases'])} G4 semantics case(s) scored"
+            in result.stdout)
     assert len(corpus["cases"]) >= 10
 
 
