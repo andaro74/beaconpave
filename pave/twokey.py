@@ -521,16 +521,25 @@ RULES: tuple[Rule, ...] = (
         # hookwrapper applies to every item, 1814 passed with a G1 pin red), a
         # new `pave/tests/conftest.py` (`collect_ignore` dropping the two-key
         # mechanism's own test, 1743 passed), and a root `pytest.ini` (higher
-        # precedence than `[tool.pytest.ini_options]`, 1734 passed). `tox.ini`
-        # and `setup.cfg` are the same precedence chain and are included rather
-        # than measured.
+        # precedence than `[tool.pytest.ini_options]`, 1734 passed), and
+        # `.pytest.ini`, which outranks every name above it -- pytest prints
+        # "ignoring pytest config in pyproject.toml" and `-o addopts=` does not
+        # clear its `testpaths`, so two lines took the suite to 47 with
+        # `pave check` still PASS at exit 0. `tox.ini` and `setup.cfg` are the
+        # same precedence chain and are included rather than measured.
+        #
+        # **This enumeration is a DENYLIST and cannot be complete.** Six entry
+        # points were found by three seats across two rounds, each after the
+        # previous fix. The structural answer is ADR-042 decision 3's -- the
+        # deciding instance must not be a pytest at all -- and it is recorded as
+        # owed rather than claimed here.
         #
         # **Honest limit (ADR-043 decision 3):** a key makes that COLLECTABLE, not
         # red. A harness that rewrites its own reports can report anything and no
         # count sees it. Stated here and in the ADR rather than left to be
         # discovered a second time.
         "the test harness — a file that can decide what the suite reports",
-        re.compile(r"^((.*/)?conftest\.py|pyproject\.toml|pytest\.ini|tox\.ini|setup\.cfg)$"),
+        re.compile(r"^((.*/)?conftest\.py|pyproject\.toml|\.?pytest\.ini|tox\.ini|setup\.cfg)$"),
         ("platform-eng", "security"),
     ),
 )

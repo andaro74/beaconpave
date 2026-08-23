@@ -330,13 +330,24 @@ given a test.
 - **`ADR043_SEATS = {}` was silent at 1814 passed** — every pin decision 5 rests
   on, deleted by one token. Now ratcheted against `twokey.RULES`: each pattern
   this ADR adds must have a representative path pinned.
-- **The harness rule named two entry points and the harness has five.** A
+- **The harness rule named two entry points, and six have now been found.** A
   repo-root `conftest.py` is an ancestor of both testpaths, so its hookwrapper
   applies to every item (1814 passed, G1 pin genuinely red); a new
   `pave/tests/conftest.py` drops the two-key mechanism's own test (1743 passed);
   a root `pytest.ini` outranks `[tool.pytest.ini_options]` entirely (1734
   passed). All three collected nothing. `tox.ini` and `setup.cfg` are the same
-  precedence chain and are covered rather than measured.
+  precedence chain and are covered rather than measured. The verification round then
+  found a sixth, `.pytest.ini`, which outranks all of them — two lines took the
+  suite to 47 with `pave check` still PASS — and a seventh surface that is not a
+  config file at all: `pave/cli.py`'s own pytest invocation, where appending
+  `--ignore=` dropped 24 tests past both guards. The argv is now pinned exactly, in
+  a three-key file, because `test_ordinary_pr_is_not_gated` requires `pave/cli.py`
+  to stay unkeyed.
+
+  **This enumeration is a denylist and cannot be claimed complete.** Six entry
+  points across two rounds, each found after the previous fix. The structural
+  answer is ADR-042 decision 3's — the deciding instance must not be a pytest —
+  and it is owed rather than claimed here.
 - **A "prose correction" landed in model-facing text.** `handler.py:157` hands
   the input schema's `description` to Bedrock as the tool's spec. The correction
   grew that field from 309 to 568 characters of repo governance — naming the enforcing
@@ -364,18 +375,18 @@ property set per gated tool, which `additionalProperties: false` makes exact; **
 model-facing at M06 with no pin having watched it; the schema *rule* is path-shaped while the *check* follows the registry
 pointer, so a schema moved out of `tools/<id>/` leaves the rule; a duplicate
 registry id is a working forgery that `policy ⊆ registry` would not catch;
-`ai_generated` is **not in `required`** and nothing reads its value, so what is defended is its declaration and its type, never that a caller sent it — M07's disposition is what makes the flag live; `semver` in the registry is decorative; and `cedar.py` is in no instrument
+`ai_generated` is **not in `required`** and nothing reads its value, so what is defended is its declaration and its type, never that a caller sent it — M07's disposition is what makes the flag live; `semver` in the registry is decorative; **`ROLES.md`'s two-key table gains no row for any of the five rules** and `docs/adr/README.md` carries no row for ADR-041 or ADR-042; `CLAUDE.md` names its own owning seat and sits on no rule; and `cedar.py` is in no instrument
 digest while ADV-008's `pass_when` turns on what it emits.
 
 ## Pre-registered predictions
 
 | # | prediction | what falsifies it |
 |---|---|---|
-| 1 | Each of the five plants, re-run after this ADR, **collects the keys named in decisions 1–3** — G1's widening, the `attacker-svc` permit, the `GATED_CONSEQUENCES` word, the schema edit, and the `conftest.py` hookwrapper | any still reports "two-key: not required" |
+| 1 | Each of the five plants, re-run after this ADR, **collects the keys named in decisions 1–3 and in the two rules added during review** (the tool plane, the seat-set pins) — G1's widening, the `attacker-svc` permit, the `GATED_CONSEQUENCES` word, the schema edit, and the `conftest.py` hookwrapper | any still reports "two-key: not required" |
 | 2 | The schema plant is **red** with a named failure and a remedy; the interlock plant was **already** red at 15 failures and this ADR adds only its key | the schema plant stays green — then decision 4's one new assertion is a claim rather than a check |
 | 3 | G1's plant and the generator's plant remain **green and key-collecting**, and this ADR says so rather than implying otherwise | the ADR is read as closing them — the residual must survive review in the text |
 | 4 | `--no-renames` (ADR-042 decision 4) collects the key on `git mv pave/infra.py pave/iam.py` + edit, and on `cedar.py` moved out of `core/` | either escapes — then the new rules are bypassable exactly as every pre-ADR-042 rule was |
-| 5 | **Every check this ADR adds is deletable only loudly** — neutering each in turn produces at least one named failure, audited by neutering each in turn | any is silent — ADR-042 prediction 7b, which failed for four of ten checks on its first implementation |
+| 5 | **FALSIFIED, and recorded rather than amended away.** Neutering every check and threshold literal is loud; neutering the *helpers they call* is not. Four remain silent at HEAD — `_seats_for`, `_all_property_names`'s recursion, `_schema_paths`, and the type-pin loop — each because no committed fixture exercises the capability. All four land in two-key files, so they are collectable-not-red, which is decision 3's stated residual and not a new class | it was already false; what would falsify the *record* is a silent neuter outside a keyed file |
 | 6 | The seat-set test is red when any seat is removed from any of the three new rules, and the vocabulary assertion is red on a typo'd seat | either is green — then ADR-037's finding has a sixth arrival waiting |
 | 7 | **No recorded number moves**: no entry in `evals/history/`, `pins.json` unchanged, `evals/comparators.json` byte-identical, no README `n/m` row moved, and the seven live instrument digests unchanged | any moves — then a rules PR touched the instrument |
 | 8 | Zero model calls; `make check` green and hermetic; no new dependency | any fails |

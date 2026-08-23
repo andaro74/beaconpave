@@ -410,6 +410,20 @@ def test_pave_check_cannot_be_deselected_from_pyproject():
     body = source[start:source.index("\ndef ", start + 1)]
     assert '"-o", "addopts="' in body
     assert "deselected" in body
+    # **The exact argv, not a substring.** The Platform seat measured that the
+    # substring assertion is one-directional -- it requires a token to be PRESENT
+    # and constrains nothing added beside it. Appending
+    # `--ignore=tests/test_iam_assertions.py` kept `-o addopts=` in place, dropped
+    # 24 tests, and left `pave check` PASS at exit 0 with `pave/cli.py` on no rule
+    # (`test_ordinary_pr_is_not_gated` asserts it must stay that way, so the pin
+    # lives here, in a three-key file, instead).
+    argv = body[body.index("Popen(["):]
+    argv = argv[argv.index("["):argv.index("]") + 1]
+    assert argv == '[sys.executable, "-m", "pytest", "-q", "-o", "addopts="]', (
+        f"`pave check` invokes pytest as {argv}. Any argument added here can drop tests "
+        "without tripping the zero-collected or deselected guards. Changing the invocation "
+        "is a gate-mechanism decision: amend this pin in the same diff and say why."
+    )
 
 
 # --- decision 5: the evidence anchor ------------------------------------------

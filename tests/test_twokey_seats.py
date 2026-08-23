@@ -108,7 +108,7 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
         "the test harness": ["tests/conftest.py", "pyproject.toml", "conftest.py", "pytest.ini",
                              # covered rather than measured when the rule was widened, so
                              # pinned here rather than left to a reader's trust
-                             "tox.ini", "setup.cfg"],
+                             "tox.ini", "setup.cfg", ".pytest.ini"],
         "the seat-set pins": ["tests/test_twokey_seats.py"],
         "the tool plane": ["platform/gateway/core/toolplane.py", "tests/test_toolplane.py"],
     }
