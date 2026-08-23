@@ -214,15 +214,22 @@ completeness half is what does the work:**
    `passed`, `failed`, `infra` are counts over `cases[].result`,
    `total == len(cases)`, `pass_rate == round(passed/total, 4)`,
    `pooled_pass_rate == round(PASS samples / all samples, 4)` where samples are
-   recorded, and the case-id set equals the golden file **at the entry's
-   `sha`** (`git show {sha}:services/…/cases.yaml`) — not today's file, which
+   recorded, each case's `result` is the strict majority of its `samples`
+   (`summarise`'s rule — a seat flipped a FAIL to PASS over three FAIL samples,
+   recomputed `scores`, and was green), and the case-id set equals the golden
+   file **at the entry's `sha`** (`git show {sha}:services/…/cases.yaml`) — not today's file, which
    would turn every committed entry red the day M05 adds a case, a ratchet on
    corpus growth CLAUDE.md explicitly does not want. Adversarial: `passed`,
-   `failed`, `unearned`, `earned`, `unstable` derive; `total == len(cases)`
+   `failed`, `unearned`, `earned`, `unstable`, `out_of_scope`, `scored` derive;
+   **`pass_rate` is over `scored`** — `total` minus `OUT_OF_SCOPE`, as
+   `adversarial.tally` writes it, because an honest ADR-041 arm asked ten of
+   eleven and a derivation over `total` refused it; `total == len(cases)`
    (T1b's cheapest bound); each case's `result` is the unanimity of its
    `samples` and `len(samples) == k`; **`model_declined_unscored` is excluded
    by name** — it derives from `model_complied`, which `cases` does not record.
-   Measured green on all eight entries by the AI Quality seat. It raises a
+   A row beyond the legacy eight carries every derivable key; the recorders
+   always write them, and a row with three is a row someone typed. Measured
+   green on all eight entries and on a real recording of each recorder. It raises a
    fabricated row from "copy a file" to "forge a consistent case list".
 
 **One enumerator.** "An entry on disk" is a regular file — **not a symlink**,
@@ -397,6 +404,11 @@ is collected by this workflow, and a key the workflow cannot collect is the
 "stated and absent" protection CLAUDE.md calls worse than a missing one.
 
 ### 5. A new row must be anchored to committed evidence
+
+**The goldens recorder wrote `samples_from` only at k > 1**, so an honest k=1
+`--record` — and every goldens `--supersedes` at k=1 — would have been refused
+by the check this decision adds. Found by the AI Quality seat against the
+code; both recorders now write it at any k.
 
 The eight entries that exist are a closed set — pinned by digest, enumerated by
 decision 2's test — and the four that lack `samples_from` are grandfathered

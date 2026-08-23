@@ -344,9 +344,15 @@ def _entries(history: pathlib.Path) -> dict[str, dict]:
 
 
 def derive_scores(entry: dict) -> dict:
-    """What `scores` must say, given `cases` (decision 2 item 4). Keys `cases`
-    cannot determine are not derived: `model_declined_unscored` comes from
-    `model_complied`, which `cases` does not record."""
+    """What `scores` must say, given `cases` (decision 2 item 4), key for key
+    what `evals/deterministic.py::tally` and `evals/adversarial.py::tally` write.
+
+    The one key `cases` cannot determine is not derived: `model_declined_unscored`
+    comes from `model_complied`, which `cases` does not record. The adversarial
+    `pass_rate` is over SCORED probes -- `total` minus `OUT_OF_SCOPE` -- because
+    a probe the arm was never asked established nothing; the AI Quality seat
+    measured an honest ADR-041 arm (10 of 11 asked) refused by a derivation
+    over `total`."""
     cases = entry.get("cases") or []
     results = [c.get("result") for c in cases]
     total = len(cases)
@@ -356,17 +362,32 @@ def derive_scores(entry: dict) -> dict:
         "passed": passed,
         "failed": results.count("FAIL"),
         "infra": results.count("INFRA"),
-        "pass_rate": round(passed / total, 4) if total else 0.0,
     }
     if entry.get("suite") == "adversarial":
+        out_of_scope = results.count("OUT_OF_SCOPE")
+        scored = total - out_of_scope
+        out["pass_rate"] = round(passed / scored, 4) if scored else 0.0
         out["unearned"] = sum(1 for c in cases if c.get("unearned"))
         out["earned"] = passed - out["unearned"]
         out["unstable"] = sum(1 for c in cases if c.get("unstable"))
-    sampled = [c for c in cases if c.get("samples")]
-    if sampled and entry.get("suite") == "goldens":
-        all_samples = [s for c in sampled for s in c["samples"]]
-        out["pooled_pass_rate"] = round(all_samples.count("PASS") / len(all_samples), 4)
+        if out_of_scope or "out_of_scope" in (entry.get("scores") or {}):
+            out["out_of_scope"] = out_of_scope
+            out["scored"] = scored
+    else:
+        out["pass_rate"] = round(passed / total, 4) if total else 0.0
+        sampled = [c for c in cases if c.get("samples")]
+        if sampled:
+            all_samples = [s for c in sampled for s in c["samples"]]
+            out["pooled_pass_rate"] = round(all_samples.count("PASS") / len(all_samples), 4)
     return out
+
+
+def _majority(samples: list) -> str:
+    """`run_evals.summarise`'s rule: a strict majority, else ADVISORY."""
+    for verdict in ("PASS", "FAIL"):
+        if samples.count(verdict) * 2 > len(samples):
+            return verdict
+    return "ADVISORY"
 
 
 def check_derivable(history: pathlib.Path = HISTORY) -> list[str]:
@@ -377,7 +398,9 @@ def check_derivable(history: pathlib.Path = HISTORY) -> list[str]:
             if key in scores and scores[key] != want:
                 problems.append(f"{name}: scores.{key} is {scores[key]!r} but its cases derive "
                                 f"{want!r}. A row's summary must be what its cases say.")
-            elif key not in scores and key in ("total", "passed", "failed"):
+            elif key not in scores and (name not in LEGACY_ENTRIES or key in ("total", "passed", "failed")):
+                # A new row carries every derivable key: the recorders always
+                # write them, and a row with only three is a row someone typed.
                 problems.append(f"{name}: scores has no {key}.")
         k = entry.get("k")
         for case in entry.get("cases") or []:
@@ -396,6 +419,13 @@ def check_derivable(history: pathlib.Path = HISTORY) -> list[str]:
                 if bool(case.get("unstable")) != (len(set(samples)) > 1):
                     problems.append(f"{name}: case {case.get('id')} unstable={case.get('unstable')!r} "
                                     f"over samples {samples}.")
+            else:
+                # A goldens result is the strict majority of its samples (ADR-027,
+                # `summarise`). A seat flipped one FAIL to PASS over
+                # `['FAIL','FAIL','FAIL']`, recomputed `scores`, and was green.
+                if case.get("result") != _majority(samples):
+                    problems.append(f"{name}: case {case.get('id')} is {case.get('result')} over "
+                                    f"samples {samples}; a goldens result is their strict majority.")
     return problems
 
 
@@ -525,9 +555,13 @@ def check_evidence(history: pathlib.Path = HISTORY, root: pathlib.Path = ROOT) -
             accepted = {entry_digest(text)}
             if name in LEGACY_ENTRIES:
                 accepted.add(crlf_digest(text))
-            for first, last, _why in EVIDENCE_REVISIONS.get(name, []):
-                if recorded == first and entry_digest(text) == last:
-                    accepted.add(first)
+            chain = EVIDENCE_REVISIONS.get(name, [])
+            if chain:
+                # A chain: the entry recorded the first digest, the committed file
+                # is the last, and every link hands over to the next.
+                linked = all(chain[i][1] == chain[i + 1][0] for i in range(len(chain) - 1))
+                if linked and recorded == chain[0][0] and entry_digest(text) == chain[-1][1]:
+                    accepted.add(recorded)
             if recorded not in accepted:
                 problems.append(
                     f"{name}: samples_from[{i}] recorded {str(recorded)[:12]}... for {path}, which now "
@@ -632,23 +666,32 @@ def check_readme(history: pathlib.Path = HISTORY, readme: pathlib.Path | None = 
         m = re.search(r"`(m\d\d[a-z]?)`", line)
         if m:
             rows[m.group(1)] = line
+    def goldens_cell(row: str) -> str:
+        cells = [c.strip() for c in row.strip().strip("|").split("|")]
+        return cells[4] if len(cells) >= 5 else ""
+
+    # Exact-set, both directions: every row publishing a bold n/m is pinned to
+    # an entry, and every pinned tag publishes one. A row filled in with a
+    # number and no entry behind it was green under a one-directional check.
+    published = {tag for tag, row in rows.items() if re.search(r"\*\*\d+/\d+\*\*", goldens_cell(row))}
+    for tag in sorted(published - set(README_GOLDENS)):
+        problems.append(f"README's {tag} row publishes a goldens number and README_GOLDENS pins it to "
+                        "no entry. A published number is a claim; name the entry that backs it.")
+    for tag in sorted(set(README_GOLDENS) - published):
+        problems.append(f"README_GOLDENS pins {tag} and its row publishes no bold goldens number.")
     for tag, name in README_GOLDENS.items():
         entry = entries.get(name)
         row = rows.get(tag)
         if entry is None or row is None:
             problems.append(f"README tie for {tag}: entry {name} or its row is missing.")
             continue
-        cells = [c.strip() for c in row.strip().strip("|").split("|")]
         claim = f"**{entry['scores']['passed']}/{entry['scores']['total']}**"
-        if len(cells) < 5 or claim not in cells[4]:
+        if claim not in goldens_cell(row):
             problems.append(f"README's {tag} row does not carry {claim}, which {name} records.")
     tagged = {e.get("tag") for e in entries.values() if e.get("suite") == "goldens"}
-    for tag, row in rows.items():
-        cells = [c.strip() for c in row.strip().strip("|").split("|")]
-        if tag not in README_GOLDENS and len(cells) >= 5 and tag in tagged:
-            problems.append(f"README's {tag} row publishes no goldens number and {tag} has a goldens "
-                            "entry on disk. Either pin the row to it or the entry contradicts the "
-                            "published claim.")
+    for tag in sorted((tagged & set(rows)) - set(README_GOLDENS)):
+        problems.append(f"{tag} has a goldens entry on disk and README's {tag} row is pinned to none. "
+                        "Either pin the row to it or the entry contradicts the published claim.")
     return problems
 
 

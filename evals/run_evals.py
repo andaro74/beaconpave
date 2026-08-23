@@ -427,14 +427,19 @@ def run(args) -> int:
             print(f"  {r.id}: {r.unearned_reason}")
 
     if args.record:
-        # A judged entry always names and hashes the answers it read, even at
-        # k_answers = 1. The whole claim of a re-reading is "these exact answers,
-        # read differently", and an entry that does not say which bytes it read
-        # cannot support it.
+        # Every entry names and hashes the answers it read, at any k (ADR-042
+        # decision 5). This was `if len(per_sample) > 1 or judged_parts`, and the
+        # AI Quality seat measured that an honest k=1 `--record` -- and every
+        # goldens `--supersedes` at k=1 -- was then refused by the evidence check
+        # the same ADR adds. An entry that does not say which bytes it read
+        # cannot be anchored to them.
         path = record(results, scores, args, len(per_sample), samples,
-                      sources=_sources(paths) if (len(per_sample) > 1 or judged_parts) else None,
-                      judged=judged_parts)
-        print(f"recorded: {path.relative_to(ROOT)}")
+                      sources=_sources(paths), judged=judged_parts)
+        try:
+            shown = path.relative_to(ROOT)
+        except ValueError:   # a test's HISTORY, or --history-dir on the twin
+            shown = path
+        print(f"recorded: {shown}")
 
     if args.against:
         # The other arm, scored and summarised by the identical path — never read

@@ -228,7 +228,7 @@ def test_a_goldens_entry_for_a_row_that_publishes_no_number_is_red(tmp_path):
     row = json.loads((h / "m01-goldens.json").read_text(encoding="utf-8"))
     row["tag"] = "m04"
     (h / "m04-goldens.json").write_text(json.dumps(row), encoding="utf-8")
-    assert any("m04 row publishes no goldens number" in p for p in check_readme(h))
+    assert any("m04 has a goldens entry on disk" in p for p in check_readme(h))
 
 
 # --- decision 3: the merge-base diff ----------------------------------------
@@ -567,6 +567,60 @@ def test_the_lane_fails_an_unenumerated_arm_that_asked_three_of_eleven(tmp_path)
     assert "registers a corpus of 11" in lane.stdout, lane.stdout
 
 
+def test_an_honest_k1_goldens_record_passes_every_offline_check(tmp_path, monkeypatch):
+    """The AI Quality seat measured the real `--record` at k=1 refused by
+    `check_evidence`, because the recorder wrote `samples_from` only at k>1.
+    The honest path must be green, or the control teaches hand-editing."""
+    from evals import run_evals
+    h = tmp_path / "history"
+    h.mkdir()
+    shutil.copy(HISTORY / "schema.json", h / "schema.json")
+    monkeypatch.setattr(run_evals, "HISTORY", h)
+    rc = run_evals.main(["--answers", "milestones/M01/goldens-run.json", "--record",
+                         "--tag", "m01", "--target", "highlights-agent"])
+    assert rc in (0, 1), rc
+    assert (h / "m01-goldens.json").is_file()
+    assert check_pins(h) == []
+    assert check_derivable(h) == [], check_derivable(h)
+    assert check_evidence(h, ROOT) == [], check_evidence(h, ROOT)
+    assert check_schema(h) == []
+    written = json.loads((h / "m01-goldens.json").read_text(encoding="utf-8"))
+    assert written["samples_from"][0]["sha256"] == entry_digest(
+        (ROOT / "milestones" / "M01" / "goldens-run.json").read_text(encoding="utf-8"))
+
+
+def test_a_goldens_result_must_be_the_majority_of_its_samples(tmp_path):
+    h = _copy_history(tmp_path)
+    row = json.loads((h / "m02-tools-goldens.json").read_text(encoding="utf-8"))
+    case = next(c for c in row["cases"] if c["result"] == "FAIL" and c["samples"].count("FAIL") == 3)
+    case["result"] = "PASS"
+    row["scores"] = {**row["scores"], **history.derive_scores(row)}
+    (h / "m02-tools-goldens.json").write_text(json.dumps(row), encoding="utf-8")
+    assert any("strict majority" in p for p in check_derivable(h))
+
+
+def test_an_honest_arm_that_asked_ten_of_eleven_derives(tmp_path):
+    """`pass_rate` is over scored probes: an ADR-041 arm with one OUT_OF_SCOPE
+    is an honest row and was refused by a derivation over `total`."""
+    h = tmp_path / "history"
+    h.mkdir()
+    row = json.loads((HISTORY / "m04-adversarial.json").read_text(encoding="utf-8"))
+    row["cases"].append({"id": "ADV-011", "result": "OUT_OF_SCOPE"})
+    row["scores"] = {**row["scores"], "total": 11, "out_of_scope": 1, "scored": 10, "pass_rate": 0.7}
+    (h / "m04-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
+    assert check_derivable(h) == [], check_derivable(h)
+
+
+def test_a_published_number_with_no_entry_behind_it_is_red(tmp_path):
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    row = next(ln for ln in text.splitlines() if "`m05`" in ln and ln.lstrip().startswith("|"))
+    cells = row.split("|")
+    cells[5] = " **22/25** "
+    moved = tmp_path / "README.md"
+    moved.write_text(text.replace(row, "|".join(cells), 1), encoding="utf-8")
+    assert any("m05 row publishes a goldens number" in p for p in check_readme(readme=moved))
+
+
 # --- decision 7: a second row must say why -----------------------------------
 
 def test_a_second_row_under_one_sha_that_declares_nothing_is_refused(tmp_path):
@@ -652,13 +706,18 @@ def test_a_correction_can_be_recorded_end_to_end(tmp_path, monkeypatch):
     results = [R(c["id"], c["result"]) for c in original["cases"]]
     results[0].result = "PASS" if results[0].result != "PASS" else "FAIL"
     scores = history.derive_scores({"suite": "goldens", "cases": [{"id": r.id, "result": r.result} for r in results]})
-    path = run_evals.record(results, scores, Args())
+    sources = run_evals._sources([ROOT / "milestones" / "M01" / "goldens-run.json"])
+    sources[0]["path"] = "milestones/M01/goldens-run.json"
+    path = run_evals.record(results, scores, Args(), sources=sources)
     assert path.name == "m01-correction1-goldens.json"
     written = json.loads(path.read_text(encoding="utf-8"))
     assert written["supersedes"] == "m01-goldens.json" and written["sha"] == original["sha"]
+    # every check that does not need git, on the directory the correction landed in
     assert check_pins(h) == [], check_pins(h)
     assert check_second_rows(h) == []
     assert check_schema(h) == []
+    assert check_derivable(h) == []
+    assert check_evidence(h, ROOT) == [], check_evidence(h, ROOT)
     # a second correction of the same entry: refused -- the chain is linear
     with pytest.raises(SystemExit, match="already superseded"):
         run_evals.record(results, scores, Args())
