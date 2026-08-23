@@ -1,0 +1,10 @@
+{
+  "m00b-adversarial.json": "e0ac11f966b2e0937f9d271e1776569e9e4bdb5fe2e1f04e489418ab60fb290b",
+  "m00b-goldens.json": "1faea10eeb74d3f244b6ee2d1db4416bf2d6bcf25fd9e4dc5757371e6bfdf6fc",
+  "m00b-judged-B-goldens.json": "46b2c0da58642140ef1d4cd37bf12545366d528a4d2dbd7490160cab68f2416f",
+  "m01-adversarial.json": "55ef97b570b1e6f726fc4ec1e83752c3096f9884e1df799d88f1867646c4795d",
+  "m01-goldens.json": "44dacec2fbd7fc40f516f936ac4c32af1e3197586cec0467b19d1a346a26ec9f",
+  "m02-control-goldens.json": "8deb55ef1e2c441e48d74c444ffbbdefca3a481db73ceb43ae640d3b1d36789f",
+  "m02-tools-goldens.json": "f0e7fe811f1b93eead0bfd02551c88a6fe8f2557248833a5e7fc38ad34ce78d8",
+  "m04-adversarial.json": "6f6cc9fac38fd45d1c3bbe33ca3f98da8e11e74ae58d507f9cc2fd8d104debfe"
+}

@@ -176,6 +176,31 @@ RULES: tuple[Rule, ...] = (
         ("ai-quality", "security", "platform-eng"),
     ),
     Rule(
+        # **The checks themselves, as functions, and the step that decides
+        # (ADR-042 decision 3).** The deciding instance of the append-only check
+        # cannot be a pytest: `tests/conftest.py` and `pyproject.toml` control the
+        # harness on zero keys, and a seat measured both deselecting and re-basing
+        # the three-key protection tests with `pave check` exit 0. So the checks
+        # live in one module that `pave gate history --base <event sha>` runs
+        # from the workflow, and that module takes the directory's own three keys.
+        # A module on no rule would be ADR-042 prediction 7 failing a fourth time.
+        "the history checks — completeness, the evidence anchor, the corpus tie, the "
+        "merge-base diff",
+        re.compile(r"^pave/history\.py$"),
+        ("ai-quality", "security", "platform-eng"),
+    ),
+    Rule(
+        # **Goldens evidence, which took no key (ADR-042 decision 5).** The
+        # adversarial evidence rule above names `probes-run.json` and nothing
+        # else; `milestones/M05/goldens-run.json` and `milestones/M02/runs/*.json`
+        # resolved to no rule at all, so "evidence that is itself under two keys"
+        # was true for one filename. AI Quality owns the number the answers score
+        # to; Platform Engineering owns the lane that re-scores them.
+        "committed goldens evidence — the answers a recorded entry was summarised from",
+        re.compile(r"^milestones/[^/]+/(goldens-run\.json|runs/[^/]+\.json)$"),
+        ("ai-quality", "platform-eng"),
+    ),
+    Rule(
         # Gate CRITERIA, deliberately not in `pave/cli.py`: that file is ~1200
         # lines of command dispatch and `test_ordinary_pr_is_not_gated` names it
         # as the canonical UNGATED example. Gating all of it to protect three
