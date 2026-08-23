@@ -38,8 +38,9 @@ worktree rather than reading the diff. Each draft is in the branch history.
   keys) sets `GITHUB_BASE_REF`; `pyproject.toml` (zero keys) sets `addopts`.
   Measured: **1631 passed, 72 deselected, `pave check` exit 0, with
   `m04-adversarial.json` rewritten to 10/10.**
-- **Draft 4** is this one. Three more seats then planted against the **code**
-  and found eleven defects in it, listed at the bottom.
+- **Draft 4** is this one. Three seats then planted against the **code** and
+  found seventeen defects in it, listed at the bottom — including four of the
+  ten new checks deleting in silence.
 
 ## What lands
 
