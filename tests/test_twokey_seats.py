@@ -162,7 +162,21 @@ def test_this_file_is_itself_on_a_rule_that_carries_securitys_key():
     test whose own rule can be deleted quietly protects nothing."""
     here = pathlib.Path(__file__).resolve().relative_to(ROOT).as_posix()
     seats = _seats_for(here)
-    pinned = {s for expected in ADR043_SEATS.values() for s in expected}
+    # **From the LIVE rule set, never from `ADR043_SEATS`.** The first version
+    # derived the expectation from the constant an attacker is already editing --
+    # both sides moved together, so the comparison was vacuous under exactly the
+    # attack it was written for. The Legal/S&P seat measured it: dropping
+    # `legal-sp` from two rules AND from the pin left 1815 passed with the seat
+    # never collected.
+    #
+    # The live union is a real anchor because a seat survives in it as long as ANY
+    # rule still names it -- `platform/registry/tools.yaml` has carried
+    # `legal-sp` since M02 and no plant against this file touches it.
+    #
+    # Consequence, deliberately: a rule introducing a NEW seat turns this red until
+    # that seat also guards this file. That is the property -- a file holding every
+    # rule's seat set must be removable only by every seat it pins.
+    pinned = {s for rule in twokey.RULES for s in rule.seats}
     missing = sorted(pinned - seats)
     assert not missing, (
         f"tests/test_twokey_seats.py is on rule(s) carrying {sorted(seats)}, but it pins "

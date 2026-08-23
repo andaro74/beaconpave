@@ -447,6 +447,16 @@ def test_the_bypass_vocabulary_and_the_gated_field_map_are_not_empty():
     assert gated, "no gated tool in the registry — GATED_CONSEQUENCES may have been emptied"
     # On the VALUES, not the keys. `{"publish-highlight": {}}` is a key with nothing
     # behind it, and the check above skips a tool whose entry is empty.
+    # **The named field, not merely a non-empty entry.** Non-emptiness is not the
+    # invariant; `{"publish-highlight": {"title_id": "string"}}` is truthy, names a
+    # real field with a real type, and lets the disclosure flag be deleted at 1815
+    # passed. Third revision of this constant, third form of the same defect --
+    # pinned as a literal the way `BYPASS_SHAPED` pins `skip_approval`.
+    assert GATED_REQUIRED_PROPERTIES.get("publish-highlight", {}).get("ai_generated") == "boolean", (
+        "publish-highlight must still require `ai_generated` as a boolean. MER-AI-0001's "
+        "disclosure flag is the field this constant exists to defend; substituting another "
+        "field satisfies the ratchet and drops the flag. Owning seats: tool-owner, legal-sp."
+    )
     missing = sorted(t for t in gated if not GATED_REQUIRED_PROPERTIES.get(t))
     assert not missing, (
         f"{missing} are gated by consequence class but declare no required properties. "

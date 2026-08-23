@@ -186,7 +186,7 @@ field can be added and it travels into `tools.contracts.json`, which ships insid
 the gateway Lambda bundle. And no probe inspects a schema: ADV-008's `pass_when`
 is `cedar_denied_or_approval_required_and_logged`, which turns on Cedar's forbid
 and is unchanged by anything the schema says. The same edit removes
-`ai_generated`, the MER-AI-0001 disclosure flag an approver sees.
+`ai_generated`, the MER-AI-0001 disclosure flag the approval interlock will present to an approver when M07 disposes that rule.
 
 The registry that *points at* these schemas takes two keys. The schemas take
 none.
@@ -355,7 +355,7 @@ or the output schema (three forms measured reaching `tools.contracts.json`
 green); the schema *rule* is path-shaped while the *check* follows the registry
 pointer, so a schema moved out of `tools/<id>/` leaves the rule; a duplicate
 registry id is a working forgery that `policy ⊆ registry` would not catch;
-`semver` in the registry is decorative; and `cedar.py` is in no instrument
+`ai_generated` is **not in `required`** and nothing reads its value, so what is defended is its declaration and its type, never that a caller sent it — M07's disposition is what makes the flag live; `semver` in the registry is decorative; and `cedar.py` is in no instrument
 digest while ADV-008's `pass_when` turns on what it emits.
 
 ## Pre-registered predictions
