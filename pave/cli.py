@@ -517,6 +517,8 @@ def adversarial_backfill_asked(argv=()):
     It prints the diff and writes nothing without `--write`, because the file it
     edits is two-key (`security`, `ai-quality`): a tool that silently modified
     committed evidence would be handing out the key."""
+    import yaml as _yaml
+
     write = "--write" in argv
     services = [a for a in argv if not a.startswith("--")]
     service = pathlib.Path(services[0]).name if services else "highlights-agent"
@@ -537,11 +539,49 @@ def adversarial_backfill_asked(argv=()):
                   "published nothing, so there is nothing to reconstruct from. Record the arm "
                   "first, or drop the pin.")
             continue
-        recorded = sorted({c["id"] for c in
-                           json.loads(entry_path.read_text(encoding="utf-8"))["cases"]})
+        # **A repair tool must not crash on the damage it repairs.** Every branch
+        # below was an uncaught exception, and the sharpest was a missing
+        # observation file: the LANE handles that gracefully, and the command
+        # written to fix it did not -- a service arriving here because their lane
+        # went red is disproportionately likely to have exactly that problem.
+        # Same discipline as `_suite_pin` and `score_one`: no input reaches a
+        # raise, because a stated problem and an errored step page differently.
+        try:
+            entry = json.loads(entry_path.read_text(encoding="utf-8"))
+            recorded = sorted({c["id"] for c in entry["cases"]})
+        except (json.JSONDecodeError, KeyError, TypeError) as exc:
+            _emit(f"  {tag}: {entry_path.name} is not a readable entry ({exc}). It is the anchor "
+                  "this reconstruction reads, so nothing is written for this arm.")
+            continue
+        # **Intersected with the corpus.** The entry is append-only and may name a
+        # probe that has since been retired or renamed; without this the command
+        # writes ids no corpus knows straight into a two-key evidence file, which
+        # is the one thing a tool that edits committed evidence must not do.
+        known = {pr["id"] for pr in _yaml.safe_load(
+            (ROOT / "quality" / "adversarial" / "probes.yaml").read_text(encoding="utf-8"))}
+        strangers = [pid for pid in recorded if pid not in known]
+        if strangers:
+            _emit(f"  {tag}: its entry names {strangers}, which the probe corpus does not hold. "
+                  "Refusing to write ids no corpus knows into committed evidence — reconcile the "
+                  "corpus and the entry first.")
+            continue
         for rel in pin.get("observations") or []:
-            path = ROOT / rel
-            doc = json.loads(path.read_text(encoding="utf-8"))
+            path = (ROOT / rel).resolve()
+            # `observations` is comparator data, and a `../` in it would send
+            # `--write` outside the repository.
+            if ROOT.resolve() not in path.parents:
+                _emit(f"  {tag}: {rel} resolves outside the repository — refusing to touch it.")
+                continue
+            if not path.is_file():
+                _emit(f"  {tag}: {rel} is missing. The lane reports this as INFRA and it is a "
+                      "platform incident, not something this command can reconstruct — restore "
+                      "the evidence first.")
+                continue
+            try:
+                doc = json.loads(path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError as exc:
+                _emit(f"  {tag}: {rel} is unreadable ({exc}); nothing written for it.")
+                continue
             have = doc.get(adversarial_mod.ASKED_KEY)
             if have == recorded:
                 _emit(f"  {tag}: {rel} already records asking {len(recorded)} probe(s).")
@@ -651,6 +691,10 @@ def adversarial_run(argv=()):
                                 .read_text(encoding="utf-8"))
 
     failures, infra, scores, moved = [], [], {}, []
+    # **Routed on a CODE, never on the rendered sentence.** The first version
+    # substring-matched the prose and fired on exactly the wrong populations --
+    # measured by the Platform seat end to end.
+    infra_codes: set[str] = set()
 
     # --- what G4 means, before what any number says ---------------------------
     #
@@ -759,32 +803,18 @@ def adversarial_run(argv=()):
             continue
         observations = {}
         try:
-            asked_union, saw_manifest, malformed = [], False, None
-            for path in pin["observations"]:
-                doc = json.loads((ROOT / path).read_text(encoding="utf-8"))
-                # **UNIONED, never overwritten.** `observations |= doc` replaces a
-                # top-level key, so with a multi-file pin the last file's manifest
-                # silently won and every probe only the earlier files asked read
-                # as OUT_OF_SCOPE. Two seats measured a two-file arm losing half
-                # its manifest that way. Every pin holds one file today; the ADR's
-                # own consequence is that a NEW arm is what finally scores
-                # ADV-011, so this is latent rather than theoretical.
-                if adversarial_mod.ASKED_KEY in doc:
-                    saw_manifest = True
-                    part = doc[adversarial_mod.ASKED_KEY]
-                    # A malformed manifest in ANY file poisons the union rather
-                    # than being dropped out of it. `asked_from` must still see
-                    # the bad shape and answer INFRA -- normalising it away here
-                    # would turn "unreadable" into "nothing was asked", which is
-                    # the one reading that scores an empty corpus as a pass.
-                    if isinstance(part, list) and malformed is None:
-                        asked_union += part
-                    else:
-                        malformed = part
-                observations |= doc
-            if saw_manifest:
-                observations[adversarial_mod.ASKED_KEY] = (
-                    malformed if malformed is not None else sorted(set(asked_union)))
+            # **Unioned by the scorer, not here.** This loop used to merge the
+            # manifest itself and had two faults the unit tests could not see,
+            # because they called `asked_from` directly: it guarded the container
+            # type and not the element types, so a list holding an int raised
+            # `TypeError` out of a `try` that catches only `JSONDecodeError` and
+            # left NO verdict file; and `sorted(set(...))` deduplicated, so a
+            # manifest naming a probe twice reached PASS. Both are gate-deciding
+            # behaviour and both now live beside the rule they feed, on a two-key
+            # path (ADR-041 decision 8, applied to itself).
+            observations = adversarial_mod.asked_union(
+                [json.loads((ROOT / path).read_text(encoding="utf-8"))
+                 for path in pin["observations"]])
         except json.JSONDecodeError as exc:
             infra.append(f"{tag}: a committed observation file is unreadable ({exc})")
             continue
@@ -798,6 +828,7 @@ def adversarial_run(argv=()):
         # not score is not a probe the platform failed, and collapsing the two
         # would let a vanished observation read as a regression in the service.
         unscored = [r for r in results if r.result == INFRA]
+        infra_codes.update(r.code for r in unscored if r.code)
         if unscored:
             infra.append(f"{tag}: {len(unscored)} probe(s) not scored — "
                          + "; ".join(f"{r.id} ({r.reason})" for r in unscored))
@@ -926,15 +957,24 @@ def adversarial_run(argv=()):
     # problem statement, and a design that diagnosed it without repairing the
     # branch would leave the next probe and every other service the same
     # sentence.
-    unasked = [n for n in infra if "did not record asking" in n or "the question was never" in n]
-    if unasked:
+    if "arm_predates_the_manifest" in infra_codes:
         remediation = (
-            "fix: this arm was never asked about a probe that is now in the corpus. That is a "
-            "CORPUS fact, not a platform incident, and no re-run can produce the missing "
-            "observation for an arm that is already recorded. Record the arm's question set with "
-            f"`python -m pave.cli adversarial backfill-asked {service}`, which reconstructs it "
-            "from the entry that arm published and prints the comparator patch. The corpus edit "
-            f"itself needs {_seats_for('quality/adversarial/probes.yaml')} plus an ADR.")
+            "fix: this arm predates the question-set field, so the lane cannot tell a probe it "
+            "was never asked from one whose observation vanished. Nothing is broken and no "
+            "re-run helps — the arm is already recorded, and an arm cannot be asked a probe that "
+            "did not exist when it ran. Record what it DID ask with `python -m pave.cli "
+            f"adversarial backfill-asked {service} --write`, which reconstructs it from the "
+            "entry that arm published, then pin `expected_scored`. The evidence edit needs "
+            f"{_seats_for('milestones/x/probes-run.json')} and the comparator needs "
+            f"{_seats_for('evals/comparators.json')}.")
+    elif "evidence_contradicts_manifest" in infra_codes:
+        remediation = (
+            "fix: an observation file answers for a probe its own question set does not name. "
+            "**Do not run `backfill-asked`** — it rebuilds the question set from the published "
+            "entry and would erase the contradiction, which is the signal that somebody trimmed "
+            "the evidence or added an observation by hand. Establish which half is wrong first: "
+            f"the evidence is two-key ({_seats_for('milestones/x/probes-run.json')}) precisely "
+            "so this is a decision and not a cleanup.")
     elif infra:
         remediation = (
             f"fix: this is an INFRA result — the harness could not establish the fact, which "

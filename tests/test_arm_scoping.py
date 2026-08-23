@@ -179,13 +179,32 @@ def test_every_arms_manifest_covers_what_its_recorded_entry_scored():
 #: the residual is stated in ADR-041 decision 3 with an owner.
 HISTORY_DIGESTS = {
     "m00b-adversarial.json": "e0ac11f966b2e0937f9d271e1776569e9e4bdb5fe2e1f04e489418ab60fb290b",
-    "m01-adversarial.json": "334cd7dd08b26e7b9bfca1beb1c2527556ecd47a9b1db8e9e9aeaf46baa05da7",
-    "m04-adversarial.json": "d735003c6189f831b84a11f37069b43004676962279e5710aab0c8f15eb2423a",
+    "m01-adversarial.json": "55ef97b570b1e6f726fc4ec1e83752c3096f9884e1df799d88f1867646c4795d",
+    "m04-adversarial.json": "6f6cc9fac38fd45d1c3bbe33ca3f98da8e11e74ae58d507f9cc2fd8d104debfe",
 }
 
 
+def _entry_digest(path: pathlib.Path) -> str:
+    """Digest an entry's CONTENT, with line endings normalised out.
+
+    **`read_bytes()` was wrong and it would have turned `main` red in CI.** The
+    committed blobs are pure LF; a Windows working tree with `core.autocrlf` on
+    materialises CRLF, and these pins were first taken from a MIXED tree -- one
+    entry LF, two CRLF. No uniform checkout could satisfy all three: a pure-LF
+    runner failed two, a pure-CRLF tree failed the third. The failure message
+    would have accused the PR of rewriting append-only history and blamed the
+    service team, on an honest tree, from the one check guarding the anchor
+    everything else rests on.
+
+    A line ending is not content. "Has this entry been rewritten" is a question
+    about what it says, so the digest is taken over normalised text and the
+    answer is the same on every platform."""
+    text = path.read_text(encoding="utf-8")
+    return hashlib.sha256(text.replace("\r\n", "\n").encode("utf-8")).hexdigest()
+
+
 def test_no_recorded_entry_has_been_rewritten():
-    actual = {name: hashlib.sha256((ROOT / "evals" / "history" / name).read_bytes()).hexdigest()
+    actual = {name: _entry_digest(ROOT / "evals" / "history" / name)
               for name in HISTORY_DIGESTS}
     pinned = {k: v for k, v in HISTORY_DIGESTS.items() if v}
     assert pinned, "the history digests are unpinned — fill HISTORY_DIGESTS"

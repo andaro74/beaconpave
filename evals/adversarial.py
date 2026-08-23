@@ -113,6 +113,19 @@ class ProbeResult:
     #: platform, and a number rendering them identically loses the distinction at
     #: the moment it is written down.
     unstable: bool = False
+    #: Why this result is what it is, as a CODE rather than a sentence, for a
+    #: caller that must route on it. The lane's remediation split was a substring
+    #: match on the rendered prose, and it fired on exactly the wrong
+    #: populations: the arm-predates-the-field case -- ADR-041's own problem
+    #: statement -- got the generic text the ADR exists to delete, while the
+    #: evidence-contradicts-its-manifest case got advice to run `backfill-asked`,
+    #: which would have overwritten the manifest and ERASED the contradiction that
+    #: was the signal someone trimmed the evidence.
+    #:
+    #: Routing on prose also means the reason strings (here, `security` +
+    #: `ai-quality`) and the router (`pave/cli.py`, no rule) can disagree without
+    #: anyone noticing — the two-spellings hazard ADR-040 names.
+    code: str | None = None
 
 
 def asked_from(observations: dict) -> tuple[frozenset[str] | None, str | None]:
@@ -155,6 +168,53 @@ def asked_from(observations: dict) -> tuple[frozenset[str] | None, str | None]:
     return frozenset(raw), None
 
 
+def asked_union(docs: list[dict]) -> dict:
+    """Merge an arm's observation files into one document, unioning the manifest.
+
+    **The union lives HERE, not in the lane, and that is decision 8's rule
+    applied to itself.** It decides what gets scored, so it belongs on a two-key
+    path beside the rule it feeds -- `evals/adversarial.py` is `security` +
+    `ai-quality`, and the lane's own module is on no rule at all. Two gate-
+    deciding behaviours were left behind in the lane when the floors moved out,
+    and both were defective: this one raised, and the remediation router beside
+    it was inverted.
+
+    Two faults the lane's version had, each measured through the real gate:
+
+    - **`isinstance(part, list)` checks the CONTAINER and not the ELEMENTS.** A
+      list holding an int, a `None`, a nested list or a dict passed that guard and
+      then `sorted(set(...))` raised `TypeError` -- unorderable or unhashable --
+      escaping a `try` that catches only `JSONDecodeError`. Four shapes produced
+      **no verdict file at all**: an errored CI step rather than a stated block,
+      which `_suite_pin`'s docstring and `score_one`'s malformed-`samples` branch
+      are both explicitly written against.
+    - **`sorted(set(...))` silently deduplicated**, so `asked_from`'s duplicate
+      rule could never fire through the lane and a manifest naming a probe twice
+      reached **PASS**. The unit tests called `asked_from` directly and could not
+      see either fault -- a protection asserted at a level the gate does not use.
+
+    So the union preserves the raw list when any element is not a string, and
+    preserves duplicates. `asked_from` then reads exactly the shape it was
+    written to judge, and answers INFRA for both."""
+    merged: dict = {}
+    parts, saw, poisoned = [], False, None
+    for doc in docs:
+        if ASKED_KEY in doc:
+            saw = True
+            part = doc[ASKED_KEY]
+            if poisoned is None and isinstance(part, list) and all(
+                    isinstance(x, str) for x in part):
+                parts += part
+            else:
+                poisoned = part
+        merged |= doc
+    if saw:
+        # Sorted for stability, never `set()`: dropping a repeat here is what made
+        # the duplicate rule unreachable from the gate.
+        merged[ASKED_KEY] = poisoned if poisoned is not None else sorted(parts)
+    return merged
+
+
 def _scope_verdict(probe: dict, observation, asked, asked_error) -> ProbeResult | None:
     """`OUT_OF_SCOPE`, `INFRA`, or `None` meaning "score it normally".
 
@@ -177,22 +237,40 @@ def _scope_verdict(probe: dict, observation, asked, asked_error) -> ProbeResult 
       retire a failing probe."""
     if asked_error:
         return ProbeResult(probe["id"], INFRA,
-                           f"this arm's run manifest cannot be read: {asked_error}")
-    if asked is None:
-        return None
+                           f"this arm's run manifest cannot be read: {asked_error}",
+                           code="manifest_unreadable")
     pid = probe["id"]
+    if asked is None:
+        # **Two unanswered populations, and they page different seats.** With a
+        # manifest, an unanswered probe means the evidence lost a file — a
+        # platform incident. WITHOUT one, the arm predates the field entirely,
+        # which is every arm recorded before ADR-041 and every other service on
+        # the day the corpus gains a probe. Nothing is broken, and no re-run can
+        # help, because the arm is already recorded.
+        #
+        # That second case is this ADR's whole problem statement, and the first
+        # implementation routed it to the generic "re-derive locally and fix the
+        # named input" — the exact sentence the ADR exists to delete.
+        if observation is None and not asked_error:
+            return ProbeResult(probe["id"], INFRA, "no observation recorded",
+                               code="arm_predates_the_manifest")
+        return None
     if pid in asked:
+        if observation is None:
+            return ProbeResult(probe["id"], INFRA, "no observation recorded",
+                               code="unanswered")
         return None
     if observation is not None:
         return ProbeResult(
             probe["id"], INFRA,
             f"the arm's run did not record asking {pid}, but the file holds an observation for "
             "it — the evidence contradicts its own manifest, and neither half can be trusted "
-            "over the other")
+            "over the other", code="evidence_contradicts_manifest")
     return ProbeResult(
         probe["id"], OUT_OF_SCOPE,
         f"this arm's run did not ask {pid} — the question was never put to it, which is a "
-        "different statement from the platform failing it and pages a different seat")
+        "different statement from the platform failing it and pages a different seat",
+        code="never_asked")
 
 
 def _channel_mismatch(probe: dict, observation: dict) -> list[str]:

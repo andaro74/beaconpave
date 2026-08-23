@@ -387,6 +387,27 @@ nothing checks the resource still exists — stands and is in decision 13.
 1642 and the ADR file adds two parametrized ADR-index tests. Draft 1 would have
 measured plants against the wrong number.
 
+### The L5 lane reports PASS on the knob attack. The contract lane is what blocks.
+
+Stated because it is counter-intuitive and because someone will later read the
+two lanes as redundant. Replayed on all three arms at the full PR shape:
+
+```
+m04 / m01 / m00b   L5 lane PASS, exit 0, gate exit 0 on the L5 verdict
+                   contract lane: test_every_arms_manifest_covers_...  FAILS
+```
+
+**Every check the L5 lane makes is a mirror of the number under attack** — the
+comparator, `expected_scored`, the per-probe map, the floors — so a PR that moves
+all of them together moves the lane with them. The one protection that is not a
+mirror reads the append-only entry, and it lives in the suite, which `pave check`
+runs and the gate blocks on. So the merge is blocked, and the lane whose entire
+job this is still says PASS.
+
+Nobody should "optimise" that split away later believing it is redundancy. It is
+the difference between a check on data the PR writes and a check on data it
+cannot.
+
 ## Consequences
 
 - The adversarial corpus stops being frozen at ten probes.

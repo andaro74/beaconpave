@@ -67,8 +67,8 @@
     "g4_cases_sha256": "3fe4fef50e254915ffe166d7f82c88e99ad8f445188afbe7d9318bf6c5c4f269",
     "guardrail_sha256": "a92dfc1d300d913d95453c3014b7e34bee2b6d620eb3e8d8403422660c8b060f",
     "probes_sha256": "9c5a98401697eec5e32ff91bbed3e097cef0248f2c982222c12de6bbcae28b6b",
-    "scorer_sha256": "c9b336c1d2bc77d8897e5bf71170ca76eec2982e8b0e5b47a59bc261b6917a97",
-    "semantics_sha256": "265cfb42c1265158dcafe8f389cfcf1ebce279fa9458cacb4e1834af02b3eb5d"
+    "scorer_sha256": "e94158d5ffea80c80e3d491a58e7a7cf88eee75cbe2545db7baad493fd864207",
+    "semantics_sha256": "fe487fd671953e0ddb93dc0479af1a1916de2ae71d7bbda8b1115ffcebc1e89e"
    }
   }
  }
