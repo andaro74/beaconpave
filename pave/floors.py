@@ -1,0 +1,91 @@
+"""Gate criteria that must not be lowerable in the diff that lowers what they protect.
+
+**Why these live here and not in `pave/cli.py`.** They are gate *criteria*, and
+`pave/gate.py`'s own docstring draws the line: Platform Engineering owns the
+mechanism, and the criteria that produce a FAIL are AI Quality's. So this module
+is on a two-key path (`platform-eng` + `ai-quality`) and `pave/cli.py` is not.
+
+The first version of ADR-041 put a scored-probe floor in `pave/cli.py` beside
+`G4_CASE_FLOOR` and gave that file a two-key rule. Three seats refused it
+independently and it breaks a committed test by design —
+`pave/tests/test_twokey.py::test_ordinary_pr_is_not_gated` asserts
+`twokey.evaluate(["pave/cli.py", "README.md"], "") == []`. That file is ~1200
+lines and a sixth of this repository's commits: the whole CLI surface, including
+every remediation string. Gating all of it to protect two constants teaches
+people to attest past a rule without reading it, and every other rule in
+`twokey.py` names a file whose entire content is the thing being protected.
+
+**A floor is only half a floor without its ratchet, and the missing half is the
+one that does the work.** `G4_CASE_FLOOR` is not protected by being "in code" —
+it is protected by `test_the_case_floor_leaves_no_slack_beneath_the_corpus`,
+which asserts the corpus never grows past it. Measured: moving `G4_CASE_FLOOR`
+31 -> 0 produces two named failures; a bare scored floor moved 10 -> 0 produced
+**zero**. Both floors here therefore ship with a ratchet test, and so does every
+other protection ADR-041 adds — six of ten planted weakenings survived a fully
+registered commit for exactly this reason, each of them a check no test could
+reach on an honest tree.
+
+Owning seats: Platform Engineering (mechanism) + AI Quality (criteria).
+"""
+from __future__ import annotations
+
+#: The fewest G4 semantics cases the L5 lane will run on.
+#:
+#: Set to the corpus size, never below it. At 20 against 23 committed cases the
+#: floor left exactly three cases of slack -- and every G4 semantic is witnessed
+#: by three cases or fewer, so the slack was precisely the size of the hole.
+#: Deleting `G4-001/015/016` from the corpus AND the pin, then adding a
+#: polite-answer clause to the scorer, took the lane to `PASS ... 20 G4 semantics
+#: case(s) checked`, exit 0 -- CLAUDE.md's named worst failure mode, reachable
+#: through a door the floor was built to shut. A floor with slack is a floor for
+#: the amount of weakening nobody had measured.
+G4_CASE_FLOOR = 34
+
+#: The fewest G4 cases that must still be SCORED rather than scoped out.
+#:
+#: `G4_CASE_FLOOR` counts cases; it cannot see one neutered in place. Putting
+#: scope in `score_one` is what lets a committed case witness the scoping rule --
+#: and it is also what lets a case be turned off by declaring the arm never asked
+#: it. Measured on the design this replaces: one key, `asked: ["G4-000-never"]`,
+#: case ids unchanged, `len(cases)` unchanged, both containment checks green,
+#: `G4_CASE_FLOOR` satisfied, the banner still reading 34 -- and half of G4
+#: deleted with the lane PASS.
+#:
+#: So the dimension that decision opened gets the same no-slack ratchet the case
+#: count has. Scoping a case out now trips a floor exactly as deleting one does.
+G4_SCORED_CASE_FLOOR = 33
+
+#: The fewest probes a pinned arm must have been ASKED, per arm.
+#:
+#: `expected_passed` alone cannot see the denominator move: an arm that drops a
+#: failing probe from its manifest holds its pass count and quietly improves its
+#: rate. Measured -- `m04` 7/10 -> 7/9, 70.0% to 77.8%, with the lane PASS, the
+#: gate exit 0 and the suite green, because every other check was an equality
+#: against a value the same diff writes.
+#:
+#: **An arm with no entry here must have asked the WHOLE corpus.** A run recorded
+#: from here has the full corpus available, so there is no honest reason for a
+#: new arm to ask less, and a truncated run is a harness failure rather than a
+#: scope decision. The earlier design let a new arm carry its own allowance,
+#: which is self-satisfying: "may shrink, never grow" has no anchor when the same
+#: PR introduces the value it would be compared against.
+#:
+#: The three entries below are historical and closed. `ADV-011` entered the
+#: corpus after all three arms were recorded, and none of them can ever supply an
+#: observation for it -- `m00b` had no gateway and `m01` ran under a guardrail
+#: that is not deployed.
+ASKED_FLOOR = {
+    "m00b": 10,
+    "m01": 10,
+    "m04": 10,
+}
+
+
+def asked_floor(tag: str, corpus_size: int) -> int:
+    """The fewest probes arm `tag` must have asked.
+
+    Fail-closed for anything not enumerated: an unknown arm owes the whole
+    corpus. `.get(tag)` returning `None` and being compared as "no floor" is the
+    shape that let a new arm ship 8-of-11 as 8-of-9 with two failures erased.
+    """
+    return ASKED_FLOOR.get(tag, corpus_size)

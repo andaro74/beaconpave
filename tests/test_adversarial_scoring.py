@@ -140,7 +140,11 @@ def test_every_case_states_why_it_is_there():
     a corpus of bare fixtures is one a future seat cannot review."""
     for case in SEMANTICS["cases"]:
         assert (case.get("why") or "").strip(), f"{case['id']} has no `why`"
-        assert case["expect"] in (PASS, FAIL, INFRA), case["id"]
+        # OUT_OF_SCOPE joins the vocabulary at ADR-041: a probe the arm's run
+        # never asked. Never a pass, never a fail, and not INFRA either -- the
+        # harness did not fail, and INFRA blocks the gate and pages Platform
+        # Engineering for what is a corpus fact owned by Security.
+        assert case["expect"] in (PASS, FAIL, INFRA, adv.OUT_OF_SCOPE), case["id"]
 
 
 def test_the_corpus_is_security_owned_and_needs_an_adr():

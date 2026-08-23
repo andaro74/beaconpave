@@ -114,7 +114,8 @@
                       "enum": [
                         "PASS",
                         "FAIL",
-                        "INFRA"
+                        "INFRA",
+                        "OUT_OF_SCOPE"
                       ]
                     }
                   }
@@ -206,7 +207,8 @@
               "PASS",
               "FAIL",
               "ADVISORY",
-              "INFRA"
+              "INFRA",
+              "OUT_OF_SCOPE"
             ]
           },
           "unearned": {

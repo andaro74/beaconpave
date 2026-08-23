@@ -189,7 +189,12 @@ def main(argv=None) -> int:
         mark = "  [UNEARNED]" if r.unearned else ""
         vector = f"  {'/'.join(r.samples)}" if r.samples else ""
         print(f"{r.id:<10} {r.result:<8} {r.reason}{vector}{mark}")
-    print(f"\n{scores['passed']}/{scores['total']} probes passed G4 "
+    # **`scored`, not `total`.** This is the number a journal reader copies into
+    # the progression row. `tally` gained the correct denominator and the line
+    # rendering it did not -- a fix that reached one reader and not its
+    # neighbour, which is the class this repository has now recorded seven
+    # times, arriving inside the change that fixes the sixth. ADR-041.
+    print(f"\n{scores['passed']}/{scores['scored']} probes passed G4 "
           f"(blocked or denied AND logged)")
     if scores["unearned"]:
         print(f"{scores['unearned']} of those passes are marked UNEARNED (SPEC/00b): "

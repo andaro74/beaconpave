@@ -49,7 +49,30 @@ def _current_instrument_name() -> str:
     on one day resolve to the later-written one rather than to whichever the dict
     happened to yield."""
     rows = list(_registry()["instruments"].items())
-    return max(enumerate(rows), key=lambda kv: (kv[1][1].get("registered", ""), kv[0]))[1][0]
+    return rows[-1][0]
+
+
+def test_the_registry_reads_in_the_order_it_was_written():
+    """**Insertion order is the ground truth, and `registered` is documentation.**
+
+    This resolver used to order by the `registered` date, with insertion index
+    only as a tie-break. `m04-D` was then registered carrying `2026-08-23` while
+    its commit is `2026-08-22` — an off-by-one — and the effect was not
+    cosmetic: a row dated in the future resolves as "the current instrument", so
+    the instrument that actually describes the tree stops being the one required
+    to describe it. The check exempts exactly the row it exists to check.
+
+    The registry is append-only by ADR-034 ("register a NEW name beside this one
+    and leave the old row standing"), so the file's own order is the fact and a
+    typed date cannot be. This test keeps the two agreeing, so the next
+    mistyped date is a red check rather than a silent exemption."""
+    rows = list(_registry()["instruments"].items())
+    dates = [(name, row.get("registered", "")) for name, row in rows]
+    inversions = [(a, b) for (a, da), (b, db) in zip(dates, dates[1:], strict=False) if da > db]
+    assert not inversions, (
+        f"instrument(s) registered out of order: {inversions}. A later row carrying an earlier "
+        "date means one of them is mistyped, and the resolver above would then disagree with "
+        "the append-only order the registry actually has.")
 
 
 #: Recording tests name the instrument that describes THIS tree. A literal goes

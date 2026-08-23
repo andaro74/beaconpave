@@ -312,20 +312,17 @@ def evals_dryrun_cmd(argv=()):
     return _dryrun(_load(GOLDENS))
 
 
-#: The fewest G4 semantics cases the L5 lane will run on. A floor in code, where
-#: a two-key comparator edit cannot reach it — `PIN_FLOOR`'s argument, applied to
-#: the corpus rather than the numbers. Raising it is fine; lowering it means
-#: deliberately checking less of what a probe passing means, which belongs in an
-#: ADR with Security's key rather than in a diff about something else.
-#: Set to the corpus size, not below it. At 20 against 23 committed cases the
-#: floor left exactly three cases of slack — and every G4 semantic is witnessed
-#: by three cases or fewer, so the slack was precisely the size of the hole.
-#: Deleting `G4-001/015/016` from the corpus AND the pin, then adding a
-#: polite-answer clause to the scorer, took this lane to `PASS ... 20 G4
-#: semantics case(s) checked`, exit 0 — CLAUDE.md's named worst failure mode,
-#: reachable through a door the floor was built to shut. A floor with slack is a
-#: floor for the amount of weakening nobody had measured.
-G4_CASE_FLOOR = 31
+# **The gate criteria live in `pave/floors.py`, not here.** They are two-key
+# (platform-eng + ai-quality); this file is not, and must not become so --
+# `pave/tests/test_twokey.py::test_ordinary_pr_is_not_gated` names it as the
+# canonical ungated example, and gating ~1200 lines of command dispatch to
+# protect three constants teaches people to attest past a rule without reading
+# it. Re-exported so existing importers do not care where they moved. ADR-041.
+from pave.floors import (  # noqa: E402
+    G4_CASE_FLOOR,
+    G4_SCORED_CASE_FLOOR,
+    asked_floor,
+)
 
 
 def _suite_pin(pinned: dict, service: str, suite: str):
@@ -500,6 +497,84 @@ def evals_run(argv=()):
     return 1 if failures else 0
 
 
+def adversarial_backfill_asked(argv=()):
+    """`pave adversarial backfill-asked <service>` — record what each arm asked.
+
+    **Why this command exists at all.** The probe corpus is fetched at run time by
+    every service's L5 run, with no pinning and no opt-out (ADR-009), so an added
+    probe reaches every service at once. Before ADR-041 that meant INFRA and exit
+    2 on their next PR; after it, it means their arms need a question set they do
+    not yet have. **A service cannot fix that by re-running** — their arms are
+    already recorded, and no re-run produces an observation for a probe that
+    predates it.
+
+    So the compliant path is a command rather than an archaeology exercise. It
+    reconstructs each arm's manifest from **the entry that arm published**, which
+    is append-only and is the same anchor `tests/test_arm_scoping.py` checks the
+    result against — not from the observation file, which is the thing a scope
+    attack trims.
+
+    It prints the diff and writes nothing without `--write`, because the file it
+    edits is two-key (`security`, `ai-quality`): a tool that silently modified
+    committed evidence would be handing out the key."""
+    write = "--write" in argv
+    services = [a for a in argv if not a.startswith("--")]
+    service = pathlib.Path(services[0]).name if services else "highlights-agent"
+    from evals import adversarial as adversarial_mod
+
+    comparators = ROOT / "evals" / "comparators.json"
+    suite = _suite_pin(json.loads(comparators.read_text(encoding="utf-8")), service, "adversarial")
+    if suite is None:
+        _emit(f"[pave backfill-asked] no adversarial comparator pinned for {service!r}.")
+        return 1
+    pins = suite.get("pins") or {}
+    changed = 0
+    for tag in sorted(pins):
+        pin = pins[tag] if isinstance(pins.get(tag), dict) else {}
+        entry_path = ROOT / "evals" / "history" / f"{tag}-adversarial.json"
+        if not entry_path.is_file():
+            _emit(f"  {tag}: no recorded entry at {entry_path.relative_to(ROOT)} — this arm "
+                  "published nothing, so there is nothing to reconstruct from. Record the arm "
+                  "first, or drop the pin.")
+            continue
+        recorded = sorted({c["id"] for c in
+                           json.loads(entry_path.read_text(encoding="utf-8"))["cases"]})
+        for rel in pin.get("observations") or []:
+            path = ROOT / rel
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            have = doc.get(adversarial_mod.ASKED_KEY)
+            if have == recorded:
+                _emit(f"  {tag}: {rel} already records asking {len(recorded)} probe(s).")
+                continue
+            _emit(f"  {tag}: {rel}")
+            _emit(f"      was: {have!r}")
+            _emit(f"      now: {recorded!r}   (from {entry_path.name}, append-only)")
+            changed += 1
+            if write:
+                path.write_text(
+                    json.dumps({adversarial_mod.ASKED_KEY: recorded,
+                                **{k: v for k, v in doc.items()
+                                   if k != adversarial_mod.ASKED_KEY}},
+                               indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if not changed:
+        _emit(f"[pave backfill-asked] {service}: every arm already records what it asked.")
+        return 0
+    if write:
+        _emit("")
+        _emit(f"[pave backfill-asked] {service}: wrote {changed} manifest(s). Next: pin "
+              f"`expected_scored` per arm in evals/comparators.json, and open the PR with "
+              f"`Two-Key-Disposition:` from {_seats_for('milestones/x/probes-run.json')} for the "
+              "evidence and "
+              f"{_seats_for('evals/comparators.json')} for the comparator.")
+    else:
+        _emit("")
+        _emit(f"[pave backfill-asked] {service}: {changed} manifest(s) would change. "
+              "Nothing written — re-run with `--write`. The evidence file is two-key "
+              f"({_seats_for('milestones/x/probes-run.json')}), so this prints rather than "
+              "edits by default.")
+    return 0
+
+
 def adversarial_run(argv=()):
     """`pave adversarial run <service> [--out verdict.json]` — the L5 lane.
 
@@ -541,7 +616,8 @@ def adversarial_run(argv=()):
     "we could not tell" answer either; the second is INFRA, and INFRA blocks."""
     import yaml as _yaml
 
-    from evals.adversarial import check_semantics, score_corpus
+    from evals import adversarial as adversarial_mod
+    from evals.adversarial import OUT_OF_SCOPE, check_semantics, score_corpus
     from evals.deterministic import INFRA
 
     out = _flag_values(argv, "--out")
@@ -604,6 +680,18 @@ def adversarial_run(argv=()):
     # lives in the file being checked can be emptied in the same diff that empties
     # what it protects. Without this, deleting `g4_cases_expected` and three cases
     # stayed under the count floor and the lane went green.
+    # **The dimension `G4_CASE_FLOOR` cannot see.** It counts cases; it cannot see
+    # one neutered in place. Scoping a case out preserves the id, the pinned list
+    # and `len(cases)` -- measured: one key, half of G4 deleted, banner still
+    # reading the full count, lane PASS. So the ratchet applies to the scored
+    # count too. ADR-041 decision 6.
+    scored_cases = [c for c in cases
+                    if isinstance(c, dict) and c.get("expect") != "OUT_OF_SCOPE"]
+    if len(scored_cases) < G4_SCORED_CASE_FLOOR:
+        failures.append(
+            f"the G4 semantics corpus scores {len(scored_cases)} case(s), below the floor of "
+            f"{G4_SCORED_CASE_FLOOR}. A case scoped out is a case deleted as far as what it "
+            "witnesses is concerned, and it leaves the count and the pinned id list untouched.")
     expected_cases = suite.get("g4_cases_expected") or []
     if len(expected_cases) < G4_CASE_FLOOR:
         failures.append(
@@ -671,8 +759,32 @@ def adversarial_run(argv=()):
             continue
         observations = {}
         try:
+            asked_union, saw_manifest, malformed = [], False, None
             for path in pin["observations"]:
-                observations |= json.loads((ROOT / path).read_text(encoding="utf-8"))
+                doc = json.loads((ROOT / path).read_text(encoding="utf-8"))
+                # **UNIONED, never overwritten.** `observations |= doc` replaces a
+                # top-level key, so with a multi-file pin the last file's manifest
+                # silently won and every probe only the earlier files asked read
+                # as OUT_OF_SCOPE. Two seats measured a two-file arm losing half
+                # its manifest that way. Every pin holds one file today; the ADR's
+                # own consequence is that a NEW arm is what finally scores
+                # ADV-011, so this is latent rather than theoretical.
+                if adversarial_mod.ASKED_KEY in doc:
+                    saw_manifest = True
+                    part = doc[adversarial_mod.ASKED_KEY]
+                    # A malformed manifest in ANY file poisons the union rather
+                    # than being dropped out of it. `asked_from` must still see
+                    # the bad shape and answer INFRA -- normalising it away here
+                    # would turn "unreadable" into "nothing was asked", which is
+                    # the one reading that scores an empty corpus as a pass.
+                    if isinstance(part, list) and malformed is None:
+                        asked_union += part
+                    else:
+                        malformed = part
+                observations |= doc
+            if saw_manifest:
+                observations[adversarial_mod.ASKED_KEY] = (
+                    malformed if malformed is not None else sorted(set(asked_union)))
         except json.JSONDecodeError as exc:
             infra.append(f"{tag}: a committed observation file is unreadable ({exc})")
             continue
@@ -738,6 +850,30 @@ def adversarial_run(argv=()):
                 f"pinned k={pinned_k}. Unanimity over fewer samples is easier, so a short "
                 "vector flatters; a ragged file is not one measurement.")
 
+        # **The denominator, pinned and floored.** `expected_passed` alone cannot
+        # see it move: an arm that drops a failing probe from its manifest holds
+        # its pass count and quietly improves its rate. Measured -- m04 7/10 ->
+        # 7/9, 70.0% to 77.8%, lane PASS, gate exit 0, suite green.
+        #
+        # MANDATORY, never `if "expected_scored" in pin`. An optional pin is
+        # absent exactly when somebody wants it absent.
+        scored = sum(1 for r in results if r.result != OUT_OF_SCOPE)
+        scores[f"{tag}_scored"] = scored
+        floor = asked_floor(tag, len(probes))
+        if scored < floor:
+            failures.append(
+                f"{tag}: {scored} probe(s) scored, beneath its floor of {floor}. An arm with no "
+                "recorded allowance owes the WHOLE corpus: a run recorded today has every probe "
+                "available, so asking fewer is a harness failure and not a scope decision.")
+        if "expected_scored" not in pin:
+            infra.append(f"{tag}: the pin does not say how many probes this arm was asked. "
+                         "A denominator nobody pinned is a denominator that can move.")
+        elif scored != pin["expected_scored"]:
+            failures.append(
+                f"{tag}: {scored} probe(s) scored against a pinned {pin['expected_scored']}. "
+                "The question set moved, which changes what the pass count is a fraction of "
+                "even when the pass count itself holds.")
+
         if passed != pin["expected_passed"]:
             direction = "below" if passed < pin["expected_passed"] else "ABOVE"
             failures.append(
@@ -781,7 +917,25 @@ def adversarial_run(argv=()):
     # a comparator edit — for a failure this lane's own docstring says pages the
     # platform. Every clause of it was wrong for that case, which is exactly how a
     # gate teaches people it does not know what it is talking about.
-    if infra:
+    # **Two INFRA populations, and the single text was wrong for one of them.**
+    # A vanished observation is a platform incident. A probe an arm never ran is
+    # a corpus fact owned by Security, and telling that team to "re-derive
+    # locally and fix the named input" names an input that cannot be fixed --
+    # `m00b` had no gateway and `m01` ran under an undeployed guardrail, so
+    # neither can ever produce the missing observation. That was ADR-041's own
+    # problem statement, and a design that diagnosed it without repairing the
+    # branch would leave the next probe and every other service the same
+    # sentence.
+    unasked = [n for n in infra if "did not record asking" in n or "the question was never" in n]
+    if unasked:
+        remediation = (
+            "fix: this arm was never asked about a probe that is now in the corpus. That is a "
+            "CORPUS fact, not a platform incident, and no re-run can produce the missing "
+            "observation for an arm that is already recorded. Record the arm's question set with "
+            f"`python -m pave.cli adversarial backfill-asked {service}`, which reconstructs it "
+            "from the entry that arm published and prints the comparator patch. The corpus edit "
+            f"itself needs {_seats_for('quality/adversarial/probes.yaml')} plus an ADR.")
+    elif infra:
         remediation = (
             f"fix: this is an INFRA result — the harness could not establish the fact, which "
             f"is a different statement from the platform failing. It pages Platform "
@@ -1163,8 +1317,11 @@ def main(argv):
         _stub("evals", f"unknown evals subcommand {rest}; try `run` or `dryrun`")
     elif cmd == "adversarial" and rest[:1] == ["run"]:
         return adversarial_run(rest[1:])
+    elif cmd == "adversarial" and rest[:1] == ["backfill-asked"]:
+        return adversarial_backfill_asked(rest[1:])
     elif cmd == "adversarial":
-        _die(f"adversarial: expected `run`, got {rest}", gate_mod.EXIT_CONTRACT)
+        _die(f"adversarial: expected `run` or `backfill-asked`, got {rest}",
+             gate_mod.EXIT_CONTRACT)
     elif cmd == "gate" and rest[:1] == ["decide"]:
         gate_decide(rest[1:])
     elif cmd == "gate" and rest[:1] == ["comment"]:
