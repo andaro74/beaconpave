@@ -7,3 +7,6 @@ changed.txt
 cdk.out/
 .venv/
 node_modules/
+
+# Seat-review worktrees. Disposable, and never part of the repository.
+.claude/worktrees/

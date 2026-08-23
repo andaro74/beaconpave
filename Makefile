@@ -34,7 +34,8 @@ evals:
 	python -m evals.run_evals --answers $(ANSWERS) --record
 
 adversarial:
-	python evals/run_adversarial.py --record
+	@test -n "$(OBSERVATIONS)" || { echo "set OBSERVATIONS=milestones/MNN/probes-run.json -- a default would record a second row over another milestone's evidence"; exit 2; }
+	python -m evals.run_adversarial --observations $(OBSERVATIONS) --record
 
 drill:
 	python -m pave.cli drill --event jefferson-derby --tier 3

@@ -113,9 +113,20 @@ RULES: tuple[Rule, ...] = (
         ("ai-quality",),
     ),
     Rule(
-        "recorded baselines — a reset is a decision, never a cleanup",
+        # **The whole directory, one prefix, no exclusion pattern (ADR-042).**
+        # `pins.json` and `schema.json` included: the schema is a protection ON
+        # the rows and the pins are the only thing that says the set on disk is
+        # the set that was recorded. Three seats, because a fabricated `m04`
+        # 10/10 row needed every seat but the one that owns what a probe passing
+        # means (Security), and Platform Engineering owns the lane that reads an
+        # entry into a gate decision and the recorder that writes one -- which
+        # is an interest in dispositioning a bad entry quietly, not a
+        # counterweight. Measured: a schema-valid 24/25 row appended beside the
+        # real 19/25 left 1701 tests and the gate green on one key.
+        "recorded history — a new row is a claim three seats attest; a reset is a "
+        "decision, never a cleanup",
         re.compile(r"^evals/history/"),
-        ("ai-quality",),
+        ("ai-quality", "security", "platform-eng"),
     ),
     # --- ADR-041: the arm-scoping mechanism, and the files it actually rests on ---
     #
@@ -152,10 +163,41 @@ RULES: tuple[Rule, ...] = (
         ("security", "platform-eng"),
     ),
     Rule(
-        # The recorder writes the verdict into append-only history. It is the
-        # other reader of the same instrument as the lane.
-        "the adversarial recorder — what lands in append-only history",
-        re.compile(r"^evals/run_adversarial\.py$"),
+        # Both recorders, and the same three seats as the directory they write
+        # into (ADR-042 decision 1). The recorders enforce the schema, which takes
+        # three; a recorder that can write a row the schema would refuse is a
+        # schema change made in code, and relaxing it on fewer keys than the
+        # schema is the pairwise inversion ADR-041 prediction 6 and ADR-042
+        # prediction 7 audit for. `run_evals.py` was on NO rule while its twin
+        # took two -- draft 1 of ADR-042 justified a seat by naming "both
+        # recorders" and one of them was unguarded inside the sentence.
+        "the recorders — what lands in append-only history, and the pin beside it",
+        re.compile(r"^evals/run_(evals|adversarial)\.py$"),
+        ("ai-quality", "security", "platform-eng"),
+    ),
+    Rule(
+        # **The checks themselves, as functions, and the step that decides
+        # (ADR-042 decision 3).** The deciding instance of the append-only check
+        # cannot be a pytest: `tests/conftest.py` and `pyproject.toml` control the
+        # harness on zero keys, and a seat measured both deselecting and re-basing
+        # the three-key protection tests with `pave check` exit 0. So the checks
+        # live in one module that `pave gate history --base <event sha>` runs
+        # from the workflow, and that module takes the directory's own three keys.
+        # A module on no rule would be ADR-042 prediction 7 failing a fourth time.
+        "the history checks — completeness, the evidence anchor, the corpus tie, the "
+        "merge-base diff",
+        re.compile(r"^pave/history\.py$"),
+        ("ai-quality", "security", "platform-eng"),
+    ),
+    Rule(
+        # **Goldens evidence, which took no key (ADR-042 decision 5).** The
+        # adversarial evidence rule above names `probes-run.json` and nothing
+        # else; `milestones/M05/goldens-run.json` and `milestones/M02/runs/*.json`
+        # resolved to no rule at all, so "evidence that is itself under two keys"
+        # was true for one filename. AI Quality owns the number the answers score
+        # to; Platform Engineering owns the lane that re-scores them.
+        "committed goldens evidence — the answers a recorded entry was summarised from",
+        re.compile(r"^milestones/[^/]+/(goldens-run\.json|runs/[^/]+\.json)$"),
         ("ai-quality", "platform-eng"),
     ),
     Rule(
@@ -192,7 +234,12 @@ RULES: tuple[Rule, ...] = (
         # `test_adversarial_entry.py` holds the instrument-order fix. Both were
         # unguarded while `pave/floors.py`, which they protect, takes three keys.
         "the tests that execute the instrument and arm-scoping protections",
-        re.compile(r"^tests/(test_arm_scoping|test_instrument_stability|test_adversarial_lane|test_adversarial_entry)\.py$"),
+        # `test_history_append_only` holds ADR-042's completeness pin, the
+        # merge-base diff, the evidence anchor, the schema ratchet and the
+        # seat-set test -- every protection that ADR adds, in one file on the
+        # rule, because its draft 2 named no file and every plausible name
+        # resolved to no rule at all.
+        re.compile(r"^tests/(test_arm_scoping|test_instrument_stability|test_adversarial_lane|test_adversarial_entry|test_history_append_only)\.py$"),
         # Platform Engineering joins because `PIN_FLOOR` lives here and duplicates
         # comparator values on purpose -- the lane that reads those pins is theirs,
         # and the duplication is what makes moving a pinned number take a code diff

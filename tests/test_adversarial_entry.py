@@ -390,9 +390,15 @@ def test_the_committed_entries_still_validate():
     """The schema gained a conditional. Every entry written before it existed must
     still be readable — append-only history that a schema change invalidates is
     history nobody can check."""
-    for path in sorted((ROOT / "evals" / "history").glob("*.json")):
-        if path.name == "schema.json":
-            continue
+    # THE enumerator (ADR-042 decision 2). This used to glob `*.json` minus
+    # `schema.json`, which would have validated `pins.json` as an entry the day it
+    # landed; `test_k_sample_summary.py` globbed `*-*.json`, which skipped it by
+    # the accident of a hyphen. One function, so the two cannot disagree.
+    from pave import history
+    entries, problems = history.enumerate_entries()
+    assert not problems, problems
+    assert entries, "no history entries -- this check would be vacuous"
+    for path in entries:
         jsonschema.validate(json.loads(path.read_text(encoding="utf-8")), SCHEMA)
 
 

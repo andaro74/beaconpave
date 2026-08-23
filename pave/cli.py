@@ -25,6 +25,7 @@ import glob
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import time
@@ -286,6 +287,63 @@ def gate_two_key(argv):
         sys.exit(gate_mod.EXIT_QUALITY)
 
 
+def gate_history(argv):
+    """`pave gate history --base <sha> [--out verdict.json]` — ADR-042.
+
+    The instance of the history checks that DECIDES. It is a workflow step and
+    not a pytest because `tests/conftest.py` and `pyproject.toml` control the
+    test harness on zero keys, and a seat measured both deselecting and
+    re-basing the three-key protection tests with `pave check` exit 0. The base
+    arrives as an explicit argument from the event payload, as `two-key.yml`
+    already passes `BASE_SHA`; nothing between the workflow and the check reads
+    an environment variable.
+
+    **`--base` is required.** Absence is blocking, for `gate two-key`'s reason:
+    a check handed no base cannot report compliance for a diff it never saw. A
+    refusal (shallow clone, no git, unresolvable base) is a FAIL with the named
+    remedy -- knowingly not INFRA, so nobody later "fixes" it into a skip."""
+    from pave import history
+    if "--base" not in argv:
+        _emit("history: BLOCKED — no `--base` given, so committed history was compared against "
+              "nothing. Pass `--base <sha>` (the workflow passes the PR's base).")
+        sys.exit(gate_mod.EXIT_QUALITY)
+    base = _flag_values(argv, "--base")
+    if not base or not base[0].strip():
+        # **An empty value is absence, not a default.** `--base ""` -- which is
+        # what `${{ github.event.pull_request.base.sha }}` expands to the day this
+        # workflow gains `merge_group`, `push` or `workflow_dispatch` -- fell
+        # through `resolve_base`'s `if explicit:` to `PAVE_BASE` and then
+        # `origin/main`, and printed PASS at exit 0 while this function's own
+        # docstring promised that nothing between the workflow and the check reads
+        # an environment variable. Found by the Security seat.
+        _emit("history: BLOCKED — `--base` was given no value, so committed history would be "
+              "compared against whatever a fallback resolved. A base that did not arrive is "
+              "not a base to guess at.")
+        sys.exit(gate_mod.EXIT_QUALITY)
+    out = _flag_values(argv, "--out")
+    try:
+        problems, refusals = history.run_all(base[0] if base else None, history=history.HISTORY)
+    except Exception as exc:  # noqa: BLE001 -- a bare traceback is an errored step, not a stated block
+        # Measured: `{bad` in pins.json, a missing registry, a non-UTF-8 entry,
+        # a symlink checked out as text, an entry that is a list. Each raised,
+        # wrote no verdict, and paged platform as a harness failure naming no
+        # file. A refusal with the exception's name is a FAIL with a remedy.
+        problems, refusals = [], [f"{type(exc).__name__}: {exc}"]
+    _emit(history.render(problems, refusals))
+    if out:
+        verdict_mod.write(out[0], verdict_mod.build(
+            service="beaconpave",
+            surface="agent",
+            suite="history",
+            layer="L1",
+            verdict="FAIL" if (problems or refusals) else "PASS",
+            fail_closed=True,
+            notes=[*refusals, *problems][:40],
+        ))
+    if problems or refusals:
+        sys.exit(gate_mod.EXIT_QUALITY)
+
+
 def _seats_for(path: str) -> str:
     """The seats a two-key path actually needs, rendered for a remediation.
 
@@ -322,6 +380,7 @@ from pave.floors import (  # noqa: E402
     G4_CASE_FLOOR,
     G4_SCORED_CASE_FLOOR,
     asked_floor,
+    registered_denominator,
 )
 
 
@@ -896,17 +955,14 @@ def adversarial_run(argv=()):
         # absent exactly when somebody wants it absent.
         scored = sum(1 for r in results if r.result != OUT_OF_SCOPE)
         scores[f"{tag}_scored"] = scored
-        # The corpus size on the day this arm ran, from the entry it published.
-        entry_file = ROOT / "evals" / "history" / f"{tag}-adversarial.json"
-        recorded_total = None
-        if entry_file.is_file():
-            try:
-                recorded_total = (json.loads(entry_file.read_text(encoding="utf-8"))
-                                  .get("scores") or {}).get("total")
-            except json.JSONDecodeError:
-                recorded_total = None
-        floor = asked_floor(tag, len(probes),
-                            recorded_total if isinstance(recorded_total, int) else None)
+        # The corpus size on the day this arm ran -- from the REGISTRY, via the
+        # instrument its entry names, never from the entry's own `total`
+        # (ADR-042 decision 6). The read lives in `pave/floors.py` because this
+        # file is ungated by design and the read decides a FAIL.
+        registered, problem = registered_denominator(tag, ROOT)
+        if problem:
+            failures.append(problem)
+        floor = asked_floor(tag, len(probes), registered)
         if scored < floor:
             failures.append(
                 f"{tag}: {scored} probe(s) scored, beneath its floor of {floor}. An arm with no "
@@ -1108,11 +1164,27 @@ def check(argv=()):
         failures.append("ruff is not installed — `pip install -e .` (it is a declared dev dep)")
 
     print("==> L0 unit + L1 contract (hermetic)")
-    proc = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=ROOT)
+    # `-o addopts=` so `pyproject.toml` cannot inject `-k 'not arm_scoping'` into
+    # this run, and the summary line is read for `deselected` because a
+    # deselected protection test is a protection test that did not run
+    # (ADR-042). The mirror's harness is still zero-key; the instance that
+    # decides in CI is `pave gate history`, which does not go through pytest.
+    # Streamed, not captured: `capture_output=True` sat silent for the whole
+    # 45 s run. Lines are echoed as they arrive and kept for the summary regex.
+    with subprocess.Popen([sys.executable, "-m", "pytest", "-q", "-o", "addopts="],
+                          cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          text=True, encoding="utf-8", errors="replace") as proc:
+        seen = []
+        for line in proc.stdout:
+            sys.stdout.write(line)
+            seen.append(line)
+        proc.wait()
     if proc.returncode == 5:
         failures.append("pytest collected zero tests — an empty suite is a failing suite, not a passing one")
     elif proc.returncode != 0:
         failures.append(f"pytest failed (exit {proc.returncode})")
+    if re.search(r"\b[1-9]\d* deselected\b", "".join(seen)):
+        failures.append("pytest deselected tests — a protection test that did not run protects nothing")
 
     print("==> guardrail-refusal band (SPEC/01, reporting only)")
     try:
@@ -1388,8 +1460,10 @@ def main(argv):
         gate_comment(rest[1:])
     elif cmd == "gate" and rest[:1] == ["two-key"]:
         gate_two_key(rest[1:])
+    elif cmd == "gate" and rest[:1] == ["history"]:
+        gate_history(rest[1:])
     elif cmd == "gate":
-        _die("gate: expected `decide`, `comment`, or `two-key`", gate_mod.EXIT_CONTRACT)
+        _die("gate: expected `decide`, `comment`, `two-key`, or `history`", gate_mod.EXIT_CONTRACT)
     elif cmd == "drill":
         _stub("drill", f"run drill/scenarios for {rest}: blackout sweep, caption check, alarm "
                        "self-test; emit a machine-signed go/no-go artifact")

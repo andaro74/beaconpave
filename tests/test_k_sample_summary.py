@@ -200,7 +200,9 @@ def test_the_recorded_entries_so_far_all_validate():
     """The schema gained a field. Every entry already in history must still be a
     legal entry — an append-only file whose schema stopped describing its own
     contents is worse than one with no schema."""
-    entries = sorted((ROOT / "evals" / "history").glob("*-*.json"))
+    from pave import history
+    entries, problems = history.enumerate_entries()   # ADR-042: the one enumerator
+    assert not problems, problems
     assert entries, "no history entries — this check would be vacuous"
     for path in entries:
         jsonschema.validate(json.loads(path.read_text(encoding="utf-8")), HISTORY_SCHEMA)

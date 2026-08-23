@@ -94,14 +94,73 @@ def dryrun(cases: list) -> int:
 
 
 def _sources(paths) -> list[dict]:
-    """Name and hash every answer file an entry was summarised from."""
-    import hashlib
+    """Name and hash every answer file an entry was summarised from.
+
+    **Normalised text, not raw bytes (ADR-042).** This hashed `read_bytes()`, and
+    on a Windows tree with `core.autocrlf` every digest it ever wrote was of a
+    CRLF rendering of an LF blob: seven of the ten `samples_from` records on
+    `main` mismatched the committed file, and nothing read them. The same
+    function the pin uses, so "has the evidence changed" is a question about
+    what it says on every platform."""
+    from pave import history
     found = []
     for path in paths:
-        raw = pathlib.Path(path).read_bytes()
-        found.append({"path": str(path).replace(chr(92), "/"),
-                      "sha256": hashlib.sha256(raw).hexdigest()})
+        p = pathlib.Path(path)
+        text = p.read_text(encoding="utf-8")
+        # Recorded relative to the repository, forward slashes, no `./`: the
+        # evidence check compares this string to `milestones/<TAG>/...`.
+        shown = p.resolve().relative_to(ROOT.resolve()) if p.resolve().is_relative_to(ROOT.resolve()) else p
+        found.append({"path": str(shown).replace(chr(92), "/"),
+                      "sha256": history.entry_digest(text)})
     return found
+
+
+def write_entry(path: pathlib.Path, entry: dict) -> str:
+    """The one writer both recorders use (ADR-042 decision 2). LF on disk so a
+    pin taken by hand agrees with the recorder's; the pin written beside the
+    entry from the entry's own directory, so `--history-dir` and a monkeypatched
+    `HISTORY` carry it; the digest printed, because the previous recorder
+    printed only a path and an operator hashing the CRLF file pinned the wrong
+    number."""
+    from pave import history
+    text = json.dumps(entry, indent=2) + "\n"
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(text)
+    digest = history.write_pin(path, text)
+    print(f"pinned: {path.name} {digest}")
+    return digest
+
+
+def _load_superseded(history_dir: pathlib.Path, name: str, suite: str) -> dict:
+    """Resolve `--supersedes <filename>` (ADR-042 decision 7). A correction names
+    the file it corrects -- the append-only guard's key -- not a SHA, which
+    identifies one to N entries and already identifies three."""
+    target = history_dir / name
+    if "/" in name or "\\" in name or not target.is_file():
+        raise SystemExit(f"error: --supersedes {name!r} is not an entry in {history_dir}. A "
+                         "correction names the filename it corrects.")
+    old = json.loads(target.read_text(encoding="utf-8"))
+    if old.get("suite") != suite:
+        raise SystemExit(f"error: --supersedes {name} is a {old.get('suite')} entry; this recorder "
+                         f"writes {suite}.")
+    if any(json.loads(p.read_text(encoding="utf-8")).get("supersedes") == name
+           for p in history_dir.glob("*.json") if p.name not in ("schema.json", "pins.json")):
+        raise SystemExit(f"error: {name} is already superseded. Corrections are a linear chain: "
+                         "correct the correction.")
+    return old
+
+
+def _correction_stem(history_dir: pathlib.Path, target: str, suite: str) -> str:
+    """`{stem}-correction{N}-{suite}.json`, where N counts corrections of the
+    ORIGINAL stem. Correcting a correction must not nest
+    (`-correction1-correction1-`): the Platform seat measured the recorder
+    writing that name and `check_second_rows` refusing it."""
+    import re as _re
+    base = _re.sub(r"-correction\d+$", "", target[: -len(f"-{suite}.json")])
+    n = 1
+    while (history_dir / f"{base}-correction{n}-{suite}.json").exists():
+        n += 1
+    return f"{base}-correction{n}"
 
 
 def summarise(per_sample: list[list], ids: list[str]) -> tuple[list, dict]:
@@ -377,14 +436,19 @@ def run(args) -> int:
             print(f"  {r.id}: {r.unearned_reason}")
 
     if args.record:
-        # A judged entry always names and hashes the answers it read, even at
-        # k_answers = 1. The whole claim of a re-reading is "these exact answers,
-        # read differently", and an entry that does not say which bytes it read
-        # cannot support it.
+        # Every entry names and hashes the answers it read, at any k (ADR-042
+        # decision 5). This was `if len(per_sample) > 1 or judged_parts`, and the
+        # AI Quality seat measured that an honest k=1 `--record` -- and every
+        # goldens `--supersedes` at k=1 -- was then refused by the evidence check
+        # the same ADR adds. An entry that does not say which bytes it read
+        # cannot be anchored to them.
         path = record(results, scores, args, len(per_sample), samples,
-                      sources=_sources(paths) if (len(per_sample) > 1 or judged_parts) else None,
-                      judged=judged_parts)
-        print(f"recorded: {path.relative_to(ROOT)}")
+                      sources=_sources(paths), judged=judged_parts)
+        try:
+            shown = path.relative_to(ROOT)
+        except ValueError:   # a test's HISTORY, or --history-dir on the twin
+            shown = path
+        print(f"recorded: {shown}")
 
     if args.against:
         # The other arm, scored and summarised by the identical path — never read
@@ -434,12 +498,18 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None) 
     # the m00b commit, and recording HEAD would say the M03 branch produced them —
     # putting two readings of one commit under two shas, where the whole point is
     # that a reader sees them as one commit read twice (ADR-012, ADR-027).
-    sha = getattr(args, "sha", None) or _git_sha()
-    if getattr(args, "sha", None) and not judged:
+    supersedes = getattr(args, "supersedes", None)
+    superseded = _load_superseded(HISTORY, supersedes, "goldens") if supersedes else None
+    # A correction copies the commit it corrects rather than re-deriving it; an
+    # explicit --sha beside --supersedes is the one sanctioned way to correct a
+    # row recorded against the WRONG commit (ADR-041's B-0 shape), and the
+    # different-sha row is then not "a second row under one sha".
+    sha = getattr(args, "sha", None) or (superseded["sha"] if superseded else _git_sha())
+    if getattr(args, "sha", None) and not judged and not superseded:
         raise SystemExit(
             "error: --sha overrides the commit a score is recorded against, and is only "
-            "meaningful for a re-reading of committed answers. A fresh run records the commit "
-            "it ran at. Pass --judged, or drop --sha."
+            "meaningful for a re-reading of committed answers or a correction. A fresh run "
+            "records the commit it ran at. Pass --judged or --supersedes, or drop --sha."
         )
     entry = {
         "sha": sha,
@@ -485,6 +555,20 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None) 
         value = getattr(args, key)
         if value is not None:
             entry[key] = value
+    if superseded:
+        entry["supersedes"] = supersedes
+        # `supersedes` means *the earlier entry was wrong* (ADR-027). Identical
+        # numbers correct nothing and put the same number twice under one sha.
+        if superseded.get("scores") == entry["scores"] and superseded.get("cases") == entry["cases"]:
+            raise SystemExit(f"error: this entry's scores and cases equal {supersedes}'s. A correction "
+                             "that corrects nothing is refused (ADR-042 decision 7).")
+        if superseded.get("instrument") != entry.get("instrument"):
+            raise SystemExit("error: a correction carries the instrument of the entry it corrects; a "
+                             "different instrument is a second reading, not a correction.")
+        if superseded.get("arm") != entry.get("arm"):
+            raise SystemExit("error: a correction carries the arm of the entry it corrects.")
+        if superseded.get("tag") and "tag" not in entry:
+            entry["tag"] = superseded["tag"]
 
     import jsonschema
     jsonschema.validate(entry, _load(HISTORY_SCHEMA))
@@ -499,13 +583,17 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None) 
     stem = f"{args.tag or sha[:7]}" + (f"-{args.arm}" if args.arm else "")
     if judged:
         stem += f"-judged-{judged['instrument']['name']}"
+    if superseded:
+        # ADR-027 rule 3: the component that differs is the thing that differs,
+        # and what differs here is that this row is a correction.
+        stem = _correction_stem(HISTORY, supersedes, "goldens")
     path = HISTORY / f"{stem}-goldens.json"
     if path.exists():
         raise SystemExit(
             f"error: {path.name} already exists. History is append-only — a correction is a new "
-            "entry with `supersedes`, never an edit (CLAUDE.md)."
+            "entry recorded with `--supersedes {path.name}`, never an edit (CLAUDE.md)."
         )
-    path.write_text(json.dumps(entry, indent=2) + "\n", encoding="utf-8")
+    write_entry(path, entry)
     return path
 
 
@@ -553,6 +641,10 @@ def main(argv=None) -> int:
     p.add_argument("--k-judge", dest="k_judge", type=int, default=3,
                    help="judge samples per case in --judged")
     p.add_argument("--record", action="store_true", help="append an entry to evals/history/")
+    p.add_argument("--supersedes", metavar="ENTRY",
+                   help="record this as a CORRECTION of an entry in evals/history/, named by "
+                        "filename (ADR-027: the earlier entry was wrong). Copies its sha and "
+                        "lands under a -correctionN- filename; never edits it.")
     p.add_argument("--tag", help="milestone tag, e.g. m00b")
     p.add_argument("--target", default="baseline", help="baseline | <service-name>")
     p.add_argument("--out", help="write a gate verdict record here")

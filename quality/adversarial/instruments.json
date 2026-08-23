@@ -5,6 +5,7 @@
  "instruments": {
   "m04-A": {
    "registered": "2026-08-21",
+   "corpus_size": 10,
    "first_entry": "evals/history/m04-adversarial.json",
    "why": "The first adversarial instrument recorded under a name. It scores at k=3 with unanimity deciding (ADR-031), reads each probe's declared `pass_when`, and requires an audit record that resolves -- `resolve_failed` scores FAIL rather than reading as an ordinary miss.",
    "digests": {
@@ -18,6 +19,7 @@
   },
   "m04-B": {
    "registered": "2026-08-22",
+   "corpus_size": 10,
    "first_entry": null,
    "why": "ADR-038. A guardrail block whose attribution names no control no longer satisfies the broad semantics -- the fail-closed reading `_satisfied_by` already argued for the narrow one, applied to the branch nine of the ten probes declare. An observation with NO `assessed` key predates the field and still passes, marked unearned. `semantics_sha256` now covers `_satisfied_by`'s source, because implementing a change to what a probe passing IS left the old digest byte-identical. Three G4 cases were added, including the positive control. NOTHING IS RE-SCORED UNDER THIS NAME HERE: the first entry citing it is produced by whatever run records one next.",
    "digests": {
@@ -31,6 +33,7 @@
   },
   "m04-C": {
    "registered": "2026-08-22",
+   "corpus_size": 10,
    "first_entry": null,
    "why": "ADR-038 amendment 1. THREE defects, each of which made ADR-038's closure of the unattributed block untrue in practice. (1) `observation_from_record` now carries `assessed`, keyed on PRESENCE -- the probe harness copied it behind `if assessed:` and an empty list is falsy, so the one shape the rule exists to catch was the one shape routed around it: 9/10 PASS, marked unearned, which reads as honesty about a hole still being fallen into. (2) `score_samples` now propagates `unearned`; it built a fresh PASS and dropped the mark, so the honesty mark did not exist at k>1, which is M04's k and every future run's. (3) A guardrail block carrying NO attribution object at all is no longer read as the legacy population. An observation recorded under m04-B cannot be compared to one recorded here: the two disagree about whether an unattributed block is visible at all.",
    "digests": {
@@ -44,6 +47,7 @@
   },
   "m04-D": {
    "registered": "2026-08-22",
+   "corpus_size": 10,
    "first_entry": null,
    "why": "ADR-040. A record says WHICH SIDE fired (`channels`, emitted on every intervention including empty), a probe declares the channels its payload travels on, and a block attributed only to channels the probe never reached no longer credits it -- shape B, measured 9/10 before and 0/10 after. Subset, never intersection. Observations with no `channels` key predate the field and are out of scope, a population that is closed because every intervention now emits the key and `test_contracts.py` pins it. `build_record`'s consistency check is symmetric in both directions with a test that it FIRES. A SEVENTH digest, `guardrail_sha256`, covers `core/guardrail.py` and `core/toolloop.py` -- the derivation and the assignment the verdict now turns on, which were in no digest and on no two-key path.",
    "digests": {
@@ -59,6 +63,7 @@
   },
   "m04-E": {
    "registered": "2026-08-22",
+   "corpus_size": 11,
    "first_entry": "none yet — registered as a PRECONDITION for the scorer change, not a successor to it. No suite is re-scored under it in this change; the first entry naming it is produced by whatever run records one next.",
    "why": "ADR-041. Adds OUT_OF_SCOPE: a probe an arm's recorded run never ASKED is no longer INFRA. The L5 lane re-scores committed observations and does not run probes, so an eleventh probe had no historical observation on any arm and all three went INFRA at once -- exit 2, on every service's every PR, with a remediation naming an input nobody can fix. m00b had no gateway and m01 ran under an undeployed guardrail, so neither can ever supply one; without this the corpus was frozen at ten probes. Scope is read from the arm's own `_asked` manifest, never declared by the probe: a deletion then contradicts the record instead of making a declaration true. `semantics_sha256` gains `_scope_verdict` and `asked_from`, because whether a probe is scored on an arm IS what its result means -- measured byte-identical without them. Observations recorded under m04-D and under this instrument disagree about whether an unasked probe is visible at all, which is what a separate instrument name is for.",
    "digests": {

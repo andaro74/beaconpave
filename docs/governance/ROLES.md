@@ -79,7 +79,7 @@ Whoever feels a control's pain never solely controls its strength.
 | Change | Keys required |
 |---|---|
 | Eval threshold | Owning seat + AI Quality |
-| Baseline reset | Service team + AI Quality |
+| Recorded history — any file under `evals/history/`, and both recorders (`evals/run_evals.py`, `evals/run_adversarial.py`) | AI Quality + Security + Platform Eng (ADR-042) |
 | Probe downgrade to advisory | Security alone, **plus an ADR** |
 | Consequence class increase | Tool owner + Legal/S&P |
 | Comparator move (`evals/comparators.json`) | AI Quality + Platform Eng + Security |

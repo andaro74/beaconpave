@@ -260,7 +260,8 @@
     },
     "supersedes": {
       "type": "string",
-      "description": "SHA of an entry this corrects. Corrections append; they never edit."
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*\\.json$",
+      "description": "FILENAME of the entry this corrects (ADR-042 decision 7; it was a SHA, and a SHA identifies one to N entries -- 515ee70 already identifies three). Corrections append; they never edit. The named file must exist, must not be this row, must share suite, arm and instrument, and must differ in scores or cases. Written by `--supersedes`."
     },
     "k": {
       "type": "integer",
