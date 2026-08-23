@@ -148,12 +148,28 @@ Every one measured, fixed, and given a test:
   described;
 - `check()` captured pytest and sat silent for 45 s;
 - the Makefile's default `OBSERVATIONS` would have recorded a second row over
-  M04's evidence.
+  M04's evidence;
+- **four of the ten new checks deleted in silence** — `check_reachable`,
+  `check_modes`, `check_case_ids` and `ASKED_FLOOR` each neutered with 1784
+  passed, which is prediction 7 failing a fourth time *inside the module the
+  prediction is about*. Four violating-tree tests; each deletion now produces
+  2–3 named failures;
+- **registering `corpus_size` on four superseded instrument rows** let a new arm
+  name a stale ten-probe instrument, set its own floor to 10 and never be asked
+  `ADV-011` — the newest probe — with every check clean. The recorder refuses
+  that at record time and the gate did not, which is this ADR's own thesis about
+  where a deciding check may live;
+- `--base ""` reported PASS at exit 0, falling through to `origin/main` — not
+  live under `on: pull_request`, live the day the workflow gains `merge_group`;
+- one unreadable file erased every other finding, because `gate history`
+  replaced the problems already collected with the exception;
+- `check_reachable` accepted `HEAD`, the PR's own merge commit — verbatim the
+  scenario it was written for.
 
 ## Verification
 
 ```
-1784 passed        ruff clean        pave check exit 0
+1795 passed        ruff clean        pave check exit 0
 pave gate history --base main: PASS  gate decide exit 0
 lane PASS exit 0                     zero model calls, zero dollars
 ```
@@ -194,7 +210,10 @@ Two-Key-Rationale: no suite is re-scored and no committed number moves — every
   headroom is unchanged at six or more failing cases in every suite.
 
 **Security / Red Team** — owns what a probe passing means, the adversarial
-entries and the corpus registry. The denominator an arm reports stops being the
+entries and the corpus registry. A new arm may not name a superseded
+instrument: registering `corpus_size` on the stale rows would otherwise have
+handed every future arm an opt-out from the probes added since it, measured at
+10/10 with `ADV-011` never asked. The denominator an arm reports stops being the
 number the same PR wrote: it is `corpus_size` for the instrument the entry
 names, and every registered `probes_sha256` must resolve to a revision of the
 corpus reachable from the base, with that many probes. "Registered under
