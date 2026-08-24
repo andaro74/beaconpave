@@ -2,9 +2,9 @@
 
 `SPEC/README.md` says a spec is written **before** the milestone branch is cut,
 so this lands on `main` ahead of `m05-paved-road`. It builds nothing and changes
-no behaviour: one new file, 326 lines, four commits.
+no behaviour: one new spec, plus a README section marking where part one ends.
 
-**The four commits are the point.** Drafts 1, 2 and 3 were each reviewed by six
+**The four drafts are the point.** Drafts 1, 2 and 3 were each reviewed by six
 role seats — Platform Engineering, Service Team, Security, AI Quality, Data
 Governance, Tool Owner — each planting and running in its own worktree with one
 instruction: *do not read the code, break it and run the suite.* All six called
@@ -19,6 +19,13 @@ for a redraft every time.
 Drafts are preserved as commits rather than deleted, the way ADR-042 preserved
 its own at `33e5871`. The reasoning that was wrong is as instructive as the
 reasoning that was right, and in this case more of it was wrong than right.
+
+**Draft 4 has not been reviewed, and the spec now says so in its own header.**
+There were three rounds, against drafts 1, 2 and 3. Every count in the table
+above is a prior draft's. The title says "four drafts, each killed" — three were
+killed; the fourth has simply not been shot at yet, and the 39 → 31 → 20 trend is
+a reason to expect findings remain in it rather than a reason to expect it is
+clean. Run the seats against it before any of it is built.
 
 ## The finding the spec exists for
 
@@ -94,12 +101,41 @@ planting rather than reading. They are recorded here as findings 12–21 and are
   shape one level out — that ADR stopped crediting a block that names no control;
   this is a denial that names no attack.
 
+## The README now says this is a two-part project
+
+Part one (M00a–M04) built the machinery that judges an agent; part two (M05–M10)
+builds the path that creates one. The progression table carries the seam, and a
+recap below it states what part one produced **and what it does not have** —
+starting with the fact that no team can create an agent yet, which is this
+milestone's whole subject.
+
+It deliberately restates **no scored number**. The first attempt did, and
+`test_the_readme_row_is_tied_to_the_pinned_entry_not_any_entry` went red: that
+pin mutates the *first* `**15/25**` in the file, so a prose copy above the
+progression table would have absorbed the mutation and left the row's own check
+green. A recap that duplicated the numbers would have silently disarmed the pin
+that stops a row drifting to a different history entry. The recap points at the
+table instead.
+
+One prose correction rides along: `G9`'s row in the golden-rules table named
+**CODEOWNERS** as its enforcement, which is the one file ADR-013 and ADR-037
+established cannot collect a second key here — in the table headed *"enforced,
+never merely asserted"*. It now names `pave/twokey.py` and the required job.
+
 ## Seats
 
-`twokey.triggered(["SPEC/05-paved-road.md"])` returns `[]`. No attestation is
-required and none is claimed.
+`twokey.triggered(["SPEC/05-paved-road.md", "README.md",
+"docs/pr-bodies/spec-05-paved-road.md"])` returns `[]` — checked with the README
+in the list, not just the spec. No attestation is required and none is claimed.
 
 ## What this PR does not do
 
 No code, no test, no threshold, no recorded number, no probe, no ADR. `make check`
-is green at 1795 and the diff is one markdown file.
+is green at **1799**, unchanged by these edits. The four above `main`'s 1795 are
+`tests/test_no_account_identifiers.py`, which parametrises over every committed
+file: two new files × two scanners. Verified by diffing collected ids against a
+`main` worktree rather than assumed — the first draft of this paragraph guessed
+a different source and was wrong. The diff is three markdown files.
+
+The five live conditions above are fixed by **ADR-043** (PR #54), which is
+separate and merges first. This PR still fixes none of them.

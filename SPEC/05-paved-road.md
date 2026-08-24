@@ -17,10 +17,19 @@ much as the escalations, because over-stating an exposure leads to over-keying.
 flattered the platform.** They are quoted in their own sections rather than
 edited away. Drafts 1–3 are preserved at `scratchpad/SPEC-05-draft{1,2,3}.md`.
 
-The premise has survived four rounds unchallenged. What has not survived is
+The premise has survived all three rounds unchallenged. What has not survived is
 every mechanism proposed to fix it: draft 1 proposed verification at deploy,
 draft 2 cut that and proposed a deployment binding, draft 3 cut the binding, and
 **draft 4 relocates every control draft 3 put in a file that cannot hold it.**
+
+**Draft 4 has not been reviewed.** Three rounds ran, against drafts 1, 2 and 3;
+there was no round 4. Every count above — 39, 31, 20 — is a *prior* draft's, and
+the running trend (39 → 31 → 20) is the reason to expect draft 4 has findings
+left in it rather than a reason to expect it is clean. Drafts 1, 2 and 3 each
+looked finished to their author too, and each was killed by six seats. **Read
+this document as the best unreviewed draft, not as a reviewed spec**, and run the
+seats against it before any of it is built. The premise below has been
+re-measured five times and held; the mechanisms have been replaced three times.
 
 ## Why this milestone exists
 
