@@ -14,7 +14,8 @@ evidence anchor was wrong on `main` for seven digests rather than one, its
 denominator bound was one disposition line and a pointer to any ADR, and the
 three-key tests it relied on were deselectable from `pyproject.toml` and
 re-based from `tests/conftest.py`, both on zero keys. What draft 3 got wrong is
-recorded in its own section below. Draft 3 is at `33e5871`.
+recorded in its own section below. Draft 3 is at `33e5871`, tagged `drafts-adr-042` — the squash-merge left it
+reachable from no ref, so until that tag it resolved in one clone and no other.
 
 Draft 2 was reviewed by four seats, each planting
 and measuring in a worktree, and all four answered *"does any reachable input let
