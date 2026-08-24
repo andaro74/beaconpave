@@ -42,9 +42,19 @@ rather than deleting them is green everywhere that matters:
 `classification: internal → public` (1795), `→ confidential` (1795),
 `gates.eval_min_cases: 20 → 0` (1795), dropping a declared tool (1795).
 
+**Every number in this document is `07e8cd1`'s and is left as recorded** — the
+eval-discipline convention, where a stale entry is superseded rather than
+rewritten. The headline was re-measured on `bd80884` (this spec rebased onto
+`main` with ADR-043 merged) and the split is **identical**: the same six keys
+deletable, the same three KeyErrors, the same six gate failures, and all four
+value changes green. Only the total moved, 1795 → 1822. ADR-043 keyed five paths
+and closed none of this, because the manifest was never in its scope.
+
 **The review found six more of the same shape, five of them live on `main`, four
 of them invariant holes.** They are here because a milestone that builds a
-verifier while standing on them would be the shape it exists to remove.
+verifier while standing on them would be the shape it exists to remove. **Four
+of those five have since been keyed by ADR-043 (#54); finding 21 has not, and is
+the one still fully live.**
 
 ## What draft 3 got wrong
 

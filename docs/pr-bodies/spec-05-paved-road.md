@@ -31,21 +31,29 @@ clean. Run the seats against it before any of it is built.
 
 `services/highlights-agent/pave.manifest.yaml` declares the classification G5
 routes on, the tools G3 authorizes, the budgets the gate ceilings come from, and
-the case floor that enforces *"no unevaluated agents"*. Measured on `07e8cd1`,
-deleting each top-level key in turn and running the full suite:
+the case floor that enforces *"no unevaluated agents"*. **Re-measured on `bd80884`**
+— this branch rebased onto `main` with ADR-043 merged, because the original
+measurement was taken on `07e8cd1` and a two-merge-old number is not evidence
+about today's tree. Deleting each top-level key in turn, full suite each time:
 
 ```
-apiVersion, template, brand, owners, runtime, attestations  ->  1795 passed each
+apiVersion, template, brand, owners, runtime, attestations  ->  1822 passed each
 service, classification, tools                              ->  1 failed each, all KeyError
 gates                                                       ->  6 failed, four KeyError
 ```
 
-Six of ten fields deletable. And changing a value rather than removing it is
-green everywhere that matters: `classification: internal -> public` (1795),
-`gates.eval_min_cases: 20 -> 0` (1795), dropping a declared tool (1795).
+**Identical to the original split: the same six deletable, the same three
+KeyErrors, the same six gate failures.** Only the total moved, 1795 → 1822.
+ADR-043 keyed five paths and closed none of this, which is the correct outcome —
+the manifest was never in its scope — and it is stated because a reader is owed
+the difference between "still true" and "not re-checked".
+
+Changing a value rather than removing it is likewise still green everywhere that
+matters, all re-measured: `classification: internal -> public` (**1822**),
+`gates.eval_min_cases: 20 -> 0` (**1822**), dropping a declared tool (**1822**).
 
 `attestations` is commented *"written by CI, verified at deploy"*. Nothing writes
-it, nothing verifies it, deleting the block is 1795 passed — the ninth recorded
+it, nothing verifies it, deleting the block is 1822 passed — the ninth recorded
 arrival of the shape CLAUDE.md calls worse than a missing protection, and the
 first in a file a service team owns.
 
@@ -75,24 +83,36 @@ is its own harm.
 
 ## What the review found beyond the spec's subject
 
-Five live conditions on `main`, none introduced by this work, each found by
-planting rather than reading. They are recorded here as findings 12–21 and are
-**not** fixed by this PR:
+Five conditions found on `main` by planting rather than reading, none introduced
+by this work, recorded here as findings 12–21. **They are not fixed by this PR,
+and four of the five were since fixed by ADR-043 ([#54](https://github.com/andaro74/beaconpave/pull/54)),
+which merged first.** The status line under each says what is true on `main`
+today; verified by re-running `twokey.triggered` against each plant's file set,
+not assumed from the ADR:
 
 - **G1.** Widening `MODEL_INVOKE_ROLE_PREFIXES` and relaxing the test that pins
   it, in one diff: **1795 passed, two-key NOT REQUIRED** — against two comments
   saying it needs the Security seat and an ADR.
+  **Today: collects `security` + `platform-eng` + an ADR. Still green — keyed,
+  not red, which ADR-043 decision 4 states rather than implies.**
 - **G3.** Two lines in the Cedar generator put
   `permit(principal == Service::"attacker-svc", ...)` into the deployed policy
   set; `pave policy generate --check` exits **0**; the two-key registry is never
   touched.
+  **Today: collects four keys — `platform-eng`, `security`, `tool-owner`,
+  `legal-sp`. Still green; `policy ⊆ registry` is owed to M05.**
 - **Claim 10.** Dropping one word from `GATED_CONSEQUENCES` removes **every**
   approval interlock; `publish-highlight` becomes reachable with no approver;
   drift gate exit **0**; **zero keys collected**.
+  **Today: four keys, and the plant was already red at 15 failures — this one is
+  closed.**
 - **The harness.** `collect_ignore` in `tests/conftest.py` drops **1795 -> 1656**
   collected tests with `pave check` printing *"All checks passed!"*. Eight lines
   of `pytest_runtest_makereport` hookwrapper report **1795** — the exact honest
   count — with a G1 pin genuinely failing.
+  **Today: collects `platform-eng` + `security`, over six entry points found
+  across two rounds. ADR-043 names that rule a denylist and does not claim it
+  complete.**
 - **Finding 21, handed to Security.** A service declaring `classification: public`
   denies **11/11** probes with `mechanism: classification`, which is in
   `POLICY_MECHANISMS`, so `policy_denied` resolves true on every probe. Ten of
@@ -100,6 +120,8 @@ planting rather than reading. They are recorded here as findings 12–21 and are
   nothing scores 10/11**, against a best recorded arm of 7/10. This is ADR-038's
   shape one level out — that ADR stopped crediting a block that names no control;
   this is a denial that names no attack.
+  **Today: untouched. ADR-043 did not go near the adversarial scorer, so this is
+  the one of the five still fully live, and it is still Security's.**
 
 ## The README now says this is a two-part project
 
@@ -131,11 +153,8 @@ in the list, not just the spec. No attestation is required and none is claimed.
 ## What this PR does not do
 
 No code, no test, no threshold, no recorded number, no probe, no ADR. `make check`
-is green at **1799**, unchanged by these edits. The four above `main`'s 1795 are
+is green at **1822**, unchanged by these edits. The four above `main`'s 1818 are
 `tests/test_no_account_identifiers.py`, which parametrises over every committed
 file: two new files × two scanners. Verified by diffing collected ids against a
 `main` worktree rather than assumed — the first draft of this paragraph guessed
 a different source and was wrong. The diff is three markdown files.
-
-The five live conditions above are fixed by **ADR-043** (PR #54), which is
-separate and merges first. This PR still fixes none of them.
