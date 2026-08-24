@@ -15,7 +15,11 @@ seats corrected their own earlier findings — twice downward, which mattered as
 much as the escalations, because over-stating an exposure leads to over-keying.
 **Six statements of fact in drafts 1–3 were measured false, and every one of them
 flattered the platform.** They are quoted in their own sections rather than
-edited away. Drafts 1–3 are preserved at `scratchpad/SPEC-05-draft{1,2,3}.md`.
+edited away. **Drafts 1–3 are preserved at the tag `drafts-spec-05`**, whose
+first four commits are the drafts in order. This sentence used to name a path
+under `scratchpad/`, which was a session temp directory and was never in the
+repository — a preservation claim that resolved only in its author's working
+copy. `tests/test_cited_commits_resolve.py` now makes the next one red.
 
 The premise has survived all three rounds unchallenged. What has not survived is
 every mechanism proposed to fix it: draft 1 proposed verification at deploy,
