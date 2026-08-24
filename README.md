@@ -15,6 +15,16 @@ and rename it for yours.
 > **The paved road provides. The quality gate decides. The seat disposes.
 > The leakage number keeps everyone honest.**
 
+## Two parts, and this is the end of part one
+
+**Part one (M00a–M04) built the machinery that judges an agent. Part two
+(M05–M10) builds the path that creates one.** Nothing in part one lets a team
+make an agent: `pave new` is a stub that prints a sentence and exits 0, and
+`templates/agent-tools/` is one README. That is the honest description of where
+this repo stands, and M05 is where it stops being true. What part one actually
+produced is [recapped below the progression table](#what-part-one-produced);
+scored numbers live in that table and its footnotes, and nowhere else.
+
 ## Progression
 
 | M | Milestone | Branch | Tag | Goldens | Judged ✧ | Adversarial | Status |
@@ -25,6 +35,8 @@ and rename it for yours.
 | 02 | Tool registry + Cedar + catalog-search | `m02-tool-plane` | `m02` | **16/25** ✾ | not judged ✧ | not run ✿ | ✅ |
 | 03 | Eval harness + judge calibration | `m03-evals` | `m03` | n/a ❂ | **−0** ✧ | not run ❂ | ✅ |
 | 04 | Fail-closed gate + adversarial suite | `m04-gate` | `m04` | not re-scored ⊕ | **−0** ✧ | **7/10** ⊗ | ✅ |
+| | **— end of part one: the machinery that judges an agent —** | | | | | | |
+| | **— part two: the path that creates one —** | | | | | | |
 | 05 | `pave new` scaffold + manifest verify | `m05-paved-road` | `m05` | – | – | – | ⬜ |
 | 06 | 2nd tool + consequence interlock | `m06-consequence` | `m06` | –/25 | – | –/10 | ⬜ |
 | 07 | Rules registry + regdelta loop | `m07-rules` | `m07` | –/25 | – | – | ⬜ |
@@ -257,6 +269,52 @@ payload blocks 3 of 3 as a **user turn** and was allowed 2 of 3 as **tool
 output**, which attributes the failure to the channel rather than the wording.
 See `milestones/M04/README.md`.
 
+## What part one produced
+
+Deliberately without restating a scored number: every one of them is in the
+progression table above, and duplicating it here would create a second copy that
+can drift from the first.
+
+| | |
+|---|---|
+| **A control that fails, and is kept failing** | The `00b` row is the only one that is *supposed* to look bad. A flattering baseline makes every later milestone unfalsifiable, so an unearned pass is recorded as unearned rather than quietly improved |
+| **A gateway no service can go around** | G1 asserted against the committed synth snapshot, CI re-synthesizing and blocking on drift. [PR #14](https://github.com/andaro74/beaconpave/pull/14) was blocked by it, and the denial is witnessed in the audit lake rather than asserted |
+| **A tool plane where unregistered tools are unreachable** | `platform/registry/tools.yaml` renders the Cedar policy set. A tool with no registry entry has no permit, and gated consequence classes carry `forbid` clauses no argument talks past |
+| **A judge that was measured and found unfit** | 20 held-out items at `k_judge=3`, every axis demoted. The judged column is a signed subtraction so that no reader can mistake it for an improvement — it can only ever take passes away |
+| **A gate that fails closed and teaches** | [PR #29](https://github.com/andaro74/beaconpave/pull/29), labeled `exhibit` and closed unmerged: exit **1**, naming the probes that moved and the comparator they moved against |
+| **An adversarial suite that does not score manners** | Every observation is fetched back out of the audit lake rather than taken from the gateway's word, and a record that does not resolve scores FAIL. `model_complied` is recorded and never scored |
+| **Two-key governance a one-operator repo can actually collect** | `pave/twokey.py` plus the required `two-key` job, reading attestations out of the PR body — because `.github/CODEOWNERS` provably collects nothing here (ADR-013) |
+
+**Four of the twelve claims below are proven** — 2, 4, 5 and 9 — each with a
+linked artifact rather than a description. The other eight belong to part two.
+
+### What part one does not have, stated rather than implied
+
+- **No agent that a team created.** Claim 1 is M05's, and it is the claim the
+  other eleven are worth having *for*.
+- **`pave.manifest.yaml` is a ten-field declaration nothing verifies.** Six of
+  its ten keys — `apiVersion`, `template`, `brand`, `owners`, `runtime`,
+  `attestations` — can be deleted outright with the full suite still green, and
+  a service declaring `classification: public` passes every check while serving
+  nothing. `SPEC/05-paved-road.md` measures this; it is why M05 exists.
+- **The seats are subagents, not people.** Their output is advisory input to a
+  human (G6), never an approval.
+- **Every scope cut is an ADR, never a silent simplification.** Scaling this up
+  is un-cutting the cuts rather than a rewrite — which is the design, not an
+  excuse for what is missing.
+
+### Why the seam falls here
+
+Part one's milestones are all *measurement*: a control that fails, a gateway, a
+registry, a calibrated judge, a gate that blocks. Each can be built and proven
+before any service exists, and each is the kind of thing that cannot be
+retrofitted — a paved road laid before the gate exists paves over whatever the
+road happened to do. Part two spends that machinery on what a platform is for:
+**one command, and what comes out is governed by default.**
+
+Stopping at the seam leaves nothing half-open: M04 is closed and tagged, and M05
+has no branch.
+
 ## The twelve claims
 
 This repo exists to prove twelve falsifiable claims about quality platforms.
@@ -304,7 +362,7 @@ Start here: `docs/governance/ROLES.md` · demo script:
 | G6 | AI proposes; a human seat disposes; curation rates published | `ai-proposed` PR flow + CODEOWNERS |
 | G7 | Every rule has an owner, source, enforcing control, and review-by date | Rules schema validated in CI |
 | G8 | Local checks are hermetic: `make check` needs no cloud, no network | Committed fixtures and catalog |
-| G9 | Whoever feels a control's pain never solely controls its strength | Two-key rule via CODEOWNERS on thresholds |
+| G9 | Whoever feels a control's pain never solely controls its strength | `pave/twokey.py` + the required `two-key` job, reading attestations from the PR body — **not** CODEOWNERS, which provably collects nothing on a one-operator repo (ADR-013, ADR-037) |
 | G10 | Nothing bills while idle | Serverless-only infrastructure |
 
 ## Traceability rules
