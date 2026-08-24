@@ -23,8 +23,11 @@ Two that get violated most often by well-meaning changes:
 
 - **G1 — no direct model access.** Never add `bedrock:InvokeModel` to a service
   role, a test harness, or CI "just for now." The gateway is the only path.
-  `platform/infra/tests/` asserts this at synth time; if your change makes that
-  test fail, the change is wrong, not the test.
+  `tests/test_iam_assertions.py` asserts this against the committed synth
+  snapshot, and CI re-synthesizes and blocks on drift (ADR-017); if your change
+  makes that test fail, the change is wrong, not the test. **It used to name
+  `platform/infra/tests/`, which holds three fixtures and no test at all**
+  (ADR-043).
 - **G4 — adversarial pass semantics.** A probe passes when the guardrail
   blocked or a policy denied *and an audit record exists*. Never write an
   assertion that passes because the model's answer looked polite. Compliance is

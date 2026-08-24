@@ -398,6 +398,150 @@ RULES: tuple[Rule, ...] = (
         re.compile(r"^platform/gateway/(core/(guardrail|toolloop)\.py|handler\.py|audit\.schema\.json)$"),
         ("platform-eng", "security"),
     ),
+    Rule(
+        # **The file that pins every other rule's seat set, on the union of the
+        # seats it pins.** ADR-043 first put this on the enumerated
+        # protection-test rule (ai-quality, security, platform-eng), and the
+        # Legal/S&P seat measured the consequence: those three seats could drop
+        # `legal-sp` from the generator rule AND edit the pin here in one diff, at
+        # 1814 passed, with the seat losing its key never asked. That is ADR-037's
+        # shape -- a protection guarded by a seat set excluding the seat it
+        # protects -- on the very rule ADR-043 added to close it.
+        #
+        # Five seats on one small file is heavy and correct: its whole job is to
+        # hold other rules' seat sets, so every seat whose key it pins signs its
+        # removal. `ai-quality` is here because `twokey.py`'s own docstring names
+        # it as the owner of the rules list.
+        "the seat-set pins — every rule's seats, held where each of those seats must sign",
+        re.compile(r"^tests/test_twokey_seats\.py$"),
+        ("ai-quality", "security", "platform-eng", "tool-owner", "legal-sp"),
+    ),
+    Rule(
+        # **The plane that RELEASES the interlock, found by Security against the
+        # code.** `toolplane.py:1` says "nothing reaches a tool except through
+        # here (G3)" and `:30` names three seats -- Platform Engineering
+        # (mechanism), Tool Owner (the contracts), Security (it is an
+        # authorization path). It was on no rule, and neither was its test.
+        #
+        # Measured: neutering `Approval.__post_init__`'s guard so `Approval("","")`
+        # validates, plus the one test that catches it, left **1814 passed** and
+        # `two-key: not required`. ADR-043 gave four keys to the constant that
+        # DECLARES which classes are gated while the code that decides an approval
+        # is good enough to RELEASE one kept zero -- the asymmetry ADR-035 was
+        # written about, inside the ADR written to remove it.
+        "the tool plane — nothing reaches a tool except through here, and what counts "
+        "as an approval",
+        re.compile(r"^(platform/gateway/core/toolplane\.py|tests/test_toolplane\.py)$"),
+        ("platform-eng", "security", "tool-owner"),
+    ),
+    # --- ADR-043: paths that decide an invariant and collected no key ---
+    #
+    # All five were found by the six-seat SPEC/05 review PLANTING against `main`,
+    # not by reading, and four of the five contradict a comment sitting in the
+    # same file. None was introduced by M05.
+    Rule(
+        # **G1's allowlist, and the assertion that pins it.** Measured: widening
+        # `MODEL_INVOKE_ROLE_PREFIXES` and relaxing its own pin in one diff left
+        # 1795 passed and collected NO key -- against `pave/infra.py:64` ("it
+        # needs an ADR and the Security seat rather than a commit") and
+        # `tests/test_iam_assertions.py:118` ("Adding another is a G1 exception
+        # (Security seat + ADR), not a test fix"). Two protections stated in the
+        # two places a reader would look, enforced in neither.
+        #
+        # ONE rule over both files, deliberately: they are weakened together or
+        # not at all, and two rules would let a PR attest to one and move the
+        # other quietly -- the shape `evals/adversarial.py` and its test use.
+        #
+        # **Honest limit (ADR-043 decision 4):** this makes the widening
+        # COLLECTABLE, never red. A self-pinning constant edited alongside its
+        # own pin produces no failure, and only a second assertion at a different
+        # path would. That residual is stated in the ADR rather than implied.
+        "G1's model-invoke allowlist and the assertions defending it — adding an entry "
+        "is writing an exception",
+        re.compile(r"^(pave/infra\.py|tests/test_iam_assertions\.py)$"),
+        ("security", "platform-eng"),
+        requires_adr=True,
+    ),
+    Rule(
+        # **The generator, its test, and the schemas it renders into the deployed
+        # contract set.** Three measured, keyless paths to a G3 or claim-10
+        # weakening:
+        #
+        #   - two lines in `generate()` put `permit(principal ==
+        #     Service::"attacker-svc", ...)` into `tools.cedar`, with
+        #     `policy generate --check` at exit 0, 1795 passed, and the two-key
+        #     registry never touched. The drift gate is `generate(REGISTRY) ==
+        #     COMMITTED` -- both sides call the same function, so it proves the
+        #     artifact is a faithful build product OF the generator and never
+        #     that the generator is a faithful function OF the registry. ADR-004
+        #     says "the registry decides"; what was enforced is "the generator
+        #     decides."
+        #   - dropping `"publish"` from `GATED_CONSEQUENCES` removes EVERY forbid
+        #     clause and makes `publish-highlight` reachable with no approver.
+        #     That one IS caught by fifteen assertions -- and collected no key,
+        #     so claim 10 could be weakened with no written reason, and the three
+        #     files that catch it are the three a `collect_ignore` line disables.
+        #   - deleting `ai_generated` from a tool's input schema and adding
+        #     `skip_approval` travels into `tools.contracts.json`, which ships
+        #     inside the gateway bundle: 1795 passed, no key.
+        #
+        # **`legal-sp` is here because `GATED_CONSEQUENCES` is a consequence-class
+        # judgement and it lives in the generator.** The Security seat recommended
+        # a seat set excluding it in one review round and retracted that in the
+        # next, on this measurement -- CLAUDE.md assigns consequence classes to
+        # Tool Owner plus Legal/S&P, and the registry rule alone cannot collect a
+        # key for a constant that is not in the registry.
+        #
+        # Four seats on a generator that changes rarely is over-broad, and
+        # over-broad in the direction of more review is the fail-closed direction
+        # -- `evals/comparators.json` already records that argument.
+        "the Cedar generator, its test, and the tool schemas — what the deployed policy "
+        "set and contract set may say",
+        re.compile(r"^(platform/gateway/core/cedar\.py|tests/test_cedar_policy\.py"
+                   r"|tools/[^/]+/schema\.(in|out)\.json)$"),
+        ("platform-eng", "security", "tool-owner", "legal-sp"),
+    ),
+    Rule(
+        # **The harness the other ~1790 assertions run under.** ADR-042 decision 8
+        # listed these as "none -- stated", on the reasoning that they cannot
+        # touch the workflow step that decides the history checks. That reasoning
+        # holds for the history checks and for nothing else.
+        #
+        # Measured: `collect_ignore` in `tests/conftest.py` drops 1795 collected
+        # to 1656 with `pave check` printing "All checks passed!" at exit 0 --
+        # `pave check` defends the `pyproject.toml` route (`-o addopts=`, and it
+        # fails on any `deselected` count) but non-collection is neither. And
+        # eight lines of `pytest_runtest_makereport` hookwrapper report the EXACT
+        # honest count of 1795 with a G1 pin genuinely failing.
+        #
+        # **Five entry points, not two.** The first version named
+        # `tests/conftest.py` and `pyproject.toml` -- the two the plant used --
+        # and the Platform seat measured three equivalents at zero keys: a
+        # repo-ROOT `conftest.py` (an ancestor of both testpaths, so its
+        # hookwrapper applies to every item, 1814 passed with a G1 pin red), a
+        # new `pave/tests/conftest.py` (`collect_ignore` dropping the two-key
+        # mechanism's own test, 1743 passed), and a root `pytest.ini` (higher
+        # precedence than `[tool.pytest.ini_options]`, 1734 passed), and
+        # `.pytest.ini`, which outranks every name above it -- pytest prints
+        # "ignoring pytest config in pyproject.toml" and `-o addopts=` does not
+        # clear its `testpaths`, so two lines took the suite to 47 with
+        # `pave check` still PASS at exit 0. `tox.ini` and `setup.cfg` are the
+        # same precedence chain and are included rather than measured.
+        #
+        # **This enumeration is a DENYLIST and cannot be complete.** Six entry
+        # points were found by three seats across two rounds, each after the
+        # previous fix. The structural answer is ADR-042 decision 3's -- the
+        # deciding instance must not be a pytest at all -- and it is recorded as
+        # owed rather than claimed here.
+        #
+        # **Honest limit (ADR-043 decision 3):** a key makes that COLLECTABLE, not
+        # red. A harness that rewrites its own reports can report anything and no
+        # count sees it. Stated here and in the ADR rather than left to be
+        # discovered a second time.
+        "the test harness — a file that can decide what the suite reports",
+        re.compile(r"^((.*/)?conftest\.py|pyproject\.toml|\.?pytest\.ini|tox\.ini|setup\.cfg)$"),
+        ("platform-eng", "security"),
+    ),
 )
 
 

@@ -323,3 +323,168 @@ def test_handing_the_evaluator_raw_text_fails_loudly_rather_than_permitting():
     with pytest.raises((AttributeError, TypeError)):
         cedar.authorize(COMMITTED, principal="highlights-agent", action="invoke",
                         resource="catalog-search")
+
+
+# --- the schema's own claim, executed (ADR-043 decision 4) ------------------------
+
+#: Property names that would let a caller ask for the interlock to be skipped.
+#: `publish-highlight`'s description says the schema "cannot express 'skip
+#: approval' -- there is no such field, by design", and **nothing executed that
+#: sentence.** Measured on 07e8cd1: deleting `ai_generated` and adding
+#: `skip_approval` left 1795 passed, `pave policy generate --check` at exit 0, and
+#: `two-key: not required` -- with the new field landing in
+#: `tools.contracts.json`, which ships inside the gateway bundle.
+BYPASS_SHAPED = ("skip_approval", "skip_review", "bypass_approval", "no_approval",
+                 "approval_granted", "auto_approve", "force")
+
+#: Fields a gated tool must keep, and the JSON type each must keep.
+#:
+#: `ai_generated` is the MER-AI-0001 disclosure flag; the same one-line edit that
+#: adds a bypass field removes it, and that half was unasserted too. **The type is
+#: pinned because the name alone is a weak reading of a disclosure control**: the
+#: Legal/S&P seat measured `"type": "boolean"` -> `"string"` with `"default": "no"`
+#: shipping into the deployed contract set at 1814 passed.
+#:
+#: NOTE the value is a MAPPING and the guard below ratchets on it being non-empty.
+#: The first version was a set, and the guard tested `set(GATED_REQUIRED_PROPERTIES)`
+#: -- the dict's KEYS -- so `{"publish-highlight": set()}` satisfied it while the
+#: check skipped on `if not wanted: continue`, and the disclosure flag could be
+#: deleted at 1814 passed. That is this file's own anti-vacuity guard being vacuous
+#: one level in, found by the seat whose requirement it protects.
+GATED_REQUIRED_PROPERTIES = {"publish-highlight": {"ai_generated": "boolean"}}
+
+
+def _input_schema(tool):
+    return yaml.safe_load((ROOT / tool["schemas"]["input"]).read_text(encoding="utf-8"))
+
+
+def _all_property_names(node):
+    """Every property name anywhere in a schema, not just at the top level.
+
+    **The first version read `set(schema["properties"])` and the Security seat
+    walked straight past it**: a nested `options.properties.skip_approval` reached
+    `tools.contracts.json` -- the artifact inside the gateway bundle -- at 1814
+    passed, carrying the literal name the check blacklists. A top-level read is a
+    check on where a field is declared, not on whether it exists."""
+    names = set()
+    if isinstance(node, dict):
+        props = node.get("properties")
+        if isinstance(props, dict):
+            names |= set(props)
+            for sub in props.values():
+                names |= _all_property_names(sub)
+        for key in ("items", "additionalProperties"):
+            names |= _all_property_names(node.get(key))
+    elif isinstance(node, list):
+        for sub in node:
+            names |= _all_property_names(sub)
+    return names
+
+
+def _schema_paths(tool):
+    """Both schemas. The rule covers `schema.out.json` and the first version of
+    this check never read it."""
+    return [tool["schemas"][k] for k in ("input", "output") if k in tool["schemas"]]
+
+
+def test_no_registered_tool_can_express_skipping_its_own_interlock():
+    """The absence IS the contract, so the absence gets an assertion.
+
+    **And ADV-008 does not probe it** -- the schema's description said so and it
+    was false in both halves. ADV-008's `pass_when` is
+    `cedar_denied_or_approval_required_and_logged`, which turns on Cedar's forbid;
+    no probe in the corpus reads a schema. The description is corrected in the
+    same commit as this test (ADR-043)."""
+    for tool in REGISTRY:
+        for rel in _schema_paths(tool):
+            schema = yaml.safe_load((ROOT / rel).read_text(encoding="utf-8"))
+            offending = sorted(_all_property_names(schema) & set(BYPASS_SHAPED))
+            assert not offending, (
+                f"{tool['id']} ({rel}) declares {offending} — at any depth. A consequence "
+                "class is enforced by Cedar's forbid, and a tool that can ASK to skip it "
+                "makes the registry's declaration decorative. Owning seats: tool-owner, "
+                "legal-sp."
+            )
+
+
+def test_the_bypass_walk_is_recursive_and_reads_both_schemas():
+    """**The audit ratcheted the constants and not the code path that reads them.**
+    Dropping `_all_property_names`' recursion, or making `_schema_paths` return the
+    input schema only, each left 45 passed while re-opening the nested and
+    output-schema forms the Security seat measured reaching `tools.contracts.json`
+    green. A ratchet on the data does not defend the traversal."""
+    nested = {"properties": {"a": {"type": "object",
+                                   "properties": {"skip_approval": {"type": "boolean"}}}}}
+    assert "skip_approval" in _all_property_names(nested), (
+        "_all_property_names no longer recurses into nested `properties`. A top-level "
+        "read is a check on where a field is declared, not on whether it exists."
+    )
+    in_items = {"properties": {"a": {"type": "array",
+                                     "items": {"properties": {"skip_approval": {}}}}}}
+    assert "skip_approval" in _all_property_names(in_items), (
+        "_all_property_names no longer descends through `items`."
+    )
+    for tool in REGISTRY:
+        declared = [k for k in ("input", "output") if k in tool["schemas"]]
+        assert len(_schema_paths(tool)) == len(declared), (
+            f"_schema_paths reads {len(_schema_paths(tool))} of {tool['id']}'s "
+            f"{len(declared)} schemas. The rule covers `schema.out.json`; the check must too."
+        )
+
+
+def test_a_gated_tool_keeps_the_fields_its_approver_reads():
+    """`additionalProperties: false` stops a field being added and says nothing
+    about one being removed. The disclosure flag is the field the human in the
+    interlock actually looks at."""
+    for tool in REGISTRY:
+        wanted = GATED_REQUIRED_PROPERTIES.get(tool["id"], {})
+        props = _input_schema(tool).get("properties", {})
+        missing = sorted(set(wanted) - set(props))
+        assert not missing, (
+            f"{tool['id']}'s input schema no longer declares {missing}. `ai_generated` "
+            "is MER-AI-0001's disclosure flag, which the approval interlock will present "
+            "to the approver when M07 disposes that rule. Owning seats: tool-owner, "
+            "legal-sp."
+        )
+        for name, expected_type in wanted.items():
+            actual = props[name].get("type")
+            assert actual == expected_type, (
+                f"{tool['id']}.{name} is declared `{actual}`, not `{expected_type}`. A "
+                "disclosure flag retyped to a string is a flag that can ship the word "
+                '"no" as its default. Owning seats: tool-owner, legal-sp.'
+            )
+
+
+def test_the_bypass_vocabulary_and_the_gated_field_map_are_not_empty():
+    """**The audit found both silent.** Emptying `BYPASS_SHAPED` or
+    `GATED_REQUIRED_PROPERTIES` left 1812 passed, because each check iterates a
+    collection and a vacuous loop asserts nothing -- `pave/floors.py`'s "a floor
+    is only half a floor without its ratchet" in a new place.
+
+    `GATED_REQUIRED_PROPERTIES` is ratcheted against the registry rather than
+    pinned as a literal, so promoting a tool to a gated consequence class also
+    requires declaring what its approver reads."""
+    assert "skip_approval" in BYPASS_SHAPED, (
+        "BYPASS_SHAPED no longer names the field measured to reach the deployed "
+        "contract set. Emptying it makes the check above vacuous."
+    )
+    gated = {t["id"] for t in REGISTRY if t["consequence"] in cedar.GATED_CONSEQUENCES}
+    assert gated, "no gated tool in the registry — GATED_CONSEQUENCES may have been emptied"
+    # On the VALUES, not the keys. `{"publish-highlight": {}}` is a key with nothing
+    # behind it, and the check above skips a tool whose entry is empty.
+    # **The named field, not merely a non-empty entry.** Non-emptiness is not the
+    # invariant; `{"publish-highlight": {"title_id": "string"}}` is truthy, names a
+    # real field with a real type, and lets the disclosure flag be deleted at 1815
+    # passed. Third revision of this constant, third form of the same defect --
+    # pinned as a literal the way `BYPASS_SHAPED` pins `skip_approval`.
+    assert GATED_REQUIRED_PROPERTIES.get("publish-highlight", {}).get("ai_generated") == "boolean", (
+        "publish-highlight must still require `ai_generated` as a boolean. MER-AI-0001's "
+        "disclosure flag is the field this constant exists to defend; substituting another "
+        "field satisfies the ratchet and drops the flag. Owning seats: tool-owner, legal-sp."
+    )
+    missing = sorted(t for t in gated if not GATED_REQUIRED_PROPERTIES.get(t))
+    assert not missing, (
+        f"{missing} are gated by consequence class but declare no required properties. "
+        "A gated tool's approver reads specific fields; say which, or the check that "
+        "they survive is vacuous."
+    )

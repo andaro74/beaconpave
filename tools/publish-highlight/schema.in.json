@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://beaconpave/tools/publish-highlight/schema.in.json",
   "title": "publish-highlight input",
-  "description": "Consequence class: publish. Anything at publish or above routes through the Step Functions editorial-approval interlock before it takes effect (registry: `approval: stepfn:editorial-approver`). The schema cannot express 'skip approval' — there is no such field, by design. That absence is what ADV-008 probes.",
+  "description": "Consequence class: publish. Anything at publish or above routes through the Step Functions editorial-approval interlock before it takes effect (registry: `approval: stepfn:editorial-approver`). The schema cannot express 'skip approval' — there is no such field, by design.",
   "type": "object",
   "required": ["title_id", "headline", "body"],
   "additionalProperties": false,
