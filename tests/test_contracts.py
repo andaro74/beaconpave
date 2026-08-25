@@ -19,6 +19,8 @@ import pytest
 import yaml
 from core import cedar
 
+from pave import floors
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 REGISTRY = ROOT / "platform" / "registry" / "tools.yaml"
@@ -137,10 +139,20 @@ def test_manifest_service_matches_its_directory():
     assert manifest["service"] == MANIFEST.parent.name
 
 
-def test_manifest_classification_is_not_sensitive():
+def test_manifest_classification_is_declarable():
     """G5: `sensitive` is refused by design. A manifest that declares it would
-    deploy a service the gateway must refuse to serve."""
-    assert load_yaml(MANIFEST)["classification"] in {"public", "internal", "confidential"}
+    deploy a service the gateway must refuse to serve.
+
+    **Reads `floors.DECLARABLE_LEVELS` rather than restating it.** This held
+    `{"public", "internal", "confidential"}` as a bare set literal — a second
+    vocabulary site that `grep DECLARABLE_LEVELS` does not find, admitting three
+    values against the one authority's one. Nothing would have gone red: the
+    narrower gate wins at runtime, which is what makes that shape durable. It is
+    the same defect ADR-044 closed for `GATED_CONSEQUENCES` one file over."""
+    declared = load_yaml(MANIFEST)["classification"]
+    assert declared in floors.DECLARABLE_LEVELS, (
+        f"the manifest declares {declared!r}; the declarable vocabulary is "
+        f"{list(floors.DECLARABLE_LEVELS)} (pave/floors.py, ADR-045).")
 
 
 # --- goldens ------------------------------------------------------------------
@@ -169,15 +181,65 @@ def test_golden_set_is_the_size_the_progression_table_claims():
     assert len(load_yaml(GOLDENS)) == 25
 
 
+#: Every key a golden case may carry at its top level.
+#:
+#: **Closed because `expect_near_threshold` moved up here.** There was no
+#: top-level vocabulary check for the golden set — `KNOWN_CASE_KEYS` in
+#: `evals/adversarial.py` covers the *adversarial* corpus only — and
+#: `test_no_case_uses_an_undocumented_assert`'s own docstring names the failure
+#: mode this would have created: "the harness skips what it does not recognise, so
+#: the case reports PASS while checking nothing."
+#:
+#: At today's N=25 a typo'd flag is caught by the band (1/25 = 4%, outside 5-10%).
+#: **At the platform floor of 20 it is not**: the legal near-counts are exactly
+#: {1, 2}, both exactly on a band boundary, so a 20-case pack that loses one flag
+#: to a typo lands at 1/20 = 5% and stays legal. The typo is absorbed at precisely
+#: the pack size the floor mandates, which is why this list exists.
+CASE_KEYS = {
+    "id", "input", "viewer", "fixtures", "asserts", "judge", "trajectory",
+    "provenance", "expect_near_threshold",
+}
+
+
+def test_no_case_uses_an_undocumented_top_level_key():
+    for case in load_yaml(GOLDENS):
+        unknown = sorted(set(case) - CASE_KEYS)
+        assert not unknown, (
+            f"case {case.get('id')!r} carries unknown top-level key(s) {unknown}. The "
+            "runner ignores what it does not recognise, so a misspelled key is a case "
+            f"reporting PASS while checking nothing. Known keys: {sorted(CASE_KEYS)}.")
+
+
+def test_the_headroom_flag_is_not_accepted_inside_the_judge_block():
+    """**One location, because two make the vocabulary check useless.**
+
+    `expect_near_threshold` used to live under `judge:`, which meant a headroom
+    case needed a judge block — and the real cost of that was a `judge:` block
+    invoking no judge, not the rubric-shaped story an earlier draft told (removing
+    the rubric is `if rubric:`-guarded and measured 1861 passed).
+
+    Accepting *both* locations would leave the nested one outside `CASE_KEYS`,
+    and at the platform floor of 20 a typo nested under `judge:` is caught by
+    nothing at all — measured: N=20 with the flag nested and one nested typo is
+    1/20 = 5%, legal, and the vocabulary check never sees it."""
+    for case in load_yaml(GOLDENS):
+        assert "expect_near_threshold" not in (case.get("judge") or {}), (
+            f"case {case.get('id')!r} carries `expect_near_threshold` inside its "
+            "`judge:` block. It belongs at the case top level, where the closed key "
+            "vocabulary can see a typo in it.")
+
+
 def test_golden_set_keeps_headroom():
     """5-10% of cases at or near failure. A suite at 100% can only report
     regressions — improvements become invisible and the progression table stops
-    being able to show that anything got better."""
-    cases = load_yaml(GOLDENS)
-    near = [c for c in cases if c.get("judge", {}).get("expect_near_threshold")]
-    ratio = len(near) / len(cases)
-    assert near, "no near-threshold cases: the suite has no headroom"
-    assert 0.05 <= ratio <= 0.10, f"headroom is {ratio:.0%}; policy is 5-10% (AI Quality owns this)"
+    being able to show that anything got better.
+
+    **The criterion lives in `pave/floors.py` and is called, not restated.** This
+    assertion previously computed the ratio inline, which meant deleting it deleted
+    the repository's only headroom check — measured at 1859 passed, zero keys,
+    before ADR-044 put this file on a rule. `tests/test_floors.py` calls the same
+    function against the same pack, so gutting either leaves the other."""
+    floors.check_headroom(load_yaml(GOLDENS))
 
 
 #: The assert vocabulary documented in the golden set's README. That README is the
@@ -354,8 +416,19 @@ def test_no_budget_is_denominated_in_currency():
 
 
 def test_case_count_clears_the_manifest_gate():
-    """`eval_min_cases` fails the gate below a floor — no unevaluated agents."""
-    assert len(load_yaml(GOLDENS)) >= load_yaml(MANIFEST)["gates"]["eval_min_cases"]
+    """`eval_min_cases` fails the gate below a floor — no unevaluated agents.
+
+    **Counts disposed cases, not rows, so one counting rule ships rather than
+    two.** This asserted `len(cases) >= eval_min_cases` while `pave/floors.py`
+    counted the disposed set; measured divergence with 25 rows and 19 disposed
+    against a floor of 20 — this test passed while the floor was breached and the
+    disposed-set ratio was 0%. Two counting rules for one number is how ADR-037
+    happened."""
+    disposed = floors.disposed(load_yaml(GOLDENS))
+    declared = load_yaml(MANIFEST)["gates"]["eval_min_cases"]
+    assert len(disposed) >= declared, (
+        f"{len(disposed)} disposed case(s) against a declared floor of {declared}. "
+        "Rows scaffolded by `pave new` do not count until an author disposes them.")
 
 
 def test_no_golden_case_is_disposed_by_an_undisposed_rule():
