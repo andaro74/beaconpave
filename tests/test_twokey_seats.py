@@ -62,6 +62,9 @@ ADR043_SEATS = {
     "tests/test_tool_loop.py": {"platform-eng", "security"},
     "tests/test_gateway_core.py": {"platform-eng", "security"},
     "tests/test_gateway_run_parity.py": {"platform-eng", "security"},
+    # ADR-048: added to ADR-042's enumerated protection-test rule, whose
+    # membership ADR-044 pins member by member.
+    "tests/test_transport_parity.py": {"ai-quality", "security", "platform-eng"},
 }
 
 
@@ -357,7 +360,10 @@ def test_the_enumerated_protection_rule_cannot_be_narrowed_by_four_characters():
     diff on the one rule ADR-043's ratchet did not reach."""
     for path in ("tests/test_arm_scoping.py", "tests/test_instrument_stability.py",
                  "tests/test_adversarial_lane.py", "tests/test_adversarial_entry.py",
-                 "tests/test_history_append_only.py"):
+                 "tests/test_history_append_only.py",
+                 # ADR-048. The wire text of every governed adversarial observation
+                 # is pinned here, and no instrument digest covers the transport.
+                 "tests/test_transport_parity.py"):
         assert _seats_for(path) == {"ai-quality", "security", "platform-eng"}, (
             f"{path} is no longer on the enumerated protection-test rule. Narrowing that "
             "alternation is a two-key diff that silently un-keys a three-key file."

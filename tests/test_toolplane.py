@@ -188,10 +188,79 @@ def test_an_unregistered_tool_is_denied_by_policy_and_not_by_the_contract():
     assert "no policy permits" in decision.reasons[0]
 
 
+#: A registry that exists only here, so the cross-tool negative control has a
+#: second caller to be denied with.
+#:
+#: **Why synthetic, and why in this module.** This control asserts that a service
+#: the registry *does* invite to one tool is denied *another* — the property that
+#: distinguishes per-tool authorization from a blanket allow. It needs two distinct
+#: callers with different grants. The committed registry named `recap-agent` as a
+#: second caller of `catalog-search` for exactly this purpose, and ADR-023 records
+#: that nothing could ever authorize as it: one gateway deployment authorizes as
+#: one service, so the principal was a registry line and never a service. M05
+#: removed it (ADR-048), and the measurement that made removal urgent is that
+#: **the test kept passing while testing nothing** — one distinct caller leaves
+#: zero cross-tool pairs constructible, so `recap-agent -> entitlement-check`
+#: became "unregistered principal is denied", which
+#: `test_an_unregistered_tool_is_denied_by_policy_and_not_by_the_contract`
+#: already covers.
+#:
+#: **An in-module literal, not a committed fixture.** A second registry file on
+#: disk is a second thing nothing regenerates from, and it rots away from the real
+#: schema silently — a new drift surface for a control whose entire purpose is to
+#: be independent of the committed set. `cedar.generate` takes a plain list, so
+#: this needs no file.
+SYNTHETIC_REGISTRY = [
+    {"id": "tool-a", "consequence": "read", "callers": ["svc-one", "svc-two"]},
+    {"id": "tool-b", "consequence": "read", "callers": ["svc-one"]},
+]
+
+
 def test_an_uninvited_caller_is_denied_by_policy():
-    decision = authorize(principal="recap-agent", tool_id="entitlement-check")
-    assert not decision.allowed
-    assert decision.mechanism == toolplane.POLICY
+    """A caller the registry invites to one tool is denied another.
+
+    Run against `SYNTHETIC_REGISTRY` rather than the committed one, because the
+    committed registry has a single distinct caller and cannot express the pair.
+    The delta is asserted in both directions in the same test, so a policy set
+    that denied everything — or one that permitted everything — fails it."""
+    policies = cedar.parse(cedar.generate(SYNTHETIC_REGISTRY))
+    invited = cedar.authorize(policies, principal="svc-two", action="invoke",
+                              resource="tool-a")
+    assert invited.allowed, (
+        "the synthetic registry grants svc-two -> tool-a and the generated policy set "
+        "denies it. Without this half, the denial below would pass against a policy "
+        "set that denies everything.")
+    uninvited = cedar.authorize(policies, principal="svc-two", action="invoke",
+                                resource="tool-b")
+    assert not uninvited.allowed, (
+        "svc-two is a registered caller of tool-a and is NOT named on tool-b, and the "
+        "policy set permitted it anyway. Authorization is per (caller, tool), not per "
+        "caller.")
+    assert "no policy permits" in uninvited.reasons[0]
+
+
+def test_the_cross_tool_control_still_has_a_pair_to_test():
+    """**The control that died in silence, made loud.**
+
+    Measured on `6af17d2` before ADR-048: removing `recap-agent` from the
+    committed registry left `test_an_uninvited_caller_is_denied_by_policy`
+    passing at 1881 passed while no cross-tool negative pair existed — the test
+    passed and no longer tested its own name.
+
+    So the fixture the control rests on now asserts its own sufficiency. If a
+    future edit collapses `SYNTHETIC_REGISTRY` to one caller or one tool, this is
+    red rather than the control quietly becoming a tautology."""
+    pairs = {(caller, tool["id"])
+             for tool in SYNTHETIC_REGISTRY for caller in tool["callers"]}
+    callers = {caller for caller, _ in pairs}
+    tools = {tool_id for _, tool_id in pairs}
+    assert len(callers) >= 2 and len(tools) >= 2, (
+        f"the synthetic registry has {len(callers)} caller(s) and {len(tools)} tool(s); "
+        "a cross-tool negative control needs at least two of each.")
+    ungranted = {(c, t) for c in callers for t in tools} - pairs
+    assert ungranted, (
+        "every caller is granted every tool in the synthetic registry, so there is no "
+        "pair left to deny and the control above is vacuous.")
 
 
 def test_a_publish_class_tool_is_denied_until_an_approval_grants_it():

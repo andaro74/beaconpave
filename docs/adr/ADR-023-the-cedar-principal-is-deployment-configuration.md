@@ -50,6 +50,17 @@ proposing an identity.
 entry is unreachable rather than denied — there is no way to make a call that
 authorizes as `recap-agent`, so nothing exercises the policy that permits it.
 
+> **Amended by ADR-048 (M05).** The two sentences above were true when written and
+> the first is still true. The second is not: **`recap-agent` was removed from
+> `platform/registry/tools.yaml` at M05.** The sentence stays because its reasoning
+> is what ADR-048 acted on — an entry nothing can authorize as is a registry line
+> and not a caller, and this ADR is where that was first written down. What ADR-048
+> adds is the measured consequence nobody had checked: the cross-tool negative
+> control that entry existed to make possible **kept passing after the entry was
+> removed**, because one distinct caller leaves zero cross-tool pairs constructible.
+> The control now runs against a synthetic registry declared in
+> `tests/test_toolplane.py`.
+
 That is a scope cut and it is worth being precise about what it costs: the
 *uninvited caller* half of G3 is proven hermetically
 (`test_an_uninvited_caller_is_denied`, which passes an unregistered principal
@@ -75,7 +86,11 @@ Neither is done here, and neither is pretended to be.
 
 **The audit record can carry a `service` that no policy ever saw.** A caller
 sending `service: "recap-agent"` to this stack gets records labelled
-`recap-agent` and calls authorized as `highlights-agent`. That is not hidden —
+`recap-agent` and calls authorized as `highlights-agent`. *(ADR-048: `recap-agent`
+is no longer registered, so the example is now any label at all — which is the
+same consequence, stated more generally. The label is caller-supplied and the
+principal is deployment configuration, whether or not the label names something
+the registry knows.)* That is not hidden —
 the record carries the label and the deployment carries the principal — but it is
 a thing a reader of the lake could misread, and it is the first symptom to
 recognise if a second service ever shares a gateway. Rejecting the mismatch was

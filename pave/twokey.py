@@ -239,7 +239,7 @@ RULES: tuple[Rule, ...] = (
         # seat-set test -- every protection that ADR adds, in one file on the
         # rule, because its draft 2 named no file and every plausible name
         # resolved to no rule at all.
-        re.compile(r"^tests/(test_arm_scoping|test_instrument_stability|test_adversarial_lane|test_adversarial_entry|test_history_append_only)\.py$"),
+        re.compile(r"^tests/(test_arm_scoping|test_instrument_stability|test_adversarial_lane|test_adversarial_entry|test_history_append_only|test_transport_parity)\.py$"),
         # Platform Engineering joins because `PIN_FLOOR` lives here and duplicates
         # comparator values on purpose -- the lane that reads those pins is theirs,
         # and the duplication is what makes moving a pinned number take a code diff

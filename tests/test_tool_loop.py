@@ -215,8 +215,13 @@ def test_an_unregistered_tool_is_denied_and_never_reaches_a_tool():
 
 
 def test_an_uninvited_caller_is_denied():
-    """The registry names which services may call which tool. `recap-agent` may
-    call catalog-search and `ledger-service` is in no `callers` list at all."""
+    """The registry names which services may call which tool, and `ledger-service`
+    is in no `callers` list at all.
+
+    This is the UNREGISTERED-principal half of G3. The cross-tool half — a caller
+    the registry invites to one tool being denied another — needs two distinct
+    callers, which the committed registry has not had since ADR-048; it lives in
+    `tests/test_toolplane.py` against a synthetic registry."""
     converse, tool = Converse(tool_use(), final()), Tool()
     outcome = run(converse, tool, principal="ledger-service")
     assert tool.asked == []

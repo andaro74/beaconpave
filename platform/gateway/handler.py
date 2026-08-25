@@ -57,9 +57,11 @@ GUARDRAIL_VERSION = os.environ["GUARDRAIL_VERSION"]
 #: honest options were a caller-asserted principal or a configured one, and a
 #: configured one is the stronger of the two.
 #:
-#: **The cut this makes:** one gateway deployment authorizes as one service, so
-#: the registry's second caller (`recap-agent`) is unreachable through this stack
-#: rather than denied by it. That is a scale cut and it scales up the ordinary
+#: **The cut this makes:** one gateway deployment authorizes as one service, so a
+#: registry naming a second caller would make that entry unreachable through this
+#: stack rather than denied by it. The registry named one (`recap-agent`) until
+#: ADR-048 removed it, precisely because an entry nothing can authorize as is a
+#: line and not a caller. That is a scale cut and it scales up the ordinary
 #: way — a gateway per service, or a caller identity the platform can verify
 #: rather than receive. `service` in the event stays what it was at M01: a label
 #: on the record.

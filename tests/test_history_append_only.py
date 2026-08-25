@@ -152,7 +152,7 @@ def test_a_pinned_entry_missing_from_disk_gets_its_own_message(tmp_path):
 
 
 def test_an_empty_string_pin_is_not_a_pin(tmp_path):
-    """Security plant: `"m05-adversarial.json": ""` plus a rewrite behind it was
+    """Security plant: `"mzz-adversarial.json": ""` plus a rewrite behind it was
     green under an `if v` filter."""
     h = _copy_history(tmp_path)
     pins = json.loads((h / "pins.json").read_text(encoding="utf-8"))
@@ -183,7 +183,7 @@ def test_the_directory_holds_entries_and_nothing_else(tmp_path, plant):
 
 def test_a_symlinked_entry_is_refused(tmp_path):
     h = _copy_history(tmp_path)
-    link = h / "m05-goldens.json"
+    link = h / "mzz-goldens.json"
     try:
         os.symlink(h / "m01-goldens.json", link)
     except (OSError, NotImplementedError):
@@ -250,11 +250,11 @@ def test_an_honest_two_commit_pr_does_not_fire(tmp_path):
     """Prediction 4. Record, then fix a field after review: the shape draft 1's
     commit count fired on, teaching the squash that hides the real attack."""
     repo = _repo(tmp_path)
-    new = repo / "evals" / "history" / "m05-goldens.json"
+    new = repo / "evals" / "history" / "mzz-goldens.json"
     row = json.loads((new.parent / "m01-goldens.json").read_text(encoding="utf-8"))
-    row["tag"] = "m05"
+    row["tag"] = "mzz"
     new.write_text(json.dumps(row, indent=2), encoding="utf-8")
-    _commit_all(repo, "record m05")
+    _commit_all(repo, "record mzz")
     row["recorded_at"] = "2026-08-23T00:00:00-07:00"
     new.write_text(json.dumps(row, indent=2), encoding="utf-8")
     (new.parent / "schema.json").write_text(
@@ -264,14 +264,14 @@ def test_an_honest_two_commit_pr_does_not_fire(tmp_path):
 
 
 def test_a_branch_behind_an_advanced_main_is_not_accused(tmp_path):
-    """Two-dot diffs against the tip: `R097 m05-goldens.json -> zz-honest...`.
+    """Two-dot diffs against the tip: `R097 mzz-goldens.json -> zz-honest...`.
     Three-dot diffs against the merge-base."""
     repo = _repo(tmp_path)
     new = repo / "evals" / "history" / "zz-honest-goldens.json"
     new.write_text((new.parent / "m01-goldens.json").read_text(encoding="utf-8"), encoding="utf-8")
     _commit_all(repo, "honest")
     _git("checkout", "-q", "main", cwd=repo)
-    other = repo / "evals" / "history" / "m05-goldens.json"
+    other = repo / "evals" / "history" / "mzz-goldens.json"
     other.write_text((other.parent / "m01-goldens.json").read_text(encoding="utf-8"), encoding="utf-8")
     _commit_all(repo, "main advanced")
     _git("checkout", "-q", "pr", cwd=repo)
@@ -431,20 +431,20 @@ def test_pave_check_cannot_be_deselected_from_pyproject():
 def test_a_new_row_without_evidence_is_red(tmp_path):
     h = _copy_history(tmp_path)
     row = json.loads((h / "m01-goldens.json").read_text(encoding="utf-8"))
-    row["tag"] = "m05"
-    (h / "m05-goldens.json").write_text(json.dumps(row), encoding="utf-8")
-    assert any("m05-goldens.json carries no samples_from" in p for p in check_evidence(h))
+    row["tag"] = "mzz"
+    (h / "mzz-goldens.json").write_text(json.dumps(row), encoding="utf-8")
+    assert any("mzz-goldens.json carries no samples_from" in p for p in check_evidence(h))
 
 
 def test_a_row_citing_another_milestones_evidence_is_red(tmp_path):
-    """Security plant B: a fabricated m05 over M04's real evidence, 10/10."""
+    """Security plant B: a fabricated mzz over M04's real evidence, 10/10."""
     h = _copy_history(tmp_path)
     row = json.loads((h / "m04-adversarial.json").read_text(encoding="utf-8"))
-    row["tag"] = "m05"
+    row["tag"] = "mzz"
     row["arm"] = "rerun"
-    (h / "m05-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
+    (h / "mzz-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
     problems = check_evidence(h)
-    assert any("outside milestones/M05/" in p for p in problems)
+    assert any("outside milestones/Mzz/" in p for p in problems)
     assert any("both cite milestones/M04/probes-run.json" in p for p in problems)
 
 
@@ -502,9 +502,9 @@ def test_a_new_adversarial_row_without_an_instrument_is_red(tmp_path):
     h = _copy_history(tmp_path)
     row = json.loads((h / "m04-adversarial.json").read_text(encoding="utf-8"))
     del row["instrument"]
-    row["tag"] = "m05"
-    (h / "m05-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
-    assert any("m05-adversarial.json names no instrument" in p for p in check_registry(h))
+    row["tag"] = "mzz"
+    (h / "mzz-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
+    assert any("mzz-adversarial.json names no instrument" in p for p in check_registry(h))
 
 
 def test_a_corpus_committed_only_inside_the_pr_does_not_register(tmp_path, monkeypatch):
@@ -585,7 +585,7 @@ def test_an_entry_whose_total_is_not_its_instruments_corpus_is_red(tmp_path):
 
 
 def test_the_floor_for_an_unenumerated_arm_comes_from_the_registry(tmp_path):
-    """Prediction 8, at the function: `asked_floor(m05, 11, registered=3)` was
+    """Prediction 8, at the function: `asked_floor(mzz, 11, registered=3)` was
     3. Now the registry says what the arm ran under and the entry's total must
     agree, or the lane fails with both numbers named."""
     from pave.floors import asked_floor, registered_denominator
@@ -597,14 +597,14 @@ def test_the_floor_for_an_unenumerated_arm_comes_from_the_registry(tmp_path):
     registry = json.loads(history.INSTRUMENTS.read_text(encoding="utf-8"))["instruments"]
     row["instrument"] = {**row["instrument"], "name": "m04-E", **registry["m04-E"]["digests"]}
     row["scores"]["total"] = 3
-    (root / "evals" / "history" / "m05-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
-    size, problem = registered_denominator("m05", root)
+    (root / "evals" / "history" / "mzz-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
+    size, problem = registered_denominator("mzz", root)
     assert size is None
     assert "`scores.total` 3" in problem and "corpus of 11" in problem
-    assert asked_floor("m05", 11, size) == 11
+    assert asked_floor("mzz", 11, size) == 11
     row["scores"]["total"] = 11
-    (root / "evals" / "history" / "m05-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
-    assert registered_denominator("m05", root) == (11, None)
+    (root / "evals" / "history" / "mzz-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
+    assert registered_denominator("mzz", root) == (11, None)
 
 
 def test_the_lane_fails_an_unenumerated_arm_that_asked_three_of_eleven(tmp_path):
@@ -621,33 +621,39 @@ def test_the_lane_fails_an_unenumerated_arm_that_asked_three_of_eleven(tmp_path)
     asked = ["ADV-001", "ADV-003", "ADV-004"]
     obs = {"_asked": asked, "_k": m04["_k"], "_guardrail_versions": m04.get("_guardrail_versions"),
            **{pid: m04[pid] for pid in asked}}
-    (scratch / "milestones" / "M05").mkdir()
-    (scratch / "milestones" / "M05" / "probes-run.json").write_text(json.dumps(obs, indent=2), encoding="utf-8")
+    # `exist_ok` because this is the forty-fifth sentinel and the only one that is
+    # not a string literal. The scratch repo is copied from the real tree, so the
+    # moment `milestones/<TAG>/` exists on disk this raised FileExistsError -- and
+    # the failure named an arm-scoping lane rather than a directory, sending the
+    # reader somewhere else entirely. Renaming the sentinel to `Mzz` fixes it on
+    # its own; this is the belt, because PR 6 creates `milestones/Mzz/` for real.
+    (scratch / "milestones" / "Mzz").mkdir(exist_ok=True)
+    (scratch / "milestones" / "Mzz" / "probes-run.json").write_text(json.dumps(obs, indent=2), encoding="utf-8")
     entry = json.loads((ROOT / "evals" / "history" / "m04-adversarial.json").read_text(encoding="utf-8"))
     registry = json.loads(history.INSTRUMENTS.read_text(encoding="utf-8"))["instruments"]
-    entry["tag"] = "m05"
+    entry["tag"] = "mzz"
     entry["instrument"] = {**entry["instrument"], "name": "m04-E", **registry["m04-E"]["digests"]}
     entry["cases"] = [c for c in entry["cases"] if c["id"] in asked]
     entry["scores"] = {**entry["scores"], "total": 3, "passed": 3, "failed": 0, "earned": 3,
                        "unstable": 0, "pass_rate": 1.0}
-    entry["samples_from"] = [{"path": "milestones/M05/probes-run.json",
-                              "sha256": entry_digest((scratch / "milestones" / "M05" / "probes-run.json")
+    entry["samples_from"] = [{"path": "milestones/Mzz/probes-run.json",
+                              "sha256": entry_digest((scratch / "milestones" / "Mzz" / "probes-run.json")
                                                      .read_text(encoding="utf-8"))}]
-    (scratch / "evals" / "history" / "m05-adversarial.json").write_text(json.dumps(entry, indent=2), encoding="utf-8")
+    (scratch / "evals" / "history" / "mzz-adversarial.json").write_text(json.dumps(entry, indent=2), encoding="utf-8")
     comp_path = scratch / "evals" / "comparators.json"
     comp = json.loads(comp_path.read_text(encoding="utf-8"))
     suite = comp["services"]["highlights-agent"]["suites"]["adversarial"]
     m04pin = suite["pins"]["m04"]
-    suite["pins"]["m05"] = {
+    suite["pins"]["mzz"] = {
         **m04pin,
-        "observations": ["milestones/M05/probes-run.json"],
+        "observations": ["milestones/Mzz/probes-run.json"],
         "recorded_passed": 3, "expected_passed": 3, "expected_earned": 3, "expected_scored": 3,
         "expected_results": {pid: ("PASS" if pid in asked else "OUT_OF_SCOPE")
                              for pid in m04pin["expected_results"]},
         "expected_unstable": [], "expected_unearned": [],
         "why_they_differ": "planted by test_history_append_only: an arm that asked three probes",
     }
-    suite["pins_expected"] = sorted(set(suite["pins_expected"]) | {"m05"})
+    suite["pins_expected"] = sorted(set(suite["pins_expected"]) | {"mzz"})
     comp_path.write_text(json.dumps(comp, indent=2), encoding="utf-8")
 
     lane = subprocess.run([sys.executable, "-m", "pave.cli", "adversarial", "run", "services/highlights-agent"],
@@ -703,12 +709,17 @@ def test_an_honest_arm_that_asked_ten_of_eleven_derives(tmp_path):
 
 def test_a_published_number_with_no_entry_behind_it_is_red(tmp_path):
     text = (ROOT / "README.md").read_text(encoding="utf-8")
-    row = next(ln for ln in text.splitlines() if "`m05`" in ln and ln.lstrip().startswith("|"))
+    # **`m06`, not the migrated sentinel.** This is the one of the forty-five that
+    # reads the LIVE README progression table, so it needs a tag that actually has
+    # a row -- `mzz` has none and `next()` would raise StopIteration. It needs a row
+    # whose goldens cell is still `-`, which `mzz` will stop being at this
+    # milestone's close. README.md's `m06` row is the next unclosed one.
+    row = next(ln for ln in text.splitlines() if "`m06`" in ln and ln.lstrip().startswith("|"))
     cells = row.split("|")
     cells[5] = " **22/25** "
     moved = tmp_path / "README.md"
     moved.write_text(text.replace(row, "|".join(cells), 1), encoding="utf-8")
-    assert any("m05 row publishes a goldens number" in p for p in check_readme(readme=moved))
+    assert any("m06 row publishes a goldens number" in p for p in check_readme(readme=moved))
 
 
 def test_an_entry_whose_sha_is_on_no_ref_and_under_no_tag_is_red(tmp_path):
@@ -786,7 +797,7 @@ def test_the_asked_floor_literals_are_ratcheted_to_what_each_arm_recorded():
 
 def test_a_new_arm_may_not_name_a_superseded_instrument(tmp_path):
     """Security, against the code: `corpus_size` on the four stale registry rows
-    made each a valid floor-setting denominator. A fabricated `m05` naming
+    made each a valid floor-setting denominator. A fabricated `mzz` naming
     `m04-A` claimed 10/10, was never asked ADV-011 -- the newest probe -- and
     every check was clean. The recorder refuses this; a hand-written row never
     goes through the recorder."""
@@ -799,12 +810,12 @@ def test_a_new_arm_may_not_name_a_superseded_instrument(tmp_path):
     registry = json.loads((repo / "quality" / "adversarial" / "instruments.json").read_text(encoding="utf-8"))
     stale = registry["instruments"]["m04-A"]
     row = json.loads((HISTORY / "m04-adversarial.json").read_text(encoding="utf-8"))
-    row["tag"] = "m05"
+    row["tag"] = "mzz"
     # A sha that exists in this throwaway repo, so the corpus-at-sha tie can run
     # rather than refusing before the check under test is reached.
     row["sha"] = _git("rev-parse", "main", cwd=repo).stdout.strip()
     row["instrument"] = {**row["instrument"], "name": "m04-A", **stale["digests"]}
-    (repo / "evals" / "history" / "m05-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
+    (repo / "evals" / "history" / "mzz-adversarial.json").write_text(json.dumps(row), encoding="utf-8")
     _git("add", "-A", cwd=repo)
     _git("commit", "-q", "-m", "a new arm on a superseded instrument", cwd=repo)
     problems = check_registry(repo / "evals" / "history", cwd=repo, base="main")
@@ -820,11 +831,11 @@ def test_one_unreadable_file_does_not_erase_every_other_finding(tmp_path):
     h = _copy_history(tmp_path)
     row = json.loads((h / "m01-goldens.json").read_text(encoding="utf-8"))
     row["scores"]["passed"] = 24
-    (h / "m05-goldens.json").write_text(json.dumps(row), encoding="utf-8")
+    (h / "mzz-goldens.json").write_text(json.dumps(row), encoding="utf-8")
     (h / "m06-goldens.json").write_text("[1,2,3]", encoding="utf-8")
     problems, refusals = history.run_all(None, history=h, cwd=ROOT)
     assert any("m06-goldens.json is not a JSON object" in p for p in problems), problems
-    assert any("m05-goldens.json is on disk and not in pins.json" in p for p in problems), problems
+    assert any("mzz-goldens.json is on disk and not in pins.json" in p for p in problems), problems
     assert len(problems) > 3, problems
 
 
@@ -982,7 +993,7 @@ def test_the_schema_may_not_gain_a_requirement_a_committed_entry_fails(tmp_path)
 # --- decision 8: every protection on the keys of what it protects -------------
 
 @pytest.mark.parametrize("path", [
-    "evals/history/m05-goldens.json", "evals/history/schema.json", "evals/history/pins.json",
+    "evals/history/mzz-goldens.json", "evals/history/schema.json", "evals/history/pins.json",
     "evals/history/goldens.json", "evals/history/sub/x.json", "evals/history/m00b-judged-B-goldens.json",
     "evals/run_evals.py", "evals/run_adversarial.py", "pave/history.py",
     "tests/test_history_append_only.py", "tests/test_arm_scoping.py", "tests/test_adversarial_entry.py",
@@ -996,7 +1007,7 @@ def test_every_protection_takes_at_least_the_three_keys(path):
 
 
 def test_goldens_evidence_and_the_corpus_registry_take_keys():
-    for path, want in (("milestones/M05/goldens-run.json", {"ai-quality", "platform-eng"}),
+    for path, want in (("milestones/Mzz/goldens-run.json", {"ai-quality", "platform-eng"}),
                        ("milestones/M02/runs/m02-tools-1.json", {"ai-quality", "platform-eng"}),
                        ("quality/adversarial/instruments.json", {"security"})):
         seats = {s for rule, _ in twokey.triggered([path]) for s in rule.seats}
@@ -1007,10 +1018,10 @@ def test_the_history_rule_requires_an_attestation_from_all_three():
     body = "\n".join(f"Two-Key-Disposition: {s}" for s in THREE) + (
         "\nTwo-Key-Rationale: recorded the milestone's golden run as measured, no threshold "
         "baseline or probe moved, every entry on disk pinned by the recorder\n")
-    assert twokey.evaluate(["evals/history/m05-goldens.json"], body) == []
+    assert twokey.evaluate(["evals/history/mzz-goldens.json"], body) == []
     for missing in THREE:
         partial = "\n".join(f"Two-Key-Disposition: {s}" for s in THREE - {missing}) + body.split("\n", 3)[3]
-        assert twokey.evaluate(["evals/history/m05-goldens.json"], partial), f"green without {missing}"
+        assert twokey.evaluate(["evals/history/mzz-goldens.json"], partial), f"green without {missing}"
 
 
 def test_every_anchored_arm_cites_the_evidence_its_anchor_names():
