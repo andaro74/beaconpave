@@ -489,7 +489,7 @@
   judge:
     axes: [brand_tone:meridian-sports, concision]
     rubric: quality/judge/rubric-sports.md
-    expect_near_threshold: true
+  expect_near_threshold: true
   provenance: { author: human }
 
 - id: headroom-026
@@ -506,5 +506,5 @@
   judge:
     axes: [brand_tone:meridian-sports, concision, groundedness]
     rubric: quality/judge/rubric-sports.md
-    expect_near_threshold: true
+  expect_near_threshold: true
   provenance: { author: human }

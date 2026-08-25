@@ -161,3 +161,152 @@ def asked_floor(tag: str, corpus_size: int, registered: int | None = None) -> in
     if tag in ASKED_FLOOR:
         return ASKED_FLOOR[tag]
     return corpus_size if registered is None else registered
+
+
+# --- ADR-045: the criteria a service manifest is verified against -------------
+#
+# `pave.manifest` imports every one of these and holds none. The verifier is
+# mechanism; the numbers that produce a FAIL are AI Quality's -- the same line
+# `pave/gate.py`'s docstring draws one component over.
+
+#: The levels a manifest may DECLARE. Not the levels the gateway routes on:
+#: `classify.LEVELS` is that, and it is four.
+#:
+#: **One value, and the reason is a measurement rather than a preference.** The
+#: criterion for admitting a level is that a service declaring it can serve the
+#: request population it exists to serve. Measured over all 25 committed golden
+#: cases and all 11 probes, through the real composition (`gateway_client.user_turn`
+#: then `classify.route`):
+#:
+#:     declared=public        golden allowed  0/25   probes denied pre-invoke 11/11
+#:     declared=internal      golden allowed 25/25   probes denied pre-invoke  1/11
+#:     declared=confidential  golden allowed 25/25   probes denied pre-invoke  1/11
+#:     declared=sensitive     golden allowed 25/25   probes denied pre-invoke  1/11
+#:
+#: `sensitive` is refused by G5. `confidential` is behaviourally identical to
+#: `internal`, and no detector can produce it -- the only levels `classify_request`
+#: constructs are `internal` and `sensitive`. And `public` is an OUTAGE: a service
+#: declaring it serves nothing, because `route` refuses every request classifying
+#: above the declaration.
+#:
+#: An earlier draft admitted `("public", "internal")`, on the reasoning that no
+#: detection produces `confidential`. The same criterion condemns `public`, so that
+#: draft refused the no-op and admitted the outage. Recorded in ADR-045 rather than
+#: corrected silently.
+#:
+#: **Re-entry condition, stated so it can be acted on:** `public` becomes
+#: declarable when `route("public", <an ordinary request>).allowed` is True -- when
+#: the behavioural pin in `tests/test_floors.py` passes with `public` in this tuple.
+#: "When a detector can return it" is the weaker condition and is not sufficient:
+#: a detector returning `public` does not make declaring it safe, and that was
+#: measured by building it.
+DECLARABLE_LEVELS = ("internal",)
+
+#: The fraction of a golden pack that must sit at or near failure.
+#:
+#: CLAUDE.md: "A suite at 100% can only report 'no change or regression' --
+#: improvements become invisible." A floor AND a ceiling: too little headroom hides
+#: improvement, too much is a pack failing for reasons other than the system under
+#: test.
+HEADROOM_BAND = (0.05, 0.10)
+
+#: The fewest DISPOSED cases a service pack carries before it may deploy.
+#:
+#: Twenty is chosen, not derived. `smallest_pack_that_can_hold_headroom` checks it
+#: is not chosen BELOW what the band can express; it does not justify it.
+PLATFORM_EVAL_MIN_CASES = 20
+
+#: What `pave new` writes on every case it renders, and the one value that does
+#: not count toward the floor.
+SCAFFOLD_AUTHOR = "pave-template"
+
+#: The fewest tests `pave check` must collect.
+#:
+#: **The `>=` half is the half that works**, and it closes a hole this repository
+#: had listed as a standing residual. Measured: deleting a test file outright is
+#: invisible to pytest -- `rm tests/test_adversarial_scoring.py` was 1821 passed
+#: with `pave check` PASS at exit 0, and that file is what `evals/comparators.json`
+#: names as the only live protection on `CEDAR_MECHANISMS` and G4's "and logged"
+#: half. A `<=` ratchet -- the shape `G4_CASE_FLOOR` uses, correct for a corpus that
+#: must not outgrow its floor -- buys nothing here: 1856 passed with it, against
+#: 1853 with no floor at all.
+#:
+#: **What it does NOT close, stated rather than discovered:** deletion plus padding.
+#: The same deletion with one 60-case parametrised file added measured 1883 passed,
+#: ABOVE the baseline, with the entire G4 scoring protection gone. A count sees
+#: arithmetic, not identity.
+COLLECTED_FLOOR = 1900
+
+
+def smallest_pack_that_can_hold_headroom(band: tuple[float, float]) -> int:
+    """The fewest cases for which some integer near-count lands inside `band`.
+
+    A **feasibility** bound, never a quality bound: it answers "can a pack this
+    size express the band at all", not "is a pack this size worth trusting".
+    `PLATFORM_EVAL_MIN_CASES` is the quality bound and it is a separate number.
+    Conflating them let a 50% cut of the floor pass a two-sided ratchet in an
+    earlier draft -- 20 to 10 was green, and 10 is exactly what this returns.
+
+    `band` is required. It was a default, and a two-line diff changing that default
+    to `(0.0, 1.0)` took the floor to 1 with no named failure."""
+    low, high = band
+    for n in range(1, 1001):
+        if any(low <= k / n <= high for k in range(1, n + 1)):
+            return n
+    raise ValueError(f"no pack size under 1000 can hold the band {band!r}")
+
+
+def disposed(cases: list[dict]) -> list[dict]:
+    """The cases a seat stood behind, which is what the floor counts.
+
+    A scaffolded pack is twenty rows in a file and zero cases anybody has read, so
+    counting rows would let `pave new` satisfy the floor it exists to impose.
+
+    **Per case, on a field every committed case already carries**, rather than a
+    pack-level header. The header shape was measured first and it is a 47-failure
+    migration: `cases.yaml` is a top-level YAML list with nowhere to put one, and
+    restructuring to `{provenance: ..., cases: [...]}` breaks eight test files and
+    adds a collection error. The precedent that suggested a header --
+    `quality/judge/calibration/labels.json` -- is a JSON object, where a header is
+    free."""
+    return [c for c in cases
+            if (c.get("provenance") or {}).get("author") != SCAFFOLD_AUTHOR]
+
+
+def check_headroom(cases: list[dict], band: tuple[float, float] = HEADROOM_BAND) -> None:
+    """Raise unless the disposed part of `cases` holds `band` worth of headroom.
+
+    **The applied form.** A pin asserting that some file *imports* the band is
+    satisfied by an import line -- measured: import it, replace the real assertion
+    with `assert ratio >= 0.0`, turn both headroom cases off, 1864 passed. A pin
+    calling this against a synthetic violating pack is no better: it demonstrates
+    the checker and says nothing about the repository's own pack passing through
+    it, and that attack measured 1888 passed. The pin that fires calls this against
+    the COMMITTED pack, from a file other than the one under attack.
+
+    **The denominator is the disposed set**, not the row count. Over all rows, a
+    compliant pack (20 disposed, 1 near = 5%) goes red at 1/25 = 4% the moment a
+    team scaffolds five more rows: scaffolded rows never carry the flag, so they
+    only push the ratio toward the low-end failure, and `pave new` would emit a
+    scaffold that fails its own headroom gate as the team fills it in.
+
+    **An empty disposed set raises the floor's error, not a ratio error.** That is
+    the guaranteed first input -- a freshly scaffolded pack is entirely
+    `pave-template`, so the ratio is 0/0."""
+    pack = disposed(cases)
+    if not pack:
+        raise ValueError(
+            f"the pack has {len(cases)} row(s) and no disposed case. A case counts once "
+            f"its `provenance.author` is not {SCAFFOLD_AUTHOR!r} — the floor means twenty "
+            "cases a seat stood behind, not twenty rows in a file.")
+    near = [c for c in pack if c.get("expect_near_threshold")]
+    low, high = band
+    ratio = len(near) / len(pack)
+    if not (low <= ratio <= high):
+        import math
+        want_low, want_high = math.ceil(len(pack) * low), math.floor(len(pack) * high)
+        raise ValueError(
+            f"headroom is {len(near)}/{len(pack)} = {ratio:.1%} of the disposed pack; "
+            f"policy is {low:.0%}-{high:.0%} (AI Quality owns this). Mark "
+            f"{want_low}-{want_high} case(s) `expect_near_threshold: true` — cases a "
+            "correct answer only just passes, not cases that are broken.")

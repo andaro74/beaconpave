@@ -207,8 +207,15 @@ RULES: tuple[Rule, ...] = (
         # constants teaches people to attest past a rule without reading it.
         # `pave/gate.py`'s docstring draws the line -- Platform Engineering owns
         # the mechanism, AI Quality owns the criteria that produce a FAIL.
+        # **ADR-045 adds the test alongside the module**, for ADR-043 decision 1's
+        # reason: they are weakened together or not at all. `pave/floors.py` now
+        # holds `DECLARABLE_LEVELS`, `HEADROOM_BAND`, `PLATFORM_EVAL_MIN_CASES` and
+        # `COLLECTED_FLOOR`, and every pin on those lives in `tests/test_floors.py`
+        # — including the two that an earlier arrangement got wrong: the band shown
+        # APPLIED to the committed pack, and the G5 pin over the whole taxonomy
+        # rather than over the one-element declarable vocabulary.
         "the gate's floors — criteria, not mechanism",
-        re.compile(r"^pave/floors\.py$"),
+        re.compile(r"^(pave/floors\.py|tests/test_floors\.py)$"),
         # **Security too, and on the merits rather than to balance a count.** The
         # floors here are statements about what a probe passing means: how many
         # G4 cases must still SCORE, and how many probes an arm must have been

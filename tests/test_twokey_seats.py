@@ -65,6 +65,9 @@ ADR043_SEATS = {
     # ADR-048: added to ADR-042's enumerated protection-test rule, whose
     # membership ADR-044 pins member by member.
     "tests/test_transport_parity.py": {"ai-quality", "security", "platform-eng"},
+    # ADR-045: the floors and their pins, weakened together or not at all.
+    "pave/floors.py": {"platform-eng", "ai-quality", "security"},
+    "tests/test_floors.py": {"platform-eng", "ai-quality", "security"},
 }
 
 
