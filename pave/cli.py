@@ -1276,7 +1276,16 @@ def policy_generate(argv):
     from core import cedar, toolplane
 
     registry = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
-    generated = cedar.generate(registry)
+    # `generate` raises on a registry it refuses to render — a duplicated tool id
+    # today. It must not propagate: `check()` below catches only `SystemExit`, so
+    # an escaping exception aborts before pytest runs and before `--out` writes a
+    # verdict, and CI blocks on an ABSENT verdict (exit 2, "page the platform")
+    # when the actual finding is a contract regression that should page the team.
+    # That is the same reasoning the `except SystemExit` in `check()` records.
+    try:
+        generated = cedar.generate(registry)
+    except ValueError as exc:
+        _die(str(exc), gate_mod.EXIT_CONTRACT)
 
     # The contract set travels with the policy set because the plane needs both at
     # run time and the Lambda bundle is what deploys. Same source, same drift

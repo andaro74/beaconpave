@@ -50,6 +50,18 @@ ADR043_SEATS = {
                                    "tool-owner", "legal-sp"},
     "platform/gateway/core/toolplane.py": {"platform-eng", "security", "tool-owner"},
     "tests/test_toolplane.py": {"platform-eng", "security", "tool-owner"},
+    # --- ADR-044 ---
+    #
+    # Pinned in the SAME constant rather than a parallel one, deliberately. A
+    # second dict would need its own copy of the ratchet below, and the ratchet is
+    # the thing that stops a pin being emptied -- two mechanisms guarding two lists
+    # is how `.github/CODEOWNERS` and this module drifted twice (ADR-037).
+    "tests/test_contracts.py": {"ai-quality", "platform-eng"},
+    "tests/test_calibration_corpus.py": {"ai-quality", "platform-eng"},
+    "tests/test_judge.py": {"ai-quality", "platform-eng"},
+    "tests/test_tool_loop.py": {"platform-eng", "security"},
+    "tests/test_gateway_core.py": {"platform-eng", "security"},
+    "tests/test_gateway_run_parity.py": {"platform-eng", "security"},
 }
 
 
@@ -87,11 +99,14 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           "the Cedar generator",
                                           "the test harness",
                                           "the seat-set pins",
-                                          "the tool plane"))]
-    assert len(added) == 5, (
-        f"expected ADR-043's five rules, found {[r.what[:40] for r in added]}. If a rule "
-        "was renamed, update this ratchet in the same diff — it is what stops the pin "
-        "below being emptied."
+                                          "the tool plane",
+                                          # ADR-044
+                                          "the eval-plane instruments",
+                                          "the record-and-refusal instruments"))]
+    assert len(added) == 7, (
+        f"expected ADR-043's five rules and ADR-044's two, found "
+        f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
+        "the same diff — it is what stops the pin below being emptied."
     )
     #: Paths each ADR-043 rule MUST still cover. "At least one path matches" let a
     #: regex be narrowed to drop the other file it names -- decision 1 says the G1
@@ -111,6 +126,18 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                              "tox.ini", "setup.cfg", ".pytest.ini"],
         "the seat-set pins": ["tests/test_twokey_seats.py"],
         "the tool plane": ["platform/gateway/core/toolplane.py", "tests/test_toolplane.py"],
+        # ADR-044. Every filename in each alternation is required, for the reason
+        # decision 1 gives above and for a second one measured here: the enumerated
+        # `tests/(...)` rule ADR-042 added could be narrowed by deleting FOUR
+        # CHARACTERS -- `_lane` -- taking `tests/test_adversarial_lane.py` from
+        # three keys to zero, silently, at 1881 passed. Nothing pinned that rule's
+        # membership. These two are pinned member by member from the start.
+        "the eval-plane instruments": ["tests/test_contracts.py",
+                                       "tests/test_calibration_corpus.py",
+                                       "tests/test_judge.py"],
+        "the record-and-refusal instruments": ["tests/test_tool_loop.py",
+                                               "tests/test_gateway_core.py",
+                                               "tests/test_gateway_run_parity.py"],
     }
     for rule in added:
         key = next(k for k in required if k in rule.what)
@@ -270,6 +297,71 @@ def test_a_conftest_that_decides_what_the_suite_reports_collects_a_key():
     **The residual, stated:** a key makes this collectable, never red. A harness
     that rewrites its own reports can report anything and no count sees it."""
     _blocked_for(["tests/conftest.py"], {"platform-eng", "security"})
+
+
+# --- ADR-044's plants, measured green and keyless on 6af17d2 ------------------
+
+def test_deleting_the_only_headroom_check_collects_ai_quality():
+    """Measured on `6af17d2`, one diff: delete `test_golden_set_keeps_headroom`
+    — the repository's only headroom check — flip both `expect_near_threshold`
+    cases to false, and delete `test_a_disposition_is_all_or_nothing`.
+    **1859 passed, zero failures, and `twokey.evaluate` returned `[]`.**
+
+    Found by two seats independently in the SPEC/05 round-4 review, and in none
+    of that review's twenty-one pre-flight findings."""
+    _blocked_for(["tests/test_contracts.py"], {"ai-quality", "platform-eng"})
+
+
+def test_removing_the_publish_class_approver_assertion_collects_a_key():
+    """`tests/test_contracts.py` holds the ONLY assertion in this repository that
+    a publish-class tool declares an approver, and it used to restate the gated
+    set as a bare literal. Measured: narrowing that literal to `{"irreversible"}`
+    and deleting `approval: stepfn:editorial-approver` from the registry shipped
+    `// ... Declared approver: none` in the deployed policy set at **1881
+    passed**, `policy generate --check` exit 0 — for the two keys the registry
+    line collects, with this file contributing none.
+
+    The file now reads `cedar.GATED_CONSEQUENCES` and pins its value; this rule
+    is why the pin cannot be moved without the seat that owns the instruments."""
+    assert "ai-quality" in _seats_for("tests/test_contracts.py")
+
+
+def test_the_sole_g5_by_design_witness_collects_security():
+    """`tests/test_gateway_core.py:283` is the only live witness that G5 refuses
+    `sensitive` **by design** rather than by the index comparison happening to
+    agree: deleting `classify.py`'s dedicated short-circuit leaves every other
+    classification assertion green, and that one red.
+
+    It is also the witness a singleton `DECLARABLE_LEVELS` cannot reach, because
+    it passes `declared="sensitive"` — a value the manifest will refuse."""
+    _blocked_for(["tests/test_gateway_core.py"], {"platform-eng", "security"})
+
+
+def test_deleting_the_transport_parity_pin_collects_security():
+    """Measured: deleting `tests/test_gateway_run_parity.py` and rewording
+    `gateway_client.py`'s `user_turn` in one diff is **1862 passed, zero keys** —
+    and `user_turn` composes the wire text of every governed adversarial
+    observation, which `instrument_digests` does not cover. An instrument change
+    invisible to the instrument registry."""
+    _blocked_for(["tests/test_gateway_run_parity.py"], {"platform-eng", "security"})
+
+
+def test_the_enumerated_protection_rule_cannot_be_narrowed_by_four_characters():
+    """**ADR-042's rule, pinned by ADR-044 because nothing pinned it.**
+
+    Measured on `6af17d2`: deleting four characters — `_lane` — from the
+    enumerated `tests/(...)` alternation took `tests/test_adversarial_lane.py`,
+    which holds `G4_CASE_FLOOR`'s ratchet, from three keys to **zero, silently,
+    at 1881 passed**. The rule's membership was on no pin at all, so the
+    separation ADR-043 decision 1 forbids was available for a four-character
+    diff on the one rule ADR-043's ratchet did not reach."""
+    for path in ("tests/test_arm_scoping.py", "tests/test_instrument_stability.py",
+                 "tests/test_adversarial_lane.py", "tests/test_adversarial_entry.py",
+                 "tests/test_history_append_only.py"):
+        assert _seats_for(path) == {"ai-quality", "security", "platform-eng"}, (
+            f"{path} is no longer on the enumerated protection-test rule. Narrowing that "
+            "alternation is a two-key diff that silently un-keys a three-key file."
+        )
 
 
 def test_the_rename_bypass_stays_closed_for_the_new_rules():

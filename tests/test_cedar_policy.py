@@ -63,7 +63,12 @@ def test_the_generated_set_is_parseable_by_the_evaluator_that_reads_it():
     """The generator and the evaluator share a grammar. A generator emitting
     something its own evaluator cannot read is the failure this module's layout
     exists to prevent, and it would surface at runtime as a denial of everything."""
-    assert len(cedar.parse(cedar.generate(REGISTRY))) == len(POLICIES)
+    regenerated = len(cedar.parse(cedar.generate(REGISTRY)))
+    assert regenerated == len(POLICIES), (
+        f"the registry generates {regenerated} policies and the committed set parses to "
+        f"{len(POLICIES)}. If you edited `platform/registry/tools.yaml`, run "
+        "`python -m pave.cli policy generate` and commit both generated files."
+    )
 
 
 # --- G3: the registry decides who may call what ---------------------------------
@@ -75,7 +80,123 @@ def test_every_caller_the_registry_names_is_permitted():
         if tool["consequence"] in cedar.GATED_CONSEQUENCES:
             continue  # gated separately; see the approval tests
         for caller in tool["callers"]:
-            assert decide(caller, tool["id"]).allowed, f"{caller} -> {tool['id']}"
+            # **The remedy, not the default denial reason.** This assertion fires
+            # for a caller the registry DOES name, so `authorize`'s own message —
+            # "an unregistered or uninvited caller is denied by default (G3)" —
+            # is actively misleading here: it sends a first-time onboarder back to
+            # re-check a registry edit they made correctly, when the real cause is
+            # a stale build product. Measured on a scaffolded service: adding the
+            # caller without regenerating is three failures, of which only the
+            # drift check named the command to run.
+            assert decide(caller, tool["id"]).allowed, (
+                f"the registry names {caller!r} as a caller of {tool['id']!r}, and the "
+                "committed policy set does not permit it. The registry is the source and "
+                "`platform/gateway/policy/tools.cedar` is a build product: run "
+                "`python -m pave.cli policy generate` and commit the result."
+            )
+
+
+def test_every_permit_is_a_grant_the_registry_makes_and_every_grant_is_permitted():
+    """**Bijection on `(principal, resource)` pairs, not surjection on principals.**
+
+    The set-level form — "every principal in `tools.cedar` is a caller the
+    registry names somewhere" — was measured green against a plant that granted
+    every registered caller every tool: `policy generate --check` exited 0,
+    `recap-agent` held the publish-class tool, and the only test that noticed was
+    `tests/test_toolplane.py::test_an_uninvited_caller_is_denied_by_policy` —
+    the cross-tool control M05 removes from the registry in the same milestone.
+    A phantom *grant* needs no phantom *principal*.
+
+    This is deliberately not a substitute for the duplicate-id hard-stop in
+    `cedar.generate()`: a duplicated `- id:` entry lists its caller in the
+    registry, so both the set form and this one stay green on that plant. The two
+    guards are independent and both are load-bearing.
+
+    Reads the COMMITTED policy set, so it catches a hand edit as well as a
+    generator that lies — the drift check compares `generate(REGISTRY)` against
+    the file, which proves the artifact is a faithful build product *of the
+    generator* and never that the generator is a faithful function *of the
+    registry* (ADR-004, and ADR-043's own measurement of it)."""
+    granted = {(caller, tool["id"])
+               for tool in REGISTRY for caller in tool.get("callers") or []}
+    permitted = {(p.principal, p.resource) for p in POLICIES if p.effect == "permit"}
+
+    ungranted = sorted(permitted - granted)
+    assert not ungranted, (
+        f"the committed policy set permits {ungranted}, which the registry does not "
+        "grant. ADR-004: the registry decides. A permit the registry never wrote is "
+        "an authorization nobody reviewed — review of the small readable YAML stops "
+        "implying review of what it authorizes."
+    )
+    unpermitted = sorted(granted - permitted)
+    assert not unpermitted, (
+        f"the registry grants {unpermitted}, which the committed policy set does not "
+        "permit. Run `python -m pave.cli policy generate` and commit the result."
+    )
+    assert permitted, (
+        "the committed policy set contains no permit at all, so both comparisons above "
+        "were between empty sets. A policy set that permits nothing denies everything, "
+        "which passes every negative control in this file."
+    )
+
+
+def test_a_duplicated_registry_id_is_refused_by_the_generator():
+    """**The deploy-path hard-stop.** Measured on `6af17d2` before it existed:
+    appending a second `- id: catalog-search` with `callers: [attacker-svc]`
+    regenerated to six policies, `policy generate --check` exited **0**,
+    `attacker-svc` landed in the committed `tools.cedar`, and the suite was
+    1881 passed — for two keys (`tool-owner`, `legal-sp`), neither of them
+    Security. The same phantom-principal permit ADR-043 put four seats on,
+    reachable through the registry at half the price.
+
+    Neither of the other two tool-plane guards sees it: the duplicate lists its
+    caller in the registry, so the permit/grant bijection stays green, and the
+    generator is never edited."""
+    duplicated = REGISTRY + [dict(REGISTRY[0], callers=["attacker-svc"])]
+    with pytest.raises(ValueError) as exc:
+        cedar.generate(duplicated)
+    assert REGISTRY[0]["id"] in str(exc.value)
+
+
+def test_the_overwriting_duplicate_is_refused_too():
+    """The phantom-caller form is the weaker half. A second
+    `- id: publish-highlight` carrying `consequence: read` **overwrites the real
+    entry** in the generated contract set: the approval interlock disappears and
+    `ai_generated` — the MER-AI-0001 disclosure flag — leaves the deployed bundle
+    without `schema.in.json` being touched. `--check` still exited 0."""
+    gated = next(t for t in REGISTRY if t["consequence"] in cedar.GATED_CONSEQUENCES)
+    with pytest.raises(ValueError):
+        cedar.generate(REGISTRY + [dict(gated, consequence="read")])
+
+
+def test_the_generators_refusal_reaches_the_cli_as_a_named_fail_not_a_traceback(tmp_path,
+                                                                                monkeypatch):
+    """`generate` raises, and `policy_generate` must convert that to `_die` at
+    `EXIT_CONTRACT`.
+
+    **Why this is its own assertion.** `pave check` wraps the drift gate in
+    `except SystemExit` only, and its comment says why: an escaping exception
+    aborts before pytest runs and before `--out` writes a verdict, so CI blocks on
+    an ABSENT verdict — exit 2, "page the platform" — when the finding is a
+    contract regression that should page the team. A bare `ValueError` also exits
+    1 rather than 2, and prints a traceback, which the milestone's own refusal
+    contract forbids."""
+    import yaml as _yaml
+
+    from pave import cli, gate
+
+    registry = tmp_path / "tools.yaml"
+    registry.write_text(_yaml.safe_dump(REGISTRY + [dict(REGISTRY[0], callers=["attacker-svc"])]),
+                        encoding="utf-8")
+    monkeypatch.setattr(cli, "REGISTRY", registry)
+
+    with pytest.raises(SystemExit) as exc:
+        cli.policy_generate(["--check"])
+    assert exc.value.code == gate.EXIT_CONTRACT, (
+        f"exited {exc.value.code}, expected EXIT_CONTRACT ({gate.EXIT_CONTRACT}). An "
+        "uncaught ValueError exits 1 with a traceback and aborts `pave check` before it "
+        "writes a verdict."
+    )
 
 
 def test_a_service_the_registry_does_not_name_is_denied():

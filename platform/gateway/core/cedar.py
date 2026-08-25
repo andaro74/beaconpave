@@ -160,8 +160,50 @@ def generate(registry: list[dict]) -> str:
     """Render the whole policy set from the registry, deterministically.
 
     Order follows the registry file so a reordered diff is a reordered registry
-    and never the generator having an opinion of its own."""
+    and never the generator having an opinion of its own.
+
+    **A duplicated tool id is refused here, at the deploy path.** Measured on
+    `6af17d2`: appending a second `- id: catalog-search` with
+    `callers: [attacker-svc]` regenerated to six policies, `policy generate
+    --check` exited **0**, `attacker-svc` landed in the committed
+    `tools.cedar`, and the suite was 1881 passed — for two keys
+    (`tool-owner`, `legal-sp`) and neither of them Security. That is the same
+    phantom-principal permit ADR-043 put four seats on, reachable through the
+    registry at half the price and without touching this generator.
+
+    The duplicate need not add a caller to do damage. A second
+    `- id: publish-highlight` carrying `consequence: read` and substituted
+    schema paths **overwrites the real entry in the deployed bundle**: the
+    interlock disappears and `ai_generated` — the MER-AI-0001 disclosure flag —
+    is gone from `tools.contracts.json` without `schema.in.json` being touched.
+    `--check` still exited 0.
+
+    **Why here and not in the manifest verifier.** A verifier that runs on a
+    manifest never sees a registry-only diff, and M05 lands registry edits in a
+    PR of their own. `generate()` is the single funnel both `policy generate`
+    and `--check` pass through, so the refusal cannot be routed around by
+    regenerating.
+
+    Raises `ValueError`, which `pave.cli.policy_generate` converts to a named
+    FAIL at `EXIT_CONTRACT`. It must not reach a caller as a traceback: `pave
+    check` catches only `SystemExit`, so an escaping exception aborts before the
+    tests run and before `--out` writes a verdict, and CI then blocks on an
+    ABSENT verdict — paging the platform for what is a contract regression."""
     blocks: list[str] = [HEADER]
+
+    first_seen: dict[str, int] = {}
+    for index, tool in enumerate(registry):
+        tool_id = tool["id"]
+        if tool_id in first_seen:
+            raise ValueError(
+                f"duplicate tool id {tool_id!r} in the registry, at entries "
+                f"{first_seen[tool_id]} and {index}. The registry decides (ADR-004), "
+                "and it cannot decide twice: a second entry silently overwrites the "
+                "first in the generated contract set, which can drop a consequence "
+                "class, an approval interlock, or a required disclosure field without "
+                "the overwritten entry being edited. Remove one entry."
+            )
+        first_seen[tool_id] = index
 
     for tool in registry:
         tool_id = _identifier(tool["id"], "tool id")

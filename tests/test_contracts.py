@@ -17,6 +17,7 @@ import re
 import jsonschema
 import pytest
 import yaml
+from core import cedar
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -24,6 +25,15 @@ REGISTRY = ROOT / "platform" / "registry" / "tools.yaml"
 MANIFEST = ROOT / "services" / "highlights-agent" / "pave.manifest.yaml"
 GOLDENS = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
 PROBES = ROOT / "quality" / "adversarial" / "probes.yaml"
+
+#: The value `cedar.GATED_CONSEQUENCES` must hold, restated here so that changing
+#: it takes two files and one of them is four-key. This is a PIN, not a second
+#: authority: the interlock loop below reads `cedar.GATED_CONSEQUENCES` itself, and
+#: this only asserts what that constant is allowed to be. The distinction is the
+#: one ADR-043 draws about `HISTORY_DIGESTS` — a duplicated value that nothing
+#: reads is a pin; a duplicated value that something reads is a second source of
+#: truth, which is what this file used to hold.
+PINNED_GATED_CONSEQUENCES = {"publish", "irreversible"}
 
 COMMITTED_SCHEMAS = [
     ROOT / "quality" / "verdicts" / "schema.json",
@@ -67,11 +77,48 @@ def test_every_registered_tool_declares_an_owner_and_consequence_class():
 def test_publish_class_tools_carry_an_approval_interlock():
     """Consequence >= publish inserts a human-approval interlock. A publish-class
     tool without one would make claim 10 false while looking registered and
-    governed."""
-    gated = {"publish", "irreversible"}
+    governed.
+
+    **This is the only assertion in the repository that a publish-class tool
+    declares an approver, and it used to restate the gated set as a literal.**
+    `gated = {"publish", "irreversible"}` was a sixth definition site that
+    `grep GATED_CONSEQUENCES` could not find. Measured on `6af17d2`: narrowing
+    that literal to `{"irreversible"}` and deleting
+    `approval: stepfn:editorial-approver` from the registry regenerated cleanly,
+    `policy generate --check` exited 0, the deployed policy set shipped
+    `// ... Declared approver: none`, and the suite was **1881 passed** — for the
+    two keys the registry line collects, with this file contributing nothing.
+
+    So it reads the authority instead. `GATED_CONSEQUENCES` lives in
+    `platform/gateway/core/cedar.py`, which is four-key (`platform-eng`,
+    `security`, `tool-owner`, `legal-sp`) plus an ADR.
+
+    **The import alone would make this test vacuous, which is the trap it was
+    written to escape.** Reading the gated set from a constant an attacker can
+    empty gives a loop over `{"irreversible"}`, no registered tool carrying that
+    class, and a body that never runs — 47 passed, the same shape as reading it
+    from the file the loop iterates. The two assertions below are the escape:
+    equality pins the authority's value here, and `covered` pins that this loop
+    examined something. `tests/test_cedar_policy.py:471-472` is the compensating
+    anti-vacuity guard on the registry side; it is on a different rule, and
+    anyone who "simplifies" it re-opens this."""
+    assert set(cedar.GATED_CONSEQUENCES) == PINNED_GATED_CONSEQUENCES, (
+        f"GATED_CONSEQUENCES is {set(cedar.GATED_CONSEQUENCES)}. It decides which "
+        "consequence classes get a human-approval interlock; changing it is a "
+        "consequence-class decision (tool-owner + legal-sp, CLAUDE.md) and it moves "
+        "every forbid clause in the deployed policy set. Change it here in the same "
+        "diff, with the reason."
+    )
+    covered = 0
     for tool in load_yaml(REGISTRY):
-        if tool["consequence"] in gated:
+        if tool["consequence"] in cedar.GATED_CONSEQUENCES:
+            covered += 1
             assert tool.get("approval"), f"{tool['id']}: consequence={tool['consequence']} but no approval interlock"
+    assert covered, (
+        "no registered tool carries a gated consequence class, so this test examined "
+        "nothing. Either the registry lost its publish-class tool or GATED_CONSEQUENCES "
+        "was emptied — the loop passing over an empty set is not evidence of an interlock."
+    )
 
 
 # --- manifest -> registry -----------------------------------------------------
