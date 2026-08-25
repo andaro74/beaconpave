@@ -10,7 +10,7 @@ for rows and gets the ones it asked for.
 |---|---|
 | Contract | [`schema.in.json`](schema.in.json) · [`schema.out.json`](schema.out.json) — committed, and not modified by M02 |
 | Implementation | [`search.py`](search.py) — pure, hermetic, in `HERMETIC_ROOTS` |
-| Registry | `platform/registry/tools.yaml`, callers `highlights-agent` and `recap-agent` |
+| Registry | `platform/registry/tools.yaml`, caller `highlights-agent`. A second caller (`recap-agent`) was listed until ADR-048 and was never a service — see it for why a registry line is not a caller |
 | Reached through | the tool plane, which authorizes against the registry via Cedar (G3). Never called directly |
 
 ## What it will not do

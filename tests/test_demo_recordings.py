@@ -86,6 +86,51 @@ def test_an_act_owed_past_its_own_milestone_says_why():
 
 
 def test_the_progression_parser_is_not_vacuous():
-    """A parser that matched nothing would make every check above pass silently."""
-    assert milestone_is_closed("M04") is True
-    assert milestone_is_closed("M05") is False
+    """A parser that matched nothing would make every check above pass silently.
+
+    **This names no milestone.** It used to be two literals — `M04 is True` and
+    `M05 is False` — and only the second was counted among the forty-five `m05`
+    sentinels this milestone had to migrate. The first was load-bearing for the
+    `is True` direction and nobody had noticed, so a rename that touched only the
+    counted one would have left a half-restructured guard.
+
+    What it asserts instead is the property: the parser **discriminates**. Reading
+    the live table and requiring both answers to appear survives every close,
+    because a milestone moving from unclosed to closed moves a row from one side
+    to the other rather than emptying either.
+
+    **The horizon, stated rather than asserted away.** This holds while at least
+    one row is unclosed and at least one is closed. When M10 closes, no row
+    returns False and this guard is unsatisfiable again — one milestone later than
+    the literal it replaces, not forever. The alternative is asserting against a
+    synthetic two-row table, which stops reading what the repository publishes and
+    is the whole reason `milestone_status` exists. That trade is recorded here as
+    a decision rather than discovered at M10."""
+    # **Scoped to the progression table by its backticked tag cell.** The first
+    # version of this guard collected any row whose second cell was a number,
+    # which also swept in README's twelve-CLAIMS table — and the two tables
+    # disagreeing is what made it pass. It would have reported a discriminating
+    # parser while the progression table was uniformly closed. Measured: closing
+    # every progression row left this green.
+    #
+    # `milestone_status.milestone_is_closed` has the same looseness and takes the
+    # first matching row, so `milestone_is_closed("11")` answers from the claims
+    # table rather than raising. Today the progression table comes first, so every
+    # real milestone resolves correctly; the ordering dependency is noted here
+    # rather than relied on silently.
+    tag_cell = re.compile(r"^`m\d\d[a-z]?`$")
+    rows = [c[1] for c in (
+        [x.strip() for x in line.split("|")]
+        for line in (ROOT / "README.md").read_text(encoding="utf-8").splitlines())
+        if len(c) > 4 and c[1].lstrip("0").isdigit() and any(tag_cell.match(x) for x in c)]
+    assert len(rows) >= 2, (
+        f"the progression parser found {len(rows)} milestone rows in README.md. "
+        "Every check above reads this table; a parser that matches nothing makes "
+        "all of them pass silently.")
+    answers = {milestone_is_closed(number) for number in rows}
+    assert answers == {True, False}, (
+        f"the parser returned only {answers} across {len(rows)} rows. It is no longer "
+        "discriminating: either every milestone reads closed, every one reads open, or "
+        "the marker changed. If this is M10 closing and no row is unclosed any more, "
+        "that is the stated horizon — replace this with a synthetic table and record "
+        "why in the same diff.")
