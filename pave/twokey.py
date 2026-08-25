@@ -542,6 +542,66 @@ RULES: tuple[Rule, ...] = (
         re.compile(r"^((.*/)?conftest\.py|pyproject\.toml|\.?pytest\.ini|tox\.ini|setup\.cfg)$"),
         ("platform-eng", "security"),
     ),
+    # --- ADR-044: the instruments that measure, and were guarded by nothing ---
+    #
+    # Found by two seats independently in the SPEC/05 round-4 review, by planting
+    # against `main`, and in none of that review's own twenty-one pre-flight
+    # findings. ADR-035's shape a third time: the thermometer protected and the
+    # thermostat not.
+    Rule(
+        # **The files that decide what "correct" means for the eval plane.**
+        # `tests/test_contracts.py` is cited by four modules as "the file that
+        # pins X" (`evals/adversarial.py:37,292`, `platform/gateway/core/audit.py:256`,
+        # `platform/gateway/core/guardrail.py:200`,
+        # `quality/adversarial/g4-semantics.yaml:66,488`) and collected no key.
+        #
+        # Measured on 6af17d2, one diff: delete `test_golden_set_keeps_headroom`
+        # (the repository's ONLY headroom check), flip both `expect_near_threshold`
+        # cases to false, and delete `test_a_disposition_is_all_or_nothing` --
+        # **1859 passed, zero failures, zero keys**. The same file holds the only
+        # assertion that a publish-class tool declares an approver, and the
+        # assertion that `.github/CODEOWNERS` and this module's rule list agree,
+        # which CLAUDE.md names as what makes the next drift "a red check rather
+        # than a fourth discovery".
+        #
+        # `ai-quality` because these are its instruments; `platform-eng` because
+        # it owns the mechanism. **That pair is byte-identical to the seat set on
+        # this very module** (`pave/twokey.py`), so the two seats could delete
+        # this rule and the checks it guards in one diff using the dispositions
+        # they already sign -- measured at 1879 passed. What stops that is the
+        # pin in `tests/test_twokey_seats.py`, which turns that diff red and is
+        # itself five-key. A third seat here would tax every routine eval change
+        # to buy a property the pin already buys.
+        "the eval-plane instruments — the files that decide what a golden case, a "
+        "judge and a corpus draw must satisfy",
+        re.compile(r"^tests/(test_contracts|test_calibration_corpus|test_judge)\.py$"),
+        ("ai-quality", "platform-eng"),
+    ),
+    Rule(
+        # **The files that catch a change to what the gateway records and what a
+        # block means.** All three collected no key.
+        #
+        #   - `tests/test_tool_loop.py` is one of the four files that fire when
+        #     `POLICY_MECHANISMS` is widened (20 failed across four files plus the
+        #     instrument digest); two of those four were on no rule at all.
+        #   - `tests/test_gateway_core.py:283` is the repository's ONLY live
+        #     witness that G5 refuses `sensitive` by design rather than by the
+        #     index comparison happening to agree -- deleting `classify.py`'s
+        #     dedicated short-circuit leaves every other classification assertion
+        #     green.
+        #   - `tests/test_gateway_run_parity.py` pins the governed and ungoverned
+        #     arms against each other. Measured: deleting it and rewording
+        #     `gateway_client.py`'s `user_turn` together is **1862 passed, zero
+        #     keys** -- and `user_turn` composes the wire text of every governed
+        #     adversarial observation, which no instrument digest covers.
+        #
+        # `security` rather than `ai-quality`: what these three defend is G4's
+        # "something blocked" and G5's refusal, not a scoring threshold.
+        "the record-and-refusal instruments — what the gateway is observed to have "
+        "done, and the parity between the governed and ungoverned arms",
+        re.compile(r"^tests/(test_tool_loop|test_gateway_core|test_gateway_run_parity)\.py$"),
+        ("platform-eng", "security"),
+    ),
 )
 
 
