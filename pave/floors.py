@@ -235,7 +235,71 @@ SCAFFOLD_AUTHOR = "pave-template"
 #: The same deletion with one 60-case parametrised file added measured 1883 passed,
 #: ABOVE the baseline, with the entire G4 scoring protection gone. A count sees
 #: arithmetic, not identity.
-COLLECTED_FLOOR = 1900
+#: **Re-seated at each milestone close, and the slack between closes is the
+#: deletion budget** -- stated rather than discovered. ADR-045 recorded 1900
+#: against a tree of 1909; ADR-046 re-seats it on the tree it ships, because a
+#: floor 93 beneath the count is a floor for 93 deletions nobody measured, which
+#: is `G4_CASE_FLOOR`'s own docstring one component over.
+#:
+#: **Seat it AFTER staging.** `tests/test_no_account_identifiers.py`
+#: parametrises two tests over `git ls-files`, so every committed FILE is worth
+#: two collected tests and an untracked one is worth none. A floor read off an
+#: unstaged tree is short by twice the number of files the PR adds.
+COLLECTED_FLOOR = 1993
+
+
+# --- ADR-046: the three criteria the verifier needed and this file did not hold --
+#
+# Each of these existed somewhere before ADR-046 and none of them existed HERE, so
+# the verifier reading them would have been a second site. `CASE_TOP_LEVEL_KEYS`
+# was a set literal in `tests/test_contracts.py`; the budget keys were four string
+# subscripts spread across two assertions; the brand was a substring inside a
+# tuple inside a function in `evals/judge.py`. ADR-045 decision 7 closed exactly
+# this shape one file over, and a verifier is how it would have re-opened.
+
+#: The brands a service may DECLARE, which is the set the judge can score.
+#:
+#: **The criterion is behavioural and matches `DECLARABLE_LEVELS`'s**: a brand is
+#: supported when a service declaring it can be judged. `evals/judge.py` slices its
+#: rubric and raises unless every required aspect is present in the slice, and one
+#: of those aspects is `brand_tone:meridian-sports` — so a manifest declaring any
+#: other brand names a rubric axis that does not exist, and every judged case in it
+#: is scored against a rubric that does not mention it.
+#:
+#: The pin in `tests/test_floors.py` asserts the axis against the real rubric slice
+#: rather than against a literal here, which is the only form that cannot be
+#: satisfied by editing this line.
+#:
+#: **This is not the brand PACK.** `rules/` and the L3 brand packs are Legal/S&P's
+#: under their own rules; this tuple is only the verifier's admission list, exactly
+#: as `DECLARABLE_LEVELS` is to `classify.LEVELS`. Adding a brand here without a
+#: rubric axis is red; adding the axis is a judge re-freeze (two-key `ai-quality`)
+#: and superseding history entries, which is why the second brand is M08's.
+SUPPORTED_BRANDS = ("meridian-sports",)
+
+#: What a manifest's `gates.budgets` must bound.
+#:
+#: `p95_ms` is suite-level and the other three are per-request (ADR-016). An absent
+#: key is not a generous ceiling, it is no ceiling: `tests/test_contracts.py`
+#: subscripts `max_ms`, `max_tokens_in` and `max_tokens_out` directly, so a pack
+#: whose manifest omits one raises `KeyError` from a test about something else --
+#: which is the accidental-red shape the whole verifier exists to replace.
+REQUIRED_BUDGET_KEYS = ("p95_ms", "max_ms", "max_tokens_in", "max_tokens_out")
+
+#: The closed top-level vocabulary of a golden case.
+#:
+#: **Closed, because the runner skips what it does not recognise** -- so a
+#: misspelled key is a case reporting PASS while checking nothing, which is
+#: `test_no_case_uses_an_undocumented_assert`'s own stated failure mode one level
+#: up. At today's N=25 a typo'd `expect_near_threshold` is caught by the band
+#: (1/25 = 4%, outside 5-10%); at the platform floor of 20 it is NOT, because the
+#: legal near-counts there are exactly {1, 2} and both sit on a band boundary. The
+#: typo is absorbed at precisely the pack size the floor mandates, which is why
+#: this list exists rather than the band alone.
+CASE_TOP_LEVEL_KEYS = frozenset({
+    "id", "input", "viewer", "fixtures", "asserts", "judge", "trajectory",
+    "provenance", "expect_near_threshold",
+})
 
 
 def smallest_pack_that_can_hold_headroom(band: tuple[float, float]) -> int:

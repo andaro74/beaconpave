@@ -33,6 +33,7 @@ import time
 from pave import gate as gate_mod
 from pave import twokey
 from pave import verdict as verdict_mod
+from pave import verify as verify_mod
 
 try:
     import yaml
@@ -377,6 +378,7 @@ def evals_dryrun_cmd(argv=()):
 # protect three constants teaches people to attest past a rule without reading
 # it. Re-exported so existing importers do not care where they moved. ADR-041.
 from pave.floors import (  # noqa: E402
+    COLLECTED_FLOOR,
     G4_CASE_FLOOR,
     G4_SCORED_CASE_FLOOR,
     asked_floor,
@@ -1114,6 +1116,43 @@ def _contract_remediation(failures: list) -> str:
     return " ".join(steps)
 
 
+def collected_floor_failures(summary: str) -> list[str]:
+    """Whatever `COLLECTED_FLOOR` has to say about a pytest summary line.
+
+    **Extracted so that something can reach it.** Written inline inside `check()`
+    it was unreachable by any test — nothing in this repository executes `check()`,
+    which is precisely ADR-042's finding that six of ten planted weakenings survived
+    because the check they removed could not be run. `tests/test_floors.py` pins
+    both this function and the fact that `check()` calls it.
+
+    **A net-deleted test file is invisible to pytest.** Measured: `rm
+    tests/test_adversarial_scoring.py` is 1821 passed with `pave check` PASS at exit
+    0 — and `evals/comparators.json` names that file as the only live protection on
+    `CEDAR_MECHANISMS` and on G4's "and logged" half. Zero collected was already a
+    failure; a suite that merely *shrank* was not.
+
+    `>=` is the half that works. The `<=` shape — `G4_CASE_FLOOR`'s, and right
+    there, because a corpus must not outgrow its floor — measured 1856 passed
+    against 1853 with no floor at all.
+
+    **What it does not close, stated rather than discovered:** deletion plus
+    padding. The same deletion with one 60-case parametrised file added measured
+    1883 passed — *above* the baseline — with the whole G4 scoring protection gone.
+    A count sees arithmetic, not identity (ADR-045 decision 5)."""
+    passed = re.search(r"\b(\d+) passed\b", summary)
+    if passed is None:
+        return ["pytest printed no `N passed` summary, so the collected-count floor "
+                "could not be read. An unreadable summary is not a satisfied floor."]
+    if int(passed.group(1)) < COLLECTED_FLOOR:
+        return [f"pytest reported {passed.group(1)} passing test(s) against a floor of "
+                f"{COLLECTED_FLOOR} (`pave/floors.py`). A test FILE deleted outright is "
+                "invisible to pytest — the suite is simply smaller and still green — so "
+                "a shrinking count is the only signal there is. Restore the file, or "
+                "lower the floor in a diff that says which protection went and why "
+                "(two-key: platform-eng, ai-quality, security)."]
+    return []
+
+
 def check(argv=()):
     """Hermetic local checks (G8): no cloud, no network. The platform-neutral
     twin of `make check` — the Makefile's `2>/dev/null` and `rm -f` are POSIX-only,
@@ -1183,8 +1222,10 @@ def check(argv=()):
         failures.append("pytest collected zero tests — an empty suite is a failing suite, not a passing one")
     elif proc.returncode != 0:
         failures.append(f"pytest failed (exit {proc.returncode})")
-    if re.search(r"\b[1-9]\d* deselected\b", "".join(seen)):
+    summary = "".join(seen)
+    if re.search(r"\b[1-9]\d* deselected\b", summary):
         failures.append("pytest deselected tests — a protection test that did not run protects nothing")
+    failures += collected_floor_failures(summary)
 
     print("==> guardrail-refusal band (SPEC/01, reporting only)")
     try:
@@ -1490,6 +1531,12 @@ def main(argv):
         infra_snapshot(rest[1:])
     elif cmd == "infra":
         _die("infra: expected `snapshot`", gate_mod.EXIT_CONTRACT)
+    elif cmd == "verify":
+        # `pave/verify.py`, not here: the criteria it decides on are AI Quality's and
+        # the file carries their key, which this one deliberately does not (see
+        # `pave/floors.py`'s docstring). The dispatch line is all that lives in
+        # `pave/cli.py`.
+        return verify_mod.verify(tuple(rest), emit=_emit)
     elif cmd == "check":
         check(rest)
     else:

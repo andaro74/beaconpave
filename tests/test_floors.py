@@ -160,10 +160,12 @@ def test_the_collected_floor_may_rise_and_may_not_fall():
     half produced a named failure.
 
     The floor itself is enforced in `pave check`; this pins the number."""
-    assert floors.COLLECTED_FLOOR >= 1900, (
-        f"COLLECTED_FLOOR is {floors.COLLECTED_FLOOR}; it was 1900 when ADR-045 recorded "
-        "it. Lowering it is how a deleted test file stops being visible — which is the "
-        "one thing this floor exists to catch.")
+    assert floors.COLLECTED_FLOOR >= 1993, (
+        f"COLLECTED_FLOOR is {floors.COLLECTED_FLOOR}; ADR-045 recorded 1900 and ADR-046 "
+        "re-seated it at 1993 on the tree that ships it. Lowering it is how a deleted "
+        "test file stops being visible — which is the one thing this floor exists to "
+        "catch. Consolidating tests legitimately is a real reason to lower it, and it "
+        "takes this diff, the constant, and three seats: that cost IS the control.")
 
 
 # --- the declarable vocabulary --------------------------------------------------
@@ -220,3 +222,113 @@ def test_g5_refuses_personal_data_at_every_level_the_gateway_knows(level):
         f"a service declaring {level!r} was ALLOWED a request for personal data about "
         "identifiable people. G5 refuses that by design, independently of what the "
         "service declared.")
+
+
+# --- ADR-046's three criteria ---------------------------------------------------
+
+def test_the_supported_brand_set_is_the_recorded_one():
+    """Equality, for `DECLARABLE_LEVELS`'s reason: containment in "brands that
+    exist" returns PASS for the empty tuple and for every brand nothing can score."""
+    assert floors.SUPPORTED_BRANDS == ("meridian-sports",), (
+        f"SUPPORTED_BRANDS is {floors.SUPPORTED_BRANDS}. Adding a brand is a Legal/S&P "
+        "and AI Quality decision, and the behavioural pin below states the criterion: "
+        "a brand is supported when the judge's rubric carries its `brand_tone:` axis. "
+        "Add the brand here and that pin will tell you whether that is true yet.")
+
+
+@pytest.mark.parametrize("brand", floors.SUPPORTED_BRANDS)
+def test_every_supported_brand_has_an_axis_the_judge_scores(brand):
+    """**Against the real rubric slice, never against a literal.** `evals/judge.py`
+    raises unless every required aspect appears in the slice it sends to the model,
+    and one of those aspects is `brand_tone:<brand>` — so a brand admitted here with
+    no axis is a service whose every judged case is scored against a rubric that does
+    not mention it.
+
+    This is the same form as `test_every_declarable_level_serves_an_ordinary_request`
+    and it cannot be satisfied by editing `pave/floors.py`: making it green means
+    editing the rubric, which is a judge re-freeze (two-key `ai-quality`) and
+    superseding history entries. That cost is why the second brand is M08's."""
+    from evals import judge
+    assert f"brand_tone:{brand}" in judge.rubric_axes(), (
+        f"the rubric under `quality/judge/` carries no `brand_tone:{brand}` axis, so "
+        f"`evals/judge.py` raises on every case a service declaring {brand!r} submits. "
+        "A brand the judge cannot score is not a supported brand.")
+
+
+def test_the_required_budget_keys_are_the_ones_something_reads():
+    """Pinned as a tuple **and** shown applied to the committed manifest, because a
+    key list nothing checks against a real file is the `import`-only pin ADR-045
+    measured at 1864 passed."""
+    assert floors.REQUIRED_BUDGET_KEYS == ("p95_ms", "max_ms", "max_tokens_in",
+                                           "max_tokens_out")
+    budgets = yaml.safe_load(
+        (ROOT / "services" / "highlights-agent" / "pave.manifest.yaml")
+        .read_text(encoding="utf-8"))["gates"]["budgets"]
+    missing = [k for k in floors.REQUIRED_BUDGET_KEYS if budgets.get(k) is None]
+    assert not missing, (
+        f"the reference manifest is missing {missing}, so the verifier's row 12 is "
+        "red against the only pack it ships with.")
+
+
+def test_the_case_vocabulary_is_the_recorded_one():
+    """Nine keys, equality. The applied half is `tests/test_contracts.py`'s
+    `test_no_case_uses_an_undocumented_top_level_key`, which now binds this constant
+    rather than restating it — the second-vocabulary shape ADR-045 decision 7 closed
+    one file over and a verifier would have re-opened."""
+    recorded = frozenset({
+        "id", "input", "viewer", "fixtures", "asserts", "judge", "trajectory",
+        "provenance", "expect_near_threshold",
+    })
+    assert set(floors.CASE_TOP_LEVEL_KEYS) == set(recorded), (
+        f"CASE_TOP_LEVEL_KEYS is {sorted(floors.CASE_TOP_LEVEL_KEYS)}. Widening it "
+        "admits a key the runner ignores, which is a case reporting PASS while "
+        "checking nothing.")
+    assert "expect_near_threshold" in floors.CASE_TOP_LEVEL_KEYS, (
+        "the headroom flag left the top-level vocabulary. Nested under `judge:` it is "
+        "outside this set, and at the platform floor of 20 a typo there is caught by "
+        "nothing at all.")
+
+
+# --- the collected floor, ENFORCED rather than only pinned ----------------------
+
+def test_the_collected_floor_refuses_a_shrunken_suite():
+    """The floor above is a number; this is the thing that reads it.
+
+    **It was unreachable when it was written.** The logic sat inline inside
+    `pave/cli.py`'s `check()`, and nothing in this repository executes `check()` —
+    so deleting it was a silent weakening, which is ADR-042's exact finding that six
+    of ten planted weakenings survived because the check they removed could not be
+    run on an honest tree."""
+    from pave import cli
+    assert cli.collected_floor_failures(f"{floors.COLLECTED_FLOOR} passed in 60s") == []
+    assert cli.collected_floor_failures(f"{floors.COLLECTED_FLOOR + 40} passed") == []
+
+    short = cli.collected_floor_failures(f"{floors.COLLECTED_FLOOR - 1} passed in 60s")
+    assert len(short) == 1 and str(floors.COLLECTED_FLOOR) in short[0], short
+    assert "deleted outright" in short[0], (
+        "the refusal does not say what a shrinking count means. A number and a tool "
+        "name with no next step is the remediation shape ADR-042 recorded.")
+
+    # An unreadable summary is not a satisfied floor. The `>=` comparison is the only
+    # thing standing between a crashed run and a green `pave check`.
+    assert cli.collected_floor_failures("pytest exited before printing a summary")
+
+
+def test_the_check_command_calls_the_collected_floor():
+    """A tested function nobody calls protects nothing, and the call site is the
+    half a unit test cannot see. Structural rather than a substring search: an
+    `ast` walk of `check()`'s own body cannot be satisfied by a comment, a
+    docstring, or the import line — which is the form ADR-045 measured at 1864
+    passed one component over."""
+    import ast
+    import inspect
+
+    from pave import cli
+    tree = ast.parse(inspect.getsource(cli.check))
+    called = {node.func.id for node in ast.walk(tree)
+              if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)}
+    assert "collected_floor_failures" in called, (
+        "`pave check` no longer calls the collected-count floor. The floor is still "
+        f"pinned at {floors.COLLECTED_FLOOR} and enforces nothing — a stated "
+        "protection that fires on no input, which this repository has recorded eight "
+        "times as worse than an absent one.")
