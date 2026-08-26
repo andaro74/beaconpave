@@ -37,7 +37,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 04 | Fail-closed gate + adversarial suite | `m04-gate` | `m04` | not re-scored ⊕ | **−0** ✧ | **7/10** ⊗ | ✅ |
 | | **— end of part one: the machinery that judges an agent —** | | | | | | |
 | | **— part two: the path that creates one —** | | | | | | |
-| 05 | `pave new` scaffold + manifest verify | `m05-paved-road` | `m05` | – | – | – | ⬜ |
+| 05 | `pave new` scaffold + manifest verify | six PRs ※ | `m05` | not run ※ | not run ※ | not run ※ | ✅ |
 | 06 | 2nd tool + consequence interlock | `m06-consequence` | `m06` | –/25 | – | –/10 | ⬜ |
 | 07 | Rules registry + regdelta loop | `m07-rules` | `m07` | –/25 | – | – | ⬜ |
 | 08 | Playwright + k6 on one verdict schema | `m08-surfaces` | `m08` | – | – | – | ⬜ |
@@ -269,6 +269,38 @@ payload blocks 3 of 3 as a **user turn** and was allowed 2 of 3 as **tool
 output**, which attributes the failure to the channel rather than the wording.
 See `milestones/M04/README.md`.
 
+※ **M05 ran no model calls, and its row publishes no score because there is
+nothing to score.** The milestone changed the path that *creates* a service, not
+the system under test: `pave new` renders five files and `pave verify` refuses
+fourteen ways, both hermetic, both offline. Re-running the golden or probe suites
+would have spent tokens to reproduce a number already recorded against an
+unchanged agent — the same cut M03 recorded as ❂ and M04 as ⊕, taken for the same
+reason and named rather than left as a dash.
+
+**Two consequences are stated here rather than left for a reader to notice.**
+First, `enforcement-probing`'s accepted cost (ADR-035 amendment 9) pre-registers
+two triggers read off *the governed golden run a milestone records* — footprint
+above 2 of 25, or `blackout-009` refused by majority. **M05 records none, so
+neither trigger was readable at this close**, and that is a gap in the watch
+rather than a clean result; the first milestone that records a governed run reads
+them. `ATK-007`, the hole with the deadline, was already closed and discharged at
+ADR-035 amendment 5 and is not owed here. Second, **PR 2 was split out of M05**
+and G4's *"and logged"* half still credits a refusal without examining what
+refused — the milestone ships with its own headline finding open, by decision, and
+the three questions blocking it are recorded in `SPEC/05-paved-road.md`.
+
+**The Branch cell says "six PRs" because that is what happened.** CLAUDE.md's rule
+is one milestone, one branch — and both workflows here fire only on pull requests
+targeting `main`, so a stacked branch gets zero CI (ADR-013's neighbourhood). M05
+therefore landed as six independent PRs cut from `main` in sequence: **#56** (the
+instruments nothing guarded, ADR-044), **#57** (the phantom caller and the
+forty-fifth sentinel, ADR-048), **#58** (the criteria, ADR-045), **#59/#60** (the
+verifier, ADR-046), **#61** (the spec's sixth draft), **#62** (the template and the
+command, ADR-047), and this one. The branch `m05-paved-road` was cut and holds
+drafts 4–5 plus a superseded ADR-045; it was never merged and is **not** what the
+tag `m05` marks. A team onboarding after M05 still does one PR — the split is CI
+hygiene and is invisible to them.
+
 ## What part one produced
 
 Deliberately without restating a scored number: every one of them is in the
@@ -322,7 +354,7 @@ Anything that doesn't serve one is out of scope.
 
 | # | Claim | Proof artifact | M |
 |---|---|---|---|
-| 1 | One command → governed service | `pave new`: repo → deployed agent under 30 min | 05 |
+| 1 | One command → governed service | ⬜ **INCOMPLETE** ⁂ — `pave new` renders five files and `pave verify` refuses fourteen ways, but **nothing is deployed** and the developer's remaining authorship is **well over an hour** against a claim of thirty minutes | 05 |
 | 2 | Gates fail closed and teach | ✅ [PR #29](https://github.com/andaro74/beaconpave/pull/29) — labeled `exhibit`, closed unmerged. Six lines make a probe pass because the model declined; the gate answers `BLOCKED (quality regression); exit 1` and its comment names the five probes that moved, the comparator they moved against, and what to do. Exit **1**, never 2 — a caught regression, not a broken harness | 04 |
 | 3 | One verdict schema, many runners | Agent evals + Playwright + k6 emit identical JSON | 08 |
 | 4 | No direct model access | ✅ [PR #14](https://github.com/andaro74/beaconpave/pull/14) blocked by the IAM assertion; the denial witnessed in `milestones/M01/direct-call-witness.json` | 01 |
@@ -334,6 +366,29 @@ Anything that doesn't serve one is out of scope.
 | 10 | Consequence classes gate real actions | `publish_highlight` waits on human approval | 06 |
 | 11 | Readiness drills produce go/no-go artifacts | NO-GO → fix → delta drill → GO | 09 |
 | 12 | Defect leakage is counted honestly | Increments from rollbacks, never gate failures | 10 |
+
+⁂ **Claim 1 is INCOMPLETE at the M05 tag, for two reasons, and neither is a
+rounding error.**
+
+**There is no deployed agent.** `pave verify` runs *in the repository*. The
+manifest's `attestations.manifest_signature: required` is checked by nothing at
+deploy time; ADR-046 decision 4 records that as a stated cut rather than an
+omission, and `make core` now refuses to deploy without the verifier passing —
+which is a control on the repository, not on the runtime, and must not be sold as
+the other thing.
+
+**"Under 30 min" is not what the scaffold leaves behind.** The Service Team seat
+measured the developer's remaining authorship against the reference pack rather
+than estimating it: 510 lines over 25 cases (~15.6 content lines each), **138
+asserts** (mean 5.5), six top-level keys per case with 12 of 25 adding
+`trajectory`, 18 of 25 requiring memorised catalog ids, and a ~180-line assert
+vocabulary — so the twenty cases the floor demands are ~310 content lines and ~110
+asserts. The decisive number is in the pack's own README: **4 of the 25 starter
+cases** were written with negative substring bans that a *correct* answer trips,
+**by the author of the vocabulary** — a 16% authoring-defect rate, each defect
+presenting first as a platform bug. An earlier draft of this spec called the
+burden "roughly an hour"; that was measured as too **low**. Understating it
+flatters the platform, which is the failure this claim exists to avoid.
 
 ## Governance (separation of roles, from the start)
 

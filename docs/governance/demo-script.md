@@ -110,11 +110,15 @@ next person what to do, which is the half of a gate that usually goes missing."
 > instead, because SPEC/04 amendment 3 pinned the exhibit **by diff** after two
 > seats measured two different outcomes for "the polite-answer pass". Updated to
 > the artifact that exists rather than left describing a demo nobody can give.
-> **Not yet recorded.** Owed by M05 and tracked in `recordings.json`: it records
-> alongside Acts 0 and 1 in one sitting, and the three share a thread — Act 0's
-> control hands its viewer context, evaluation clock and blackout table to
-> **ADV-010**, and this act is the platform blocking exactly that probe, 3 of 3,
-> under guardrail v2. Together it is an arc; apart it is two clips.
+> **Not yet recorded, and now deferred twice.** It was owed by M05; M05 closed
+> without paying it and re-deferred it to **M06**, deliberately and on two keys
+> rather than by forgetting. `recordings.json` carries the count in
+> `deferred_from` and each milestone named in the `why`, so a third slide costs a
+> longer admission rather than an identical sentence. It still records alongside
+> Acts 0 and 1 in one sitting, because the three share a thread — Act 0's control
+> hands its viewer context, evaluation clock and blackout table to **ADV-010**,
+> and this act is the platform blocking exactly that probe, 3 of 3, under
+> guardrail v2. Together it is an arc; apart it is two clips.
 
 ## Act 3 — The seat disposes (M07) · 3 min
 The fictional State of Jefferson AI Disclosure Act arrives as a delta. The

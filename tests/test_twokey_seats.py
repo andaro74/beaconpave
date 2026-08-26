@@ -87,6 +87,18 @@ ADR043_SEATS = {
         {"platform-eng", "ai-quality", "tool-owner", "security"},
     "pave/scaffold.py": {"platform-eng", "ai-quality", "tool-owner", "security"},
     "tests/test_scaffold.py": {"platform-eng", "ai-quality", "tool-owner", "security"},
+    # ADR-049: three rows SPEC/05's seat table stated and no PR built, closed at
+    # the M05 close with the measurement beside each. The register and its check
+    # are pinned as a pair for ADR-043 decision 1's reason -- data guarded and
+    # instrument free is the asymmetry ADR-044 exists to refuse.
+    "docs/governance/recordings.json": {"platform-eng", "ai-quality"},
+    "tests/test_demo_recordings.py": {"platform-eng", "ai-quality"},
+    # Deleting the `OBSERVATIONS` guard: 2072 passed. `check:` reduced to
+    # `@echo ok`: 2072 passed. Both on zero keys.
+    "Makefile": {"platform-eng", "ai-quality"},
+    # Deleting the file outright: 2059 passed, zero failures -- the only tie
+    # between the committed ceilings and the measurement they were derived from.
+    "tests/test_budget_derivation.py": {"ai-quality", "platform-eng"},
 }
 
 
@@ -132,9 +144,14 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           "the manifest verifier",
                                           "what a service declares about itself",
                                           # ADR-047
-                                          "the scaffold every future service"))]
-    assert len(added) == 10, (
-        f"expected ADR-043's five, ADR-044's two, ADR-046's two and ADR-047's one, found "
+                                          "the scaffold every future service",
+                                          # ADR-049
+                                          "the demo-act obligation register",
+                                          "the developer entrypoints",
+                                          "the budget derivation pin"))]
+    assert len(added) == 13, (
+        f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one and "
+        f"ADR-049's three, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -194,6 +211,15 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
             "templates/agent-tools/README.md",
             "pave/scaffold.py",
             "tests/test_scaffold.py"],
+        # ADR-049, all three member by member. The register and the check that
+        # reads it are one control -- ADR-043 decision 1's "weakened together or
+        # not at all" -- and dropping `tests/test_demo_recordings.py` from the
+        # alternation would leave the data guarded and the instrument free, which
+        # is precisely the asymmetry ADR-044 was written about.
+        "the demo-act obligation register": ["docs/governance/recordings.json",
+                                             "tests/test_demo_recordings.py"],
+        "the developer entrypoints": ["Makefile"],
+        "the budget derivation pin": ["tests/test_budget_derivation.py"],
     }
     for rule in added:
         key = next(k for k in required if k in rule.what)

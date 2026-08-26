@@ -2,31 +2,38 @@
   "_comment": "Which demo acts have been recorded, and by when the unrecorded ones are owed. `docs/governance/demo-script.md` says 'the recordings ARE the deliverable' and `.claude/skills/close-milestone` step 8 says to record at close -- and NO act had ever been recorded. Act 0 belongs to M00b, which closed and tagged four milestones before this file existed. The rule was real, stated in two places, and enforced by nothing, which is this repository's most-repeated defect.",
   "_why_this_is_data_and_not_prose": "`brand_tone`'s widening was owed 'to M04' in an ADR, M04 closed without paying it, and nothing noticed. An obligation written only in a sentence is discharged by forgetting. `tests/test_demo_recordings.py` reads this file, so an act that goes unrecorded past the milestone it was deferred to turns the suite RED rather than turning invisible.",
   "_what_recording_is_and_is_not_evidence_for": "For Act 2 the EVIDENCE is PR #29 -- permanent, linkable, re-derivable by a stranger, carrying the gate's own posted comment and exit 1 in the workflow log. The claim in the twelve-claims table cites that PR, not a video, and nothing about claim 2's falsifiability depends on a recording. The recording is a PRESENTATION artifact. That is not true of every act -- Act 4's go/no-go artifact is produced BY the run -- so the distinction is recorded per act rather than assumed across all of them.",
+  "_why_deferred_from_exists": "M05 is the first close where this file's teeth actually bit, and the milestone spent them: all three acts owed by M05 were re-deferred to M06. That is legal, deliberate and two-key -- and until ADR-049 it was also FREE and UNCOUNTED. `test_an_unrecorded_act_is_owed_to_a_milestone_that_has_not_closed` asks only whether the CURRENT `owed_by` has closed; it cannot tell a first deferral from a fourth, so an act could slide one milestone at a time forever, each slide green, each `why` rewritten to sound like the first. `deferred_from` is the ratchet: it lists every milestone this act was owed by and passed unrecorded, `tests/test_demo_recordings.py` derives it from the closed milestones rather than trusting it, and each one must be NAMED in `why`. A third slide therefore costs a visibly longer admission, in the file, signed by two seats.",
   "acts": [
     {
       "act": 0,
       "title": "The control",
       "owner_milestone": "M00b",
       "recorded": null,
-      "owed_by": "M05",
-      "why": "M00b closed without it and the debt was invisible until M04 went looking. Deferred to M05 rather than backdated: it records alongside Acts 1 and 2, and the three share a thread -- Act 0's control hands its viewer context, clock and blackout table to ADV-010, and Act 2 is the platform blocking exactly that probe. Together it is an arc; apart it is two clips."
+      "owed_by": "M06",
+      "deferred_from": ["M00b", "M05"],
+      "why": "Deferred twice now. M00b closed without it and the debt was invisible until M04 went looking; M05 accepted it, closed, and did not pay it either -- the operator's decision at the M05 close, taken deliberately rather than by forgetting, which is the whole difference this file exists to record. The arc argument is unchanged and is the reason all three move together rather than one being split off: Act 0's control hands its viewer context, evaluation clock and blackout table to ADV-010, and Act 2 is the platform blocking exactly that probe. Apart it is two clips. This act is also the only one of the three that cannot be recorded for free -- it needs live model calls against the ungoverned baseline -- and that cost is stated here rather than left as the unspoken reason.",
+      "cost_to_record": "live: AWS_PROFILE=agentpave, 25 goldens + 10 probes through services/highlights-agent-baseline/"
     },
     {
       "act": 1,
       "title": "The paved road provides",
       "owner_milestone": "M05",
       "recorded": null,
-      "owed_by": "M05",
-      "why": "Not yet buildable; M05 builds `pave new`."
+      "owed_by": "M06",
+      "deferred_from": ["M05"],
+      "why": "The reason this act carried until now -- 'Not yet buildable; M05 builds `pave new`' -- is FALSE as of PR 5 (#62) and is not restated. `python -m pave.cli new recap-agent` and `python -m pave.cli verify recap-agent` both run today, hermetically, at zero spend, and the verify failing on camera with its two findings is the beat the act is built around. So this is the first act in this file deferred past the milestone that OWNS it, and the reason is scheduling and not capability: the operator elected to record all three in one sitting at M06 rather than split the arc. Recorded plainly because a deferral whose stated reason has quietly expired is the exact failure `brand_tone` was.",
+      "cost_to_record": "free: local CLI, no network, no model calls"
     },
     {
       "act": 2,
       "title": "The gate decides",
       "owner_milestone": "M04",
       "recorded": null,
-      "owed_by": "M05",
-      "why": "M04's evidence artifact exists and is stronger than a recording of it: PR #29, red for an L5 reason at exit 1, five probes named in the posted comment. Deferring the video did not defer the proof. Recorded at M05 with Acts 0 and 1 in one sitting.",
-      "evidence": "https://github.com/andaro74/beaconpave/pull/29"
+      "owed_by": "M06",
+      "deferred_from": ["M04", "M05"],
+      "why": "Deferred twice now, M04 then M05. M04's evidence artifact exists and is stronger than a recording of it: PR #29, red for an L5 reason at exit 1, five probes named in the posted comment -- so deferring the video has still not deferred the proof, and claim 2 in the twelve-claims table cites the PR rather than a video. It moves with Acts 0 and 1 because of the ADV-010 thread they share, not because it is blocked on anything: this act costs nothing but a browser and three minutes.",
+      "evidence": "https://github.com/andaro74/beaconpave/pull/29",
+      "cost_to_record": "free: a browser on PR #29"
     },
     {
       "act": 3,
@@ -34,6 +41,7 @@
       "owner_milestone": "M07",
       "recorded": null,
       "owed_by": "M07",
+      "deferred_from": [],
       "why": "Not yet buildable; M07 drives the rules loop."
     },
     {
@@ -42,6 +50,7 @@
       "owner_milestone": "M09",
       "recorded": null,
       "owed_by": "M09",
+      "deferred_from": [],
       "why": "Not yet buildable; M09 builds the drill."
     },
     {
@@ -50,6 +59,7 @@
       "owner_milestone": "M10",
       "recorded": null,
       "owed_by": "M10",
+      "deferred_from": [],
       "why": "Not yet buildable; M10 builds self-heal."
     }
   ]

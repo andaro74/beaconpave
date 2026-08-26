@@ -134,3 +134,50 @@ def test_the_progression_parser_is_not_vacuous():
         "the marker changed. If this is M10 closing and no row is unclosed any more, "
         "that is the stated horizon — replace this with a synthetic table and record "
         "why in the same diff.")
+
+
+def test_a_deferral_is_counted_and_named():
+    """**The teeth above cannot count.** `test_an_unrecorded_act_is_owed_to_a_milestone_that_has_not_closed`
+    asks one question — has the CURRENT `owed_by` closed — so an act that slides one
+    milestone at a time is green at every step, and a fourth slide is
+    indistinguishable from a first with the `why` rewritten to sound new. M05 is where
+    that stopped being hypothetical: it is the first close this file's teeth bit at,
+    and all three acts owed by it were re-deferred to M06 in one decision.
+
+    `deferred_from` is the ratchet, and it is **derived rather than trusted** where it
+    can be: a milestone listed there must actually have closed, the milestone the act
+    is owed by now must NOT be listed (it has not been passed yet), and an act whose
+    own owning milestone has closed unrecorded must list that milestone — the one
+    entry the file cannot omit without contradicting the progression table.
+
+    **The residual, stated rather than implied away.** Intermediate deferrals are not
+    derivable: this file records where an act is owed NOW, not the sequence of places
+    it used to be owed, so `deferred_from` naming M05 for Act 0 rests on the diff that
+    wrote it. What makes that honest is not this assertion — it is that every entry
+    must be NAMED in `why`, so the admission grows with the count, and that the file is
+    two-key under ADR-049, so it grows in front of two seats.
+    """
+    for act in _registry():
+        if act.get("recorded"):
+            continue
+        history = act.get("deferred_from")
+        assert history is not None, (
+            f"Act {act['act']} is unrecorded and records no `deferred_from`. An "
+            "uncounted deferral is the one this file exists to make countable.")
+        for tag in history:
+            assert milestone_is_closed(tag), (
+                f"Act {act['act']} claims it was deferred from {tag}, which has not "
+                "closed. A deferral from a milestone still open has not happened yet.")
+            assert tag in act.get("why", ""), (
+                f"Act {act['act']} was deferred from {tag} and its `why` does not name "
+                f"{tag}. Each deferral is admitted in the prose a reader actually reads, "
+                "so the admission grows with the count.")
+        assert act["owed_by"] not in history, (
+            f"Act {act['act']} lists {act['owed_by']} — the milestone it is owed by "
+            "now — among the milestones it was already deferred from.")
+        owner = act["owner_milestone"]
+        if milestone_is_closed(owner):
+            assert owner in history, (
+                f"Act {act['act']} is owned by {owner}, {owner} is closed, the act is "
+                f"unrecorded, and `deferred_from` does not list {owner}. That is the one "
+                "entry the progression table contradicts on its own.")
