@@ -76,6 +76,17 @@ ADR043_SEATS = {
     # Security is not among them is recorded as an OPEN QUESTION on the rule
     # itself -- the reference manifest now declares a `publish`-consequence tool.
     "services/highlights-agent/pave.manifest.yaml": {"ai-quality", "tool-owner"},
+    # ADR-047: the scaffold, and the pairwise tests that are its only drift
+    # detector. Pinned member by member for ADR-044's measured reason -- an
+    # alternation narrows by a few characters and the rule loses a member silently.
+    "templates/agent-tools/pave.manifest.yaml.tmpl":
+        {"platform-eng", "ai-quality", "tool-owner", "security"},
+    "templates/agent-tools/gateway_client.py.tmpl":
+        {"platform-eng", "ai-quality", "tool-owner", "security"},
+    "templates/agent-tools/evals/golden/cases.yaml.tmpl":
+        {"platform-eng", "ai-quality", "tool-owner", "security"},
+    "pave/scaffold.py": {"platform-eng", "ai-quality", "tool-owner", "security"},
+    "tests/test_scaffold.py": {"platform-eng", "ai-quality", "tool-owner", "security"},
 }
 
 
@@ -119,9 +130,11 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           "the record-and-refusal instruments",
                                           # ADR-046
                                           "the manifest verifier",
-                                          "what a service declares about itself"))]
-    assert len(added) == 9, (
-        f"expected ADR-043's five rules, ADR-044's two and ADR-046's two, found "
+                                          "what a service declares about itself",
+                                          # ADR-047
+                                          "the scaffold every future service"))]
+    assert len(added) == 10, (
+        f"expected ADR-043's five, ADR-044's two, ADR-046's two and ADR-047's one, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -167,6 +180,20 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
         "what a service declares about itself": [
             "services/highlights-agent/pave.manifest.yaml",
             "services/a-service-that-does-not-exist-yet/pave.manifest.yaml"],
+        # Every rendered template AND both halves of its drift detector. The
+        # `templates/` glob is checked at depth, because `templates/agent-tools/.+`
+        # narrowed to `templates/agent-tools/[^/]+` would silently drop the three
+        # files under `evals/` -- which are the golden pack and the assert
+        # vocabulary, the two a scaffolded team reads first.
+        "the scaffold every future service": [
+            "templates/agent-tools/pave.manifest.yaml.tmpl",
+            "templates/agent-tools/gateway_client.py.tmpl",
+            "templates/agent-tools/evals/answer.schema.json.tmpl",
+            "templates/agent-tools/evals/golden/cases.yaml.tmpl",
+            "templates/agent-tools/evals/golden/README.md.tmpl",
+            "templates/agent-tools/README.md",
+            "pave/scaffold.py",
+            "tests/test_scaffold.py"],
     }
     for rule in added:
         key = next(k for k in required if k in rule.what)

@@ -274,6 +274,35 @@ RULES: tuple[Rule, ...] = (
         ("ai-quality", "tool-owner"),
     ),
     Rule(
+        # ADR-047. **The default every service that does not exist yet inherits.**
+        # A manifest edit changes one service; a template edit changes the tool
+        # set, the case floor, the headroom expectation and the wire text of every
+        # service anyone scaffolds from here on -- and none of those services can
+        # review the diff, because none of them exists.
+        #
+        # `pave/scaffold.py` and `tests/test_scaffold.py` are on the SAME rule, for
+        # ADR-043 decision 1's reason. The pairwise tests are the only thing that
+        # notices a template drifting from the service it was cut from: nothing in
+        # this repository compared `templates/agent-tools/` to
+        # `services/highlights-agent/` for four milestones, because the template
+        # directory held one README and nothing else. A template on a rule whose
+        # drift detector is not is a template that can be silently un-checked.
+        #
+        # **Security, on the merits.** The template's `gateway_client.py.tmpl`
+        # carries `user_turn` -- the wire text of every observation every scaffolded
+        # service will ever be judged on -- and no instrument digest covers the
+        # transport (ADR-048). It also decides which tool a new service declares by
+        # default, which is an authorization claim made on behalf of teams that
+        # cannot yet object.
+        #
+        # **Tool Owner** for the declared `tools:` block; **AI Quality** for
+        # `gates.*`, the scaffold pack and the headroom example.
+        "the scaffold every future service inherits",
+        re.compile(r"^(templates/agent-tools/.+|pave/scaffold\.py"
+                   r"|tests/test_scaffold\.py)$"),
+        ("platform-eng", "ai-quality", "tool-owner", "security"),
+    ),
+    Rule(
         # **The tests that EXECUTE the protections, not merely declare them.**
         # Six of ten planted weakenings survived a fully registered commit for
         # one reason: the check they removed was unreachable on an honest tree,

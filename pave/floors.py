@@ -238,14 +238,14 @@ SCAFFOLD_AUTHOR = "pave-template"
 #: **Re-seated at each milestone close, and the slack between closes is the
 #: deletion budget** -- stated rather than discovered. ADR-045 recorded 1900
 #: against a tree of 1909; ADR-046 re-seats it on the tree it ships, because a
-#: floor 93 beneath the count is a floor for 93 deletions nobody measured, which
+#: floor 79 beneath the count is a floor for 79 deletions nobody measured, which
 #: is `G4_CASE_FLOOR`'s own docstring one component over.
 #:
 #: **Seat it AFTER staging.** `tests/test_no_account_identifiers.py`
 #: parametrises two tests over `git ls-files`, so every committed FILE is worth
 #: two collected tests and an untracked one is worth none. A floor read off an
 #: unstaged tree is short by twice the number of files the PR adds.
-COLLECTED_FLOOR = 1993
+COLLECTED_FLOOR = 2072
 
 
 # --- ADR-046: the three criteria the verifier needed and this file did not hold --
