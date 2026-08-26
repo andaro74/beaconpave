@@ -245,7 +245,19 @@ SCAFFOLD_AUTHOR = "pave-template"
 #: parametrises two tests over `git ls-files`, so every committed FILE is worth
 #: two collected tests and an untracked one is worth none. A floor read off an
 #: unstaged tree is short by twice the number of files the PR adds.
-COLLECTED_FLOOR = 2072
+#: **M05 close: 2072 -> 2079, seated after staging.** The six tests between the
+#: unstaged and staged counts are `tests/test_no_account_identifiers.py`
+#: parametrising over `git ls-files` for the three files this PR adds (`ADR-049`,
+#: `milestones/M05/README.md`, `milestones/M05/pr-body.md`) at two tests each,
+#: which is the arithmetic the note above describes. Seated on the tree that
+#: SHIPS, not the tree the checks were written against: at 2077 this close would
+#: have left two deletions of slack nobody measured. Measured live at this close and recorded in `milestones/M05/README.md`:
+#: a DOCUMENTATION-ONLY pull request (#61) moved the suite 1993 -> 2021, +6 from
+#: this parametrisation and +22 from `tests/test_cited_commits_resolve.py` reading
+#: the shas a spec cites. A floor that counts collected tests is partly counting
+#: committed files and cited shas, which is the "deletion plus padding" residual
+#: above observed rather than hypothesised.
+COLLECTED_FLOOR = 2079
 
 
 # --- ADR-046: the three criteria the verifier needed and this file did not hold --
