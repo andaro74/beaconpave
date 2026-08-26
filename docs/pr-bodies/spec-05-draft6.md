@@ -65,7 +65,12 @@ data-governance 0 across 29 rules.
 `docs/M05-round4-findings.md` and `docs/M05-round5-findings.md` — the complete
 records of rounds 4 and 5, with every finding, its command and its number. Both were
 untracked. They feed `tests/test_cited_commits_resolve.py`, and every commit they
-cite resolves.
+cite resolves — **and one did not**, which is why this PR has a second commit.
+`docs/M05-round5-findings.md` cited a SHA on `m05-paved-road`, a branch that was
+never pushed. It passed locally because the object was still in the author's clone
+and failed in CI on a fresh checkout, which is precisely the case
+`tests/test_cited_commits_resolve.py` was written for. The line now cites no SHA and
+says why.
 
 ## What is deliberately NOT in this PR
 
@@ -76,6 +81,6 @@ in M05's journal and the claim-1 footnote at close — deferred, but by name.
 
 ## Verification
 
-Full suite **2022 passed**, ruff clean, hermetic, zero model calls. Rebased onto
+Full suite **2021 passed**, ruff clean, hermetic, zero model calls. Rebased onto
 `main` at `20c154a`. `twokey.triggered()` over every path in this diff returns no
 rule.

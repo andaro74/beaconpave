@@ -2,7 +2,14 @@
 
 **All six seats reported. Every one returned `VERDICT: redraft`. 49 blocking.**
 
-Baseline: branch `m05-paved-road` at `807e640`, `python -m pytest -q` = **1881 passed**.
+Baseline: branch `m05-paved-road` at its draft-5 commit, `python -m pytest -q` =
+**1881 passed**. **No SHA is cited here, deliberately.** That branch was never
+pushed, so every commit on it — including the one this round was measured against —
+is reachable from no ref in any other clone. An earlier version of this line cited
+one, and `tests/test_cited_commits_resolve.py` caught it in CI while passing locally,
+which is the whole reason that test exists: the object was still in the author's
+clone and in no one else's. The tree itself is not lost — draft 5's text is the
+parent content of draft 6.
 (The round-5 brief said 1879. That was the lead's error; four seats caught it
 independently by re-measuring, as instructed.)
 
