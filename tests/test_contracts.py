@@ -181,24 +181,18 @@ def test_golden_set_is_the_size_the_progression_table_claims():
     assert len(load_yaml(GOLDENS)) == 25
 
 
-#: Every key a golden case may carry at its top level.
+#: Every key a golden case may carry at its top level — **the authority's copy**,
+#: bound rather than restated.
 #:
-#: **Closed because `expect_near_threshold` moved up here.** There was no
-#: top-level vocabulary check for the golden set — `KNOWN_CASE_KEYS` in
-#: `evals/adversarial.py` covers the *adversarial* corpus only — and
-#: `test_no_case_uses_an_undocumented_assert`'s own docstring names the failure
-#: mode this would have created: "the harness skips what it does not recognise, so
-#: the case reports PASS while checking nothing."
+#: It was a bare set literal here, and then `pave/manifest.py` needed the same
+#: vocabulary to refuse row 11. Two copies is ADR-045 decision 7 arriving again,
+#: and the second copy never goes red on its own: the narrower gate wins at
+#: runtime, which is precisely what makes that shape survive review.
 #:
-#: At today's N=25 a typo'd flag is caught by the band (1/25 = 4%, outside 5-10%).
-#: **At the platform floor of 20 it is not**: the legal near-counts are exactly
-#: {1, 2}, both exactly on a band boundary, so a 20-case pack that loses one flag
-#: to a typo lands at 1/20 = 5% and stays legal. The typo is absorbed at precisely
-#: the pack size the floor mandates, which is why this list exists.
-CASE_KEYS = {
-    "id", "input", "viewer", "fixtures", "asserts", "judge", "trajectory",
-    "provenance", "expect_near_threshold",
-}
+#: The reasoning stays with the constant in `pave/floors.py` — including the part
+#: that matters most, which is that at today's N=25 a typo'd flag is caught by the
+#: band and **at the platform floor of 20 it is not**.
+CASE_KEYS = floors.CASE_TOP_LEVEL_KEYS
 
 
 def test_no_case_uses_an_undocumented_top_level_key():

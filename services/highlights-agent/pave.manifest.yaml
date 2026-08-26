@@ -10,6 +10,13 @@ runtime: lambda                    # lambda | ecs | agentcore (ADR-003 migration
 tools:                             # must exist in registry; Cedar policy generated
   - id: catalog-search@^0
   - id: entitlement-check@^0        # second model-chosen tool activates trajectory evals
+  # Declared because the registry GRANTS it (ADR-046 row 4), not because the agent
+  # calls it: consequence `publish` means the Cedar `forbid` denies every invoke
+  # until an approval interlock supplies `approval_granted`, and M02 records that
+  # denial. The grant is what makes the denial a *policy* one — revoking it makes
+  # the tool unreachable-by-absence, which is `catalog-purge`'s case and a
+  # different mechanism. Ranges are not evaluated (`pave verify` says so).
+  - id: publish-highlight@^0
 gates:
   eval_min_cases: 20               # gate fails below this — no unevaluated agents
   budgets:                         # tokens, not dollars — ADR-014

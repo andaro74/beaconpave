@@ -68,6 +68,14 @@ ADR043_SEATS = {
     # ADR-045: the floors and their pins, weakened together or not at all.
     "pave/floors.py": {"platform-eng", "ai-quality", "security"},
     "tests/test_floors.py": {"platform-eng", "ai-quality", "security"},
+    # ADR-046: the verifier, its refusal table and the producer for every row.
+    "pave/manifest.py": {"ai-quality", "security", "platform-eng"},
+    "pave/verify.py": {"ai-quality", "security", "platform-eng"},
+    "tests/test_manifest_verify.py": {"ai-quality", "security", "platform-eng"},
+    # ADR-046: what a service declares about itself. Two seats, and the reason
+    # Security is not among them is recorded as an OPEN QUESTION on the rule
+    # itself -- the reference manifest now declares a `publish`-consequence tool.
+    "services/highlights-agent/pave.manifest.yaml": {"ai-quality", "tool-owner"},
 }
 
 
@@ -108,9 +116,12 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           "the tool plane",
                                           # ADR-044
                                           "the eval-plane instruments",
-                                          "the record-and-refusal instruments"))]
-    assert len(added) == 7, (
-        f"expected ADR-043's five rules and ADR-044's two, found "
+                                          "the record-and-refusal instruments",
+                                          # ADR-046
+                                          "the manifest verifier",
+                                          "what a service declares about itself"))]
+    assert len(added) == 9, (
+        f"expected ADR-043's five rules, ADR-044's two and ADR-046's two, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -144,6 +155,18 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
         "the record-and-refusal instruments": ["tests/test_tool_loop.py",
                                                "tests/test_gateway_core.py",
                                                "tests/test_gateway_run_parity.py"],
+        # ADR-046, member by member for ADR-044's measured reason: an alternation
+        # can be narrowed by deleting a few characters, and the rule that loses a
+        # member loses it silently. `ROWS` and its producers are the two halves of
+        # one control and neither may be un-keyed without the other.
+        "the manifest verifier": ["pave/manifest.py", "pave/verify.py",
+                                  "tests/test_manifest_verify.py"],
+        # A path pattern, so the pin is a path a scaffolded service would produce
+        # rather than only the committed one -- `pave new sportscast-agent` must
+        # land on this rule the day it runs, not the day someone adds its name.
+        "what a service declares about itself": [
+            "services/highlights-agent/pave.manifest.yaml",
+            "services/a-service-that-does-not-exist-yet/pave.manifest.yaml"],
     }
     for rule in added:
         key = next(k for k in required if k in rule.what)

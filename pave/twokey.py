@@ -226,6 +226,54 @@ RULES: tuple[Rule, ...] = (
         ("platform-eng", "ai-quality", "security"),
     ),
     Rule(
+        # ADR-046. The verifier and its own tests, on one rule for ADR-043
+        # decision 1's reason: they are weakened together or not at all. The
+        # refusal table lives in `pave/manifest.py` as `ROWS` and the producer for
+        # every row lives in `tests/test_manifest_verify.py`, so a row deleted
+        # from one and the other is a refusal that stops existing with nothing
+        # red -- and the file that would have caught it would be the one deleted
+        # alongside.
+        #
+        # **Valid at three seats only because the verifier holds mechanism.**
+        # Every number, level and vocabulary it refuses on is imported from
+        # `pave/floors.py`, which is on its own rule with the same three seats;
+        # `tests/test_manifest_verify.py` moves each of those criteria and
+        # requires the verifier to follow, so an inlined copy is red rather than
+        # a quiet relocation of AI Quality's key onto Platform Engineering's.
+        #
+        # Security, on the merits: rows 3 and 4 are the bijection between what a
+        # service declares and what Cedar grants it, and row 4's direction --
+        # every grant is declared -- is the one nothing in this repository had.
+        # A grant nobody declared is a permission with no owner.
+        "the manifest verifier and the refusals it commits to",
+        re.compile(r"^(pave/(manifest|verify)\.py|tests/test_manifest_verify\.py)$"),
+        ("ai-quality", "security", "platform-eng"),
+    ),
+    Rule(
+        # ADR-046. What a service declares about itself: its tool set, its
+        # classification, its brand and the floor it deploys above.
+        #
+        # **Not `data-governance`, and that seat's own argument is why.** ADR-045
+        # made `classification` a singleton -- `("internal",)` -- so the only
+        # edits this rule can gate on that field are edits the verifier already
+        # refuses outright. A seat collected on a value with one legal setting is
+        # collected on nothing, which is the decorative-second-key shape ADR-037
+        # found three times in `.github/CODEOWNERS`.
+        #
+        # **Security is NOT here and that is an open question, not a decision.**
+        # `highlights-agent`'s manifest now declares `publish-highlight`, whose
+        # consequence class is `publish` -- so the complete path to granting a
+        # scaffolded service the one human-approval-interlocked tool collects
+        # `tool-owner` and `legal-sp` on the registry line and `ai-quality` and
+        # `tool-owner` here, and Security on neither. A path rule cannot say
+        # "when the declared set intersects GATED_CONSEQUENCES"; deciding whether
+        # this rule takes Security unconditionally is owed by SPEC/05 and is
+        # recorded in ADR-046 rather than settled here.
+        "what a service declares about itself",
+        re.compile(r"^services/[^/]+/pave\.manifest\.yaml$"),
+        ("ai-quality", "tool-owner"),
+    ),
+    Rule(
         # **The tests that EXECUTE the protections, not merely declare them.**
         # Six of ten planted weakenings survived a fully registered commit for
         # one reason: the check they removed was unreachable on an honest tree,
