@@ -201,6 +201,70 @@ RULES: tuple[Rule, ...] = (
         ("ai-quality", "platform-eng"),
     ),
     Rule(
+        # **ADR-049. The obligation register, and the check that reads it.** The
+        # data half alone was SPEC/05's row; the test is here for ADR-043 decision
+        # 1's reason -- an instrument and the thing it measures are weakened
+        # together or not at all, which is ADR-044's whole subject. Measured at the
+        # M05 close: re-deferring three acts one milestone was **2072 passed, zero
+        # keys**, and `test_an_unrecorded_act_is_owed_to_a_milestone_that_has_not_closed`
+        # cannot tell a first deferral from a fourth, so an act could slide forever
+        # on nobody's signature. `deferred_from` counts the slides and this rule is
+        # what makes each one cost two dispositions.
+        #
+        # **`docs/governance/demo-script.md` is deliberately NOT here, and that is a
+        # stated residual.** Dropping an act by editing the prose is already red --
+        # `test_every_act_in_the_script_is_tracked` compares the script's acts to
+        # this registry's in both directions -- so the obligation cannot be deleted
+        # from the script. What an unkeyed script still permits is rewriting an
+        # act's CONTENT, which is a presentation change. Keying it would put two
+        # seats on every wording fix.
+        "the demo-act obligation register — a deferral is a decision, and the count of "
+        "deferrals is the part that was free",
+        re.compile(r"^(docs/governance/recordings\.json|tests/test_demo_recordings\.py)$"),
+        ("platform-eng", "ai-quality"),
+    ),
+    Rule(
+        # **ADR-049. SPEC/05 named this row and no PR built it.** Justified on
+        # `evals:` and `adversarial:` -- the two `--record` entrypoints -- and above
+        # all on the `OBSERVATIONS` guard, whose entire job is to stop a bare
+        # `make adversarial` recording a second row over another milestone's
+        # evidence. That is an append-only-history control living in a Makefile.
+        # Measured at the M05 close: deleting the guard outright is **2072 passed**,
+        # and reducing `check:` to `@echo ok` -- the `|| echo` shape this file's own
+        # header records the repository shipping for its entire life -- is **2072
+        # passed**. Both on zero keys.
+        #
+        # **Not justified on `core:`**, which is a deploy gate whose pain AI Quality
+        # does not feel; SPEC/05 draft 4 cited it and the seat table corrected that.
+        # The seat is here for the recorders, and it is the same pair the recorders'
+        # own rule would collect minus Security, which owns what a probe passing
+        # means and not where the recorder is invoked from.
+        "the developer entrypoints — the two --record invocations and the guard that "
+        "stops one overwriting another milestone's evidence",
+        re.compile(r"^Makefile$"),
+        ("platform-eng", "ai-quality"),
+    ),
+    Rule(
+        # **ADR-049. The third row SPEC/05 stated and nothing built.** The file's own
+        # docstring at `:124` says *"`gates.budgets` is a two-key path; a number that
+        # moves there without a written derivation is the change this rule exists to
+        # make visible"* -- and the file holding that sentence was on no rule at all.
+        # The manifest half was closed by ADR-046's `services/*/pave.manifest.yaml`
+        # row; the PIN half was not. Measured at the M05 close: deleting
+        # `tests/test_budget_derivation.py` is **2059 passed, zero failures** -- the
+        # only thing tying the committed ceilings to the committed measurement
+        # ADR-014's amendment derived them from, gone in one file deletion on zero
+        # keys. Exactly ADR-044's finding, in the one instrument its audit missed.
+        #
+        # Seats from the file's own docstring rather than chosen: *"AI Quality (the
+        # ceilings -- two-key) - Platform Engineering (the loop bound)"*. SPEC/05
+        # draft 4 paired it with `tool-owner`, contradicting the file.
+        "the budget derivation pin — the committed ceilings tied to the committed "
+        "measurement they were derived from",
+        re.compile(r"^tests/test_budget_derivation\.py$"),
+        ("ai-quality", "platform-eng"),
+    ),
+    Rule(
         # Gate CRITERIA, deliberately not in `pave/cli.py`: that file is ~1200
         # lines of command dispatch and `test_ordinary_pr_is_not_gated` names it
         # as the canonical UNGATED example. Gating all of it to protect three
