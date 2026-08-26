@@ -30,7 +30,9 @@ import subprocess
 import sys
 import time
 
+from pave import floors as floors_mod
 from pave import gate as gate_mod
+from pave import scaffold as scaffold_mod
 from pave import twokey
 from pave import verdict as verdict_mod
 from pave import verify as verify_mod
@@ -744,12 +746,24 @@ def adversarial_run(argv=()):
         names = ", ".join(sorted(known)) if isinstance(known, dict) and known else "none"
         _emit(f"[pave adversarial] no adversarial comparator pinned for {service!r}; "
               f"emitting nothing. Pinned services: {names}.\n"
-              "    To onboard: run the probe corpus through the gateway "
-              "(`services/<svc>/run_probes_via_gateway.py --k 3`), record the entry, and add "
-              "a `suites.adversarial` block for the service to evals/comparators.json in a "
-              "two-key PR (ai-quality, platform-eng, security). Until then this lane emits no "
-              "verdict, and `gate decide` blocks on the absence — which is the designed "
-              "behaviour and not a misconfiguration.")
+              "    To onboard: run the probe corpus through the gateway, record the "
+              "entry, and add a `suites.adversarial` block for the service to "
+              "evals/comparators.json in a two-key PR (ai-quality, platform-eng, "
+              "security). Until then this lane emits no verdict, and `gate decide` "
+              "blocks on the absence — which is the designed behaviour and not a "
+              "misconfiguration.\n"
+              # **The first instruction this lane gave a scaffolded service was
+              # unfollowable.** It named `services/<svc>/run_probes_via_gateway.py`,
+              # a file `pave new` does not render and that a team cannot write
+              # alone: `^services/[^/]+/run_probes(_via_gateway)?\.py$` is on a
+              # `(security, platform-eng)` rule. Found by the Tool Owner seat
+              # walking a second service through onboarding. Naming the constraint
+              # is the honest form; inventing a path that does not exist is not.
+              "    Note for a scaffolded service: there is no probe runner to run "
+              "yet. `pave new` renders none, and `services/<svc>/run_probes*.py` is "
+              "on a two-key (security, platform-eng) path — so writing one is a "
+              "Security decision, not a scaffolding step. Per-service adversarial "
+              "lanes arrive at M08; until then only the reference service has one.")
         return 0
 
     probes = _yaml.safe_load((ROOT / "quality" / "adversarial" / "probes.yaml")
@@ -1114,6 +1128,48 @@ def _contract_remediation(failures: list) -> str:
     steps.append("A contract failure is the code under test rather than the harness, so it "
                  "pages the service team — do NOT reach for a comparator or a baseline.")
     return " ".join(steps)
+
+
+def scaffold_new(argv) -> int:
+    """`pave new <service> [--brand B] [--team T] [--oncall O]` — creates-only.
+
+    The dispatch and the argument parsing live here; everything the command
+    decides lives in `pave/scaffold.py`, which is on a rule this file deliberately
+    is not. Same line `pave/floors.py`'s docstring draws.
+
+    Returns an exit code rather than raising, so a refusal reads as a refusal and
+    not as a crashed tool. A team meeting this command for the first time should
+    never see a traceback."""
+    service = next((a for a in argv if not a.startswith("-")), None)
+    if not service:
+        _emit("[pave new] name a service.\n"
+              "  usage: python -m pave.cli new <service> [--brand B] [--team T] "
+              "[--oncall O]\n"
+              f"  --brand defaults to {floors_mod.SUPPORTED_BRANDS[0]}; it is "
+              "the only brand the judge can score today.")
+        return gate_mod.EXIT_CONTRACT
+
+    brand = (_flag_values(argv, "--brand") or [floors_mod.SUPPORTED_BRANDS[0]])[0]
+    team = (_flag_values(argv, "--team") or [f"beacon-{service}"])[0]
+    oncall = (_flag_values(argv, "--oncall") or [f"webhook:{service}"])[0]
+
+    try:
+        written = scaffold_mod.create(service, brand, team, oncall)
+    except scaffold_mod.ScaffoldError as exc:
+        # Named refusal, no traceback — the contract `pave verify` makes one
+        # component over, for the same reason: a team meets this before it meets
+        # anything else in the repository.
+        _emit(f"[pave new] refused: {exc}")
+        return gate_mod.EXIT_CONTRACT
+
+    for path in written:
+        # `relative_to` RAISES when the path is not under ROOT, and a ValueError
+        # escaping here is a traceback in the one command that promises a team a
+        # named message. Found by the test for this function rather than by reading.
+        shown = (path.relative_to(ROOT) if path.is_relative_to(ROOT) else path).as_posix()
+        _emit(f"  created  {shown}")
+    _emit(scaffold_mod.next_steps(service))
+    return gate_mod.EXIT_OK
 
 
 def collected_floor_failures(summary: str) -> list[str]:
@@ -1489,8 +1545,12 @@ def main(argv):
     if cmd == "rules" and rest[:1] == ["validate"]:
         rules_validate()
     elif cmd == "new":
-        _stub("new", f"scaffold service {rest} from templates/agent-tools with gate.yml, "
-                     "CODEOWNERS, starter goldens, manifest; wire SDK; enable tracing")
+        # Was a `_stub` advertising `gate.yml`, CODEOWNERS, "wire SDK" and "enable
+        # tracing". M05 builds no per-service lane, ADR-013 records that CODEOWNERS
+        # collects nothing on a one-operator repo, and writing to `.github/CODEOWNERS`
+        # would contradict creates-only. A stub that lists four things it does not do
+        # is worse than one that lists none.
+        return scaffold_new(rest)
     elif cmd == "evals" and rest[:1] == ["run"]:
         return evals_run(rest[1:])
     elif cmd == "evals" and rest[:1] == ["dryrun"]:

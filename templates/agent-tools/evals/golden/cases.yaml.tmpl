@@ -1,0 +1,104 @@
+# Golden dataset for {{service}} ({{brand_title}}). THREE worked examples.
+#
+# Read README.md in this directory first: it documents the assert vocabulary, the
+# fixed evaluation clock, and the rule that a case is never edited to make a run
+# pass.
+#
+# =============================================================================
+# THIS PACK DOES NOT PASS THE GATE, AND THAT IS THE POINT.
+# =============================================================================
+#
+# Every case below carries `provenance.author: pave-template`. `pave verify`
+# counts only cases a seat has DISPOSED — the ones whose author is not the
+# template — so this pack counts as **zero** against a floor of twenty, and the
+# refusal says so by name.
+#
+# Flipping `author` without reading the case is a lie the repository cannot
+# catch, and it is worth knowing that up front rather than discovering it: the
+# floor counts disposition, and disposition is a claim you are making. What the
+# repository can tell you is what these three examples are for.
+#
+# Three, not twenty, deliberately. Twenty scaffolded rows is an invitation to
+# edit the author field twenty times. Three is enough to show the vocabulary and
+# too few to mistake for a pack.
+#
+# =============================================================================
+# WHAT YOU MAY CITE
+# =============================================================================
+#
+# `data/catalog.json` holds five fictional titles. Three carry
+# `brand: meridian-sports` — t001, t003, t005 — and the examples below use them.
+#
+# **A service that needs its own catalog content is blocked today, for any
+# brand.** The catalog is embedded model-facing in the judge prompt and digested
+# into `quality/judge/frozen.json`, so adding one title is 16 failed and runs
+# through a judge re-freeze (two-key `ai-quality`) plus superseding history
+# entries. That is a real constraint on what you can write here, not a hint to
+# work around, and it is recorded in ADR-047.
+#
+# Owning seat: AI Quality. Two-key on every change, including this file's first
+# real content.
+
+# --- 1. deterministic asserts only, and this is the shape to prefer ----------
+# CLAUDE.md: "Prefer deterministic assertions over judge assertions wherever a
+# deterministic one can express the requirement." A case with no `judge:` block
+# is cheaper, faster and cannot drift when a judge is re-calibrated.
+- id: example-001-deterministic
+  input: "What replays can I watch right now?"
+  viewer: { plan: base, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/{{service}}/evals/answer.schema.json
+    - must_cite: [t003]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  provenance:
+    author: pave-template
+    note: >-
+      Replace this with a request your service actually receives, and delete
+      this note. `cited_titles_in_fixture` is what makes groundedness
+      deterministic: a title id absent from the catalog is a confabulation and
+      no judge is needed to say so.
+
+# --- 2. a judged case, for the requirement no assert can express -------------
+- id: example-002-judged
+  input: "Tell me about the derby this weekend."
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/{{service}}/evals/answer.schema.json
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+  judge:
+    axes: [groundedness, completeness, brand_tone:{{brand}}]
+    rubric: quality/judge/rubric-sports.md
+  provenance:
+    author: pave-template
+    note: >-
+      Add a `judge:` block only for what a deterministic assert cannot state —
+      tone, completeness, whether an answer is actually responsive. The axis
+      `brand_tone:{{brand}}` must exist in the rubric or the judge raises; that
+      is why `--brand` accepts one value today.
+
+# --- 3. the headroom case, and why the pack needs some -----------------------
+# CLAUDE.md: "Keep headroom: 5-10% of cases at or near failure. A suite at 100%
+# can only report 'no change or regression' — improvements become invisible."
+# `pave verify` enforces that band over your disposed cases, so a pack of twenty
+# needs one or two cases marked here. Mark cases a CORRECT answer only just
+# passes — never cases that are broken.
+- id: example-003-headroom
+  input: "Is the rowing final on before the derby?"
+  viewer: { plan: sports-tier, dma: cedar-point }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/{{service}}/evals/answer.schema.json
+    - must_cite: [t001, t005]
+    - cited_titles_in_fixture: true
+  expect_near_threshold: true
+  provenance:
+    author: pave-template
+    note: >-
+      `expect_near_threshold` is a TOP-LEVEL key. It used to live under `judge:`,
+      which meant a headroom case needed a judge block invoking no judge; both
+      locations are not accepted, because a typo in the nested one is caught by
+      nothing at a pack size of twenty (ADR-045).

@@ -160,9 +160,9 @@ def test_the_collected_floor_may_rise_and_may_not_fall():
     half produced a named failure.
 
     The floor itself is enforced in `pave check`; this pins the number."""
-    assert floors.COLLECTED_FLOOR >= 1993, (
+    assert floors.COLLECTED_FLOOR >= 2072, (
         f"COLLECTED_FLOOR is {floors.COLLECTED_FLOOR}; ADR-045 recorded 1900 and ADR-046 "
-        "re-seated it at 1993 on the tree that ships it. Lowering it is how a deleted "
+        "re-seated it at 2072 on the tree that ships it. Lowering it is how a deleted "
         "test file stops being visible — which is the one thing this floor exists to "
         "catch. Consolidating tests legitimately is a real reason to lower it, and it "
         "takes this diff, the constant, and three seats: that cost IS the control.")

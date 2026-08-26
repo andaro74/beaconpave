@@ -1,0 +1,32 @@
+# Rendered by `python -m pave.cli new {{service}}`. Edit it — this is yours now.
+#
+# `python -m pave.cli verify {{service}}` refuses this file until you finish two
+# things, and it names both. That is deliberate: a scaffold that passes its own
+# gate teaches a team that the gate means nothing.
+apiVersion: pave/v1
+service: {{service}}
+template: agent-tools@0.1.0        # only governed templates deploy
+brand: {{brand}}                   # selects the L3 brand pack + judges
+classification: internal           # G5 routing; `sensitive` is refused by design
+owners:
+  team: {{team}}
+  oncall: {{oncall}}               # miniature "pager"; PagerDuty at scale (ADR-007)
+runtime: lambda                    # lambda | ecs | agentcore (ADR-003 migration path)
+tools:                             # must exist in registry; Cedar policy generated
+  # `pave verify` refuses this until `{{service}}` is a caller of `catalog-search`
+  # in platform/registry/tools.yaml. The refusal IS the onboarding step, and the
+  # command that rendered this file printed how to take it.
+  #
+  # Declare only what you are granted. A declaration the registry does not back
+  # is denied at the gateway while this file says you have the tool.
+  - id: catalog-search@^0
+gates:
+  eval_min_cases: 20               # gate fails below this — no unevaluated agents
+  budgets:                         # tokens, not dollars — ADR-014
+    p95_ms: 2500                   # suite-level distribution, not per case — ADR-016
+    max_ms: 12000                  # per-request hang guard; a tool loop is n calls
+    max_tokens_in: 6500
+    max_tokens_out: 800
+attestations:                      # written by CI, verified at deploy
+  gate_verdict: required
+  manifest_signature: required     # ADR-046: nothing verifies this yet, by decision

@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beaconpave/services/{{service}}/evals/answer.schema.json",
+  "title": "{{service}} answer",
+  "description": "The agent's structured reply. Every golden case asserts against this schema first, before any judge runs.\n\nThe structure is doing real work: `cited_titles` makes groundedness a deterministic check (a title id absent from the catalog is a confabulation — no judge needed), and `entitlement` records whether the answer came from the entitlement-check tool or from the model guessing. CLAUDE.md prefers a deterministic assertion wherever one can express the requirement; this schema is where that preference is cashed in.",
+  "type": "object",
+  "required": ["answer", "cited_titles"],
+  "additionalProperties": false,
+  "properties": {
+    "answer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Prose shown to the viewer. `must_mention` / `must_not_claim` asserts run against this field only."
+    },
+    "cited_titles": {
+      "type": "array",
+      "description": "Catalog ids this answer relies on. Every id must exist in the fixture catalog — that assertion IS the groundedness check.",
+      "items": { "type": "string", "pattern": "^t[0-9]{3}$" }
+    },
+    "entitlement": {
+      "type": ["object", "null"],
+      "description": "Null when the question did not concern access. Non-null answers must be sourced from entitlement-check, not inferred — `source` is what the M06 trajectory eval reads.",
+      "required": ["entitled", "reason", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "entitled": { "type": "boolean" },
+        "reason": { "type": "string", "enum": ["ok", "blackout", "upgrade-required", "not-yet-started", "unknown-title"] },
+        "source": {
+          "type": "string",
+          "enum": ["entitlement-check", "model-inference"],
+          "description": "`model-inference` is what the ungoverned control emits. It is a legal value precisely so the baseline can be scored honestly rather than crashing the harness (SPEC/00b)."
+        }
+      }
+    },
+    "ai_disclosure": {
+      "type": ["string", "null"],
+      "description": "Disclosure text required by MER-AI-0001 on AI-authored editorial copy. Null until M07 disposes that rule."
+    }
+  }
+}

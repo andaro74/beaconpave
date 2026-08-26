@@ -46,13 +46,46 @@ nothing to check. Every number after this is measured against a system that
 looked fine."
 
 ## Act 1 — The paved road provides (M05) · 3 min
-`pave new recap-agent --brand meridian-news --classification internal`
-Deployed, traced, metered, guarded agent in minutes. Then enumerate what the
-developer never wrote: model client, guardrails, tracing, metering, adversarial
-tests, audit logging, approval interlocks. Then what they *cannot remove*: the
-required workflow, the conformance check, the manifest verification at deploy.
 
-**Line:** "Compliance stopped being a phase. It's the shape of the only road."
+```
+python -m pave.cli new recap-agent
+python -m pave.cli verify recap-agent
+```
+
+**`recap-agent` is not in the registry, and that is the demo.** ADR-048 removed
+that entry — it was a registry line with no service behind it. Scaffolding a name
+the repository has never heard of is exactly the case the milestone exists to
+stop being invisible, so do not read this as a contradiction and do not "fix" the
+name.
+
+Five files land. Then enumerate what the developer never wrote: the gateway
+client, the answer schema, the assert vocabulary, the budget ceilings, the
+classification declaration.
+
+**Then run `verify` and let it fail on camera.** Two findings, each one an
+onboarding step the command may not take for you: the registry grant
+(`tool-owner` + `legal-sp`) and twenty golden cases nobody has written. This is
+the beat that matters — a scaffold that went green here would be teaching the
+audience that the gate means nothing, and before M05 an unknown service was
+green on all 1861 tests by being invisible rather than by being correct.
+
+**Say plainly what is NOT verified**, because the earlier draft of this script
+claimed it and it was never true: there is **no manifest verification at deploy**.
+`pave verify` runs in the repository. `attestations.manifest_signature: required`
+is checked by nothing, and ADR-046 records that as a stated cut rather than an
+omission. What the repository holds is a manifest it refuses to merge when it is
+malformed — a control on the repository, not on the runtime.
+
+**One flag, one brand.** `--brand` accepts `meridian-sports` only. An earlier
+version of this line read `--brand meridian-news --classification internal`:
+there is no `--classification` flag (the template fixes it at `internal`, the one
+declarable level), and `meridian-news` is refused, because the judge's rubric
+carries no `brand_tone:meridian-news` axis and every judged case would be scored
+against a rubric that does not mention it. Adding a brand is a judge re-freeze —
+M08's, per ADR-047.
+
+**Line:** "Compliance stopped being a phase. It's the shape of the only road —
+and the road tells you where you still are, out loud, before you deploy."
 
 ## Act 2 — The gate decides (M04) · 3 min
 Open [PR #29](https://github.com/andaro74/beaconpave/pull/29), the exhibit. Six
