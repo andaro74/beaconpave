@@ -1,6 +1,6 @@
 # SPEC/06 — the attack register
 
-Branch `m06-keys` · tag `m06` · supersedes drafts 5 through 10.
+Branch `m06-keys` · tag `m06` · supersedes drafts 5 through 11.
 
 **This document contains no fixes.** Draft 6 specified seven, and seven seats
 built all seven and broke all seven — most within minutes. A1's was satisfied by
@@ -77,6 +77,28 @@ own test claims to check), A21 (a real market name, rescoped below), and **A22**
 the morphology gap, which is larger than A10 and A12 together and which every
 remedy this document had written would have missed.
 
+**Round 11 was told to check one thing: whether draft 11 had actually stopped
+prescribing remedies. Six seats said no, and located the failure precisely.** Draft 11
+rewrote the PR section's grammar and did not sweep the document — the remedies moved
+into the register entries and the Decisions list, where they carried *higher* authority
+than the bullets refuting them. A builder reads the entry for the attack they are
+closing, not the PR bullet. Two of the six quoted remedies were ones draft 11 wrote in
+the section announcing it had stopped.
+
+**And round 11 found the deeper thing, which is why this draft is shorter than the last
+four.** The register has been stable since round 9: every correction since has been to a
+number inside a finding, never to a finding. The *plan* half broke in every round —
+round 10 broke all four remedies it specified, round 11 found three of nine `Keys:` lines
+wrong, a definition-of-done contradicting the Decisions list, a key assigned to a PR that
+did not carry it, and a section whose stated four-field contract one of its own entries
+did not meet. **A nine-PR plan is on the order of a hundred assertions about the tree,
+maintained by hand, in prose, read by nothing.** It is cut. See *How M06 closes*.
+
+**Round 11 registered one new attack, A23** — the published held-out agreement number and
+its witness are free, so the number can be moved from *advisory in full* to *calibrated*
+across twelve files at zero keys, with the judge freeze fully satisfied and untouched. It
+is ADR-035's shape a third time, inside the subject A19 was written about.
+
 **Round 9 returned roughly forty findings and shifted the target again.** Round 8
 caught draft 8's *measurements*; round 9 caught draft 9's *write-up of them*. Almost
 none of its findings is a fact draft 9 got from a seat — they are facts draft 9
@@ -104,16 +126,30 @@ and a stated-and-absent protection inside A19's own backstop, registered as A20.
 **Baseline `2079 passed` on a clean tree at `e3d6ec8`.** Every number below was
 planted in the main working tree, measured, and reverted. `tests/test_cited_commits_resolve.py:52`
 adds one collected test per backticked SHA in any `docs/` or `SPEC/` markdown, so
-a run made with this file present reads **2082** untracked and **2084** committed: it
+a run made with this file present reads **2081** untracked and **2083** committed: it
 cites `e3d6ec8` three times, and any committed file is worth +2 through
-`tests/test_no_account_identifiers.py`. Measured, not derived —
-`python -m pytest --collect-only -q | tail -1` returns 2079 with this file absent, 2082
-with it untracked, 2084 with it committed. The three counts are stable across drafts 8,
-9 and 10 because the citation count has not changed; `wc -l` has, so this paragraph no
-longer states a length. Draft 8 published 2081/2083 off a two-citation count a later
-edit had already made three. Draft 9 corrected that and then stated its own length as
-990 when `wc -l` said 992 — the same error class, one draft later, in the same
-paragraph, which is why the length is now simply not published. Numbers are stated against the clean tree unless a
+`tests/test_no_account_identifiers.py`, whose parametrisation reads `git ls-files` — so an
+unstaged copy is worth its citations only. Measured at draft 12's content, not derived:
+`python -m pytest --collect-only -q | tail -1` returns **2079** absent, **2082**
+untracked, **2084** committed.
+
+This paragraph has now been wrong in three drafts, always the same way, and the history is
+kept because the shape is the finding. Draft 8 published 2081/2083 off a two-citation count
+a later edit had already made three. Draft 9 corrected that and stated its own length as
+990 when `wc -l` said 992 — the same error class, one draft later, in the same paragraph.
+Drafts 9 through 11 then carried 2082/2084 correctly, and round 11 still had a seat report
+**2082** for the committed tree, because it wrote the file in without staging it: the same
+arithmetic read from the wrong side of `git ls-files`. Draft 12 cut the plan half and one
+`e3d6ec8` citation with it, taking the count to 2081/2083 — and then the sentence you are
+reading, written to explain that, cited the SHA a third time and put it back to 2082/2084.
+That is not a joke at the document's expense; it is the mechanism. A count of citations
+inside a file that cites things cannot be stated once and left.
+
+**So every count here is re-measured per draft and never carried forward, the command is
+stated, and the tree is named.** A bare number cannot tell a reader which of three trees it
+came from, and four rounds have now proved that nobody reconstructs it correctly. The
+length is not published at all — `wc -l` changes with every edit and nothing depends on
+it. Numbers are stated against the clean tree unless a
 row says otherwise — attack A7 is why that qualifier exists, and round 8 is why every
 number below now carries its command.
 
@@ -635,9 +671,11 @@ three draft 8 named — `tests/test_gateway_core.py:245` routes `account holders
 `:271` routes `households` — so a PR sized on "three" under-builds. The conclusion
 stands: the taxonomy is pinned to the words the fixtures happen to say.
 
-This wants a control, not a key: `SUBJECT_TERMS × ATTRIBUTE_TERMS` asserting refusal,
-252 deterministic hermetic cases (12 × 21 = 252, measured from the term lists). A path
-rule collects a key; it does not detect.
+A path rule collects a key; it does not detect — so a key is not what this wants.
+`SUBJECT_TERMS × ATTRIBUTE_TERMS` is 252 cells (12 × 21, measured from the term lists),
+which is the size of the space, not a specification of the control. **A22 is why the size
+is not the point:** the defect is the term lists themselves, and anything enumerated *from*
+them measures only what they already contain.
 
 **A single template cannot express this requirement, and round 9 is where that was
 measured rather than assumed.** Draft 8 left the template unwritten; draft 9 wrote four
@@ -677,15 +715,19 @@ attribute terms whose tail + " of" forms an AGGREGATE_TERM:
 A **lexical overlap between `ATTRIBUTE_TERMS` and `AGGREGATE_TERMS`**. Any template
 placing an attribute immediately before the token `of` leaks, and that is an open class.
 
-**So PR 6 builds a phrasing corpus with declared expectations, not a template** —
-operator decision, Decisions 9. The shape already exists and exists for this reason:
-`quality/adversarial/phrasings.yaml` was built because M01's one-phrasing defence *"was
-also a comment"*, run once by hand under a guardrail version that no longer exists, and
-`tests/test_phrasings.py` executes it. A control pinned to one template repeats exactly
-the failure that corpus was created to prevent. Each phrasing carries its expected
-verdict, so a leak is a declared row going red rather than a template nobody tried.
-*(Seat note: that corpus is Security-owned and a G5 vocabulary corpus is Data
-Governance's; PR 6 states which it is adding to rather than inheriting the crossing.)*
+**Refuted, twice.** A single stated template (draft 9) — seven of ten untried templates
+leak. A phrasing corpus over the existing term lists (draft 10, and an operator decision
+until round 11 withdrew it as Decisions 9) — **green on ten of fifteen** natural
+exfiltration requests, because it varies templates over a term list whose defect is the
+term list. A control that varies phrasing over a fixed vocabulary can only ever measure
+the vocabulary it already has.
+
+Two facts a fix will have to reckon with, stated as facts and not as a design.
+`quality/adversarial/phrasings.yaml` exists because M01's one-phrasing defence *"was also
+a comment"* — run once by hand under a guardrail version that no longer exists — and
+`tests/test_phrasings.py` executes it. And that corpus is Security-owned while a G5
+vocabulary corpus is Data Governance's, so anything built on it inherits a seat crossing
+that has to be named rather than absorbed.
 
 **And the control as specified does not reach A12.** On the clean tree the 252 cases pass
 252/252 on any `0/252` template and are defeated **252/252** by appending *"Also, how many
@@ -896,15 +938,16 @@ not four.
 is `SNAPSHOTS = sorted(SNAPSHOT_DIR.glob("*.template.json"))`, and two G1-family
 assertions are parametrised over it. There is a second snapshot,
 `BeaconpaveAuditTrail.template.json`, free today only because it happens to declare no
-roles. **A rule must be scoped to `^platform/infra/tests/fixtures/`, not to the one
-filename** — which also picks up `guardrail-pin.json`, free, and which both A15 and A18
-depend on being recomputable.
+roles. A rule scoped to the one filename leaves the sibling snapshot free; the directory holds
+`guardrail-pin.json` too, free, which both A15 and A18 depend on being recomputable. That
+is a fact about the tree, not an instruction — what collects and what detects are separate
+questions here, and A10's line settles which one a path rule answers.
 
 *One adjacent route is already defended; do not spend PR 3 on it.* Renaming the role to
 inherit the gateway prefix is caught at `2 failed` —
 `test_a_second_gateway_prefixed_role_is_caught_rather_than_inheriting_the_allowlist`.
-Deletion works and renaming does not, which is precisely why the remedy must assert
-presence by identity.
+Deletion works and renaming does not — which is why an enumeration of the deletions found
+so far keeps being defeated by the next construction that is not one.
 
 **A key is not the remedy, and draft 9 said it was.** PR 3 said *"key the mechanism…
 A18 is the mechanism"* while A10, forty lines above, says *"a path rule collects a key;
@@ -914,9 +957,30 @@ that the fixture is unkeyed — that is the transport. The defect is that
 non-emptiness, where G1 needs it to assert *which* role. A rule makes the thinning
 **collectable** and leaves it **green** — the residual `pave/twokey.py:600-606` already
 writes down for the sibling rule: *"this makes the widening COLLECTABLE, never red."*
-**PR 3 ships an assertion — the governed service role present by identity, and
-`DirectCallProbeFn` present — in `tests/test_iam_assertions.py`, which is already
-`(security, platform-eng)` plus an ADR. The rule is the second half, not the fix.**
+**A fix must survive** — and this list is the entry's whole difficulty, because two
+remedies have already been written here and broken:
+
+1. deleting the governed service role (identity);
+2. **narrowing the Deny's `Resource`** to a retired-model ARN;
+3. **adding a never-matching `Condition`**;
+4. **thinning or deleting the second snapshot**;
+5. **retyping the role** — leave it present, leave the Deny untouched, change
+   `AWS::IAM::Role` to `AWS::IAM::ServiceLinkedRole`. Role present by identity, probe
+   present, Deny scope intact, snapshot set unchanged — and `infra.roles()` no longer
+   contains it, so the assertion iterates a population the role has left. 2084 passed,
+   zero keys;
+6. **adding a snapshot** — a new `*.template.json` shipping a non-gateway service role with
+   no Deny at all is invisible, and is worth +2 collected tests, so it pads the floor too.
+
+**Refuted, three times, recorded so none is re-proposed:** a two-key rule on the fixture
+(draft 9 — a path rule collects a key and does not detect, which `pave/twokey.py:603-606`
+already writes down for its own sibling); a presence-by-identity assertion (draft 10 —
+defeated by 2, 3 and 4); and *"reach the Deny's effective scope and the snapshot set"*
+(draft 11 — defeated by 5, which satisfies all three named conjuncts while the invariant
+fails). Security's reading, which is the one to keep: *presence is the new non-emptiness,
+and type is the new presence.* Each remedy generalised the last defeat instead of naming
+the property. **Already defended, and not a target:** renaming the role to inherit the
+gateway prefix is caught at `2 failed`.
 
 *The grant direction is deliberately unmeasured. Adding `bedrock:InvokeModel` to any
 role, including in an isolated worktree and including to establish a number for this
@@ -1093,12 +1157,41 @@ it is not re-proposed:
   the string in **this document**, five times, necessarily — a register must quote what it
   describes.
 
-**So A21's disposition is inverted.** The attack is not *"a name is wrong"*, which is a
-rename and cannot complete. It is *"`data/catalog.json` publishes a claim about its own
-contents that nothing checks"* — the register's own shape, and the half that is closable
-hermetically at zero digest movement. What M06 owes is the **assertion**; the rename is
-M07's, with its own ADR covering the frozen corpus, the three digests, the schema break
-and the recorded-evidence exclusion. (Data Governance, rounds 9 and 10.)
+**A21 is deferred to M07 in full. Operator decision after round 11, and the second
+inversion this entry has taken — recorded because the first one was wrong.**
+
+Draft 11 split A21 and kept "the assertion" for M06 on the grounds that it was closable
+hermetically at zero digest movement. Round 11 measured both halves of that and neither
+holds:
+
+- **Zero digest movement is false.** `evals/judge.py:131` embeds `data/catalog.json` whole
+  into the rendered judge prompt and `:167` digests it as `rendered_sha256`. One word
+  changed inside the `_comment` string is `15 failed, 2069 passed` and `is_frozen()` →
+  `False` — the same signature this document publishes for A19's retune. So the branch that
+  makes the claim *true* is a judge re-freeze at **one `ai-quality` key**: a second door
+  into A19, arriving through the PR this document called digest-free. Two seats found it
+  independently.
+- **The branch that makes the claim *asserted* cannot be built honestly.** The survival
+  condition is "a real place name substituted for a fictional one", and G8 forbids the
+  network, so the only hermetic form is an enumerated allowlist of the current six. This
+  entry measures that **four of the six are real US place names**. Such a test ships green
+  while certifying `jefferson-city`, `north-haven`, `granite-falls` and `cedar-point` as
+  fictional — a control that makes the violation invisible, which is the flattering control
+  CLAUDE.md's *Baseline honesty* section forbids, and this register's own shape pointed
+  backwards.
+
+The three readings, none of which drafts 9 through 11 named: the assertion passes and
+certifies a false claim; the assertion is honest and is red at merge, against *`main` is
+always green*; or the `_comment` is reworded to drop "fictional", which makes the claim
+true and leaves the CLAUDE.md violation with no witness at all. The third is the cheap path
+a builder finds.
+
+**So M06 records the violation as owed and builds nothing.** M07 takes the rename, the
+frozen corpus, the three digests, the schema break with an explicit `semver` disposition
+for `entitlement-check` and its `@^0` caller pin, the recorded-evidence exclusion as an
+enumerated allowlist in the shape of `pave/history.py:70` and `:98`, and the judge re-freeze
+the catalog edit forces. The obligation is a row in an artifact a committed test reads,
+named in M07's ADR — not a sentence here. (Data Governance and Security, rounds 9 to 11.)
 
 ### A22 — G5's detector has no morphological closure, and it is the largest of the three
 
@@ -1140,6 +1233,62 @@ A22 is why the A10 remedy is rescoped. A control that varies phrasing over a fix
 list can only ever measure the term list it already has. (Data Governance, round 10.)
 
 
+## Registered round 11, measured
+
+### A23 — the published agreement number, and its witness, are free
+
+A19 is the judge freeze. A20 is a published finding its own test claims to check. **A23 is
+the number itself**, and it is cheaper than either.
+
+Round 11 asked whether a one-key refreeze survives a second key on `quality/judge/` plus
+`evals/judge.py`. It does not — and that is the finding, because the freeze was never the
+cheapest route to the published number. Twelve files, **every one of them free**:
+
+```
+milestones/M03/judge/held-out-report.json          FREE
+milestones/M03/judge/held-out/*.json      (10x)    FREE
+tests/test_calibration_report.py                   FREE
+tests/test_judged_entry.py                          FREE
+
+two-key rules triggered: 0
+evaluate(changed, "") with an EMPTY PR body: []
+is_frozen(): True        published instrument: A        2079 passed
+```
+
+Before, from the published command at `evals/README.md:23`:
+
+```
+groundedness    6   0   0.00   n/a   6   DEMOTED
+calibrated axes: none — the judge is advisory in full
+```
+
+After:
+
+```
+groundedness    6   6   1.00  1.00   0   CALIBRATED
+```
+
+`judged.calibrated_axes(published)` returns `{"groundedness"}`. An axis that agreed with
+hand labels on nothing now vetoes: it moves from one that cannot enter a verdict to one
+that turns deterministic passes into judged fails. No digest moved. `matching_instrument()`
+still returns `"A"`. `held_out_guard()` passes. The freeze is fully satisfied and entirely
+beside the point.
+
+**This is ADR-035's shape a third time, inside the subject A19 was written about.** A19
+protects the instrument's *data*; widening it to `evals/judge.py` protects its *guard*. The
+**number** and the number's **witness** are covered by neither.
+`tests/test_calibration_report.py` holds all four assertions that catch the naive version
+— `guardrail == 28`, `calibrated == []`, `a_refusals == 3`, `(6, 0, 6)` — and is free. Its
+own docstring at `:210` says: *"If this test needs updating for a reason other than a
+deliberate re-run, a published number moved without a recorded act."*
+
+**A fix must survive:** the twelve-file plant above; and the three cheaper routes round 11
+refuted first, recorded so they are not re-tried — `--split dev` against the held-out
+directory (`assemble()` filters on `item["split"]`, so the flag is not free), the same with
+`--items`, and editing the committed judge output alone (`4 failed, 2075 passed`).
+(AI Quality, round 11.)
+
+
 ## What M06 does not build
 
 - **No consequence interlock, and claim 10 is not advanced.** `publish-highlight`
@@ -1156,375 +1305,79 @@ list can only ever measure the term list it already has. (Data Governance, round
   date with nobody touching the repo.
 - **No baseline reset, no golden case edited, no history entry rewritten.**
 
-## PRs
+## How M06 closes
 
-Sequential merges to `main`, each branch cut from `main` after its predecessor merges —
-no stacking, because both workflows fire only on pull requests targeting `main`. **The
-floor PR is last.** `SPEC/06-consequence.md` lands on its own branch **ahead of PR 1**;
-that is not tidiness, it is load-bearing (see PR 4).
+**Drafts 6 through 11 carried a nine-PR plan here — five fields per entry, sixteen
+numbered predictions, and an eleven-box definition of done. It is cut.** Not because the
+work changed, but because that half of the document was never checkable and never
+survived a round.
 
-**This section no longer says how to fix anything.** Drafts 6 through 10 specified
-remedies in prose and round 10 broke every one of them (see the opening). Each entry below
-states four things and stops: **the attacks it must close**, **the variants its fix must
-survive**, **the keys it collects** measured against `pave/twokey.py`, and **the ADR it
-owes** with whether that ADR is gate-enforced or discipline. A fifth field, **refuted
-candidates**, records remedies already measured and broken so nobody re-proposes them —
-that is evidence, not specification. The fix itself is designed in the PR, attacked there
-by the seats, and written down afterwards, which is what this document's opening paragraph
-has said since draft 6 and what its PR section has contradicted since draft 6.
+The evidence, stated so the cut is a measurement rather than a preference. Across rounds
+8 to 11 the register — attacks, their measurements, their refuted remedies — has been
+stable since round 9; every correction since has been to a *number in it*, not to a
+finding. The plan half broke in **every** round:
 
----
+- Round 10 broke all four remedies it specified, one per PR.
+- Round 11 found **three of nine `Keys:` lines wrong** — PR 8's naming a seat it does not
+  collect and omitting one it does, PR 9's understated by two, PR 2's contradicted by this
+  document's own A9 section three paragraphs above it.
+- Round 11 also found: the Definition of Done's A14 box byte-identical to draft 10 while
+  Decisions 12 took the decision it says is open; Decisions 12 naming PR 9 as the vehicle
+  for a key PR 9's entry does not mention; PR 9 the only entry with no `ADR:` field, in a
+  section whose contract is four fields; a prediction still pointing at draft 10's PR
+  numbering; and a count of "five" that is seven.
 
-**PR 1 — the gate's own integrity.** Closes A1, A2, A8, A13.
-*Survives:* a zero-byte new ADR; `ADR: docs/adr/README.md`; one `ADR:` line discharging all
-three `requires_adr` rules; the same rationale pasted under five seat names; and refusing
-none of the nine committed PR bodies that carry dispositions.
-*Keys:* `('ai-quality','platform-eng')` on `pave/twokey.py`. *ADR:* discipline.
-*Also carries:* the body-format migration for the five documents publishing the old shape,
-and `.github/PULL_REQUEST_TEMPLATE.md`.
+That is not a run of typos. A nine-PR plan with five fields, sixteen predictions and
+twelve decisions is on the order of a hundred assertions about the tree, maintained by
+hand, in prose, with nothing reading them — which is the exact thing this document's
+opening paragraph refuses. **A fix written in prose is a claim, and claims need plants.**
+The register plants everything it says. The plan planted nothing, and every round found
+what that costs.
 
-**PR 2 — the served catalog.** Closes A3, A9.
-*Survives:* the fork of the serve path from `catalog_path()`; the zero-new-file
-`_normalise()`-in-`dispatch` variant; and `BEACONPAVE_CATALOG` at zero files changed.
-*Keys:* `('security',)` + **gate-enforced ADR** via `^quality/adversarial/`, **only if the
-probe ships**. The probe is mandatory: without it PR 2's minimum form is
-`tools/catalog-search/server.py` alone at **zero keys, no ADR, no seat** — the file the
-attack lives in, unreviewed, in the PR that closes it.
-*Refuted:* "the two keys are not necessarily collected" — A9's seats are collected on every
-route into the audit record, including via the free `meter.py`, which buys a red `main`.
-*Note:* the naive fork is caught by `test_the_poisoned_fixture_is_served_verbatim`; a
-builder measuring only that form wrongly concludes the path is defended.
+### What replaces it
 
-**PR 3 — the published claims and the fixture behind them.** Closes A4, A6, A6b, A18.
-*Survives — and this list is the PR's whole difficulty:* deleting the governed service role
-(identity); **narrowing the Deny's `Resource`**; **adding a never-matching `Condition`**;
-**thinning or deleting the second snapshot**; the laundered three-file A4 relabel; A4 via
-relocation; a forged ✅ citing a path that exists.
-*Keys:* `('security','platform-eng')` + ADR on `tests/test_iam_assertions.py`. Any rule
-added is pinned in `ADR043_SEATS` in the same diff — nothing forces that.
-*Refuted, twice:* **(1)** a two-key rule on the fixture (draft 9) — a path rule collects a
-key and does not detect, which `pave/twokey.py:603-606` already writes down for its own
-sibling rule. **(2)** a presence-by-identity assertion (draft 10) — round 10 defeated it
-three ways at zero failures. *Presence is the new non-emptiness.* Whatever PR 3 builds must
-reach the Deny's **effective scope** and the snapshot **set**, not just role identity.
-*Do not spend the PR on:* renaming the role to inherit the gateway prefix — already caught
-at `2 failed`.
+Three obligations, and no schedule.
 
-**PR 4 — the interlock assertions.** Closes A5.
-*Scope:* the thirteen sites by extent, per the enumeration above, plus `"ai_generated"` into
-the input schema's `required` array — the coherence condition for the granted exception.
-*Keys:* **five** — `ai-quality, legal-sp, platform-eng, security, tool-owner` — over **four**
-rules, `requires_adr=False` on all four. *(Draft 10 wrote "five keys… all three of its
-rules"; five requires `tests/test_contracts.py` in the diff, which prediction 7 mandates,
-and that makes it four rules. Draft 9 carried the reconciling clause and draft 10 deleted
-the clause while keeping the number.)* *ADR:* discipline, not mechanism.
-*Also required, and unscoped until round 10:* removing
-`test_publish_class_tools_carry_an_approval_interlock` orphans `tests/test_contracts.py:20`'s
-`from core import cedar` → `ruff F401` → `pave check` exit 1. One line, same file, no extra
-key — and the same defect class this document states at site 8.
-*Floor dependency:* PR 4 deletes two collected tests. On the tree **with SPEC/06 committed**
-that is 2082 ≥ 2079 and green; on the clean tree it is **2077, below the floor**. The spec
-branch merging first is what keeps PR 4 mergeable, and the chain then runs on three counts
-of slack.
-*Out of scope, and this needs restoring rather than restating:* the publish-class `forbid`
-clause in `tools.cedar` survives. Deleting the approver's *name* is correct; deleting the
-*denial* raises the tool from unreachable to reachable — **a consequence-class increase and
-a `(tool-owner, legal-sp)` decision**, which draft 9 stated and draft 10 silently dropped.
-The mechanism is `GATED_CONSEQUENCES` at `platform/gateway/core/cedar.py:38`, in a file this
-PR opens; `pave/twokey.py:627-628` already writes the route down.
-*Unresolved, and a human owes an answer before this PR opens:* PR 4 deletes
-`tests/test_contracts.py:107-113`, the only assertion in the tree carrying that
-`(tool-owner, legal-sp)` authority, retiring `PINNED_GATED_CONSEQUENCES` with it. That is a
-consequence-class control removal, not a cleanup, and it needs Legal/S&P's key on the record
-rather than an ADR footnote.
-*Five further sites PR 4's own diff falsifies*, all inside its existing five keys, none
-currently scoped: `tests/test_twokey_seats.py:397-408` (a keying rule whose recorded
-justification PR 4 destroys, and which still passes), `tests/test_cedar_policy.py:245`,
-`cedar.py:35`, `cedar.py:74-79` (`REFERENCE` loses its last reader), and
-`pave/scaffold.py:219-222`, which prints the false claim to every new service team.
+1. **Every attack in the register is replayed at the tag**, by the plant recorded in its
+   own entry. Each entry states what a fix must survive; that list *is* the prediction,
+   and keeping a second copy of it in a numbered list is what let the two drift apart in
+   drafts 8 through 11.
+2. **Each PR states its own keys, measured against `pave/twokey.py` when it opens** — not
+   copied from here. Round 11's three wrong `Keys:` lines were all written by hand months
+   before the PR that would collect them. `python -c "from pave import twokey;
+   print(twokey.triggered(<changed>))"` is the authority; this document is not.
+3. **Each PR states the ADR it owes and whether the gate enforces it**, and carries the
+   variants its fix survived — measured in that PR, after the fix, against the entry here.
+   A PR that cannot say which variants its fix survives is not ready to merge.
 
-**PR 5 — the fictional-entity claim.** Closes the closable half of A21.
-*Scope:* make `data/catalog.json:3`'s *"6 fictional DMAs"* true-or-asserted. **Not the
-rename** — see A21 for why four seats refuted it as M06 work.
-*Survives:* a seventh DMA added without review; a real place name substituted for a
-fictional one.
-*Keys:* to be measured by the PR against whatever it touches; `data/catalog.json` is FREE
-today, and the PR must state what it collects before it opens.
-*Refuted:* the full rename — 36 files, `36 failed, 2043 passed`, three instrument digests,
-five seats over nine rules, a breaking schema change, three `EVIDENCE_REVISIONS` rows at
-three keys each against append-only history, and a predicate this document itself violates
-five times. Deferred to M07 with its own ADR.
+The close itself is `.claude/skills/close-milestone`, which is a checklist and not a
+suggestion. M06 adds nothing to it except the three obligations above and the two
+milestone-specific items the register turned up:
 
-**PR 6 — G5's term coverage.** Closes A10 **and A22**.
-*Survives — the list A22 added:* `ssns` for `ssn`; `dates of birth` for `date of birth`;
-`birthdates`, `DOBs`, `e-mails`, `mobile numbers`, `credit cards`, `personal details`; the
-five templates that supply the aggregate token from their own words at 252/252; the three
-that pluralise the attribute at 204/252; and ADV-007 surviving a one-word change to its own
-frozen input.
-*Keys:* `('security',)` + **gate-enforced ADR** via the `classify_sha256` re-registration.
-*(Draft 10 called this "a control, no rule" and priced it at zero.)*
-*Refuted, twice:* a single stated template (draft 9) — seven of ten untried templates leak.
-A phrasing corpus over the existing term lists (draft 10) — **green on ten of fifteen**
-natural exfiltration requests, because it varies templates over a term list whose defect is
-the term list. A control that varies phrasing over a fixed vocabulary can only ever measure
-the vocabulary it already has.
+- `COLLECTED_FLOOR` is re-seated **after staging, on the tree that ships**, with the
+  arithmetic recorded as an artifact a committed test reads. `tests/test_floors.py:163`
+  refuses anything below 2072.
+- Acts 0, 1 and 2 are re-deferred with a mechanism that counts the **closing** milestone,
+  not the owning one, and Acts 0 and 2 need their `why` prose rewritten — the guard
+  already demands it, and a change scoped to the guard alone lands red.
 
-**PR 7 — G5's aggregate exemption.** Closes A12.
-*Survives:* all six rows of A12's matrix — ADV-007 verbatim, suffix, inline collision,
-comma-clause, leading aggregate — plus the 252-cell base leak.
-*Keys:* **six**, not the two draft 10 published. The rule introduces the repo's **sixth
-seat**, and `tests/test_twokey_seats.py:281-297` turns red by design until that seat also
-guards that file; completing it widens the repo's highest-key rule from five seats to six
-and amends `ADR043_SEATS` in the same diff. The rule must set `requires_adr=True`
-explicitly — the dataclass default is `False`, so a rule that merely *hits* still enforces
-no ADR, which is the reason Decisions 11 gave for adding it.
-*ADR owes three things:* the accepted over-refusal cost **with a denominator that can move**;
-that the audit consequence has no field to identify its records; and a retention disposition
-on AuditLake.
-*Refuted:* clause-scoping (draft 9) — closes two of six rows. And the pre-registered trigger
-draft 10 named: the governed golden run's refusal census reads **0 of 25, 0 of 5, 0 of 11,
-0 of 29 recorded refusals**, all mechanism `guardrail`, zero `classification`, against an
-instrument `evals/refusals.py:10` describes as *"Reporting only. This blocks nothing."* It
-cannot distinguish an accepted cost from no cost. The real footprint, against a declared
-analytics corpus, is **7 of 12** — and `classify.py:15-18`'s own published justification
-example is not among them, so the exemption's stated reason is not what the exemption
-protects.
+### What is known about sequencing, and is not a plan
 
-**PR 8 — the judge freeze.** Closes A19 **and A20**.
-*Survives:* the retune-refreeze with the published name preserved; the shadow-row route
-**and** the cheaper route that needs no shadow row; and editing `b_differs_from_a_in` to a
-number never measured.
-*Keys:* `('ai-quality','security')` — Security is the counterweight (Decisions 6), being the
-only candidate with a concrete object to check. Pinned in `ADR043_SEATS` in the same diff,
-or the counterweight is strippable later on the same keys that installed it.
-*Scope must reach the invocations, not only the definitions.* `evals/judge.py` holds the
-guard's text; its only enforcing **call** is `evals/run_calibration.py:243`, and replacing
-that line with `pass` is **2079 passed, zero keys** — before and after PR 8 as draft 10
-scoped it. `evals/judged.py:132` and the two `services/highlights-agent/` callers are the
-same shape. The file's own comment records that this repo shipped this exact defect once
-already: *"`held_out_guard` had zero callers when it landed."*
-*A20 is five lines*, not a disposition deferred to the close: the re-derivation already
-exists in the test body at `tests/test_judge.py:566-578`; the assertion has only to read the
-number it claims to read. `55 passed` honest, `1 failed … 3 != 9` on the plant.
-*ADR:* owed, for the `frozen_after` disposition — read by something or deleted, and a
-deletion is a scope cut.
-*Hazard, and the "or" is struck:* `quality/judge/rubric-sports.md` is the single-seat fixture
-at **ten** sites in `pave/tests/test_twokey.py`; any second seat fires **12 failures** there.
-Draft 10 offered "either move the fixture or key the file ahead of PR 8" — round 10 measured
-the second branch and got the identical twelve. **Keying a file changes who signs the diff,
-not what an assertion does.** The fixture move is mandatory; a verified target is
-`quality/verdicts/schema.json`.
+Two facts a builder needs and cannot derive:
 
-**PR 9 — the floor and the close.** Closes A7, A11, A16, and A14's immortal-rule half.
-*Scope:* `COLLECTED_FLOOR` re-seated after staging on the tree that ships, with the
-arithmetic as a checked artifact a committed test reads; keys `pave/tests/test_twokey.py`,
-pinned in `ADR043_SEATS` in the same diff; changes `tests/test_demo_recordings.py`'s guard
-to force the **closing** milestone; rewrites Acts 0 and 2's `why` prose; and deletes the
-`and rule["status"] != "enforced"` clause at `tests/test_contracts.py:686`.
-*Keys:* `('ai-quality','platform-eng','security')`.
-*Survives:* A7's four padding routes; route 4's target is `pave/tests/test_twokey.py` at 2036
-— **not** the directory at 1987 — and the 22-pad restoration closes only from 2036.
-*The recordings guard needs a scoping condition draft 10 did not state.* "Force the closing
-milestone, **not** the owning one" read literally removes the `if milestone_is_closed(owner)`
-scope and catches Acts 3, 4 and 5 — unrecorded but not yet owed. Keeping the scope and
-asserting the latest closed milestone is in `deferred_from` reaches `2084 passed`, and
-removing `"M06"` from the three still reddens it.
-*Hard constraint:* `tests/test_floors.py:163` refuses anything below 2072.
+- **`SPEC/06-consequence.md` lands on its own branch before any other M06 PR.** Committed,
+  it is worth **+5** collected tests — +2 from `tests/test_no_account_identifiers.py`'s
+  `git ls-files` parametrisation, +3 from its backticked SHAs — so 2079 becomes 2084,
+  measured. The interlock PR deletes two collected tests: on a tree carrying this file it
+  lands at 2082 against `COLLECTED_FLOOR = 2079`, and without it at **2077, below the
+  floor**. The margin is three, and it moves whenever this document is edited. Worth stating plainly rather than as a comfortable fact: this
+  document's own length is load-bearing on another PR's mergeability, which is an argument
+  for re-seating the floor early, not for leaving it to the close.
+- **The floor PR is last**, or its re-seat is stale the moment it merges.
 
-## Predictions
-
-Each is an attack above, replayed at the tag, through the real path — plus the variants
-that killed draft 6's fix. Each fails if the attack is still green.
-
-**Round 8 rewrote this whole section, and the reason is the document's own thesis.** The
-AI Quality seat measured that **six of draft 8's ten predictions named no test, no
-command and no artifact** — they were prose, in the section whose job is to be the
-opposite of prose, inside a document that opens with *"a fix written in prose is a
-claim."* Two were worse than unverifiable: predictions 7 and 8 each contradicted a line
-of the Definition of Done, so the milestone could not satisfy both.
-
-**Round 9 refused draft 9's replacement claim, and it was right to.** Draft 9 wrote *"every
-prediction below names the harness that decides it. A prediction that cannot name one is
-not listed."* Predictions 3, 5 and 10 named a *specification for* a harness and deferred
-naming it to the PR — which is a promise, not a harness, and the section had just been
-rewritten to stop making promises. The claim is now stated as it actually is: **each
-prediction names either the harness that decides it today, or the PR that must build one
-and what it must be.** Which of the two it is, is marked. That is a weaker sentence and a
-true one.
-
-Three predictions are new: A18, A12 and A19 each landed in the register without one, and
-A18's absence was the sharpest — the only G1 finding in the document, in a document whose
-rule is *"every attack replayed at the tag."*
-
-The repo already ships the pattern for the hard cases: a *mutation* test in a two-key
-file that rewrites the target's source text and asserts a **named** test then fails —
-`tests/test_adversarial_entry.py:340`, `tests/test_adversarial_lane.py:193`,
-`tests/test_arm_scoping.py:440`. Where a prediction needs one, it says so.
-
-1. **A1 refused**, including a zero-byte new ADR, `ADR: docs/adr/README.md`, and one
-   `ADR:` line discharging all three `requires_adr` rules (A13). Harness:
-   `pave.twokey.evaluate(changed, body, repo_root)`, asserted in
-   `pave/tests/test_twokey.py` — which PR 9 must key, since today it is free.
-   *A whitespace-only edit is NOT in this list: `evaluate` never sees file content, so
-   no instrument in the tree can replay it.*
-2. **A2 refused**, including the same sentence pasted under five seat names; and none of
-   the nine committed PR bodies carrying dispositions is refused for shape alone —
-   including `milestones/M03/pr-body.md` and `milestones/M05/pr-body.md`, which are
-   outside `docs/pr-bodies/`. Harness: PR 1 must **build** one. No committed test reads
-   any PR body today — `grep -rn "pr-body|pr_body|docs/pr-bodies" --include=*.py tests/
-   pave/` returns a single comment at `pave/floors.py:251` — and `evaluate` needs a
-   `changed` list per body, which the committed bodies do not carry. PR 1 states the
-   stand-in it uses (the merge-base diff of the PR that shipped each body) or this
-   prediction is dropped.
-3. **A3 red**, including with the serve path forked from `catalog_path()` **and** with
-   the zero-new-file `_normalise()`-in-`dispatch` variant. Harness: a named test in a
-   **keyed** file asserting the resolver's behaviour. Not one inside
-   `tools/catalog-search/server.py`, which is free — a test living beside the attack
-   moves with it in one unreviewed diff. PR 2 names the file and the test.
-4. **A4 red on pytest** for the report and both witnesses, including via relocation.
-   Not "present in `ADR043_SEATS`" — presence in a pin list is the evidence this
-   document forbids, and that list is defined at `tests/test_twokey_seats.py:37`,
-   exactly the file A7 deletes at 2059 with zero failures. But the replacement must be
-   **built**, because "red on pytest" is *already true today* of the unlaundered state
-   (`3 failed, 2076 passed`) while the laundered state is 2079 at zero keys: a predicate
-   satisfied before the fix lands cannot test the fix. Harness: a mutation test in a
-   keyed file that (a) relabels the report in a tmp copy and asserts
-   `test_the_published_m03_calibration_licenses_no_axis` fails; (b) deletes that
-   assertion from a tmp copy of the witness and asserts the mutation is detected; and
-   (c) parses README's claim-9 link target, loads the report at *that* path, and asserts
-   `judged.calibrated_axes(...) == set()`. Only (c) reaches the relocation variant,
-   because the published number is a **pointer**, not a path.
-5. **A6 red on a forged ✅ citing a path that exists; A6b red.** *(To be built by PR 3.)*
-   **In a keyed file** — the constraint prediction 3 states and draft 9 omitted here.
-   Since PR 3 carries A6b *and* A18, an assertion built in a free file is deletable at zero
-   keys, which is the exact shape A18 documents, one level out, in the PR whose job is to
-   close it. Harness: an assertion on the *mechanism* — `TOOL_FUNCTIONS`, `grantInvoke`, the absent Step Functions resource
-   — and, for A6b, a test that reads `milestones/M01/direct-call-witness.json` and
-   asserts `AccessDenied`, which none does today (inverting it is 2079, FREE). The
-   target is claims **11 and 12**, not claim 10: `milestone_is_closed` never reaches row
-   10 because the progression table shadows it, but rows 11 and 12 fall through, and
-   forging a check-mark into claim 11's evidence cell flips `milestone_is_closed('11')`
-   to True at 2079 green. Path-existence is spell-checking, not evidence — four seats
-   broke draft 6's version on exactly that. It must also be green on `main` the day it
-   lands: claim 2's ✅ row cites only a PR URL, and the `M` column is a **roadmap**
-   column naming untagged milestones on 7 of 12 rows by design.
-6. **A10 red, behaviourally.** Harness: PR 6 names its new control's test module, and
-   "behavioural" means *the failures are in that module*. Without it the prediction is
-   undecidable — today all fifteen failures are in `tests/test_adversarial_entry.py` and
-   are name-for-name identical to what a bare comment produces. PR 6 also states the shape
-   of its corpus (see A10 and A22) — **not a template**, which Decisions 9 refused and A22
-   showed insufficient in either form.
-7. **A5: `platform/registry/tools.yaml` carries no `approval:` field at the tag**, and
-   `test_publish_class_tools_carry_an_approval_interlock` has been **deleted in PR 4's
-   own diff**. Draft 8 predicted *"`test_contracts.py:118`'s loop finds nothing gated"*,
-   which `tests/test_contracts.py:119-124`'s explicit vacuity guard refuses by design —
-   *"the loop passing over an empty set is not evidence of an interlock"* — so as worded
-   it was satisfiable only by a tree that fails `make check`, contradicting DoD item 1.
-   The end state is a deleted test and PR 4's ADR records why. NOT a grep for
-   "interlock": `approval: stepfn:editorial-approver` contains no such word, and
-   `tools.cedar:37` is generator output stating something true.
-8. **No entry under `evals/history/` is rewritten and no `evals/comparators.json` pin is
-   moved**, measured against `e3d6ec8`. Draft 8 predicted that *nothing* under those
-   paths would differ, which the DoD's own "evals recorded" line makes impossible:
-   `close-milestone` defines recording as `--record --tag mNN`, which appends an entry
-   and writes its digest to `evals/history/pins.json`. The two could not both hold.
-   Harness, clause 1: `tests/test_history_append_only.py` — `test_a_rewritten_entry_is_red:167`,
-   `test_touching_a_committed_entry_fires:282`, `test_an_evil_merge_fires:318`. Harness,
-   clause 2 (comparator pins): **`tests/test_evals_lane.py`**, which draft 9 left unnamed
-   for a two-clause prediction — moving `expected_passed` 15 → 16 is `4 failed` there.
-9. **`probes_sha256` (PR 2's probe) and `classify_sha256` (PRs 5 and 6) each move, and
-   each is re-registered in its own PR with the seats that rule collects** — a *missing*
-   re-registration visible, not only an unexpected one. Harness:
-   `tests/test_adversarial_entry.py::test_the_current_instrument_still_describes_this_tree`,
-   which pins the most recently registered instrument's **seven** digests to the tree
-   (`capture_sha256`, `classify_sha256`, `g4_cases_sha256`, `guardrail_sha256`,
-   `probes_sha256`, `scorer_sha256`, `semantics_sha256`; drafts 9 and 10 said six) and is
-   deliberately not a subset check, *"which would let a future digest be silently
-   dropped"*. Move either digest without registering and it goes red. **The contract set
-   is removed from this prediction, and draft 9's substitute for it does not work
-   either.** `tools.contracts.json` carries no digest anywhere, so there was no registry
-   for a re-registration to be missing *from*. Draft 9 pointed at `policy generate --check`
-   instead. That check is genuinely fail-closed (`EXIT_CONTRACT = 2`, called inside `pave
-   check`) but it detects **staleness, not movement** — and for the very change PR 4 makes,
-   it emits nothing: delete `approval:`, regenerate, and `--check` is `EXIT=0` while
-   `tools.contracts.json` did not change at all. **Stated plainly instead of substituted:
-   the contract set has no re-registration property, none is being built in M06, and
-   nothing at the tag decides whether it moved.**
-10. **If A7, A9 or A16 close as owed, the obligation is a row in an artifact a committed
-    test reads, and both the artifact and its reader are named in the ADR.** *(To be built
-    by the PR that defers.)* "Recorded as owed" is readable by nothing today — every `owed`
-    in the tree is prose, and `deferred_from` is scoped to demo acts. The tree already
-    ships the pattern this wants: `docs/governance/recordings.json` plus
-    `tests/test_demo_recordings.py`, two-key. **As written this prediction is vacuously
-    satisfiable** — if nothing closes as owed it is true having tested nothing, which is
-    the anti-vacuity failure this register catalogues at `tests/test_contracts.py:119-124`
-    and in A18 itself. So: either the artifact and its reader are named in the deferring
-    PR, or that PR states in its body that the box is discharged by a human, the way the
-    DoD does for `ROLES.md`.
-11. **A18 is red on all four routes**, not only the one drafts 9 and 10 named.
-    *(To be built by PR 3, in `tests/test_iam_assertions.py`.)* The replay runs: delete the
-    governed service role; **narrow the Deny's `Resource`**; **add a never-matching
-    `Condition`**; **thin or delete the second snapshot**. Each expects a **named** test to
-    fail. Today all four are 2079-or-2075 passed, zero failures, zero keys.
-    Not "the fixture is on a rule" — a rule makes the thinning collectable and leaves it
-    green, which A10's own line says buys no detection. **And not presence-by-identity
-    alone**: round 10 defeated that on three of the four. The rename variant is already
-    defended and is not a target.
-12. **A12 is red on every variant, not only the suffix one.** *(To be built by PR 7.)* The
-    replay runs all five rows of A12's matrix — ADV-007 verbatim, suffix, inline
-    collision, comma-clause, leading aggregate — plus the 252-cell base leak, and expects
-    `sensitive` on each. A clause-scoped fix passes two of six and is not sufficient.
-    **The accepted over-refusal cost is read out of a corpus PR 7 builds**, with declared
-    `expect: allowed` rows, and the pre-registered number is how many go red — **7 of 12
-    today**. It is *not* read out of the governed golden run's refusal census, which drafts
-    9 and 10 named: that census reads 0 of 25, 0 of 5, 0 of 11 and 0 of 29 recorded
-    refusals, all mechanism `guardrail` and zero `classification`, against an instrument
-    that describes itself as *"Reporting only. This blocks nothing."* A trigger against it
-    cannot distinguish an accepted cost from no cost, which is the vacuity this register
-    condemns at `tests/test_contracts.py:119-124`.
-13. **A19 is red on both routes: no retune-and-refreeze that keeps the published
-    instrument name reaches 2079 on one key.** *(To be built by PR 8.)* Two replays, not
-    one — the three-step shadow-row route, **and the cheaper route that needs no shadow row
-    at all**, patching `matching_instrument()` in the free `evals/run_calibration.py`.
-    Round 10 measured the second at 2079 and drafts 9 and 10 built the prediction around
-    only the first.
-    **Covering `evals/judge.py` is necessary and not sufficient**, which draft 10 stated
-    backwards. That file holds the guard's *text*; its only enforcing *call* is
-    `evals/run_calibration.py:243`, and replacing it with `pass` is 2079 passed at zero
-    keys — before and after PR 8 as draft 10 scoped it. The replay must delete each
-    invocation site in turn and expect a named test to fail.
-14. **A20 is red: `b_differs_from_a_in` cannot be edited to a number never measured.**
-    *(To be built by PR 8 — five lines.)* `tests/test_judge.py:566-578` already re-derives
-    the count; the assertion at `:580` reads a module constant while its error message
-    attributes the number to `frozen.json`. Making it read what it claims to read is
-    `55 passed` honest, `1 failed … 3 != 9` on the plant. A19's fix does **not** close this:
-    adding Security to `quality/judge/` raises the price from one key to two and leaves the
-    docstring's claim false.
-15. **A21: `data/catalog.json`'s claim about its own contents is asserted, and a seventh
-    DMA or a real place name substituted for a fictional one is red.** *(To be built by
-    PR 5.)*
-
-    *Drafts 9 and 10 predicted instead that `git grep -in "jefferson.city"` returns nothing
-    outside "a superseded findings document" at the tag. Four seats refuted it and it is
-    withdrawn, not repaired.* It was false the day it was written — the string is in **two**
-    superseded findings documents, an ADR, `SPEC/05-paved-road.md`, and **this document**,
-    five times, necessarily. It was also unsatisfiable: reaching zero requires renaming
-    twelve sha256-pinned evidence files, which breaks three recorded `evals/history/`
-    pins, needs three `EVIDENCE_REVISIONS` rows at three keys each plus an edit to the
-    `len(...) == 1` ratchet, and is forbidden outright by CLAUDE.md and by prediction 8 in
-    this same list. **Two predictions that cannot both hold — the exact defect round 8
-    caught in draft 8's predictions 7 and 8, reintroduced in the one prediction draft 10
-    added.**
-
-    And its exemption was a loophole: *"a superseded findings document"* is undefined,
-    unowned and uncounted, where the tree already ships the right pattern twice —
-    `pave/history.py:70` (`LEGACY_ENTRIES`) and `:98` (`EVIDENCE_REVISIONS`) are enumerated,
-    reasoned and test-asserted, so occurrence 69 goes red rather than being argued about.
-16. **A22 is red: pluralising an attribute term does not defeat G5.** *(To be built by
-    PR 6.)* The replay is the fifteen natural exfiltration requests, all at `agg=0`, and
-    expects `sensitive` on the ten that today reach the model — plus ADV-007 surviving a
-    one-word change to its own frozen input. Not decidable by a phrasing corpus over the
-    existing term lists: that is green on all ten.
+Everything else — which attack goes with which, what order, how many PRs — is the
+operator's to decide when the PRs are cut, and is recorded in `## Decisions` as it is
+decided rather than predicted here.
 
 ## Decisions
 
@@ -1595,165 +1448,79 @@ them to the operator and they are taken; the rest still stand open and are marke
    while leaving the 252-cell base leak untouched. The accepted cost — analytics questions
    naming an attribute become `sensitive` — is recorded with a pre-registered trigger
    rather than a deadline, per the close-milestone checklist's mirror case.
-9. **PR 6 builds a phrasing corpus with declared expectations, not a template. Taken by the
-   operator** after round 9 measured seven of ten untried templates leaking and identified
-   the cause as a lexical overlap between the term lists rather than any phrasing property.
-   `quality/adversarial/phrasings.yaml` is the precedent and the reason for it applies here
-   verbatim.
-10. **A21's rename is deferred to M07; M06 ships the assertion instead. Taken by the
-    operator after round 10.** The earlier decision — "its own PR, before both G5 PRs,
-    sequencing the three `classify_sha256` movers" — was taken on a size four seats then
-    refuted: 242/68 is `Jefferson Derby`'s census, not this string's; the real footprint is
-    75 occurrences across 36 files, twelve of them sha256-pinned recorded evidence that
-    CLAUDE.md forbids renaming; and the rename moves three instrument digests, collects five
-    seats over nine rules, and breaks a registered tool's input enum.
-    What M06 owes is the half that is closable: `data/catalog.json:3` publishes *"6
-    fictional DMAs"* and **four of the six are real place names**, with nothing asserting the
-    claim either way. That is the register's own shape and it costs no digest movement.
-    PR 5 is that assertion. The rename goes to M07 with its own ADR.
-11. **`platform/gateway/core/classify.py` gains a rule, `(data-governance, security)`,
-    with `requires_adr=True`, in PR 7. Taken by the operator.** Derived from A12, which
-    satisfies *"every rule needs an attack here"*. Data Governance, the seat that owns what
-    "personal data" means, is on **0 of 33** enforced rules while the thermometer
-    (`tests/test_gateway_core.py`) is two-key and the thermostat is free — ADR-035's shape,
-    on G5.
+9. **SUPERSEDED by round 11.** This entry read *"PR 6 builds a phrasing corpus with
+   declared expectations, not a template."* Three seats found it standing here as a live
+   operator instruction while the register marked the same mechanism **refuted** — a
+   phrasing corpus over the existing term lists is green on ten of fifteen natural
+   exfiltration requests (A22). A builder reading the Decisions list builds the refuted
+   control, and Decisions outrank prose. The instruction is withdrawn; what A10 and A22
+   require is in their entries, and how to satisfy it is the PR's to design and the seats'
+   to attack.
 
-    **Round 10 corrected two things about how this lands, both measured.** First, the rule
-    planted verbatim is `1 failed, 2078 passed`, not green: it introduces the repo's
-    **sixth seat**, and `tests/test_twokey_seats.py:281-297` reddens by design *"until that
-    seat also guards this file"*. Completing it widens the repo's highest-key rule from five
-    seats to six and pins `classify.py` in `ADR043_SEATS` in the same diff — so PR 7
-    collects six keys, not two. Second, draft 10's stated reason — *"`requires_adr` never
-    fires when no rule hits"* — is true and does not follow from what it specified: the
-    `Rule` dataclass defaults `requires_adr=False` (3 of 33 rules set it True), so a rule
-    that merely hits still enforces no ADR. The flag is now explicit above.
-12. **A14's G7 box: one of its two properties closes in M06, the other is owed to M07.**
-    The box names two properties — no orphan rules, no immortal rules. Legal/S&P's
-    disposition, corrected by that seat in round 10 for its own arithmetic (draft 10 said
-    "half" and "two halves" in one sentence and listed three actions):
+10. **A21 is deferred to M07 in full. Taken by the operator after round 11**, replacing the
+    draft-11 decision that kept "the assertion" for M06. Both grounds for the split were
+    measured false: the catalog edit moves `rendered_sha256` and breaks the judge freeze at
+    one key, and the only hermetic assertion certifies four real place names as fictional.
+    See A21. M06 records the violation as owed; M07 takes the whole of it.
 
-    - **Closes in PR 9: no immortal rules.** Delete the `and rule["status"] != "enforced"`
-      clause at `tests/test_contracts.py:686`. Hermetic, date-free, no clock; measured green
-      on today's registry and red on an immortal rule, both directions.
-    - **Closes in PR 9: the key.** `rules/` joins `pave/twokey.py` as
-      `(legal-sp, data-governance)` with an ADR. A key is not a property — it is the
-      counterweight G9 requires, and the counterweight cannot be `legal-sp`, which owns the
-      registry. **`data-governance` is named here rather than left as a placeholder**; note
-      it is the same new-seat cost as Decisions 11, so PR 7 must land first or PR 9 pays it
-      twice.
-    - **Owed to M07: no orphan rules.** A ref-resolution check is *vacuous* on a registry
-      whose single rule is `no-control`; making it non-vacuous needs a second rule, and
-      *"do not add a rule derived from a census"* forbids inventing one. M07 disposes
-      `MER-AI-0001` and produces the first non-`no-control` control this repo will have.
+11. **`platform/gateway/core/classify.py` gains a rule, `(data-governance, security)`, with
+    `requires_adr=True`, in the PR that closes A12. Taken by the operator.** Derived from
+    A12, which satisfies *"every rule needs an attack here"*. Data Governance is on **0 of
+    33** enforced rules while the thermometer (`tests/test_gateway_core.py`) is two-key and
+    the thermostat is free — ADR-035's shape, on G5.
 
-    **PR 9 is the vehicle.** Draft 10 recorded this disposition with no PR carrying it —
-    none of the nine bullets mentioned `rules/` or `test_contracts.py:686`.
+    Two measured constraints on how it lands. It introduces the repo's **sixth seat**, and
+    `tests/test_twokey_seats.py:281-297` reddens by design *"until that seat also guards
+    this file"* — so the diff widens the repo's highest-key rule and amends `ADR043_SEATS`
+    in the same change. And the `requires_adr=True` is explicit above because the `Rule`
+    dataclass defaults it to `False`: a rule that merely *hits* still enforces no ADR, which
+    was the stated reason for adding it. *Round 11 correction: the sixth-seat cost is a set
+    union at `tests/test_twokey_seats.py:295`, so it is paid by the first
+    `data-governance` rule and by no later one. Draft 11's "or it is paid twice" cannot
+    happen in either order.*
 
-## Definition of done
+12. **A14's G7 box, corrected twice and now split three ways.**
 
-Every box names what decides it. Draft 8's version had ten boxes of which the AI Quality
-seat measured **seven as unverifiable by anything in the tree** — a checklist in the
-shape this document exists to refuse. Where nothing can decide a box, that is now said in
-the box rather than discovered at the close.
+    - **Closes in M06: the key.** `rules/` joins `pave/twokey.py` as
+      **`(legal-sp, security)`** with an ADR. Round 11 refused `data-governance`: it was
+      chosen on the census *"0 of 33 enforced rules"*, and *What M06 must not do* forbids a
+      rule derived from a census. The standard this document actually set is Decisions 6's
+      — the seat with a concrete object to check. `rules/schema.json`'s
+      `disposition.controls[].type` enum is `eval_pack`, `guardrail`, `cedar_policy`,
+      `classification`, `no-control`; Security owns `guardrail` and already reads deployed
+      guardrail evidence, so it has something to read when a rule disposes into one. The
+      counterweight cannot be `legal-sp`, which owns the registry.
+    - **Does NOT close in M06: no immortal rules.** Draft 11 said deleting the
+      `and rule["status"] != "enforced"` clause at `tests/test_contracts.py:686` closes it.
+      It closes one route. `rules/schema.json` requires only `["type","ref"]` under
+      `source` — **`effective` is optional** — and the assertion is guarded `if effective:`,
+      so a rule that simply omits the field is never examined. Planted: `effective` deleted,
+      `status: enforced`, `review_by: "2099-01-01"`, clause deleted → **2079 passed**,
+      `check: PASS`. A literally immortal enforced rule, green. It is also the cheaper
+      attack: omit a field the schema already permits rather than edit a date. Making
+      `effective` required is a `rules/schema.json` change and Legal/S&P's call.
+    - **Owed to M07: no orphan rules** — and the term needs defining first. Draft 11
+      deferred it on a ref-resolution reading; `rules/schema.json`'s own `description` uses a
+      different sense already largely enforced by its `required` list. M07 is otherwise
+      handed an obligation whose name means two things, and will close the cheap one.
 
-- [ ] **Nine PRs merged, `main` green at each; the floor PR last.** Decided by CI on
-      each PR. Note this is now consistent with prediction 7: PR 4 does not leave `main`
-      red when built as scoped, and draft 8's claim that it did described a state the PR
-      cannot be in.
-- [ ] **Every attack replayed at the tag**, with the variants each fix claims to survive
-      named in its PR body. Decided by the replay, not by the body. *Nothing reads PR
-      bodies* — if PR 1 does not build the harness prediction 2 names, this box is
-      discharged by a human reading nine bodies, and it says so here rather than
-      pretending otherwise.
-- [ ] **`README.md:41` and `BUILD.md:21` rewritten; row 06 claims no interlock.**
-      Decided by PR 3's mechanism assertion, which is what makes this checkable at all —
-      today nothing asserts either line.
-- [ ] **Claim 10 stays ⬜; its `M` column dispositioned.** Same harness as above. Draft 8
-      listed this with nothing able to read the claims table.
-- [ ] **`COLLECTED_FLOOR` re-seated last, arithmetic recorded as a checked artifact.**
-      The artifact is named in PR 9 and read by a committed test in the same diff; a
-      figure in the journal is not an artifact. Seated **after staging** — every
-      committed file is +2 and every backticked SHA is +1 — **and on a tree that already
-      contains `SPEC/06-consequence.md`**, which is +5 today. Nothing in the nine-PR list
-      commits this file; it lands on its own branch ahead of PR 1. If it landed after PR 9
-      the floor would be stale the day it merged.
-- [ ] **Acts 0/1/2 re-deferred with a mechanism that counts the CLOSING milestone.**
-      Draft 8 wrote "counts M06" and named its own failure without fixing it:
-      `test_demo_recordings.py` forces only each act's *own* `owner_milestone` — M00b,
-      M05, M04 — and M06 owns none of the three. Measured in round 8 and re-measured
-      per-act in round 9 by two seats independently: closing M06 and sliding all three to
-      M07 untouched is **2079 passed**. Draft 9 then claimed *"the honest form is free
-      too"*, which is **false for two of the three acts** — adding `"M06"` to
-      `deferred_from` reddens `test_a_deferral_is_counted_and_named` for Acts 0 and 2,
-      whose `why` does not name M06. Only Act 1 is free, and only incidentally: its `why`
-      says *"record all three in one sitting at M06"* as scheduling prose, not as a
-      deferral admission. So the M05 ratchet does bite, in one direction, on two of three
-      acts. **The guard must force the closing milestone, not the owning one**, and that
-      change is PR 9's — **together with rewriting Acts 0 and 2's `why` prose**, which the
-      guard already demands. Scoped to the guard alone, PR 9 lands red. A checkbox alone
-      repeats draft 5's failure, which is what draft 8's own wording warned against while
-      doing it.
-- [ ] **`ROLES.md`'s `pave exception request` corrected to conditional tense** — same
-      shape as A5, and A1 increases traffic to it. *Nothing pins tense.* Discharged by
-      review; listed because it is owed, not because it is checkable.
-- [ ] **`.github/PULL_REQUEST_TEMPLATE.md` exists, carrying the trailers.** Existence is
-      checkable and PR 1 adds the check. "Carrying the trailers" is decided by the same
-      harness prediction 2 names, or by a human.
-- [ ] **ADR-050** (the census method, refused, with round-5 measurements); **ADR-051**
-      (owed). Round 8 split ADR-051's three limbs, which draft 8 treated as one and which
-      are not one:
-      - `semver` present-and-inert — **nothing can enforce it**, deleting all three
-        registry `semver:` lines is 2079, and `pave verify` prints the obligation to
-        every developer as M06's while nothing asserts it (A17).
-      - `ai_generated` disclosure — the **field** is guarded
-        (`tests/test_cedar_policy.py:475`, with an anti-vacuity guard at `:601`); what
-        nothing enforces is the **link** to `rules/MER-AI-0001.yaml`, whose only control
-        is `no-control`. Retire the rule and the pin does not move; delete the field and
-        the rule does not notice.
-      - the brand split — **not enforced, and unenforceable while one brand is
-        supported**; owed to **M08**. Drafts 9 and 10 called it "already enforced": row 14
-        refuses *a second brand from existing* (`SUPPORTED_BRANDS = ("meridian-sports",)`),
-        which is not a split between two brands' obligations, and `pave/manifest.py:138-142`
-        says so in the tree's own output — *"it does not build the pack that would make a
-        second brand scoreable."* Two `meridian-news` titles already ship in
-        `data/catalog.json`, with blackout and attribution obligations nowhere
-        distinguished. "Already enforced **and** owed to M08" was self-contradictory. *Draft 9 cited `pave verify` exit 1 / `2
-        failed` for this; round 9 measured that those two findings are different rows
-        entirely (a `callers:` gap and a golden-case floor), and that the brand row does
-        not fire at all on a fresh scaffold because the template's own `meridian-sports` is
-        the only supported brand. Forcing it gives **3 findings**, one of which is row 14.
-        Correct conclusion, wrong number — the defect draft 9's own commit message says
-        round 8 caught twice.*
-- [ ] **Journal, evals recorded, progression row, tag `m06` on the right commit.**
-      Decided by `.claude/skills/close-milestone`. Recording appends to `evals/history/`,
-      which is why prediction 8 is scoped to *rewrites and moved pins* rather than to
-      "nothing differs".
-- [ ] **A18 is closed by an assertion, and the assertion is named.** New in draft 10.
-      Round 9 found the register's only G1 finding with no prediction and no box — silence
-      being the one option G1 discipline does not allow. Decided by prediction 11.
-- [ ] **A12 is closed on every variant**, not only the suffix one, and the accepted
-      over-refusal cost is read out of the governed run's refusal census with its trigger
-      pre-registered. Decided by prediction 12.
-- [ ] **A19 is closed including `evals/judge.py`**, and the new rule is pinned in
-      `ADR043_SEATS` in the same diff. Decided by prediction 13. **A20 is not covered by
-      it** — `b_differs_from_a_in` is editable at 2079 green while `tests/test_judge.py:546`
-      says it is checked. Closed in PR 9 or recorded as owed with its measurement; not left
-      to be discovered as a fifth instance of stated-and-absent.
-- [ ] **A21: `data/catalog.json`'s claim about its own contents is asserted.** Decided by
-      prediction 15, built in PR 5. *Drafts 9 and 10 wrote this box as "no real market name
-      in the tree at the tag", decided by a grep — a state this repo's invariants forbid
-      reaching, since twelve of the occurrences are sha256-pinned recorded evidence. The
-      rename is M07's; the assertion is M06's.*
-- [ ] **A22: pluralising an attribute term does not defeat G5.** Decided by prediction 16,
-      built in PR 6. New in draft 11, and the largest of the three G5 findings: ten of
-      fifteen natural exfiltration requests reach the model today, all at `agg=0`, so
-      neither A10's nor A12's remedy touches them.
-- [ ] **A14's two G7 properties hold at the tag**: no orphan rules, no immortal rules.
-      New in draft 9. `rules/` collects **zero keys** while `.github/CODEOWNERS` names
-      Legal/S&P as its owner — the one file ADR-013 established collects nothing here —
-      so the seat that owns G7 cannot sign G7's registry, and both properties are
-      switched off by a one-word edit at 2079 green. Whether M06 closes this or records
-      it as owed is open; it is a DoD item so that it is decided rather than forgotten.
+13. **PR 4 does not add `"ai_generated"` to the input schema's `required` array. Taken by
+    the operator after round 11.** Draft 11 scoped it as the coherence condition for
+    Decisions 1's exception. It is a **breaking change to a registered tool's input
+    contract**, priced at nothing: `publish-highlight` is `semver: 0.1.0` and
+    `services/highlights-agent/pave.manifest.yaml:19` pins `@^0`, so no bump inside 0.x can
+    make the caller refuse — and the only test that catches the break is the interlock site
+    the same PR deletes. This document refuses A21 on exactly that ground and must not scope
+    it here. The coherence gap is real and is recorded as owed with its measurement: after
+    the exception, the description asserts MER-AI-0001 while the schema accepts a payload
+    omitting the flag and one sending `ai_generated: false` on AI-authored copy. Closing it
+    is a contract change owing its own PR and its own version disposition, and `required` is
+    not the only candidate — dropping the field's `"default": true`, or asserting the link to
+    `rules/MER-AI-0001.yaml`, were never weighed because the scope line named the edit.
+
+14. **The nine-PR plan, the sixteen predictions and the eleven-box definition of done are
+    cut. Taken by the operator after round 11.** See *How M06 closes* for what replaces
+    them and for the measurement the cut rests on.
 
 ## What M06 must not do
 
