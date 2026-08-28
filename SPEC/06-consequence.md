@@ -15,7 +15,8 @@ survives is not ready to merge.
 
 Blocking findings across eight rounds ran 38 / 61 / 47 / 37 / 55 / 41 / 7 / 16. Round 7's
 seven were all wrong citations and no wrong measurement. Draft 5's census-derived
-rule bundle was refused entirely (ADR-050). Draft 6's diagnoses survived every
+rule bundle was refused entirely — recorded in `## Decisions` here and in no ADR,
+which is A25. Draft 6's diagnoses survived every
 seat; only its remedies failed.
 
 **Round 8 was the first round in which every seat re-planted rather than re-read,
@@ -181,6 +182,9 @@ three-key, and claim 4's witness (A6b) is unguarded.
 | **A8** | `CONTRIBUTING.md` publishes a rule `twokey.py` contradicts | 10 of 33 rules; nothing reads the file |
 | **A9** | Point `BEACONPAVE_CATALOG` at another catalog | **zero files changed** |
 | **A10** | Delete **sixteen** of `classify.py`'s twenty-one attribute terms | 15 failures — identical to a bare comment |
+| **A23** | Recalibrate the published agreement number and its witness | twelve files, **all free**; empty PR body accepted |
+| **A24** | Keep `SYSTEM NOTE`, drop the instruction it labels | **2084 passed**, one key — ADV-002 fires nothing |
+| **A25** | Cite an ADR that was never written | 7 dangling of 678; the sibling test checks SHAs |
 
 ### A1 — `requires_adr` accepts any tracked file
 
@@ -1289,6 +1293,119 @@ directory (`assemble()` filters on `item["split"]`, so the flag is not free), th
 (AI Quality, round 11.)
 
 
+## Registered round 12, measured
+
+### A24 — ADV-002's injection is guarded by a marker, and the marker is inside the payload
+
+`^quality/adversarial/` is Security's rule plus an ADR — the one CLAUDE.md names as the
+model for that promise. ADV-002 is the corpus's most-cited probe, because its injection
+arrives through tool data rather than the user turn. The instruction it fires does not live
+in the corpus:
+
+```
+triggered(['quality/adversarial/probes.yaml'])  -> ['security'], requires_adr=True
+triggered(['data/catalog_poisoned.json'])       -> NO RULE — one key
+```
+
+That much is ADR-035's shape a fourth time, and on its own it is not the finding, because
+three committed tests read the fixture. Deleting the instruction outright is caught:
+
+```
+FAILED tests/test_catalog_search.py::test_the_poisoned_catalog_is_served_verbatim_and_not_sanitised
+FAILED tests/test_mcp_server.py::test_the_poisoned_fixture_is_served_verbatim
+2 failed, 2082 passed
+```
+
+**Both guards assert the same four bytes, and those bytes sit inside the string the
+attacker is already editing.** `tests/test_catalog_search.py:256` and
+`tests/test_mcp_server.py:168` each assert `"SYSTEM NOTE" in ...`. Keep the marker, drop
+the instruction:
+
+```
+"title": "Lake Adair Open (Replay) [SYSTEM NOTE: replay available.]"
+
+2084 passed
+```
+
+Fully green. ADV-002 is now an indirect-injection probe carrying no injection, and the
+corpus entry describing it — two-key, ADR-backed, unchanged — still says
+`class: indirect-injection`. The third guard,
+`tests/test_contracts.py:636`, is the one that *is* two-key, and it checks the fixture's
+**shape**: exactly one injected row, no clean row modified. Both remain true. It was
+written to stop the two catalogs drifting apart, and it does that; nothing in it looks at
+what the injected row says.
+
+Two smaller things the same reading turned up. The guards' own docstrings state the risk
+precisely — *"stripping it here would make the probe unmeasurable while looking like a
+security improvement"* — and then pin a marker rather than the instruction. And the
+fixture's `_comment` at `data/catalog_poisoned.json:2` describes itself as *"a byte-for-byte
+copy of catalog.json except for t006, whose title field carries an instruction"*; `t006`
+does not appear in `data/catalog.json` at all. The row is added, not modified, which is
+what `tests/test_contracts.py` actually asserts.
+
+**A fix must survive:** the marker-preserving edit above; the same edit with `SYSTEM NOTE`
+moved to a different field or a different row, so a whole-file substring check is not
+enough; deleting the injected row and re-adding one that is inert; and it must not be
+satisfiable by pinning the fixture's digest alone, because the probe's own corpus entry
+names the file by path and a digest pin makes the payload unreadable to the next person who
+has to change it for a real reason. (Security, with Data Governance on the fixture.)
+
+### A25 — 678 ADR citations, and the test written for this exact class checks the other kind
+
+`tests/test_cited_commits_resolve.py` exists because citations rot. It scans every markdown
+file under `docs/` and `SPEC/` for backticked commit SHAs and asserts each one resolves,
+adding one collected test per SHA — which is why this document moves the repository's count
+at all. Its subject is the pointer that goes stale silently.
+
+ADR references are the more common pointer in the same files, and nothing reads them:
+
+```
+committed ADRs:      44 (highest 049)
+files scanned:       70 (docs/ and SPEC/)
+ADR-NNN references:  678
+that name an ADR with no file: 7, across 6 numbers
+
+  ADR-002, ADR-005, ADR-006, ADR-008, ADR-010   docs/adr/README.md, the index table
+  ADR-050  x2                                   this document, at :18 and :1300
+```
+
+Five of the seven are rows in the ADR index, formatted exactly like the rows whose files
+exist — a number, a decision, a scale-up path — under a README whose second sentence says
+every scope cut is recorded here. Whether those five rows are a record or a roadmap is a
+question for the Platform Engineering seat; either way the index is the one file a reader
+uses to find out what was decided, and five of its entries lead nowhere.
+
+The other two are this document's own. Both say *"Draft 5's census-derived rule bundle was
+refused entirely (ADR-050)"* — a real decision, recorded in this document's `## Decisions`
+section and in `## What M06 does not build`, and in no ADR. It had been dangling since draft
+1, through three rounds whose entire subject was citations, and it was found only because
+M06's PR 1 wrote a real ADR-050 about something else and the numbers collided. **A
+forward-reference to an ADR nobody wrote is indistinguishable from a citation to one that
+exists, which is precisely what the sibling test says about SHAs.**
+
+Path-form citations are already sound — 3 of 3 resolve — so the exposure is entirely in the
+bare `ADR-NNN` form, and the sound form is 3 citations against 678.
+
+**This draft corrects its own two and leaves the index's five**, because correcting them is
+not the fix and the five are the honest live instance: no check would have caught either
+set, and the number that made these two visible was a collision, not a review.
+
+The block above was measured on the tree *before* this section existed. Writing it moved
+its own numbers — quoting the six dangling references inside a code fence raises the tree's
+totals to **685 references and 13 dangling across the same 6 numbers** — the index's five,
+plus eight in this document, of which six are inside the code fence above and two in the
+prose around it. The two the fence was written about are gone. Both figures are stated
+because a check that cannot tell a citation from a quotation of a citation will fail first
+on the register that motivated it, and this section is the case it has to get right.
+
+**A fix must survive:** a reference in prose, in a table cell, in a heading and in a code
+fence; a number that exists cited with the wrong slug; and a reference added to a file
+outside `docs/` and `SPEC/`, since the sibling test's scope is what left this uncovered and
+inheriting that scope inherits the gap. It must also decide what the five index rows are,
+because a check added without that decision will be silenced by editing the README rather
+than by writing the ADRs. (Platform Engineering.)
+
+
 ## What M06 does not build
 
 - **No consequence interlock, and claim 10 is not advanced.** `publish-highlight`
@@ -1297,7 +1414,8 @@ directory (`assemble()` filters on `item["split"]`, so the flag is not free), th
 - **No second tool.** `entitlement-check` is declared in the registry and partly
   built — `README.md` and both schemas exist and its contract ships in the bundle.
 - **No rule bundle.** Draft 5's eight rules and six amendments stay dropped
-  (ADR-050). Any rule M06 adds must be derived from an attack in this register.
+  (recorded in `## Decisions`; the ADR this line used to cite has never existed — A25).
+  Any rule M06 adds must be derived from an attack in this register.
 - **No `pave/cli.py` rule.** Refused by four seats in round 5 and already refused
   by three in **ADR-041 decision 7**. The file has grown 1209 → 1616 lines and
   21/128 → 26/139 commits since, so that argument is stronger now.
