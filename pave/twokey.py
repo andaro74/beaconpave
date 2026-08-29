@@ -63,9 +63,9 @@ RATIONALE_FILLER = frozenset({
 
 PLACEHOLDER_RATIONALES = {"n/a", "na", "none", "-", "--", "tbd", "see above", "as discussed"}
 
-DISPOSITION_RE = re.compile(r"^\s*Two-Key-Disposition:\s*(?P<seat>[a-z-]+)\s*$", re.MULTILINE)
-RATIONALE_RE = re.compile(r"^\s*Two-Key-Rationale:\s*(?P<text>.+?)(?=^\s*[A-Z][A-Za-z-]*:|\Z)", re.MULTILINE | re.DOTALL)
-ADR_RE = re.compile(r"^\s*ADR:\s*(?P<ref>\S+)\s*$", re.MULTILINE)
+DISPOSITION_RE = re.compile(r"^Two-Key-Disposition:[ \t]*(?P<seat>[a-z-]+)[ \t]*$", re.MULTILINE)
+RATIONALE_RE = re.compile(r"^Two-Key-Rationale:[ \t]*(?P<text>.+?)(?=^\s*[A-Z][A-Za-z-]*:|\Z)", re.MULTILINE | re.DOTALL)
+ADR_RE = re.compile(r"^ADR:[ \t]*(?P<ref>\S+)[ \t]*$", re.MULTILINE)
 
 
 def substantive_words(rationale: str) -> list[str]:
@@ -760,8 +760,91 @@ class Attestation:
     adr: str | None
 
 
+#: The gate must not read what the rendered page does not show.
+#:
+#: An attestation a reviewer cannot see satisfies the machine and shows a human
+#: nothing, which defeats the half of G9 this module exists for -- the docstring
+#: above says the point is "a written reason attached to the diff forever".
+#: Measured before any of this was stripped: three dispositions and a rationale
+#: inside `<!-- ... -->`, with the visible body reading "Docs typo fix", accepted.
+#:
+#: This is the CLASS and not the instance, because an earlier attempt at it fixed
+#: one string and was defeated by deleting three characters. An UNTERMINATED
+#: `<!--` is HTML block type 2: it runs to the end of the document and hides
+#: everything after it, while a regex demanding `-->` strips nothing. `<script>`
+#: and `<style>` are dropped whole by GitHub's sanitiser. A fenced block renders
+#: as a SAMPLE of an attestation rather than as one, which is how a pasted diff
+#: hunk smuggled a live disposition in as a context line -- a diff context line
+#: begins with a space, and the anchors above used to allow leading whitespace.
+#:
+#: A hidden span is replaced by NOTHING, because that is what the renderer does
+#: to it. An earlier draft replaced it with the newlines it contained, reasoning
+#: that collapsing might pull a following line up and move an honest attestation
+#: off column 0. The deletability audit found that choice undefended, and writing
+#: the missing test found the reasoning backwards:
+#:
+#:     x<!--
+#:     c
+#:     -->Two-Key-Disposition: security
+#:
+#: renders as the single line `xTwo-Key-Disposition: security`, and the
+#: newline-preserving form rewrote it into a clean column-0 attestation that the
+#: gate accepted. Preserving structure the reader never sees MANUFACTURES an
+#: attestation out of hidden markup, which is this function's own defect
+#: appearing inside the function written to close it. Measured against the
+#: committed corpus: collapsing changes how none of the 36 merged bodies reads.
+#: ORDER IS LOAD-BEARING. Code comes out first, because text inside a fence or a
+#: backtick span is not markup and a renderer never treats it as such. Getting
+#: this backwards is not theoretical: THIS PR's own body, explaining that an
+#: unterminated `<!--` hides the rest of a document, contains the characters
+#: `<!--` inside a backtick span — and the comment pattern's `\Z` fallback ate
+#: everything after it, attestations included. The gate refused the PR that fixes
+#: the gate, and running the gate over its own body is the only reason that was
+#: found before it merged rather than after.
+HIDDEN_PATTERNS = (
+    re.compile(r"^```.*?(?:^```|\Z)", re.DOTALL | re.MULTILINE),
+    re.compile(r"^~~~.*?(?:^~~~|\Z)", re.DOTALL | re.MULTILINE),
+    re.compile(r"`+[^`\n]*`+"),
+    re.compile(r"<!--(?:.*?-->|.*\Z)", re.DOTALL),
+    # `<script>` and `<style>` require their CLOSING tag, and the `|\Z` fallback
+    # the comment pattern needs is deliberately absent here. An unterminated
+    # `<!--` is HTML block type 2 and really does hide the rest of the document;
+    # an unterminated `<script>` does not — GitHub's sanitiser drops the tag and
+    # renders what follows. With `|\Z` this pattern ate everything after the
+    # first mention of the tag, and THIS PR's own body mentions it in prose,
+    # inside backticks, while explaining the rule. Running the gate over its own
+    # PR body is what found it: the gate refused the PR that fixes the gate.
+    re.compile(r"<script\b.*?</script>", re.DOTALL | re.IGNORECASE),
+    re.compile(r"<style\b.*?</style>", re.DOTALL | re.IGNORECASE),
+)
+
+
+def visible(body: str) -> str:
+    r"""The PR body with everything a reader cannot see removed.
+
+    **Line endings are normalised first, and that is not cosmetic.** A PR body
+    written in the GitHub web editor arrives over the webhook with CRLF; one sent
+    by `gh pr create --body-file` arrives with LF. The anchors above were
+    tightened to column 0 to stop a diff context line counting as an attestation,
+    and `[ \t]` does not match `\r` where `\s` did -- so without this line the
+    tightening blinds the gate to every body typed in a browser. Measured against
+    the committed corpus of all 36 merged PR bodies that carry an attestation:
+    **6 are CRLF, including the two most recent**, and every one of them parses
+    to zero seats without this normalisation.
+
+    That defect was found by a seat and not by its author, who had measured the
+    same 36 bodies after reading them into normalised text. The corpus is
+    committed as bytes now, in `fixtures/pr_bodies.json`, so the measurement and
+    the gate see the same thing.
+    """
+    text = (body or "").replace("\r\n", "\n").replace("\r", "\n")
+    for pattern in HIDDEN_PATTERNS:
+        text = pattern.sub("", text)
+    return text
+
+
 def parse(body: str) -> Attestation:
-    body = body or ""
+    body = visible(body)
     seats = {m.group("seat") for m in DISPOSITION_RE.finditer(body)}
     # Rationales may wrap across lines; collapse each to a single line so a
     # multi-line reason is not read as several short ones.

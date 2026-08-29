@@ -8,6 +8,7 @@ important tests here are the ones that try to sneak such a change through.
 
 Owning seat: AI Quality (rules) · Platform Engineering (mechanism).
 """
+import json
 import pathlib
 
 import pytest
@@ -224,3 +225,199 @@ def test_references_do_not_count_toward_substance():
                "ADR-033 and #28 and #29 and SPEC/04-gate.md")
     assert twokey.evaluate(GATED, _body(stuffed)), (
         "a rationale made entirely of references was accepted")
+
+# --- what the gate READS: the committed corpus is the arbiter --------------------
+#
+# Three versions of this check were verified against bodies its author wrote by
+# hand, and a seat defeated each one with a body he had not thought to write. The
+# corpus below is every merged PR body in this repository that mentions an
+# attestation, stored as the BYTES GitHub delivered -- CRLF and all -- with what
+# `main`'s parser read from each one pinned beside it. The expectation is main's
+# behaviour, so this file cannot silently record whatever the change happens to do.
+
+CORPUS = json.loads(
+    (pathlib.Path(__file__).parent / "fixtures" / "pr_bodies.json").read_text(encoding="utf-8")
+)
+
+
+def test_the_corpus_is_the_real_thing_and_not_a_sample():
+    """If this shrinks, every claim below covers less than it says.
+
+    **The CRLF check reads the BYTES, not the `eol` label.** Committing this file
+    printed `warning: CRLF will be replaced by LF the next time Git touches it`,
+    and a guard that trusted the label would have gone on passing after a
+    normalisation stripped the carriage returns out of the bodies -- leaving a
+    corpus that no longer contains the one thing it was collected to contain. That
+    is the shape SPEC/06 A24 registers: a fixture guarded by a marker instead of
+    by its payload. The content survives here only because the bodies are
+    JSON-escaped inside the strings, which is luck rather than design, so it is
+    asserted rather than assumed."""
+    assert len(CORPUS) >= 36
+    assert sum(1 for r in CORPUS if r["seats"]) >= 35
+    carriage_returns = [r["number"] for r in CORPUS if "\r\n" in r["body"]]
+    assert len(carriage_returns) >= 6, (
+        f"the CRLF bodies are the point of this corpus and only {carriage_returns} "
+        f"still carry a carriage return"
+    )
+    labelled = [r["number"] for r in CORPUS if r["eol"] == "crlf"]
+    assert carriage_returns == labelled, "the label and the bytes disagree"
+
+
+@pytest.mark.parametrize("row", CORPUS, ids=lambda r: f"PR{r['number']}")
+def test_every_merged_body_reads_exactly_as_it_did_before(row):
+    """Tightening what counts as an attestation must refuse nothing this
+    repository has ever written. That sentence was published once already and was
+    false: the anchors moved from `^\\s*` to `^[ \\t]*`, `\\s` had been matching the
+    `\\r` of a CRLF body, and six merged bodies -- including the two most recent --
+    went invisible to the gate. The author had measured the same 36 bodies after
+    reading them into normalised text, so the measurement agreed with the claim
+    and both were wrong."""
+    got = twokey.parse(row["body"])
+    assert sorted(got.seats) == row["seats"]
+    assert got.adr == row["adr"]
+
+
+@pytest.mark.parametrize("row", [r for r in CORPUS if r["seats"]][:12],
+                         ids=lambda r: f"PR{r['number']}")
+def test_line_endings_cannot_change_what_the_gate_reads(row):
+    """A body typed in the GitHub web editor arrives CRLF; one sent by
+    `gh pr create --body-file` arrives LF. The same attestation must read the same
+    either way, in both directions."""
+    lf = row["body"].replace("\r\n", "\n")
+    crlf = lf.replace("\n", "\r\n")
+    cr = lf.replace("\n", "\r")
+    assert twokey.parse(lf).seats == twokey.parse(crlf).seats == twokey.parse(cr).seats
+    assert twokey.parse(lf).adr == twokey.parse(crlf).adr == twokey.parse(cr).adr
+
+
+# --- and what it must NOT read ---------------------------------------------------
+
+def _attest(seats=("security",), adr="docs/adr/ADR-001-solo-seats.md"):
+    out = "".join(f"Two-Key-Disposition: {s}\n" for s in seats)
+    out += f"Two-Key-Rationale: {GOOD_RATIONALE}\n"
+    return out + (f"ADR: {adr}\n" if adr else "")
+
+
+HIDDEN = {
+    "a closed HTML comment": "Docs typo fix.\n\n<!--\n%s-->\n",
+    "an UNTERMINATED HTML comment": "Docs typo fix.\n\n<!--\n%s",
+    "a second comment after a closed one": "<!-- x -->\nDocs typo fix.\n<!--\n%s",
+    "a script block": "Docs typo fix.\n<script>\n%s</script>\n",
+    "a style block": "Docs typo fix.\n<style>\n%s</style>\n",
+    "a backtick fence": "Here is what the gate wants:\n\n```\n%s```\n",
+    "a tilde fence": "Here is what the gate wants:\n\n~~~\n%s~~~\n",
+}
+
+
+@pytest.mark.parametrize("label", sorted(HIDDEN), ids=lambda s: s.replace(" ", "_"))
+def test_an_attestation_a_reviewer_cannot_see_is_not_an_attestation(label):
+    """The unterminated comment is why this is a table and not one test. An
+    earlier version stripped `<!-- ... -->` and shipped; two seats defeated it by
+    deleting three characters, because an unclosed `<!--` is HTML block type 2 and
+    runs to the end of the document. Fixing the instance left the class open."""
+    body = HIDDEN[label] % _attest()
+    got = twokey.parse(body)
+    assert got.seats == frozenset(), label
+    assert got.adr is None, label
+
+
+def test_a_diff_context_line_is_not_an_attestation():
+    """A diff CONTEXT line begins with a space, and the anchors allowed leading
+    whitespace, so an illustrative hunk pasted into a body carried a live
+    disposition. Measured across the corpus: no merged body indents an
+    attestation, so refusing it costs nothing real."""
+    body = "See the hunk:\n\n```diff\n Two-Key-Disposition: security\n+something\n```\n"
+    assert twokey.parse(body).seats == frozenset()
+    # ...and outside a fence, where the fence stripper cannot help
+    assert twokey.parse("Example:\n\n    Two-Key-Disposition: security\n").seats == frozenset()
+    assert twokey.parse("Example:\n\n    ADR: docs/adr/ADR-001-solo-seats.md\n").adr is None
+
+
+def test_a_visible_attestation_still_parses():
+    """The negative control for every case above. Without it they could all pass
+    because the parser stopped working."""
+    a = twokey.parse("Raising the floor.\n\n" + _attest(["security", "ai-quality"]))
+    assert a.seats == frozenset({"security", "ai-quality"})
+    assert a.adr == "docs/adr/ADR-001-solo-seats.md"
+    assert "0.91" in a.rationale
+
+
+def test_a_hidden_span_cannot_manufacture_an_attestation():
+    """A hidden span is replaced by NOTHING, because that is what the renderer
+    does to it.
+
+    An earlier draft of this PR replaced each span with the newlines it contained,
+    reasoning that collapsing would pull a following line up and move an honest
+    attestation off column 0. The deletability audit found that choice undefended
+    and writing this test found the reasoning backwards. The body below renders as
+    the single line `xTwo-Key-Disposition: security`; the newline-preserving form
+    rewrote it into `x\\n\\nTwo-Key-Disposition: security` and the gate read a
+    disposition out of it. Structure the reader never sees must not become
+    structure the parser trusts."""
+    glued = "x<!--\nc\n-->Two-Key-Disposition: security\n"
+    assert twokey.parse(glued).seats == frozenset()
+
+    # ...and an honest body with a comment in the middle of it still reads.
+    honest = "Context.\n<!--\na note\nspanning lines\n-->\n" + _attest()
+    assert twokey.parse(honest).seats == frozenset({"security"})
+
+
+def test_an_indented_rationale_is_not_the_rationale():
+    """The disposition and `ADR:` anchors each had a test and the rationale's did
+    not, so loosening it back to `^\\s*` was silent. A body that QUOTES the format
+    in an indented example must not have that example become its reasoning."""
+    quoted = (
+        "Here is the shape the gate wants:\n"
+        "\n"
+        "    Two-Key-Rationale: raising the floor because the calibration run says so\n"
+        "\n"
+        "Two-Key-Disposition: ai-quality\n"
+    )
+    assert twokey.parse(quoted).rationale == ""
+    # The continuation lines of a real rationale are still indented, and still read.
+    real = (
+        "Two-Key-Disposition: ai-quality\n"
+        "Two-Key-Rationale: the calibration run published an agreement number\n"
+        "  that supports this floor, and headroom stays at three cases\n"
+    )
+    assert "headroom stays at three cases" in twokey.parse(real).rationale
+
+
+def test_markup_inside_a_code_span_is_not_markup():
+    """ORDER IS LOAD-BEARING: code comes out before HTML, because text inside a
+    fence or a backtick span is not markup and no renderer treats it as such.
+
+    This test exists because the gate refused the PR that introduced it. That PR's
+    body explains that an unterminated `<!--` hides the rest of a document, and
+    writing that sentence puts those four characters in a backtick span -- where
+    the comment pattern's end-of-document fallback matched them and ate every
+    attestation below. A body cannot become unattestable by DESCRIBING the rule."""
+    body = (
+        "An unterminated `<!--` is HTML block type 2, and `<script>` is dropped\n"
+        "whole by the sanitiser.\n"
+        "\n"
+        "```\n"
+        "<!-- an example that is not a comment\n"
+        "```\n"
+        "\n" + _attest(["security", "ai-quality"])
+    )
+    got = twokey.parse(body)
+    assert got.seats == frozenset({"security", "ai-quality"})
+    assert got.adr == "docs/adr/ADR-001-solo-seats.md"
+
+
+def test_an_unterminated_script_tag_does_not_hide_the_rest_of_the_body():
+    r"""`<script>` and `<style>` require their closing tag; the `\Z` fallback that
+    the comment pattern needs is deliberately absent. An unterminated `<!--` really
+    does hide what follows it; an unterminated `<script>` does not -- GitHub's
+    sanitiser drops the tag and renders the rest."""
+    body = "Mentioning <script> in prose, unclosed.\n\n" + _attest()
+    assert twokey.parse(body).seats == frozenset({"security"})
+    # ...while a CLOSED script block still hides what it contains.
+    hidden = "Docs typo fix.\n<script>\n" + _attest() + "</script>\n"
+    assert twokey.parse(hidden).seats == frozenset()
+
+
+def test_an_attestation_inside_a_backtick_span_is_a_sample():
+    """Same rule as a fence, one line down: quoting the format is not using it."""
+    assert twokey.parse("Write `Two-Key-Disposition: security` in the body.\n").seats == frozenset()
