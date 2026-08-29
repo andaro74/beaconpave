@@ -482,6 +482,39 @@ RULES: tuple[Rule, ...] = (
         requires_adr=True,
     ),
     Rule(
+        # **The corpus rule above says "and only with an ADR". The assertions that
+        # make that true lived on a rule that collected neither Security nor an
+        # ADR.** They were eight tests inside `tests/test_contracts.py` -- 47 tests
+        # about the registry, the manifest, Cedar and the golden suite, under a
+        # pattern drawn around three files with nothing in common. Two of the eight
+        # state the requirement in their own docstrings and were wrong about it:
+        # "Adding a value to G4_PASS_SEMANTICS is a Security-seat change and needs
+        # an ADR", and "Only the Security seat may downgrade a probe to advisory,
+        # and only with an ADR".
+        #
+        # ADR-035 found the thermometer guarded twice and the thermostat not.
+        # ADR-037 found three second keys written in the one file that cannot
+        # collect them. This is the same shape a third time, and it lands on G4 --
+        # the invariant CLAUDE.md flags as most often violated by well-meaning
+        # changes.
+        #
+        # THREE SEATS, AND THE SECOND DIRECTION IS THE LIVE ONE. Security cannot
+        # weaken the guard on its own control alone -- that half was already true,
+        # because Security was not on the old rule at all. What was NOT true is the
+        # other half: `ai-quality` and `platform-eng` could delete the tripwire in
+        # one PR without Security, and a later Security PR could do the downgrade,
+        # with no seat ever having to justify the combination. A guard is owed to
+        # the seat whose control it guards even when that seat is the one it points
+        # at.
+        #
+        # Measured cost of the extra key: of the 13 commits that have touched
+        # `tests/test_contracts.py`, 2 also touched `quality/adversarial/`.
+        "the adversarial corpus's own contracts and G4's semantics allowlist",
+        re.compile(r"^tests/test_adversarial_contracts\.py$"),
+        ("security", "ai-quality", "platform-eng"),
+        requires_adr=True,
+    ),
+    Rule(
         # **The second key CODEOWNERS already recorded, in the file that can
         # collect it.** This module's own docstring says "the path list here and
         # the path list there are the same list — the interface already matches."

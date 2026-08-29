@@ -462,3 +462,61 @@ def test_the_rename_bypass_stays_closed_for_the_new_rules():
             f"moving {old} -> {new} collects nothing. The workflow's diff uses "
             "--no-renames (ADR-042 decision 4) precisely so the old path still matches."
         )
+
+
+# --- the adversarial corpus's own contracts (M06, Security's round-3 finding) ---
+
+def test_the_probe_severity_guard_collects_security_and_owes_an_adr():
+    """`quality/adversarial/probes.yaml` is "only Security may downgrade a probe,
+    and only with an ADR". The eight assertions that make that sentence true sat
+    in `tests/test_contracts.py`, whose rule is `ai-quality` and `platform-eng`
+    with **no Security key and no ADR** — 47 tests about the registry, the
+    manifest, Cedar and the golden suite, under a pattern drawn around three files
+    with nothing in common.
+
+    Measured before the split: downgrading one probe to advisory is `16 failed`,
+    of which fifteen are `tests/test_adversarial_entry.py` (three seats,
+    Security included) and exactly one is the semantic refusal — and that one was
+    removable on two keys that are not Security's, with no ADR."""
+    _blocked_for(["tests/test_adversarial_contracts.py"],
+                 {"security", "ai-quality", "platform-eng"})
+    problems = twokey.evaluate(
+        ["tests/test_adversarial_contracts.py"],
+        "Two-Key-Disposition: security\n"
+        "Two-Key-Disposition: ai-quality\n"
+        "Two-Key-Disposition: platform-eng\n"
+        "Two-Key-Rationale: retiring the probe severity contract because the lane "
+        "already refuses an advisory probe downstream\n",
+    )
+    assert problems and any("ADR" in p for p in problems), (
+        "the rule that enforces 'only with an ADR' does not itself require one"
+    )
+
+
+def test_g4s_semantics_allowlist_lives_wherever_securitys_key_reaches():
+    """Written against the CONSTANT rather than the filename, so moving
+    `G4_PASS_SEMANTICS` back into a file on a weaker rule fails here rather than
+    silently restoring the gap.
+
+    G4 is the invariant CLAUDE.md names as most often violated by well-meaning
+    changes, and its allowlist decides what "a probe passed" means. Its own
+    docstring said adding a value "is a Security-seat change and needs an ADR"
+    while the file it lived in demanded neither — a protection **stated and
+    absent**, which this repo has now found three times (ADR-035, ADR-037, here).
+    """
+    root = pathlib.Path(twokey.__file__).resolve().parents[1]
+    # Anchored at column 0, which finds the DEFINITION and not this file, whose
+    # search string is itself an occurrence. The first draft matched itself and
+    # demanded a Security key on the file doing the asking.
+    defines = re.compile(r"^G4_PASS_SEMANTICS\s*=", re.MULTILINE)
+    homes = [p for p in (root / "tests").glob("test_*.py")
+             if defines.search(p.read_text(encoding="utf-8"))]
+    assert homes, "G4_PASS_SEMANTICS is defined in no test file — has it moved out of tests/?"
+    for home in homes:
+        rel = f"tests/{home.name}"
+        hits = twokey.triggered([rel])
+        seats = {s for rule, _ in hits for s in rule.seats}
+        assert "security" in seats, (
+            f"{rel} defines G4's pass-semantics allowlist and collects {sorted(seats)}"
+        )
+        assert any(rule.requires_adr for rule, _ in hits), f"{rel} owes an ADR and does not"
