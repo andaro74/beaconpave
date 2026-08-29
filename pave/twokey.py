@@ -29,6 +29,7 @@ Owning seat: AI Quality (the rules) · Platform Engineering (the mechanism).
 from __future__ import annotations
 
 import re
+import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -82,6 +83,182 @@ def substantive_words(rationale: str) -> list[str]:
     text = re.sub(r"\b\S+\.(?:md|py|json|ya?ml|ts|yml)\b", " ", text)
     words = re.findall(r"[A-Za-z][A-Za-z_-]+", text.lower())
     return [w for w in words if w not in RATIONALE_FILLER]
+
+
+#: What an `ADR:` line is allowed to point at, and what a decision record is.
+#:
+#: Until M06 the ADR half was `ADR_RE.search(body)` plus `is_file()`, and **every
+#: tracked file satisfied it** -- 374 when that was first measured, 379 on this
+#: tree, and the count is beside the point: `ADR: LICENSE` discharged the adversarial
+#: corpus, and so did `ADR: README.md` and `ADR: ruff.toml`. Three rules promise
+#: "the owning seat, plus an ADR" and CLAUDE.md names the corpus as the model for
+#: that promise, so the promise was the whole of the protection.
+ADR_PATH_RE = re.compile(r"^docs/adr/ADR-(\d{3})-[a-z0-9-]+\.md$")
+ADR_TITLE_RE = re.compile(r"^#\s+ADR-(\d{3})\b")
+#: `[ \t]`, not `\s`: `\s` matches a newline, so a bare `##` on its own line with
+#: prose two lines below satisfied `^##+\s+\S`. Found by WEAKENING the regex
+#: rather than deleting it, which is the class of mutation an earlier audit here
+#: did not run.
+ADR_SECTION_RE = re.compile(r"^##+[ \t]+\S", re.MULTILINE)
+#: `git diff` reports a rename as `dir/{old.md => new.md}`; the record is the new
+#: path.
+RENAME_RE = re.compile(r"^(.*)\{([^}]*?) => ([^}]*)\}(.*)$")
+
+
+def adr_defect(ref: str, repo_root) -> str | None:
+    """Why `ref` is not an ADR, or None if it is one.
+
+    Structural, never a size. A size bar is the `24+ characters` mistake one field
+    over: it publishes the number to pad to.
+
+    Measured ON THIS TREE, which is the one that ships and includes this PR's own
+    ADR: all **46** committed ADRs match this filename pattern AND open with a
+    matching `# ADR-NNN` title; `docs/adr/README.md`, the only other file in that
+    directory, matches neither. All 46 carry at least three `##` headings, so
+    requiring one leaves every real ADR a 3x margin. A required-sections list was
+    refused by measurement -- the most common heading, `## Consequences`, appears
+    in **39 of 46**, so any list would turn away seven real ADRs.
+
+    The tree is named because these numbers were stale: they said 45, and 38 of
+    45, measured before this PR added the 46th. A seat re-measured them.
+    """
+    shaped = ADR_PATH_RE.match(ref)
+    if not shaped:
+        return (f"`{ref}` is not an ADR. An ADR is `docs/adr/ADR-NNN-<slug>.md`; "
+                f"every tracked file used to satisfy this, which made 'plus an ADR' "
+                f"a promise rather than a requirement.")
+    if repo_root is None:
+        return None
+    path = repo_root / ref
+    if not path.is_file():
+        return f"`{ref}` does not exist in this tree."
+    # `utf-8-sig`: a BOM survives `str.strip()` and would hide the title. `cli.py`
+    # reads the PR body that way already, one function over.
+    text = path.read_text(encoding="utf-8-sig")
+    first = next((ln.strip() for ln in text.splitlines() if ln.strip()), "")
+    titled = ADR_TITLE_RE.match(first)
+    if not titled or titled.group(1) != shaped.group(1):
+        return (f"`{ref}` does not open with a matching `# ADR-{shaped.group(1)}` "
+                f"title. An empty file at an ADR path is not an ADR.")
+    if not ADR_SECTION_RE.search(text):
+        return (f"`{ref}` has a title and no sections. An ADR records a decision; "
+                f"every ADR in this tree has at least three `##` headings.")
+    return None
+
+
+def _git(repo_root, *args: str) -> str:
+    try:
+        return subprocess.run(["git", *args], cwd=str(repo_root), capture_output=True,
+                              text=True, check=False, encoding="utf-8",
+                              errors="replace").stdout
+    except OSError:  # pragma: no cover - git absent is a broken checkout
+        return ""
+
+
+def adr_records(repo_root, base: str | None, head: str | None = None,
+                changed: Sequence[str] | None = None) -> tuple[list[str], list[str]]:
+    """The decision records THIS diff writes, and the near-misses worth naming.
+
+    Three earlier versions asked the PR BODY -- does an `ADR:` line name a tracked
+    file, is the cited path in the diff, are there N of them -- and seats defeated
+    every one, twice with the SAME defect in a new shape. This asks the diff, and
+    each clause below is a route somebody planted and ran:
+
+      - `-w --ignore-blank-lines` -- `printf '\n' >> ADR-001-solo-seats.md`, a 2023
+        ADR about role subagents, discharged a rule at 45 keystrokes; three of them
+        discharged three, in one PR moving G1's allowlist, the deployed guardrail
+        policy and the adversarial corpus together.
+      - `--diff-filter=AMR` -- a TYPECHANGE reports `1  9`: one line added, nine
+        lines of a decision record deleted. An earlier version removed this filter
+        as "redundant with `added > 0`" because deleting it left the suite green.
+        That measured test coverage, not necessity.
+      - `--find-renames` plus `RENAME_RE` -- a content-free `git mv` produces a
+        deletion AND an addition, so it paid twice.
+      - `seen` -- `docs/adr/{a => ADR-001-old}.md` x3 resolve to ONE untouched ADR.
+        Also removed once as "unreachable".
+      - `changed` -- the workflow's file list and this diff must describe the same
+        PR. They did not: `git diff <base>` with one revision compares base to the
+        WORKING TREE, which on `pull_request` is `refs/pull/N/merge`, so an ADR
+        that landed on `main` after the base sha was credited to a PR containing
+        none.
+      - `substantive_words` -- one non-blank byte cleared `added > 0`. Measured
+        across all 69 content-adding ADR edits in this repository's history, the
+        LEANEST carries 18 substantive words; `x`, a zero-width space, a symlink's
+        target and a 17-byte stub all score 0. A bar of 6 refuses none of the 69.
+    """
+    if repo_root is None or not base:
+        return [], []
+    endpoints = [base] + ([head] if head else [])
+    out = _git(repo_root, "diff", "-w", "--ignore-blank-lines", "--numstat",
+               "--diff-filter=AMR", "--find-renames", *endpoints, "--", "docs/adr/")
+    in_diff = set(normalize_paths(changed or []))
+
+    records, defects, seen = [], [], set()
+    for line in out.splitlines():
+        parts = line.split("\t")
+        if len(parts) != 3:
+            continue
+        added, _deleted, path = parts
+        renamed = RENAME_RE.match(path)
+        # BOTH sides of a rename, because the body diff below needs them to pair
+        # the change the way `--numstat` already did.
+        was = None
+        if renamed:
+            pre, old_mid, new_mid, post = renamed.groups()
+            was, path = pre + old_mid + post, pre + new_mid + post
+        if path in seen or not ADR_PATH_RE.match(path):
+            continue
+        seen.add(path)
+        # `-` is git's marker for a binary file: not a decision record.
+        if added in ("0", "-"):
+            continue
+        if changed is not None and path not in in_diff:
+            # The ADR evidence and the changed-file list must describe one PR.
+            continue
+        # **The pathspec carries the OLD path too, and that is the whole of it.**
+        # `--numstat` above is given the whole directory, so git pairs a rename and
+        # reports the truth: `1  0`. This call was scoped to the NEW path alone,
+        # where git cannot see the deletion of the old one and reads the file as
+        # brand new -- so every line of a 2023 ADR counted as written by this diff.
+        # Measured: a slug typo-fix plus the character `x` scored 47 added lines
+        # and 10 distinct substantive words, discharged the corpus rule, and made
+        # `render` print a decision record that does not exist. With both paths it
+        # scores 1 line and 0 words.
+        #
+        # Two diffs describing one change and disagreeing about it is the same
+        # defect as the base/head endpoints one function up, in the same function,
+        # found by a different seat.
+        paths = [path] if was is None else [was, path]
+        body = _git(repo_root, "diff", "-w", "--ignore-blank-lines", "-U0",
+                    "--find-renames", *endpoints, "--", *paths)
+        written = "\n".join(ln[1:] for ln in body.splitlines()
+                             if ln.startswith("+") and not ln.startswith("+++"))
+        # DISTINCT, and the distinctness is not decoration. The flat count is the
+        # rationale bar's, and the rationale bar's known weakness came with it:
+        # four seats refused an earlier version of that bar partly because it was
+        # "cleared by nonsense", and `banana banana banana banana banana banana`
+        # clears a flat six exactly the same way here. Measured across the same 69
+        # content-adding ADR edits: the leanest carries 17 DISTINCT substantive
+        # words, so a distinct bar of six refuses none of them and leaves a 2.8x
+        # margin, while repetition collapses to one.
+        #
+        # It does not close the class. `lorem ipsum dolor sit amet consectetur`
+        # counts six distinct words, and so does this module's own BLOCKED message
+        # pasted back. No word count separates prose from meaningless prose --
+        # that is a judgement, and it belongs to the seat reviewing the PR, which
+        # `render` now actually shows what was accepted.
+        if len(set(substantive_words(written))) < MIN_SUBSTANTIVE_WORDS:
+            defects.append(
+                f"`{path}` is in this diff and adds no reasoning to it. A decision "
+                f"record is prose about a decision, not a line."
+            )
+            continue
+        defect = adr_defect(path, repo_root)
+        if defect:
+            defects.append(defect)
+        else:
+            records.append(path)
+    return sorted(records), defects
 
 
 @dataclass(frozen=True)
@@ -861,9 +1038,10 @@ def visible(body: str) -> str:
     tightened to column 0 to stop a diff context line counting as an attestation,
     and `[ \t]` does not match `\r` where `\s` did -- so without this line the
     tightening blinds the gate to every body typed in a browser. Measured against
-    the committed corpus of all 36 merged PR bodies that carry an attestation:
-    **6 are CRLF, including the two most recent**, and every one of them parses
-    to zero seats without this normalisation.
+    the committed corpus of all 36 merged PR bodies that MENTION an attestation --
+    35 of which carry one a reader can see, the 36th quoting the gate's own error
+    message: **6 are CRLF, including the two most recent**, and every one of them
+    parses to zero seats without this normalisation.
 
     That defect was found by a seat and not by its author, who had measured the
     same 36 bodies after reading them into normalised text. The corpus is
@@ -886,16 +1064,23 @@ def parse(body: str) -> Attestation:
     return Attestation(frozenset(seats), " ".join(parts).strip(), adr_match.group("ref") if adr_match else None)
 
 
-def triggered(changed: Sequence[str]) -> list[tuple[Rule, list[str]]]:
-    """Which two-key rules the diff touches, and the files that touched them."""
+def normalize_paths(changed: Sequence[str]) -> list[str]:
+    """Repo-relative, forward-slashed. Shared so the ADR-membership check and
+    `triggered` cannot disagree about what a path is."""
     # NOT `lstrip("./")`: lstrip strips a character SET, so it eats the leading
     # dot of `.github/workflows/quality-gate.yml` and every gate-criteria change
     # silently stops matching. A path that fails to match here skips the check
     # entirely, which is the one failure mode this module cannot afford.
-    normalized = []
+    out = []
     for p in changed:
         p = p.replace("\\", "/")
-        normalized.append(p[2:] if p.startswith("./") else p)
+        out.append(p[2:] if p.startswith("./") else p)
+    return out
+
+
+def triggered(changed: Sequence[str]) -> list[tuple[Rule, list[str]]]:
+    """Which two-key rules the diff touches, and the files that touched them."""
+    normalized = normalize_paths(changed)
     hits = []
     for rule in RULES:
         matched = [p for p in normalized if rule.pattern.search(p)]
@@ -904,15 +1089,35 @@ def triggered(changed: Sequence[str]) -> list[tuple[Rule, list[str]]]:
     return hits
 
 
-def evaluate(changed: Sequence[str], body: str, repo_root=None) -> list[str]:
-    """Returns the reasons this PR is blocked. Empty list means it may merge."""
+def evaluate(changed: Sequence[str], body: str, repo_root=None,
+             base: str | None = None, head: str | None = None) -> list[str]:
+    """Returns the reasons this PR is blocked. Empty list means it may merge.
+
+    `base` and `head` are the PR's endpoints. `two-key.yml` already computes both
+    to build the changed-file list, and `pave gate history --base` already takes
+    one, so the interface they arrive through is one that existed before this
+    change.
+    """
     hits = triggered(changed)
     if not hits:
         return []
 
     att = parse(body)
     problems = []
+    adr_rules_hit = sum(1 for rule, _ in hits if rule.requires_adr)
+    records, adr_defects = adr_records(repo_root, base, head, changed)
 
+    # The `ADR:` line no longer discharges anything, and that is the whole of this
+    # change. It stays in the body for a reader; the gate stops ruling on it.
+    #
+    # Replayed against all 57 merged PRs through the corpus the gate actually
+    # reads -- the PR BODY, which is not the commit message an earlier
+    # measurement used -- 18 owe an ADR, and requiring one CITATION per rule
+    # refuses 8 of them, three of which `main` accepted. PR #28 wrote three
+    # decision records and cited one; #41 wrote two and cited one. The gate never
+    # checked WHICH ADR discharges which rule -- that binding was measured and
+    # refused, because it turns away 9 of 17 honest commit x rule pairs -- so the
+    # citation was bookkeeping the gate could not verify, priced at two honest PRs.
     for rule, files in hits:
         missing = [s for s in rule.seats if s not in att.seats]
         if missing:
@@ -921,10 +1126,50 @@ def evaluate(changed: Sequence[str], body: str, repo_root=None) -> list[str]:
                 f"{' …' if len(files) > 3 else ''} — missing disposition from "
                 f"{', '.join(missing)}. Add `Two-Key-Disposition: <seat>` to the PR body."
             )
-        if rule.requires_adr and not att.adr:
-            problems.append(
-                f"{rule.what}: requires an ADR. Add `ADR: docs/adr/ADR-0NN-<slug>.md` to the PR body."
-            )
+        if rule.requires_adr:
+            if not base:
+                # Fail closed. Without the base commit this cannot tell a decision
+                # record from a trailing newline, and a check that quietly
+                # downgrades when an argument goes missing is the shape this
+                # module exists to refuse.
+                problems.append(
+                    f"{rule.what}: requires an ADR, and this run was given no base commit "
+                    f"to compare against, so no ADR can be verified. Pass `--base <sha>` "
+                    f"(the workflow does)."
+                )
+            elif len(records) < adr_rules_hit:
+                have = ", ".join(f"`{r}`" for r in records) if records else "none"
+                problems.append(
+                    f"{rule.what}: this PR triggers {adr_rules_hit} rule(s) that each require "
+                    f"an ADR and writes {len(records)} ({have}). One decision record cannot "
+                    f"stand for several controls — write the ADR for this control, in this "
+                    f"diff. An ADR this diff does not add reasoning to is not a record of it."
+                )
+
+    # Named once, after the loop, never once per rule: two ADR rules used to
+    # print the identical near-miss twice in one refusal.
+    #
+    # **Only when a rule actually requires an ADR.** `adr_records` runs on every
+    # gated PR, so without this guard a near-miss was reported for a rule that
+    # was never invoked: an honest one-line copy-edit to an existing ADR,
+    # bundled with an `evals/comparators.json` change that owes no ADR at all,
+    # came back BLOCKED. That is the same false-refusal shape as the `is_file()`
+    # leftover deleted eleven lines below -- a rewrite moved the reporting out of
+    # the rule loop to dedupe it, and the guard stayed behind.
+    # **Only when the count is actually SHORT.** A near-miss is an explanation
+    # for a refusal, not a refusal of its own: it tells an author which candidate
+    # failed to count when the PR is short of records. Once enough records exist
+    # it is noise, and reporting it blocked this repository's OWN documented
+    # convention -- `docs/adr/README.md` says superseded ADRs are marked, never
+    # deleted, so writing a new record and appending `**Status:** ... superseded
+    # by ADR-NNN.` to the old one is the shape the repo asks for. Measured: the
+    # new record was found and counted, and the supersession mark blocked the PR
+    # anyway.
+    #
+    # This is the third leftover of one class in this function -- a guard that
+    # moved when the reporting moved, twice, and did not move the third time.
+    if adr_rules_hit and len(records) < adr_rules_hit:
+        problems.extend(dict.fromkeys(adr_defects))
 
     if problems:
         return problems
@@ -948,13 +1193,18 @@ def evaluate(changed: Sequence[str], body: str, repo_root=None) -> list[str]:
             "input moved, in which direction, and why that is correct, here in the body."
         )
 
-    if att.adr and repo_root is not None and not (repo_root / att.adr).is_file():
-        problems.append(f"PR cites ADR `{att.adr}`, which does not exist in this tree.")
-
+    # The `ADR:` line is documentation for a reader and the gate does not rule on
+    # it — see `adr_records`, which asks the diff instead. There used to be an
+    # `is_file()` check here, left over from when the citation WAS the discharge,
+    # and it survived the rewrite because that replaced the top of this function
+    # and not its tail. It was live: a PR that wrote a genuine decision record was
+    # refused because a stale path appeared somewhere else in its body. A rebase
+    # is what surfaced it, not a test — so there is one now.
     return problems
 
 
-def render(changed: Sequence[str], problems: Sequence[str]) -> str:
+def render(changed: Sequence[str], problems: Sequence[str],
+           records: Sequence[str] = ()) -> str:
     hits = triggered(changed)
     if not hits:
         return "two-key: not required — this PR touches no two-key path"
@@ -965,6 +1215,14 @@ def render(changed: Sequence[str], problems: Sequence[str]) -> str:
         lines.extend(f"      {f}" for f in sorted(files))
 
     if not problems:
+        # Name the records. The residual this closes was stated in an earlier ADR
+        # as "whether a stub is a decision record is a judgement about quality,
+        # and that belongs to the reviewing seat" -- and the seat was told what
+        # the gate accepted only when it REFUSED. A delegation with no channel.
+        if records:
+            lines.append("")
+            lines.append("decision records this diff writes:")
+            lines.extend(f"      {r}" for r in records)
         lines.append("\ntwo-key: SATISFIED — every owning seat disposed, with reasoning")
         return "\n".join(lines)
 

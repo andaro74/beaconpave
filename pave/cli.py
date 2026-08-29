@@ -284,8 +284,30 @@ def gate_two_key(argv):
     if body_file:
         body = pathlib.Path(body_file[0]).read_text(encoding="utf-8-sig")
 
-    problems = twokey.evaluate(changed, body, repo_root=ROOT)
-    _emit(twokey.render(changed, problems))
+    # `--base` and `--head`. `evaluate` needs them to tell a decision record
+    # from a trailing newline, and it fails CLOSED without a base: a run given
+    # none refuses every rule that requires an ADR rather than waving it
+    # through. An EMPTY value is refused here, the way `gate history` already
+    # refuses one -- "a base that did not arrive is not a base to guess at".
+    base = _flag_values(argv, "--base")
+    head = _flag_values(argv, "--head")
+    # BOTH endpoints refuse an empty value, and `--head` did not. An empty
+    # `--head` was coerced to None, which `evaluate` reads as "one endpoint" --
+    # and one endpoint makes `git diff <base>` compare against the WORKING TREE,
+    # which is the exact defect `--head` was added to close. Measured: a rule
+    # discharged by a decision record the PR did not write. The refusal for this
+    # argument existed on one flag and not its twin.
+    for flag, values in (("--base", base), ("--head", head)):
+        if flag in argv and not (values and values[0].strip()):
+            _emit(f"two-key: BLOCKED — `{flag}` was given with no value. An endpoint "
+                  "that did not arrive is not an endpoint to guess at.")
+            sys.exit(gate_mod.EXIT_QUALITY)
+    base_sha = base[0] if base else None
+    head_sha = head[0] if head and head[0].strip() else None
+    problems = twokey.evaluate(changed, body, repo_root=ROOT,
+                               base=base_sha, head=head_sha)
+    records, _ = twokey.adr_records(ROOT, base_sha, head_sha, changed)
+    _emit(twokey.render(changed, problems, records))
     if problems:
         sys.exit(gate_mod.EXIT_QUALITY)
 

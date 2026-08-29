@@ -62,6 +62,15 @@ jobs:
           # Passed as an environment variable, never interpolated into the shell:
           # a PR body is attacker-controlled text on a public repo.
           PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           mapfile -t CHANGED < changed.txt
-          python -m pave.cli gate two-key --changed "${CHANGED[@]}"
+          # BOTH endpoints, and they are the ones `changed.txt` was built from.
+          # With only `--base`, `git diff <base>` compares base to the WORKING
+          # TREE -- which on `pull_request` is `refs/pull/N/merge` -- so an ADR
+          # that landed on `main` after the base sha was credited to a PR that
+          # contained none. Measured: ACCEPTED, with no ADR anywhere in the diff.
+          # `--base` comes first because `--changed` is variadic.
+          python -m pave.cli gate two-key --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --changed "${CHANGED[@]}"
