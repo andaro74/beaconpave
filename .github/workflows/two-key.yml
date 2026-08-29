@@ -72,5 +72,11 @@ jobs:
           # that landed on `main` after the base sha was credited to a PR that
           # contained none. Measured: ACCEPTED, with no ADR anywhere in the diff.
           # `--base` comes first because `--changed` is variadic.
-          python -m pave.cli gate two-key --base "$BASE_SHA" --head "$HEAD_SHA" \
+          # **`pave.twokeycli`, not `pave.cli` (ADR-052).** A 20-line shim in
+          # `pave/cli.py` made this step print SATISFIED and exit 0 at the exact
+          # test baseline, on zero keys. ADR-041 decision 7 refuses a rule on that
+          # file -- it is the most-edited in the repo, and gating it teaches people
+          # to attest without reading -- so the gate moved into a small module that
+          # IS keyed, and the CLI is no longer in this process to be shimmed.
+          python -m pave.twokeycli --base "$BASE_SHA" --head "$HEAD_SHA" \
             --changed "${CHANGED[@]}"
