@@ -1,0 +1,178 @@
+{
+ "_what": "Every merged PR that triggers a rule requiring an ADR, replayed through main's gate and this branch's. The corpus is the PR BODY, which is not the commit message an earlier measurement used.",
+ "_why_committed": "The CRLF corpus was committed so the measurement and the gate see the same thing. The argument for cutting the citation deserves the same standard: a seat pointed out that it rested on a replay nobody else could re-run.",
+ "merged_prs_fetched": 60,
+ "rows": [
+  {
+   "pr": 1,
+   "title": "m00a: make the skeleton enforceable - a gate that can fail, and a second key",
+   "adr_rules": 1,
+   "records_written": 8,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": true
+  },
+  {
+   "pr": 12,
+   "title": "M01: gateway, audit lake, and IAM assertions",
+   "adr_rules": 2,
+   "records_written": 3,
+   "adrs_cited": 0,
+   "main_accepts": false,
+   "new_accepts": false
+  },
+  {
+   "pr": 13,
+   "title": "fix: G1 negative controls must test detection, not baseline cleanliness",
+   "adr_rules": 1,
+   "records_written": 0,
+   "adrs_cited": 0,
+   "main_accepts": false,
+   "new_accepts": false
+  },
+  {
+   "pr": 20,
+   "title": "M02: tool plane \u2014 catalog-search, the registry, and Cedar",
+   "adr_rules": 2,
+   "records_written": 6,
+   "adrs_cited": 0,
+   "main_accepts": false,
+   "new_accepts": false
+  },
+  {
+   "pr": 22,
+   "title": "M03: eval harness + judge calibration",
+   "adr_rules": 1,
+   "records_written": 7,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": true
+  },
+  {
+   "pr": 24,
+   "title": "Security + Data Governance: a refusal is not an evasion",
+   "adr_rules": 1,
+   "records_written": 1,
+   "adrs_cited": 0,
+   "main_accepts": false,
+   "new_accepts": true
+  },
+  {
+   "pr": 25,
+   "title": "Platform Engineering: the guardrail version must follow the policy it pins",
+   "adr_rules": 2,
+   "records_written": 0,
+   "adrs_cited": 0,
+   "main_accepts": false,
+   "new_accepts": false
+  },
+  {
+   "pr": 28,
+   "title": "M04: the fail-closed gate and the adversarial suite",
+   "adr_rules": 2,
+   "records_written": 3,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": true
+  },
+  {
+   "pr": 33,
+   "title": "The adversarial instrument gets a registry, so instrument.name means something",
+   "adr_rules": 1,
+   "records_written": 1,
+   "adrs_cited": 0,
+   "main_accepts": false,
+   "new_accepts": false
+  },
+  {
+   "pr": 38,
+   "title": "ADR-035 amendments 1 and 2: a pre-flight withdrew Change B's system half, and the amendmen",
+   "adr_rules": 1,
+   "records_written": 1,
+   "adrs_cited": 0,
+   "main_accepts": false,
+   "new_accepts": false
+  },
+  {
+   "pr": 40,
+   "title": "Change A: the topic stops classifying the product's own catalog as circumvention",
+   "adr_rules": 1,
+   "records_written": 0,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": false
+  },
+  {
+   "pr": 41,
+   "title": "ADR-035 amendments 3 and 4: v3 measured, ATK-007 dispositioned, and a second topic pre-reg",
+   "adr_rules": 2,
+   "records_written": 2,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": true
+  },
+  {
+   "pr": 42,
+   "title": "ADR-035 amendments 5\u20138: the first spend lands in band, and the free instrument's blind spo",
+   "adr_rules": 1,
+   "records_written": 1,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": true
+  },
+  {
+   "pr": 47,
+   "title": "A block that names no control stops counting as a block",
+   "adr_rules": 1,
+   "records_written": 1,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": true
+  },
+  {
+   "pr": 49,
+   "title": "ADR-038's closure never reached the live path",
+   "adr_rules": 1,
+   "records_written": 1,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": true
+  },
+  {
+   "pr": 50,
+   "title": "The record says which side fired, and the module that decides it stops being unguarded",
+   "adr_rules": 1,
+   "records_written": 1,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": true
+  },
+  {
+   "pr": 51,
+   "title": "An arm records which probes it was asked, and the eleventh probe becomes addable",
+   "adr_rules": 1,
+   "records_written": 1,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": true
+  },
+  {
+   "pr": 52,
+   "title": "Append-only never constrained what a NEW row may claim, and the directory that anchors two",
+   "adr_rules": 1,
+   "records_written": 1,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": true
+  },
+  {
+   "pr": 66,
+   "title": "The assertions enforcing \"only with an ADR\" required neither Security nor an ADR",
+   "adr_rules": 1,
+   "records_written": 1,
+   "adrs_cited": 0,
+   "main_accepts": true,
+   "new_accepts": true
+  }
+ ]
+}
