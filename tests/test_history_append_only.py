@@ -709,17 +709,25 @@ def test_an_honest_arm_that_asked_ten_of_eleven_derives(tmp_path):
 
 def test_a_published_number_with_no_entry_behind_it_is_red(tmp_path):
     text = (ROOT / "README.md").read_text(encoding="utf-8")
-    # **`m06`, not the migrated sentinel.** This is the one of the forty-five that
-    # reads the LIVE README progression table, so it needs a tag that actually has
-    # a row -- `mzz` has none and `next()` would raise StopIteration. It needs a row
-    # whose goldens cell is still `-`, which `mzz` will stop being at this
-    # milestone's close. README.md's `m06` row is the next unclosed one.
-    row = next(ln for ln in text.splitlines() if "`m06`" in ln and ln.lstrip().startswith("|"))
+    # **`m06b`, and this is the SECOND time this anchor has moved.** This is the one
+    # of the forty-five that reads the LIVE README progression table, so it needs a
+    # tag that actually has a row -- `mzz` has none and `next()` would raise
+    # StopIteration. It needs a row whose goldens cell is still `-` and that
+    # `README_GOLDENS` pins to nothing, so the mutation it plants is the violation it
+    # names. `m06` stopped qualifying at the M06 close, exactly as the note here
+    # predicted, and `m06b` -- the interlock work M06 did not build, renumbered out of
+    # M06 by SPEC/06 decision 2 -- is the next unclosed row.
+    #
+    # **This anchor expires at every close, by construction.** It is a test that
+    # borrows a real row and must be re-pointed when that row fills in; the failure is
+    # loud and self-describing, which is the trade taken over a synthetic table that
+    # would never notice the live one changing shape.
+    row = next(ln for ln in text.splitlines() if "`m06b`" in ln and ln.lstrip().startswith("|"))
     cells = row.split("|")
     cells[5] = " **22/25** "
     moved = tmp_path / "README.md"
     moved.write_text(text.replace(row, "|".join(cells), 1), encoding="utf-8")
-    assert any("m06 row publishes a goldens number" in p for p in check_readme(readme=moved))
+    assert any("m06b row publishes a goldens number" in p for p in check_readme(readme=moved))
 
 
 def test_an_entry_whose_sha_is_on_no_ref_and_under_no_tag_is_red(tmp_path):
