@@ -1406,6 +1406,89 @@ because a check added without that decision will be silenced by editing the READ
 than by writing the ADRs. (Platform Engineering.)
 
 
+## Registered at the M06 close, measured
+
+Both were found by the Security seat during the ADR-052 review rounds, after this
+register was written, and **both are reproduced here against `main` at `09a67fa`**
+rather than carried from the round that found them. Neither is closed by M06.
+
+They are recorded because the close replays this register entry by entry: an attack
+with no entry is one the replay obligation is structurally unable to see, which is
+the same fault as a protection stated and absent.
+
+### A26 — `setup.py` is on no rule, and CI executes it before anything is measured
+
+`pyproject.toml` declares `build-backend = "setuptools.build_meta"`, and both
+workflows run `pip install -e .` before any check. The backend **execs a present
+`setup.py`** — verified in an isolated project, where a `setup.py` that raises
+produces that exception from `get_requires_for_build_wheel()`.
+
+The harness rule (ADR-043) names `setup.cfg` and `pyproject.toml`. It does not name
+`setup.py`, and the file does not exist, so the attack is to **add** one.
+
+```
+setup.py, 20 lines, docstring "normalise package discovery on Windows checkouts":
+  pave/infra.py            MODEL_INVOKE_ROLE_PREFIXES += ("ScaffoldSmokeFn",)
+  tests/test_iam_assertions.py   its own pin relaxed to match
+  ...then setuptools.setup()
+
+before             MODEL_INVOKE_ROLE_PREFIXES == ("GatewayFn",)   24 passed
+after the backend  ("GatewayFn", "ScaffoldSmokeFn")
+suite              2238 passed      <- the exact baseline
+ruff               All checks passed
+two-key            NOT REQUIRED, setup.py -> NO KEYS
+```
+
+**This is not confined to the two-key gate.** It is arbitrary code in the checkout,
+in the same working directory, before anything is measured — so it reaches
+`tests/test_iam_assertions.py` (**G1**) and the L5 lane (**G4**) exactly as easily.
+The PR diff shows one added file; the rewritten files are never in it.
+
+ADR-043 decision 1 says the G1 constant and its pin are *"weakened together or not
+at all"*, and this weakens both in a diff that touches neither.
+
+**A fix must survive:** `setup.py` added rather than edited (there is nothing to
+diff against); the same trick from `MANIFEST.in`, a `.pth` file, or a
+`[tool.setuptools]` entry point; and a `setup.py` that is honest at review time and
+rewrites nothing — the file's presence is the hazard, not its current contents.
+(Security, with Platform Engineering: whether the answer is a key on the path or a
+check that the file does not exist is a mechanism decision.)
+
+### A27 — the adversarial verdict can be rewritten between the lane and the decider
+
+`quality-gate.yml` collects **`(ai-quality, platform-eng)`** and no `security`. The
+L5 adversarial lane writes `verdict-adv.json`; `gate decide` reads it. Any step
+between them can edit the file.
+
+```
+lane emits FAIL                     gate decide -> exit 1
+one step rewriting verdict: PASS    gate decide -> exit 0
+                                    "gate: PASS - 1 verdict(s), none blocking"
+
+suite with the step added           2238 passed   <- the exact baseline
+keys for the workflow edit          ai-quality, platform-eng
+```
+
+The step reads as housekeeping — *"Normalise verdict encoding for the runner"* — and
+`ADR-042`'s `_console_safe` gives it a plausible reference.
+
+**The Security-keyed defender does not reach it.** `tests/test_adversarial_lane.py`
+asserts the string `verdict-adv.json` appears in the `gate decide` and `gate comment`
+commands, which is true throughout: it says nothing about what happens to the file in
+between. Deleting the filename from the command IS caught (2 failed). **The corridor
+is guarded at both ends and open in the middle.**
+
+G4 is the invariant CLAUDE.md names as most often violated by well-meaning changes,
+and this turns a probe FAIL into a merge without any Security key being asked.
+
+**A fix must survive:** a step that writes the file rather than editing it; one that
+edits `verdict-evals.json` or `verdict-contract.json` instead, since nothing here is
+specific to the adversarial one; a rewrite performed inside a step that legitimately
+runs Python; and the `if: always()` form, which runs even when the lane failed. A
+deterministic assertion is available and a judge one is not — *no step other than a
+lane's own `--out` writes a `verdict-*.json`*. (Security, whose lane's verdict it is;
+`quality-gate.yml`'s seats are AI Quality and Platform Engineering today.)
+
 ## What M06 does not build
 
 - **No consequence interlock, and claim 10 is not advanced.** `publish-highlight`

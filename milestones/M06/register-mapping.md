@@ -1,4 +1,6 @@
-# M06 register mapping — 26 attacks against `main` at `1173aee`
+# M06 register mapping — 28 attacks against `main`
+
+*Mapped at `1173aee`; A26 and A27 added at `09a67fa` and reproduced there.*
 
 Close evidence, written before the tag. `SPEC/06-consequence.md` requires every
 register entry to be **replayed at the tag, by the plant in its own entry**. This
@@ -17,19 +19,21 @@ than discovered during it.
    tree for whether it was built.
 
 **Two corrections this produced, both to assumptions held before it was done.** The
-register has **26** entries and not 20 — A11–A17 are bullets, not headings, and a
+register had **26** entries and not 20 — A11–A17 are bullets, not headings, and a
 scan for headings alone misses seven. And the merged ADRs barely cite attack ids, so
 mapping by citation returns a confidently wrong answer; see A2 and A24 below.
 
-## Closed, verified against the tree — 3
+## Closed, verified against the tree — 5
 
 | id | what it was | how it closed |
 |---|---|---|
 | **A1** | `requires_adr` accepted any tracked file — `ADR: LICENSE` discharged it, and all 374 tracked files passed | ADR-051: the record must be one the diff **wrote** |
 | **A13** | one `ADR:` line discharged all three `requires_adr` rules | ADR-051: `len(records) < adr_rules_hit` — N rules need N records |
 | **A11** | `pave/tests/` unguarded; deleting `test_twokey.py` was 2036 passed, zero failures | ADR-052: now `ai-quality, platform-eng, security` |
+| **A19** | the judge freeze refrozen on one key — the cheap route *satisfies* the guards rather than attacking them | ADR-053: `quality/judge/` gains `security` |
+| **A14** *(key half only)* | `proposed → enforced` switched off the rule's own review clock at 2079 passed, no keys | ADR-053: `rules/` gains `(legal-sp, security)` + an ADR. The immortal-rule and orphan-rule halves stay open by decision 12 |
 
-## Decided, and not built — 5
+## Decided, and not built — 3
 
 Each carries an operator decision saying it closes in M06. None has been built.
 
@@ -37,9 +41,7 @@ Each carries an operator decision saying it closes in M06. None has been built.
 |---|---|---|
 | **A5** | D1 — Legal/S&P answered *no*; the consequence is deleting eleven interlock assertions | `publish-highlight` still asserted across five test files |
 | **A12** | D5 own PR and ADR · D8 delete the exemption, do not clause-scope it · D11 `classify.py` gains `(data-governance, security)` with an ADR | `platform/gateway/core/classify.py` → **NO KEYS** |
-| **A14** | D12 — `rules/` joins as `(legal-sp, security)` with an ADR | `rules/*` → **NO KEYS** |
 | **A18** | D7 — folds into the PR that keys the mechanism behind the published claims | the G1 template fixture → **NO KEYS** |
-| **A19** | D6 — `quality/judge/` gains a **second** key | `quality/judge/*` → `ai-quality` only |
 
 A decision recorded and not executed is the **stated-and-absent** failure this
 register exists to catch: to the next reader it is indistinguishable from a thing
@@ -60,9 +62,10 @@ already stopping one of its three routes.
 
 **A21** — D10, *in full*, after both grounds for splitting it were measured false.
 
-## Open, no decision — 14
+## Open, no decision — 16
 
-A2 · A3 · A4 · A6 · A6b · A8 · A10 · A15 · A17 · A20 · A22 · A23 · A24 · A25
+A2 · A3 · A4 · A6 · A6b · A8 · A10 · A15 · A17 · A20 · A22 · A23 · A24 · A25 ·
+**A26** · **A27**
 
 Two of these were touched by merged M06 work **without being closed**, and matching
 on citations rather than on subject would have recorded both as done:
@@ -81,7 +84,7 @@ two are open with their prior remedy withdrawn rather than open and unexamined.
 
 ## Consequences for the close
 
-**23 of 26 will reproduce at the tag.** That is not by itself a blocker — the
+**23 of 28 will reproduce at the tag.** That is not by itself a blocker — the
 obligation is to replay and record, not to close everything, and an entry recorded
 as reproducing with its measurement is the register working. It does settle what
 remains:
@@ -89,11 +92,12 @@ remains:
 1. **The five decided-not-built entries** are where the milestone has already said
    what it will do. They are the cheapest remaining honesty, and the most expensive
    thing to leave.
-2. **Two findings from the ADR-052 review rounds are in no register entry at all** —
-   a step in `quality-gate.yml` can rewrite the adversarial verdict to `PASS` on keys
-   that do not include Security, and `setup.py` is on no rule while both workflows
-   execute it before anything is measured. The second reaches G1 and G4, not only
-   the two-key gate. They post-date the register, so they need entries before the
-   tag or the replay obligation cannot see them.
+2. ~~Two findings from the ADR-052 review rounds are in no register entry at all.~~
+   **Closed: they are now A26 and A27**, reproduced against `main` at `09a67fa` with
+   their own measurements rather than the reviewing seat's. `setup.py` widened G1's
+   allowlist and relaxed its own pin at **2238 passed, no keys**; the verdict rewrite
+   took `gate decide` from exit 1 to exit 0 at the same baseline, on keys excluding
+   Security. Neither is fixed — being registered means the replay obligation can now
+   see them.
 3. **`COLLECTED_FLOOR` is re-seated last**, on the tree that ships, per *How M06
    closes*.
