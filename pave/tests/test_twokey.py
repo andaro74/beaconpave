@@ -31,7 +31,56 @@ Two-Key-Rationale: {GOOD_RATIONALE}
 # --- PRs that touch nothing two-key are unaffected -----------------------------
 
 def test_ordinary_pr_is_not_gated():
+    """**`pave/cli.py` is the example on purpose, and it is ADR-041's line.**
+
+    Decision 7 refused a two-key rule on that file -- three seats then, four more in
+    SPEC/06 round 5 -- because it is the most-edited file in the repository and
+    gating it "teaches people to attest past a rule without reading it". This
+    assertion is what that decision left behind to hold the line.
+
+    ADR-052 measured a shim in `pave/cli.py` making the live gate print SATISFIED
+    and exit 0 at the exact baseline, on zero keys. A draft of that ADR keyed the
+    file and rewrote this test to keep passing. That is editing the test that holds
+    a line in order to cross it, so it is reverted: the gate moved to
+    `pave/twokeycli.py`, which CI runs directly and which IS keyed, and `cli.py` is
+    no longer in the gate's process to be shimmed."""
     assert twokey.evaluate(["pave/cli.py", "README.md"], "") == []
+
+
+def test_the_gate_the_workflow_runs_does_not_import_the_cli():
+    """The remedy above only holds while `pave/cli.py` stays OUT of the gate's
+    process. `pave/twokeycli.py` importing it -- for one helper, at any depth --
+    silently restores the shim, and `cli.py` is on no rule by ADR-041 decision 7.
+
+    Asserted here rather than only in `tests/test_twokey_seats.py`'s import walk,
+    because this is the direction that must not be reintroduced and the walk states
+    a broader property that a future edit could narrow."""
+    import ast
+    import pathlib
+
+    root = pathlib.Path(twokey.__file__).resolve().parents[1]
+    # **Both shapes, because hardcoding one is a false refusal.** Converting the
+    # module into a package is legitimate; the first draft read `pave/twokeycli.py`
+    # unconditionally and went red on an honest conversion, which is the refusal
+    # ADR-051 exists to remove — in a check written to catch a real attack.
+    sources = [p for p in (root / "pave" / "twokeycli.py",
+                           root / "pave" / "twokeycli" / "__init__.py") if p.is_file()]
+    assert sources, "the gate module is gone from both `twokeycli.py` and `twokeycli/`"
+    for node in ast.walk(ast.parse("\n".join(
+            p.read_text(encoding="utf-8") for p in sources))):
+        names = []
+        if isinstance(node, ast.Import):
+            names = [a.name for a in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            names = [node.module or ""] + [
+                f"{node.module}.{a.name}" for a in node.names if node.module]
+        for name in names:
+            assert name != "pave.cli" and not name.startswith("pave.cli."), (
+                "`pave/twokeycli.py` imports `pave.cli`, which puts the CLI back into "
+                "the gate's process — where ADR-052 measured a shim printing SATISFIED "
+                "and exit 0 at the baseline, on zero keys. The dependency runs the "
+                "other way: `cli.py` imports from here."
+            )
 
 
 def test_service_source_is_not_two_key():
@@ -1030,8 +1079,23 @@ def test_the_head_endpoint_excludes_what_is_not_committed_to_it(repo):
 def test_a_dot_slash_prefixed_path_still_matches_its_rule():
     """`normalize_paths` strips `./`. It is NOT `lstrip("./")`, which eats the
     leading dot of `.github/...` -- but nothing planted the `./` case itself."""
-    hits = twokey.triggered(["./pave/twokey.py"])
-    assert [sorted(r.seats) for r, _ in hits] == [["ai-quality", "platform-eng"]]
+    # Compared against the SAME path unprefixed rather than against a copied seat
+    # list, which was a hardcoded `["ai-quality", "platform-eng"]` that ADR-052
+    # turned red for a SEAT change -- a normalization test failing on a seat set is
+    # asserting something it does not own.
+    #
+    # **Non-emptiness first, and that is the whole of it.** The Platform
+    # Engineering seat defeated the equality alone: `lstrip("./")` mangles BOTH
+    # sides to `github/workflows/...`, both reach no rule, and `[] == []` passed
+    # while the exact defect the comment names was live. An equality between two
+    # calls to the code under test cannot fail when the code fails symmetrically.
+    for path in ("pave/twokey.py", ".github/workflows/two-key.yml"):
+        hits = twokey.triggered(["./" + path])
+        assert hits, (
+            f"`./{path}` reached NO rule. `lstrip('./')` eats the leading dot of "
+            "`.github/...`, which is the case that distinguishes it from a prefix strip"
+        )
+        assert hits == twokey.triggered([path]), f"`./{path}` and `{path}` differ"
 
 
 def test_a_deletion_always_reports_zero_lines_added(repo):
@@ -1242,3 +1306,104 @@ def test_the_replay_behind_the_citation_cut_is_in_the_tree():
     # ...and #40 is refused for the stated reason: it wrote no record at all.
     forty = next(r for r in rows if r["pr"] == 40)
     assert forty["records_written"] == 0, forty
+# --- the instance of the gate that CI actually runs (ADR-052) ------------------
+
+def _run_two_key(monkeypatch, tmp_path, root, body, changed, base, head):
+    """`python -m pave.twokeycli`, against a scratch repo — the exact entrypoint
+    `.github/workflows/two-key.yml` invokes.
+
+    Through the entrypoint and not `evaluate` directly, deliberately: the module
+    computes both endpoints, and every assertion in this file until now stopped at
+    the `twokey` boundary. It was `cli.main(["gate", "two-key", ...])` until ADR-052
+    moved the gate out of `pave/cli.py`; going through the CLI now would test a path
+    CI does not take. Returns (exit_code, output)."""
+    from pave import twokeycli
+    monkeypatch.setattr(twokeycli, "ROOT", root)
+    bf = tmp_path / "body.md"
+    bf.write_text(body, encoding="utf-8")
+    argv = ["--body-file", str(bf), "--base", base]
+    if head is not None:
+        argv += ["--head", head]
+    argv += ["--changed", *changed]
+    try:
+        twokeycli.main(argv)
+    except SystemExit as exc:
+        return int(exc.code or 0), ""
+    return 0, ""
+
+
+def test_the_cli_hands_the_gate_the_head_endpoint(repo, tmp_path, monkeypatch, capsys):
+    """**Measured silent at 2214 passed, zero keys.** `head_sha = None` in
+    `pave/cli.py` re-enables the one-revision comparison, where `git diff <base>`
+    reads the WORKING TREE -- the exact defect ADR-051 added `--head` to close,
+    four lines below the refusal written for its twin.
+
+    Nothing tested it. `test_the_head_endpoint_excludes_what_is_not_committed_to_it`
+    proves `adr_records` honours the endpoint it is handed; this proves the CLI
+    hands it one. Two assertions, because "the module is right" and "the caller
+    calls it right" are different claims and the second was unmade."""
+    root, base = repo
+    head = _commit(root, "no adr in this pr")
+    # In the working tree and staged, NOT in `head` -- another PR's ADR, which is
+    # the shape ADR-051 measured. Staged rather than untracked: an untracked file
+    # appears in no `git diff` at all and the control would pass for that reason.
+    rel = _write_adr(root, "051", "another-prs-decision")
+    _git(root, "add", "-A")
+
+    changed = ["quality/adversarial/probes.yaml", rel]
+    body = _attested_body(seats=("security",))
+    code, _ = _run_two_key(monkeypatch, tmp_path, root, body, changed, base, head)
+    out = capsys.readouterr().out
+    assert code != 0, (
+        "the CLI accepted a PR whose head writes no decision record, crediting one "
+        "the working tree happens to carry"
+    )
+    assert "adds no reasoning" in out or "record" in out, out
+
+    # Control: without `--head` the same tree IS credited, or the assertion above
+    # passes for a reason unrelated to the endpoint.
+    code2, _ = _run_two_key(monkeypatch, tmp_path, root, body, changed, base, None)
+    assert code2 == 0, (
+        "the one-revision comparison did not credit the working-tree ADR, so the "
+        "test above proves nothing about the endpoint"
+    )
+
+
+def test_the_cli_does_not_filter_what_the_gate_refused(repo, tmp_path, monkeypatch, capsys):
+    """**Measured silent at 2214 passed, zero keys**: dropping every problem whose
+    text mentions an ADR, between `evaluate` and the exit code, in the file CI
+    runs. `evaluate` refuses correctly and the caller discards the refusal.
+
+    **The output assertion names the record count, not the word "ADR".** The first
+    draft accepted `"decision record" in out.lower() or "adr" in out.lower()`, which
+    the Platform Engineering seat satisfied with the RULE'S OWN NAME -- `render`
+    prints "only Security may downgrade a probe, and only with an ADR" on every
+    block of that rule, so the assertion could not fail. Swapping the body for `""`
+    blocked on a missing disposition and passed too. `and writes 0 (none)` is
+    emitted only by the short-record branch.
+
+    The control below is what makes the refusal attributable: the identical call
+    with a decision record in the head must pass, or this test proves only that
+    something blocked."""
+    root, base = repo
+    head = _commit(root, "touches security's corpus and writes no record")
+    changed = ["quality/adversarial/probes.yaml"]
+    body = _attested_body(seats=("security",))
+    code, _ = _run_two_key(monkeypatch, tmp_path, root, body, changed, base, head)
+    out = capsys.readouterr().out
+    assert code != 0, "a rule requiring an ADR was discharged by a diff writing none"
+    assert "BLOCKED" in out, out
+    assert "and writes 0 (none)" in out, (
+        f"the exit code refused and the output does not say the missing record is why: {out}"
+    )
+
+    # Control: the same rule, the same body, a diff that DOES write a record.
+    rel = _write_adr(root, "053", "a-real-decision")
+    head2 = _commit(root, "and now it writes one")
+    code2, _ = _run_two_key(monkeypatch, tmp_path, root, body,
+                            [*changed, rel], base, head2)
+    out2 = capsys.readouterr().out
+    assert code2 == 0, (
+        f"a diff writing a real decision record was still refused, so the refusal "
+        f"above is not attributable to the missing record: {out2}"
+    )

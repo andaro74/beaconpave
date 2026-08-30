@@ -8,14 +8,22 @@ assertion that a rule exists proves nothing about the rule doing anything; ADR-0
 prediction 7b failed for four of ten checks on its first implementation for
 exactly that reason.
 
-**Why this file and not `pave/tests/test_twokey.py`.** That file is on no rule.
-This one is on the enumerated protection-test rule alongside `test_arm_scoping`
-and `test_history_append_only`, which takes `ai-quality`, `security` and
-`platform-eng` -- because it pins the seat sets of two rules that name
-**security**, and a test that holds Security's key must not be removable without
-it. The Security seat measured that removing the adversarial-corpus rule
-entirely, with a plausible rationale, was blocked only by tests living in
-Security-keyed files.
+**Why this file AND `pave/tests/test_twokey.py`.** This one is on the enumerated
+protection-test rule alongside `test_arm_scoping` and `test_history_append_only`,
+which takes `ai-quality`, `security` and `platform-eng` -- because it pins the
+seat sets of two rules that name **security**, and a test that holds Security's
+key must not be removable without it. The Security seat measured that removing the
+adversarial-corpus rule entirely, with a plausible rationale, was blocked only by
+tests living in Security-keyed files.
+
+This paragraph read *"Why this file and not `pave/tests/test_twokey.py`. That file
+is on no rule"* until ADR-052. That was true, and harmless while the file held
+parser cases; it stopped being harmless when ADR-051 moved the definition of a
+decision record into `adr_records` and every assertion defending it into that
+file. Measured: the weakening and the deletion of all four assertions that catch
+it, in one diff, at 2208 passed and two keys. The sentence is corrected here
+rather than left standing, because a stated reason for a gap is what stops the
+next reader looking for it -- ADR-035's finding, in the file that records it.
 
 Hermetic (G8): reads committed files, calls nothing.
 Owning seat: Security / Red Team (the invariants) - Platform Engineering (the
@@ -23,8 +31,15 @@ mechanism) - AI Quality (the rules list).
 """
 from __future__ import annotations
 
+import ast
+import inspect
+import json
 import pathlib
 import re
+import subprocess
+import sys
+
+import yaml
 
 from pave import twokey
 
@@ -99,6 +114,43 @@ ADR043_SEATS = {
     # Deleting the file outright: 2059 passed, zero failures -- the only tie
     # between the committed ceilings and the measurement they were derived from.
     "tests/test_budget_derivation.py": {"ai-quality", "platform-eng"},
+    # ADR-052: the rules list, the workflow that runs it, and the file holding
+    # every assertion that defends `adr_records`. Pinned member by member, and
+    # `pave/tests/test_twokey.py` is a member for the reason the measurement gives:
+    # restoring the substance bar to `< 1` AND deleting the four assertions that
+    # catch it was ONE diff, 2208 passed, keys `ai-quality` and `platform-eng`.
+    # Security is on all four rules that require an ADR and alone on
+    # `quality/adversarial/`, and was not asked.
+    "pave/twokey.py": {"ai-quality", "platform-eng", "security"},
+    "pave/tests/test_twokey.py": {"ai-quality", "platform-eng", "security"},
+    ".github/workflows/two-key.yml": {"ai-quality", "platform-eng", "security"},
+    # ADR-052 round 2, both from the Security seat. `__init__.py` is 0 bytes and
+    # runs on any `pave.X` import -- a shim rebinding `adr_records`, guarded by
+    # `if "pytest" not in sys.modules`, made the live gate mint a record for a file
+    # the PR never touched at 2219 passed, zero keys. The fixtures hold the replay
+    # that justifies ADR-051's largest reversal and the CRLF corpus: inflating the
+    # replay 60 -> 300 rows was 2219 passed, zero keys.
+    "pave/__init__.py": {"ai-quality", "platform-eng", "security"},
+    "pave/tests/fixtures/adr_bar_replay.json": {"ai-quality", "platform-eng", "security"},
+    "pave/tests/fixtures/pr_bodies.json": {"ai-quality", "platform-eng", "security"},
+    # **What these pins buy, precisely.** Against a NARROWED alternation the
+    # ratchet above is what bites, and five of six ADR-052 entries here are
+    # redundant to it -- measured, deleting five leaves 177 passed, because
+    # `covered` needs only one representative per rule. They earn their place
+    # against a rule SPLIT, where a path moves to a new rule with a thinner seat
+    # set and no alternation narrows at all.
+    #
+    # ADR-052. A shim in `pave/cli.py` rebinding `twokey.adr_records` and
+    # `twokey.evaluate` left 2222 passed -- the exact baseline -- with the live gate
+    # printing SATISFIED and exiting 0 on zero keys. The first remedy KEYED that
+    # file; ADR-041 decision 7 refuses exactly that, so the gate moved to
+    # `pave/twokeycli.py`, which the workflow runs directly, and `pave/cli.py` is out
+    # of the process rather than harder to edit. `gate.py` holds `EXIT_QUALITY`,
+    # whose 1 -> 0 makes every rule report BLOCKED and exit 0. Two seats: Security
+    # because it owns every ADR-requiring rule, Platform Engineering the mechanism.
+    "pave/twokeycli.py": {"platform-eng", "security"},
+    "pave/gate.py": {"platform-eng", "security"},
+    "pave/verdict.py": {"platform-eng", "security"},
 }
 
 
@@ -148,10 +200,13 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           # ADR-049
                                           "the demo-act obligation register",
                                           "the developer entrypoints",
-                                          "the budget derivation pin"))]
-    assert len(added) == 13, (
-        f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one and "
-        f"ADR-049's three, found "
+                                          "the budget derivation pin",
+                                          # ADR-052
+                                          "the definition of what discharges one",
+                                          "the gate's own process"))]
+    assert len(added) == 15, (
+        f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one, "
+        f"ADR-049's three and ADR-052's two, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -220,9 +275,63 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                              "tests/test_demo_recordings.py"],
         "the developer entrypoints": ["Makefile"],
         "the budget derivation pin": ["tests/test_budget_derivation.py"],
+        # ADR-052. Enumerated here because the audit measured both narrowings
+        # silent otherwise: deleting the three pin entries below left 173 passed,
+        # and dropping `pave/tests/test_twokey.py` from the alternation was caught
+        # only by the pin -- the plant unions seats across both files, so
+        # `pave/twokey.py` alone still supplied all three. `len(ADR043_SEATS) >= 8`
+        # does not bite on a constant of thirty-odd entries thinned by three.
+        "the definition of what discharges one": [
+            "pave/twokey.py",
+            "pave/tests/test_twokey.py",
+            ".github/workflows/two-key.yml",
+            # Round 2. A path pattern for the fixtures, so a fixture added later
+            # lands on the rule the day it is written rather than the day someone
+            # remembers to enumerate it.
+            "pave/__init__.py",
+            "pave/tests/fixtures/adr_bar_replay.json",
+            "pave/tests/fixtures/pr_bodies.json",
+            "pave/tests/fixtures/a-fixture-that-does-not-exist-yet.json"],
+        # Round 3, member by member. Narrowing `(cli|gate|verdict)` by four
+        # characters takes the entrypoint CI runs off the rule, which is ADR-044's
+        # measured `_lane` narrowing in a rule written after it.
+        # `pave/twokeycli/__init__.py` is required as well as the `.py` form:
+        # narrowing the pattern back to `\.py$` was **181 passed, SILENT**, and a
+        # package shadowing the module is exactly the attack the arm exists to key.
+        # A path that need not exist, like the scaffold's, so it pins the SHAPE.
+        "the gate's own process": ["pave/twokeycli.py", "pave/gate.py",
+                                   "pave/verdict.py",
+                                   "pave/twokeycli/__init__.py",
+                                   "pave/twokeycli/a-submodule-that-may-never-exist.py"],
     }
+    # **A total pin, because the sentinel entries are one line deep.** Narrowing an
+    # alternation AND deleting the entry that catches it is one diff, measured at 22
+    # passed -- unlike `len(added) == 15` and `len(ADR043_SEATS) >= 8`, these path
+    # lists had no pin of their own.
+    total = sum(len(v) for v in required.values())
+    assert total == 51, (
+        f"`required` holds {total} paths across {len(required)} rules, expected "
+        "51. Deleting a required path in the same diff that "
+        "narrows a rule is the one-edit bypass this pin exists to make two — if a "
+        "path was added on purpose, raise the constant in this diff and say why."
+    )
     for rule in added:
-        key = next(k for k in required if k in rule.what)
+        # **Exactly one, never the first match.** `next(...)` returned the FIRST
+        # key contained in `rule.what`, so renaming a rule to also contain an
+        # earlier key checked that key's path list and never looked at this
+        # rule's -- measured: `"the developer entrypoints — and the definition of
+        # what discharges one"` over `^(Makefile|pave/twokey\.py)$` checked
+        # `["Makefile"]` and passed, with two files off the rule unexamined. And a
+        # rule enumerated above with no entry here raised a bare `StopIteration`
+        # in a ratchet whose every other failure carries its remediation.
+        keys = [k for k in required if k in rule.what]
+        assert len(keys) == 1, (
+            f"the rule {rule.what[:60]!r} matches {len(keys)} key(s) in `required`: "
+            f"{keys}. Zero means it was enumerated above and its path list was never "
+            "written; more than one means a rename made it answer to another rule's "
+            "list. Give it exactly one key and its own paths, in this diff."
+        )
+        key = keys[0]
         for path in required[key]:
             assert rule.pattern.search(path), (
                 f"the rule {rule.what[:50]!r} no longer covers {path}. Narrowing a regex "
@@ -504,7 +613,7 @@ def test_g4s_semantics_allowlist_lives_wherever_securitys_key_reaches():
     while the file it lived in demanded neither — a protection **stated and
     absent**, which this repo has now found three times (ADR-035, ADR-037, here).
     """
-    root = pathlib.Path(twokey.__file__).resolve().parents[1]
+    root = ROOT
     # Anchored at column 0, which finds the DEFINITION and not this file, whose
     # search string is itself an occurrence. The first draft matched itself and
     # demanded a Security key on the file doing the asking.
@@ -520,3 +629,696 @@ def test_g4s_semantics_allowlist_lives_wherever_securitys_key_reaches():
             f"{rel} defines G4's pass-semantics allowlist and collects {sorted(seats)}"
         )
         assert any(rule.requires_adr for rule, _ in hits), f"{rel} owes an ADR and does not"
+def test_weakening_what_discharges_an_adr_collects_security():
+    """**Measured on 6589827, one diff, both files.** Restore the substance bar in
+    `adr_records` to `< 1` -- v3's defect, the one four seats defeated -- and
+    delete the four assertions in `pave/tests/test_twokey.py` that catch it:
+    `test_the_substance_bar_is_the_calibrated_one`,
+    `test_repetition_does_not_clear_the_substance_bar`,
+    `test_the_repos_own_supersession_convention_is_not_refused`,
+    `test_a_near_miss_is_still_named_when_the_count_is_short`.
+
+    **Four, and an earlier draft of this docstring said five.** The Security seat
+    measured the bar weakening alone at 4 failed, not 5. The fifth name was
+    `test_the_replay_behind_the_citation_cut_is_in_the_tree`, which reads committed
+    fixture data and never calls `adr_records` -- it failed in the original
+    measurement because the regex that deleted the other four swallowed the
+    module-level `REPLAY` constant with them, so the fifth failure was `NameError`
+    from the measuring script. A guard count one too high is a protection stated
+    and absent, which CLAUDE.md ranks worse than one merely missing.
+
+    **2208 passed, ruff clean, keys `ai-quality` and `platform-eng`.** The ADR
+    half of `quality/adversarial/` -- Security's rule, Security alone -- went back
+    to a citation without the Security seat being asked.
+
+    Both files, because the weakening and the deletion of everything that catches
+    it fit in one diff: guarding the module alone leaves the tests removable, and
+    ADR-044 measured that exact asymmetry twice."""
+    _blocked_for(["pave/twokey.py", "pave/tests/test_twokey.py"],
+                 {"ai-quality", "platform-eng", "security"})
+    # And EACH file alone. The two-file form unions their seats, so dropping
+    # `pave/tests/test_twokey.py` from the rule left this assertion green --
+    # measured, and the reason the per-file check is here rather than implied.
+    _blocked_for(["pave/tests/test_twokey.py"], {"ai-quality", "platform-eng", "security"})
+    _blocked_for(["pave/twokey.py"], {"ai-quality", "platform-eng", "security"})
+
+
+def test_the_definition_of_a_decision_record_carries_every_adr_rules_seats():
+    """Derived from the LIVE rule set, never from a copied seat list -- the
+    mistake `test_the_seat_pin_covers_every_rule_this_adr_added` records, where
+    both sides of a comparison moved together under the attack it was written for.
+
+    `adr_records` decides what discharges `requires_adr` for every rule that sets
+    it, so the file DEFINING it must collect every seat each of those rules names:
+    a seat trusted to hold an ADR requirement must be able to defend what
+    satisfying it means. A rule giving a NEW seat an ADR requirement turns this red
+    until that seat also guards the definition.
+
+    **Per rule, not over a union, and the file comes from `inspect`.** The Platform
+    Engineering seat defeated both shortcuts in the first draft:
+
+      - the union was a set comprehension, so `if s == "security"` collapsed it to
+        exactly what the anti-vacuity anchor below checks -- 20 passed -- and a new
+        `requires_adr` rule naming `legal-sp` then passed too, which is precisely
+        the state this test exists to make red. There is no seat filter to collapse
+        now, and `checked` counts the rules the loop actually reached.
+      - `hasattr(twokey, "adr_records")` asserts a NAME IS BOUND, not where it is
+        defined. Measured: move `adr_records` to `pave/_adr.py` and re-export it --
+        175 passed, and `pave/_adr.py` is on no rule. `inspect.getfile` follows the
+        definition to whatever file holds it, so walking it out of a keyed module
+        is red here rather than a blind spot named in a docstring."""
+    root = ROOT
+    assert hasattr(twokey, "adr_records"), (
+        "`adr_records` is gone — if the definition MOVED, this test follows it via "
+        "`inspect` below; if it was DELETED, the ADR requirement has no meaning left"
+    )
+    home = pathlib.Path(inspect.getfile(twokey.adr_records)).resolve()
+    assert home.is_relative_to(root), f"`adr_records` is defined outside the repo: {home}"
+    home = home.relative_to(root).as_posix()
+    defends = _seats_for(home)
+    # **Two shapes of the same derivation, because one is collapsible.** The seat
+    # filter the Platform Engineering seat used against the first draft --
+    # `{s for s in ... if s == "security"}` -- survived being moved from the union
+    # into the loop, since any expression computing `missing` can be filtered by
+    # the edit that computes it. What raises the cost is that BOTH must be
+    # neutered, and they are shaped differently: a set difference over every rule
+    # at once, and a per-rule containment below.
+    undefended = sorted({s for rule in twokey.RULES if rule.requires_adr
+                         for s in rule.seats} - defends)
+    assert not undefended, (
+        f"seat(s) {undefended} are named by a rule requiring an ADR and are not "
+        f"collected by {home}, which defines what discharges one — ADR-052."
+    )
+    checked = 0
+    for rule in twokey.RULES:
+        if not rule.requires_adr:
+            continue
+        checked += 1
+        missing = sorted(set(rule.seats) - defends)
+        assert not missing, (
+            f"{home} defines what discharges an ADR requirement and collects "
+            f"{sorted(defends)}, while the rule {rule.what[:50]!r} requires one and "
+            f"names {sorted(rule.seats)}. Seat(s) {missing} hold an ADR requirement "
+            "whose meaning they cannot defend — ADR-052."
+        )
+    # The loop emptied is the same two-line edit that defeated the first draft, so
+    # the count is pinned the way ADR-044 pins its own. Four rules require an ADR
+    # today; this is a floor, and a fifth is welcome.
+    assert checked >= 4, (
+        f"only {checked} rule(s) require an ADR. Either the requirement was removed "
+        "from rules that had it, or this loop stopped reaching them."
+    )
+    # A concrete anchor as well. `security` is drawn from a fact outside this
+    # module: CLAUDE.md names the adversarial corpus as "Security alone plus an
+    # ADR", and that is the strictest ADR requirement in the file.
+    assert "security" in defends, (
+        f"{home} does not collect `security`, which holds the adversarial corpus rule "
+        "alone. That rule is the model CLAUDE.md names for the whole promise."
+    )
+def _module_to_paths(dotted: str) -> tuple:
+    """Both shapes a dotted name can take on disk, package first — Python's own
+    order. `FileFinder` resolves `pave/twokeycli/` before `pave/twokeycli.py`."""
+    stem = dotted.replace(".", "/")
+    return (f"{stem}/__init__.py", f"{stem}.py")
+
+
+def _path_to_module(rel: str) -> str:
+    """`pave/x/__init__.py` -> `pave.x`, `pave/x.py` -> `pave.x`.
+
+    The naive `rel[:-3].replace("/", ".")` produced `pave.twokeycli.__init__`, which
+    imports fine and loads a name the walk never lists -- so an honest conversion of
+    a module into a package was REFUSED. A false refusal is the failure ADR-051
+    exists to remove, and it was in the check written to close a real one."""
+    return (rel.removesuffix("/__init__.py") if rel.endswith("/__init__.py")
+            else rel.removesuffix(".py")).replace("/", ".")
+
+
+#: A recognised interpreter invocation naming a module. Deliberately a small,
+#: literal set: `python`, `python3`, `py -3`, with `-m mod` or `-mmod`. An
+#: interpreter behind a shell variable (`$PY -m ...`) does NOT match, because a
+#: check cannot follow it and must not pretend to.
+_INVOCATION = re.compile(
+    r"^\s*(?:python[0-9.]*|py)(?:\s+-[0-9][0-9.]*)?\s+-m\s*([A-Za-z_][\w.]*)\b")
+
+
+def _gate_invocations(root: pathlib.Path) -> list:
+    """Every executable line in `two-key.yml` that mentions `pave`, comments out.
+
+    **Lines, not the whole run block.** Round 5 stripped `#` comments and claimed
+    "a decoy has nowhere to sit". It has: an `echo`, a quoted argument, a heredoc,
+    or a step GitHub skips via `if:` -- which this parser reads and the runner does
+    not. Round 6 measured `echo "running: python -m pave.twokeycli ..."` beside a
+    real `python3 -m pave.cli` at **2230 passed, the exact baseline**, with the gate
+    reporting `not required` on a change to the adversarial corpus."""
+    doc = yaml.safe_load(
+        (root / ".github" / "workflows" / "two-key.yml").read_text(encoding="utf-8"))
+    lines = []
+    for job in (doc.get("jobs") or {}).values():
+        for step in (job.get("steps") or []):
+            for line in (step.get("run") or "").splitlines():
+                clean = re.sub(r"(?<!\S)#.*$", "", line)
+                if re.search(r"\bpave\b", clean):
+                    lines.append(clean)
+    return lines
+
+
+def _ci_gate_entrypoint(root: pathlib.Path | None = None) -> str:
+    """The module `.github/workflows/two-key.yml` actually runs, read from it.
+
+    **Exactly one executable line may mention `pave`, and it must be a recognised
+    invocation.** Both halves are load-bearing and each was measured silent alone:
+
+      - a second mention is a decoy -- an `echo`, or a step carrying `if: false`
+        that this parser reads and the runner skips;
+      - a single mention that is not `python -m <module>` is a real command this
+        check cannot follow. `pave gate two-key`, the console script `pip install
+        -e .` installs, runs through the unkeyed `pave/cli.py`; so do `python3 -m`,
+        `python -mpave.cli` and `$PY -m`, none of which the old regex saw.
+
+    Composed, they were **2230 passed, ruff clean**, with `two-key: not required`
+    on a diff to the corpus rule Security holds alone.
+
+    **A shadowing package is refused rather than resolved.** If both
+    `pave/x/__init__.py` and `pave/x.py` exist the interpreter takes the package,
+    and a check that picks one silently has already lost -- measured at 2232
+    passed, zero keys, gate SATISFIED."""
+    root = root or ROOT
+    mentions = _gate_invocations(root)
+    assert mentions, (
+        "no executable line in two-key.yml mentions `pave`. The gate is invoked "
+        "indirectly -- through a wrapper script, a composite action or a variable -- "
+        "so this check cannot see what CI executes, and whatever now runs carries "
+        "whatever rule that new file has. Name the module in the step."
+    )
+    listed = "\n  ".join(m.strip() for m in mentions)
+    assert len(mentions) == 1, (
+        f"two-key.yml has {len(mentions)} executable lines mentioning `pave`:\n  "
+        f"{listed}\nExactly one is allowed, because a second is indistinguishable from "
+        "a decoy: round 6 put an `echo` of the keyed command beside a real "
+        "`python3 -m pave.cli` at the exact baseline. If a second invocation is "
+        "genuinely needed, that is a decision to take in this file, not a check to widen."
+    )
+    found = _INVOCATION.search(mentions[0])
+    assert found, (
+        f"the one `pave` line in two-key.yml is not a recognised invocation:\n  "
+        f"{mentions[0].strip()}\nIt must be `python -m <module>` (or `python3`/`py -3`). "
+        "`pave gate two-key` runs the console script through `pave/cli.py`, which is on "
+        "NO RULE by ADR-041 decision 7; an interpreter behind a variable cannot be "
+        "followed at all. Both were measured green while the gate was disabled."
+    )
+    module = found.group(1)
+    present = [rel for rel in _module_to_paths(module) if (root / rel).is_file()]
+    assert present, f"{module} resolves to no file under {root}"
+    assert len(present) == 1, (
+        f"{module} resolves to BOTH {present}. A package shadows a same-named module, "
+        "so the interpreter loads the package while a rule naming the module keys a file "
+        "nothing executes -- measured at 2232 passed, zero keys, with the gate reporting "
+        "SATISFIED. Delete one."
+    )
+    return present[0]
+
+
+def _pave_modules_in_the_gates_process(start: str, root: pathlib.Path | None = None) -> set:
+    """Every `pave/*.py` reachable by import from `start`, transitively.
+
+    **Relative imports are resolved.** `from . import _adr` parses as
+    `ImportFrom(module=None, level=1)`, and reading only `node.module` made every
+    relative import invisible -- measured by the Security seat at 2224 passed, with
+    the substance bar living in an unkeyed `pave/_adr.py`.
+
+    `pave/__init__.py` is always included: it executes on ANY `pave.X` import."""
+    root = root or ROOT
+    seen, queue = set(), [start, "pave/__init__.py"]
+    while queue:
+        cur = queue.pop()
+        if cur in seen:
+            continue
+        seen.add(cur)
+        package = cur[:-3].split("/")[:-1]
+        tree = ast.parse((root / cur).read_text(encoding="utf-8"), filename=cur)
+        for node in ast.walk(tree):
+            names = []
+            if isinstance(node, ast.Import):
+                names = [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                if node.level:
+                    base = package[:len(package) - node.level + 1]
+                    stem = ".".join([*base, node.module] if node.module else base)
+                else:
+                    stem = node.module or ""
+                names = [stem] + [f"{stem}.{a.name}" for a in node.names if stem]
+            for name in names:
+                if name != "pave" and not name.startswith("pave."):
+                    continue
+                # **Both shapes.** `from pave import adrdef` with the
+                # implementation in `pave/adrdef/__init__.py` is ordinary Python,
+                # and guessing only `pave/adrdef.py` skipped it -- measured at 2224
+                # passed with the definition on zero rules.
+                stem = name.replace(".", "/")
+                for cand in (f"{stem}.py", f"{stem}/__init__.py"):
+                    if (root / cand).is_file():
+                        queue.append(cand)
+    return seen
+
+
+def _fake_pave(tmp_path, files: dict):
+    """Write a synthetic `pave/` package and return its root."""
+    for rel, text in files.items():
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    return tmp_path
+
+
+def test_the_walk_resolves_every_import_shape_that_has_hidden_a_definition():
+    """**The walk is dead code on the honest tree, so it is exercised here.**
+
+    `pave/twokey.py` imports no `pave` module, so on the real tree the walk returns
+    its two seeds and nothing measures transitivity, the package/module distinction
+    or the relative-import branch. The Platform Engineering seat replaced the entire
+    body with `return {rel, "pave/__init__.py"}` at **2222 passed**.
+
+    Every shape below is one a seat used to put `adr_records` — or the substance bar
+    — in a file collecting no key, each measured green before it was closed:
+
+      - `from . import _adr` / `from ._adr import x`  (level=1, module None or set)
+      - `from pave import adrdef`, implemented in `pave/adrdef/__init__.py`
+      - a second hop, because a definition can move twice
+      - `from .. import x`, which leaves the package and must resolve to nothing
+
+    Two of these were found only after the first fix shipped, which is why the
+    check is pinned against a tree rather than trusted against this repository's
+    current import graph."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = _fake_pave(pathlib.Path(tmp), {
+            "pave/__init__.py": "",
+            # relative, inside a function body: never executed by a bare import,
+            # which is how it evaded the runtime half as well
+            "pave/cli.py": (
+                "from pave import adrdef\n"
+                "def gate():\n"
+                "    from . import _adr\n"
+                "    from ._hop1 import thing\n"
+                "    return _adr, thing, adrdef\n"),
+            "pave/_adr.py": "",
+            "pave/_hop1.py": "from pave import _hop2\n",   # the second hop
+            "pave/_hop2.py": "",
+            "pave/adrdef/__init__.py": "",                  # a PACKAGE, not a module
+        })
+        found = _pave_modules_in_the_gates_process("pave/cli.py", root=root)
+        assert found == {
+            "pave/__init__.py", "pave/cli.py", "pave/_adr.py",
+            "pave/_hop1.py", "pave/_hop2.py", "pave/adrdef/__init__.py",
+        }, (
+            f"the walk found {sorted(found)}. Missing `_hop2` means it is not "
+            "transitive; missing `_adr` or `_hop1` means `node.level` is unresolved; "
+            "missing `adrdef/__init__.py` means a dotted name is only ever tried as "
+            "`.py`, which is how an implementation hid in a subpackage at 2224 passed."
+        )
+
+    # An import that climbs OUT of the package resolves to nothing rather than to a
+    # wrong path: `from .. import x` in `pave/cli.py` leaves `pave`.
+    with tempfile.TemporaryDirectory() as tmp:
+        root = _fake_pave(pathlib.Path(tmp), {
+            "pave/__init__.py": "",
+            "pave/cli.py": "from .. import escaped\n",
+        })
+        assert _pave_modules_in_the_gates_process("pave/cli.py", root=root) == {
+            "pave/__init__.py", "pave/cli.py"}
+
+
+def test_every_module_in_the_gates_process_collects_securitys_key():
+    """**Three CRITICALs across two Security rounds, and they are one property.**
+
+    Guarding `pave/twokey.py` guards where the decision is written. It does not
+    guard the process the decision runs in -- anything loaded there can rebind it:
+
+      - `pave/__init__.py`, 0 bytes and on no rule, running on any `pave.X` import:
+        a shim rebinding `adr_records` made the live gate name a decision record for
+        a file the PR never touched, at 2219 passed, zero keys.
+      - `pave/cli.py`, which is what `two-key.yml` runs: the same shim rebinding
+        `twokey.adr_records` AND `twokey.evaluate` left **2222 passed -- the exact
+        baseline** -- with `two-key: SATISFIED` and **exit 0**. Zero keys.
+      - Relocation behind a lazy relative import into `pave/_adr.py`, with
+        `MIN_SUBSTANTIVE_WORDS` lowered under `if "pytest" not in sys.modules`:
+        2224 passed, zero keys, the live gate accepting a one-word ADR amendment.
+
+    **The first draft of this test walked the wrong way.** It started at
+    `pave/twokey.py`, which imports nothing from `pave`, so its fixed point was
+    `{__init__, twokey}` -- two paths already on the rule, compared to themselves.
+    It could not go red, and it shipped a green tick. The threat is inbound, so the
+    walk starts at the entrypoint CI runs and the ratchet refuses a collapse.
+
+    **`security` specifically, not the gate's whole seat set.** Security owns every
+    rule that requires an ADR and holds the adversarial corpus alone, so it is the
+    seat that must be asked. Requiring the full set would reopen `pave/infra.py`'s
+    seats, which ADR-043 decided, to buy nothing this ADR is about."""
+    entry = _ci_gate_entrypoint()
+    process = _pave_modules_in_the_gates_process(entry)
+    _refuse_a_vacuous_walk(entry, process)
+    for rel in sorted(process):
+        seats = _seats_for(rel)
+        assert "security" in seats, (
+            f"{rel} is loaded in the process that runs the gate and collects "
+            f"{sorted(seats) or 'NO KEYS'}. Anything in that process can rebind what "
+            "`adr_records` decides, so it must not be editable without the seat that "
+            "owns every ADR requirement -- ADR-052."
+        )
+
+
+def _refuse_a_vacuous_walk(entry: str, process: set) -> None:
+    """Refuse a walk that proves nothing, and be exercisable while doing it.
+
+    **The earlier form of this stopped working.** Round 3 asserted the walk reached
+    something OUTSIDE the pinned set, because a walk returning its own seeds had
+    passed as a green tick. Splitting the gate out of `pave/cli.py` took the process
+    from eleven modules to four and keyed all four -- which is the goal, and it makes
+    "reaches something unpinned" unsatisfiable. An anti-vacuity check that cannot
+    fail is a vacuous check wearing a hat.
+
+    The anchor is a module the gate CANNOT DECIDE WITHOUT. `twokey` holds `RULES`,
+    `evaluate` and `adr_records`; a walk that does not reach it followed no edge at
+    all, whatever it returned.
+
+    A helper rather than four inline asserts, because inline they fire only when the
+    walk is already broken -- neutering either was **2226 passed**, and an
+    anti-vacuity guard nothing exercises is the shape it exists to refuse.
+    `test_a_collapsed_walk_is_refused` calls this with the walks it must reject."""
+    rules_module = pathlib.Path(twokey.__file__).resolve().relative_to(ROOT).as_posix()
+    assert rules_module in process, (
+        f"the walk from {entry} reached {sorted(process)} and not {rules_module}, which "
+        "holds `RULES` and `evaluate` -- the gate cannot decide without it, so a walk "
+        "missing it followed no edge at all. That is the round-3 defect, measured green."
+    )
+    assert entry in process and len(process) >= 4, (
+        f"the walk from {entry} reached {len(process)} module(s): {sorted(process)}. "
+        "The gate's process is the entrypoint, the package init, the rules module and "
+        "the exit-code contract; fewer means imports moved out of REACH rather than out "
+        "of the process."
+    )
+
+
+def test_the_entrypoint_is_read_from_the_workflow_not_written_down(tmp_path):
+    """**Replacing the derivation with a constant is 2226 passed.** The whole point
+    of reading `python -m <module>` out of `two-key.yml` is that the check follows CI
+    when the invocation moves; a hardcoded `rel = "pave/twokeycli.py"` removes that
+    silently while every assertion built on it stays green.
+
+    Pinned against a synthetic workflow, because on the honest tree the derived
+    answer and the constant are the same string -- the class of silence that deleted
+    two load-bearing checks earlier in this milestone."""
+    wf = tmp_path / ".github" / "workflows"
+    wf.mkdir(parents=True)
+    (tmp_path / "pave").mkdir()
+    (tmp_path / "pave" / "elsewhere.py").write_text("", encoding="utf-8")
+    (wf / "two-key.yml").write_text(
+        "jobs:\n  two-key:\n    steps:\n      - run: |\n"
+        "          python -m pave.elsewhere --base X --changed Y\n", encoding="utf-8")
+    assert _ci_gate_entrypoint(root=tmp_path) == "pave/elsewhere.py", (
+        "the entrypoint did not follow the workflow -- it is written down somewhere "
+        "rather than read, so a moved invocation leaves the check guarding the old one"
+    )
+
+    # And a workflow naming no module is refused rather than guessed at.
+    (wf / "two-key.yml").write_text(
+        "jobs:\n  two-key:\n    steps:\n      - run: bash tools/run-gate.sh\n",
+        encoding="utf-8")
+    try:
+        _ci_gate_entrypoint(root=tmp_path)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError(
+            "a workflow running no `python -m` module produced an entrypoint anyway")
+
+    # **A decoy in a comment must not be followed.** Round 5: the real command ran
+    # through `GATE=pave.cli; python -m "$GATE"` while a comment above it read
+    # `python -m pave.twokeycli` -- 2228 passed, the exact baseline, with the gate
+    # SATISFIED at exit 0 out of an unkeyed file.
+    (wf / "two-key.yml").write_text(
+        "jobs:\n  two-key:\n    steps:\n      - run: |\n"
+        "          # python -m pave.elsewhere --base ... --changed ...\n"
+        "          GATE=pave.decoy\n"
+        '          python -m "$GATE" gate two-key --base X\n', encoding="utf-8")
+    try:
+        followed = _ci_gate_entrypoint(root=tmp_path)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError(
+            f"the derivation followed a COMMENT and returned {followed}; the step runs "
+            "`python -m $GATE`, which names no module this check can see"
+        )
+
+    # **A package shadowing a same-named module is refused, not resolved.** The
+    # interpreter takes the package, so a rule naming the module keys a file nothing
+    # executes. Measured at 2232 passed, zero keys, with the gate SATISFIED.
+    (wf / "two-key.yml").write_text(
+        "jobs:\n  two-key:\n    steps:\n      - run: |\n"
+        "          python -m pave.elsewhere --base X\n", encoding="utf-8")
+    (tmp_path / "pave" / "elsewhere").mkdir()
+    (tmp_path / "pave" / "elsewhere" / "__init__.py").write_text("", encoding="utf-8")
+    try:
+        _ci_gate_entrypoint(root=tmp_path)
+    except AssertionError as exc:
+        assert "shadows" in str(exc), exc
+    else:
+        raise AssertionError(
+            "both `pave/elsewhere.py` and `pave/elsewhere/__init__.py` exist and the "
+            "derivation picked one silently — that ambiguity IS the attack"
+        )
+
+    # ...and an honest conversion, with the module removed, resolves cleanly.
+    (tmp_path / "pave" / "elsewhere.py").unlink()
+    assert _ci_gate_entrypoint(root=tmp_path) == "pave/elsewhere/__init__.py"
+    assert _path_to_module("pave/elsewhere/__init__.py") == "pave.elsewhere", (
+        "`rel[:-3].replace('/', '.')` yields `pave.elsewhere.__init__`, which imports "
+        "fine and loads a name the walk never lists — so an honest package conversion "
+        "was REFUSED by the check written to catch a dishonest one"
+    )
+
+
+def test_a_collapsed_walk_is_refused():
+    """Both guards in `_refuse_a_vacuous_walk`, called with what they must reject.
+
+    Neutering either was **2226 passed** on the honest tree: they fire only when the
+    walk is already broken, so nothing exercised them. Here they are exercised."""
+    entry = _ci_gate_entrypoint()
+    rules_module = pathlib.Path(twokey.__file__).resolve().relative_to(ROOT).as_posix()
+
+    # The round-3 defect: a walk whose fixed point is its own seeds.
+    for collapsed in ({entry}, {entry, "pave/__init__.py"}):
+        try:
+            _refuse_a_vacuous_walk(entry, collapsed)
+        except AssertionError:
+            continue
+        raise AssertionError(f"a walk of {sorted(collapsed)} was accepted")
+
+    # Long enough, and missing the module the gate cannot decide without -- so the
+    # count is not what the anchor rests on.
+    padded = {entry, "pave/__init__.py", "pave/gate.py", "pave/verdict.py",
+              "pave/floors.py"} - {rules_module}
+    try:
+        _refuse_a_vacuous_walk(entry, padded)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError(f"a walk of {len(padded)} modules missing {rules_module} "
+                             "was accepted because it was long enough")
+
+    # **Cases only the LENGTH guard can catch**, because the first audit of this
+    # test left it silent: every collapsed walk above is refused by the rules-module
+    # anchor before the length is looked at, so neutering the length assertion was
+    # 25 passed. A walk that HOLDS the rules module and is still too short, and one
+    # that omits the entrypoint itself, are what it alone rejects.
+    for thin in ({entry, rules_module},
+                 {rules_module, "pave/__init__.py", "pave/gate.py", "pave/verdict.py"}):
+        try:
+            _refuse_a_vacuous_walk(entry, thin)
+        except AssertionError:
+            continue
+        raise AssertionError(
+            f"a walk of {sorted(thin)} was accepted — it carries {rules_module}, so "
+            "only the length-and-entrypoint guard can refuse it"
+        )
+
+    # And the honest walk is accepted, or these guards refuse everything and prove
+    # nothing -- which is how a green anti-vacuity check goes wrong in the other
+    # direction.
+    _refuse_a_vacuous_walk(entry, _pave_modules_in_the_gates_process(entry))
+
+
+def test_no_pave_module_loads_behind_the_static_walk():
+    """**Runs the gate, rather than importing it.** The static walk reads `import`
+    statements, so `importlib.import_module` slips past it; and importing the
+    entrypoint never executes a function body, so a LAZY import of any shape --
+    literal or computed -- was invisible to both halves. Measured with a correctly
+    wired stub: absolute, relative and subpackage relocations were caught, and the
+    lazy `importlib` one was caught only incidentally, by an unrelated test.
+
+    So this subprocess invokes `gate two-key` on a path that triggers a rule
+    requiring an ADR, which is what forces `adr_records` to run, and then asks the
+    interpreter which `pave.*` modules are loaded and where each came from.
+
+    **What this does NOT prove, because a draft of this docstring claimed it did.**
+    It read *"a module that joins the gate's process while it decides cannot hide
+    from that, whatever import shape put it there."* The Security seat falsified that
+    twice: a dynamic import on a branch this one invocation never takes, which then
+    `sys.modules.pop`s itself (2225 passed), and a `types.ModuleType` aliased over a
+    name the walk already saw with `__file__ = None` (2223 passed -- the exact
+    baseline). This is a post-hoc snapshot of ONE invocation: one rule, no PR body,
+    no rename path, no error path.
+
+    What it does prove is narrower and is the thing this ADR is about: an **unkeyed**
+    module cannot quietly become part of the gate's process. Both falsifying plants
+    needed a keyed file as their delivery vehicle -- `pave/twokey.py` and
+    `pave/cli.py` -- so Security is asked either way. It does not make the process
+    tamper-evident, and saying otherwise is the stated-and-absent failure this
+    register exists to catch.
+
+    A clean `sys.modules` is why it is a subprocess: once the suite has run,
+    an in-process check sees everything pytest imported.
+
+    Hermetic (G8): one local interpreter, local `git` only, no network."""
+    root = ROOT
+    entry = _ci_gate_entrypoint()
+    module = _path_to_module(entry)
+    program = (
+        "import sys, json\n"
+        f"import {module} as _entry\n"
+        "try:\n"
+        # A path on a rule that REQUIRES an ADR, so `adr_records` actually runs.
+        # `--base HEAD` compares the head commit against itself: no records, a
+        # refusal, and every code path this test exists to observe.
+        "    _entry.main(['gate', 'two-key', '--base', 'HEAD', '--head', 'HEAD',\n"
+        "                 '--changed', 'quality/adversarial/probes.yaml'])\n"
+        "except SystemExit:\n"
+        "    pass\n"
+        "print(json.dumps({m: getattr(v, '__file__', None)\n"
+        "                  for m, v in sys.modules.items()\n"
+        "                  if m == 'pave' or m.startswith('pave.')}))\n"
+    )
+    out = subprocess.run([sys.executable, "-c", program], cwd=str(root),
+                         capture_output=True, text=True, timeout=180)
+    assert out.returncode == 0, f"running {module} failed: {out.stderr}"
+    tail = out.stdout.strip().splitlines()[-1] if out.stdout.strip() else ""
+    try:
+        loaded = json.loads(tail)
+    except ValueError as exc:
+        raise AssertionError(
+            f"the subprocess did not end with the JSON map this test reads. Last line "
+            f"was {tail!r}. Something printed after it — an `atexit` hook or a banner "
+            f"({exc})."
+        ) from exc
+    assert module in loaded, f"{module} did not load: {sorted(loaded)}"
+    # The gate must actually have DECIDED, or this observes an import and nothing
+    # more -- the weaker thing the first draft did while claiming the stronger one.
+    assert "two-key" in out.stdout, (
+        f"the gate produced no verdict, so nothing was observed deciding: {out.stdout!r}"
+    )
+    static = _pave_modules_in_the_gates_process(entry)
+    # **Names first, because `__file__` is writable.** Re-measuring a relocation
+    # produced `pave._adr.__file__ == ".../pave/twokey.py"` -- the module had copied
+    # twokey's namespace and `dir()` carries `__file__` with it. A check that asks a
+    # module where it lives is asking the module. `sys.modules` keys are not
+    # spoofable that way: to be imported as `pave.x` it must be named `pave.x`.
+    static_names = {_path_to_module(rel) for rel in static}
+    for name in sorted(loaded):
+        assert name in static_names, (
+            f"`{name}` is loaded while the gate decides and the static walk never "
+            f"reached it — it arrived dynamically, or through an import shape the walk "
+            f"cannot resolve. The walk saw {sorted(static_names)}. A module in the "
+            "gate's process must be visible to the check that keys it — ADR-052."
+        )
+    # **Keyed from the NAME, through the filesystem — never from the module.** The
+    # seat check below reads `__file__`, and round 5 composed a package whose
+    # `__init__.py` sets `__file__` to the keyed module it shadows: the name check
+    # cannot fire (the name IS the same) and the `__file__` check reads the decoy, so
+    # the two guards were each defeated by a different half of one plant while the
+    # diff described each as covered by the other. A path computed from the dotted
+    # name and checked against the disk asks nothing of the code being examined.
+    for name in sorted(loaded):
+        for rel in _module_to_paths(name):
+            if not (root / rel).is_file():
+                continue
+            assert "security" in _seats_for(rel), (
+                f"`{name}` loads while the gate decides and resolves on disk to {rel}, "
+                f"which collects {sorted(_seats_for(rel)) or 'NO KEYS'} — ADR-052."
+            )
+    for name, filename in sorted(loaded.items()):
+        # The interpreter's own `__file__`, never a path guessed from the dotted
+        # name. The guess was `name.replace(".", "/") + ".py"` followed by
+        # `if not ...is_file(): continue`, which skipped precisely the modules whose
+        # path it got wrong -- `pave.adrdef` in `pave/adrdef/__init__.py` was waved
+        # through at 2224 passed.
+        if filename is None:
+            continue  # a namespace package: no file to key
+        path = pathlib.Path(filename).resolve()
+        if not path.is_relative_to(root):
+            continue  # an installed copy elsewhere; the tree is what carries rules
+        rel = path.relative_to(root).as_posix()
+        # `__file__` decides WHICH RULE keys a module, never whether it is known --
+        # the name check above already settled that, and this one is spoofable.
+        assert "security" in _seats_for(rel), (
+            f"{name} loads from {rel} while the gate decides and collects "
+            f"{sorted(_seats_for(rel)) or 'NO KEYS'} — ADR-052."
+        )
+def _workflow_running(tmp_path, *shell_lines):
+    """Write a two-key workflow whose single step runs `shell_lines`."""
+    wf = tmp_path / ".github" / "workflows"
+    wf.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "pave").mkdir(exist_ok=True)
+    (tmp_path / "pave" / "elsewhere.py").write_text("", encoding="utf-8")
+    (tmp_path / "pave" / "other.py").write_text("", encoding="utf-8")
+    body = "".join(f"          {line}\n" for line in shell_lines)
+    (wf / "two-key.yml").write_text(
+        "jobs:\n  two-key:\n    steps:\n      - run: |\n" + body, encoding="utf-8")
+    return tmp_path
+
+
+def test_the_derivation_reads_execution_not_text(tmp_path):
+    """**Round 6 reopened round 5's finding at the exact baseline.** Stripping `#`
+    comments closed one SHAPE; the class stayed open because two gaps compose.
+
+    A decoy sits anywhere a string can — an `echo`, a quoted argument, a heredoc, or
+    a step GitHub skips via `if:` that this parser still reads. And the real command
+    is invisible unless it is literally `python -m`: `python3 -m`, `python -mmod`,
+    `$PY -m` and `pave ` — the console script `pip install -e .` creates, which runs
+    through the unkeyed `pave/cli.py` — all evaded the old regex.
+
+    Composed, they were **2230 passed, ruff clean**, with the live gate reporting
+    `two-key: not required` on a change to `quality/adversarial/`, the rule Security
+    holds alone.
+
+    Pinned against synthetic workflows, because on the honest tree the strict and
+    loose derivations return the same string — the silence this milestone has now
+    paid for four times."""
+    cases = [
+        ("an echo decoy beside a real python3 run",
+         ["echo 'running: python -m pave.elsewhere --base $SHA'",
+          "python3 -m pave.other gate two-key --base X"]),
+        ("the console script that `pip install -e .` creates",
+         ["pave gate two-key --base X --changed Y"]),
+        ("an interpreter behind a shell variable",
+         ["PY=python3", "$PY -m pave.other gate two-key --base X"]),
+        ("a second step disabled by `if:`, which the runner skips",
+         ["pave gate two-key --base X", "# python -m pave.elsewhere"]),
+    ]
+    for why, lines in cases:
+        root = _workflow_running(tmp_path, *lines)
+        try:
+            followed = _ci_gate_entrypoint(root=root)
+        except AssertionError:
+            continue
+        raise AssertionError(
+            f"{followed!r} was derived from a workflow whose real command is "
+            f"{why} -- the check read text where it had to read execution"
+        )
+
+    # ...and the honest form is still accepted, or this refuses everything and
+    # proves nothing, which is the other way a green check goes wrong.
+    root = _workflow_running(
+        tmp_path, 'python -m pave.elsewhere --base "$BASE" --changed "${C[@]}"')
+    assert _ci_gate_entrypoint(root=root) == "pave/elsewhere.py"

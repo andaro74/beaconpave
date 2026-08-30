@@ -33,16 +33,25 @@ import time
 from pave import floors as floors_mod
 from pave import gate as gate_mod
 from pave import scaffold as scaffold_mod
-from pave import twokey
+from pave import twokey, twokeycli
 from pave import verdict as verdict_mod
 from pave import verify as verify_mod
+from pave.twokeycli import (  # noqa: F401 - re-exported for callers and tests
+    _console_safe,
+    _emit,
+    _flag_values,
+    gate_two_key,
+)
 
 try:
     import yaml
 except ImportError:
     yaml = None
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+#: Re-exported from `pave.twokeycli`, which is where the gate lives (ADR-052).
+#: `cli.ROOT`, `cli._console_safe`, `cli._flag_values` and `cli.gate_two_key`
+#: keep working for every existing caller and test.
+ROOT = twokeycli.ROOT
 
 
 def _die(msg, code=1):
@@ -50,35 +59,8 @@ def _die(msg, code=1):
     sys.exit(code)
 
 
-def _console_safe(text: str, encoding: str) -> str:
-    """Rewrite `text` so `encoding` can represent it, losing characters rather
-    than raising.
-
-    `pave gate two-key` prints U+2717 on its blocking path. A Windows console
-    running cp1252 cannot encode that character, so the command died with a
-    UnicodeEncodeError *instead of printing why it blocked* — the operator saw a
-    traceback and exit 1, with the reason it exited nowhere on screen. CI never
-    caught it because GitHub runners are UTF-8.
-
-    That is the same class as M00a's BOM bug: a governance check that fails for a
-    reason which is not the team's fault. Those are the failures that teach people
-    to route around the gate, so the console's codepage must not get a vote in
-    whether a blocked merge can explain itself.
-
-    Characters the console *can* show are returned untouched, so nothing is
-    degraded on a UTF-8 terminal or in a CI log."""
-    try:
-        text.encode(encoding)
-    except UnicodeEncodeError:
-        return text.encode(encoding, "replace").decode(encoding, "replace")
-    return text
 
 
-def _emit(text: str) -> None:
-    """Print rendered gate output through `_console_safe`. Stdout's encoding is
-    read at call time rather than cached: it differs between a console, a pipe,
-    and a redirect to file, and the blocking path must survive all three."""
-    print(_console_safe(text, getattr(sys.stdout, "encoding", None) or "utf-8"))
 
 
 def rules_validate():
@@ -118,19 +100,6 @@ def rules_validate():
     print(f"rules registry valid: {len(files)} rule(s), all with owner + control + review-by")
 
 
-def _flag_values(argv, flag):
-    """Collect the values following `--flag` up to the next `--option`.
-    Returns [] when the flag is absent — `gate decide` treats that as blocking,
-    so a typo'd flag can never be read as "nothing to check, therefore fine"."""
-    if flag not in argv:
-        return []
-    rest = argv[argv.index(flag) + 1:]
-    values = []
-    for token in rest:
-        if token.startswith("--"):
-            break
-        values.append(token)
-    return values
 
 
 def gate_decide(argv):
@@ -252,64 +221,6 @@ def gate_comment(argv):
         _post_pr_comment(body)
 
 
-def gate_two_key(argv):
-    """G9: the second key, machine-checked. Exits 1 when a two-key path changed
-    without the owning seat's recorded disposition and reasoning.
-
-    Changed files come from `--changed`; the PR body from the PR_BODY environment
-    variable (passed as env rather than interpolated into the workflow's shell,
-    so a PR body cannot inject shell)."""
-    # **Absence of `--changed` is blocking, not "nothing to check".** `_flag_values`
-    # says in its own docstring that a typo'd flag "can never be read as 'nothing to
-    # check, therefore fine'" — and that was true of `gate decide` and false here:
-    # this command read [] as no changed files, found no rule triggered, and printed
-    # `two-key: not required` in green. Measured at ADR-037 by running it with
-    # `--base origin/main` on a diff that edits `pave/twokey.py` itself. A stated
-    # protection that holds for one caller and not the other is the fault this ADR
-    # is about, arriving in the parser that describes it.
-    #
-    # An EMPTY list stays legal: `--changed` with nothing after it is a PR that
-    # changed nothing, which is vacuously compliant. What is refused is never being
-    # told at all.
-    if "--changed" not in argv:
-        _emit(
-            "two-key: BLOCKED — no `--changed` given, so nothing was checked. "
-            "This command cannot report compliance for a file list it was never "
-            "handed; pass `--changed <paths...>` (the workflow does)."
-        )
-        sys.exit(gate_mod.EXIT_QUALITY)
-    changed = _flag_values(argv, "--changed")
-    body = os.environ.get("PR_BODY", "")
-    body_file = _flag_values(argv, "--body-file")
-    if body_file:
-        body = pathlib.Path(body_file[0]).read_text(encoding="utf-8-sig")
-
-    # `--base` and `--head`. `evaluate` needs them to tell a decision record
-    # from a trailing newline, and it fails CLOSED without a base: a run given
-    # none refuses every rule that requires an ADR rather than waving it
-    # through. An EMPTY value is refused here, the way `gate history` already
-    # refuses one -- "a base that did not arrive is not a base to guess at".
-    base = _flag_values(argv, "--base")
-    head = _flag_values(argv, "--head")
-    # BOTH endpoints refuse an empty value, and `--head` did not. An empty
-    # `--head` was coerced to None, which `evaluate` reads as "one endpoint" --
-    # and one endpoint makes `git diff <base>` compare against the WORKING TREE,
-    # which is the exact defect `--head` was added to close. Measured: a rule
-    # discharged by a decision record the PR did not write. The refusal for this
-    # argument existed on one flag and not its twin.
-    for flag, values in (("--base", base), ("--head", head)):
-        if flag in argv and not (values and values[0].strip()):
-            _emit(f"two-key: BLOCKED — `{flag}` was given with no value. An endpoint "
-                  "that did not arrive is not an endpoint to guess at.")
-            sys.exit(gate_mod.EXIT_QUALITY)
-    base_sha = base[0] if base else None
-    head_sha = head[0] if head and head[0].strip() else None
-    problems = twokey.evaluate(changed, body, repo_root=ROOT,
-                               base=base_sha, head=head_sha)
-    records, _ = twokey.adr_records(ROOT, base_sha, head_sha, changed)
-    _emit(twokey.render(changed, problems, records))
-    if problems:
-        sys.exit(gate_mod.EXIT_QUALITY)
 
 
 def gate_history(argv):

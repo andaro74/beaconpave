@@ -4,6 +4,14 @@
 **Seats:** Platform Engineering (the gate module) · AI Quality (the rules) ·
 Security (the corpus rule this promise is the model for)
 
+**Amended by ADR-052, and NOT completed by it:** this ADR named Security as the
+seat whose corpus rule the promise is modelled on, and left the module defining
+that promise on a rule not collecting Security's key — measured at 2208 passed on
+two keys. ADR-052 adds the key. It also records what the key does **not** reach:
+a routine `git merge main` still mints a decision record out of another author's
+ADR, which is this ADR's own decision 4 surviving its fix. A "completed by" line
+here would be the thing that stops the next reader looking.
+
 Three rules in `pave/twokey.py` promise "the owning seat, plus an ADR", and
 CLAUDE.md names one of them — the adversarial corpus — as the model for that
 promise. Until this change the ADR half was `ADR_RE.search(body)` and

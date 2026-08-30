@@ -28,6 +28,7 @@ Owning seat: AI Quality (the rules) · Platform Engineering (the mechanism).
 """
 from __future__ import annotations
 
+import pathlib
 import re
 import subprocess
 from collections.abc import Sequence
@@ -105,7 +106,7 @@ ADR_SECTION_RE = re.compile(r"^##+[ \t]+\S", re.MULTILINE)
 RENAME_RE = re.compile(r"^(.*)\{([^}]*?) => ([^}]*)\}(.*)$")
 
 
-def adr_defect(ref: str, repo_root) -> str | None:
+def adr_defect(ref: str, repo_root: pathlib.Path | None) -> str | None:
     """Why `ref` is not an ADR, or None if it is one.
 
     Structural, never a size. A size bar is the `24+ characters` mistake one field
@@ -146,7 +147,7 @@ def adr_defect(ref: str, repo_root) -> str | None:
     return None
 
 
-def _git(repo_root, *args: str) -> str:
+def _git(repo_root: pathlib.Path, *args: str) -> str:
     try:
         return subprocess.run(["git", *args], cwd=str(repo_root), capture_output=True,
                               text=True, check=False, encoding="utf-8",
@@ -155,7 +156,7 @@ def _git(repo_root, *args: str) -> str:
         return ""
 
 
-def adr_records(repo_root, base: str | None, head: str | None = None,
+def adr_records(repo_root: pathlib.Path | None, base: str | None, head: str | None = None,
                 changed: Sequence[str] | None = None) -> tuple[list[str], list[str]]:
     """The decision records THIS diff writes, and the near-misses worth naming.
 
@@ -613,9 +614,97 @@ RULES: tuple[Rule, ...] = (
         ("ai-quality", "platform-eng"),
     ),
     Rule(
-        "the two-key rules themselves",
-        re.compile(r"^(pave/twokey\.py|\.github/workflows/two-key\.yml)$"),
-        ("ai-quality", "platform-eng"),
+        # **Security joined when this module stopped describing an ADR and started
+        # DEFINING one (ADR-052).** Until ADR-051 the `requires_adr` half was
+        # `ADR_RE.search(body)` plus `is_file()` -- a citation, with nothing in
+        # here to weaken. `adr_records` now decides what counts as a decision
+        # record, and every one of the four rules that requires one names
+        # `security`; `quality/adversarial/` names it ALONE. So the seat that owns
+        # the strictest ADR requirement in the file did not sign the definition of
+        # what discharges it.
+        #
+        # Measured on 6589827, one diff, these two files: restore the substance bar
+        # to `< 1` -- v3's defect, the one four seats defeated -- and delete the
+        # four assertions in `pave/tests/test_twokey.py` that catch it.
+        # **2208 passed, ruff clean, keys `ai-quality` and `platform-eng`, and
+        # `requires_adr` False.** The corpus rule's ADR requirement goes back to a
+        # citation on two keys, neither of them the seat whose rule it is.
+        #
+        # `pave/tests/test_twokey.py` is here for the second half of that
+        # measurement and not as tidiness: it holds every assertion defending
+        # `adr_records`, and on no rule it was deletable in the same diff as the
+        # weakening. `tests/test_twokey_seats.py` says in its own docstring that
+        # this file is on no rule -- true and harmless when it held only parser
+        # cases, and the sentence is corrected in this diff rather than left to
+        # read as a decision.
+        #
+        # `requires_adr` stays off. The rules list changes for routine reasons --
+        # a new path, a widened alternation -- and ADR-030's reasoning for
+        # `comparators.json` applies unchanged: an ADR per rule edit prices
+        # tightenings high enough to discourage them.
+        "the two-key rules themselves — and the definition of what discharges one",
+        # `pave/__init__.py` and the fixture directory are here because the
+        # Security seat reached the same weakening around both (ADR-052 round 2):
+        #
+        #   - `__init__.py` is 0 bytes, was on no rule, and RUNS on any `pave.X`
+        #     import. A 27-line shim rebinding `adr_records`, guarded by
+        #     `if "pytest" not in sys.modules`, minted a decision record out of a
+        #     2023 file the PR never touched -- `two-key: SATISFIED`, exit 0,
+        #     **2219 passed, zero keys**. Guarding the definition and its tests
+        #     and not the module that can rebind the definition at import is this
+        #     rule's own thesis arriving one directory up.
+        #   - Every non-source file under `pave/tests/` -- the replay that
+        #     justifies ADR-051's
+        #     largest reversal and the CRLF corpus. Inflating the replay 60 -> 300
+        #     rows and fabricating all but two was **2219 passed, zero keys**: the
+        #     module three keys, the evidence for it none. ADR-035's shape, which
+        #     is why the whole directory is covered by a prefix rather than the
+        #     two files enumerated -- a new fixture is covered the day it lands.
+        re.compile(
+            r"^(pave/__init__\.py|pave/twokey\.py|pave/tests/test_twokey\.py"
+            r"|pave/tests/(?!.*\.py$).+|\.github/workflows/two-key\.yml)$"
+        ),
+        ("ai-quality", "platform-eng", "security"),
+    ),
+    Rule(
+        # **The process that runs the gate, found by Security in ADR-052 round 3.**
+        # The round-2 property walked OUTWARD from `pave/twokey.py`, which imports
+        # nothing from `pave` -- so its fixed point was `{__init__, twokey}`, both
+        # already on the rule above, and the check compared two paths to
+        # themselves. The threat is INBOUND: a module that imports `twokey` and
+        # rebinds it before the gate uses it.
+        #
+        # `.github/workflows/two-key.yml` runs `python -m pave.cli gate two-key`.
+        # Measured on 729c01e: a 20-line shim in `pave/cli.py` rebinding
+        # `twokey.adr_records` and `twokey.evaluate`, under `if "pytest" not in
+        # sys.modules`, left **2222 passed** -- the exact baseline -- with the live
+        # gate printing `two-key: SATISFIED`, **exit 0**, and naming a decision
+        # record for a file the PR never touched. Zero keys. Without the four-word
+        # guard the same shim is 75 failed.
+        #
+        # `gate.py` holds `EXIT_QUALITY`, and flipping it 1 -> 0 makes every rule
+        # report BLOCKED and exit 0 -- the audit record intact, the enforcement
+        # gone. That one IS caught (13 failed, two of them the CLI tests added
+        # here), but every exit-code assertion in `pave/tests/test_gate.py`
+        # compares against the SYMBOL, so both sides move together; the catch came
+        # from elsewhere and the contract had no key of its own.
+        #
+        # Two seats, not three. The property this buys is that **Security is
+        # asked** -- it owns every rule that requires an ADR and holds the corpus
+        # rule alone -- and Platform Engineering owns the mechanism. Eight of the
+        # eleven modules in the gate's process already collect `security`; these
+        # three did not, and adding `ai-quality` here would tax `pave new` and
+        # `pave verify` to buy a property neither needs.
+        "the gate's own process — the entrypoint CI runs, the exit-code contract, "
+        "and the verdict it writes",
+        # `(\.py|/.+)` because a PACKAGE shadows a module: adding
+        # `pave/twokeycli/__init__.py` beside `pave/twokeycli.py` makes Python
+        # import the package, and `...\.py$` alone did not match it -- measured,
+        # the gate ran from a file collecting NO KEYS. Caught by the runtime half
+        # (1 failed), but a rule that does not cover the shape leaves that test as
+        # the only thing standing between the two.
+        re.compile(r"^pave/(twokeycli|gate|verdict)(\.py|/.+)$"),
+        ("platform-eng", "security"),
     ),
     Rule(
         "consequence classes — raising one raises an action's blast radius",
