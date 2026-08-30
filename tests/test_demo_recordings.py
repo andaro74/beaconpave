@@ -28,7 +28,13 @@ from __future__ import annotations
 import json
 import re
 
-from milestone_status import ROOT, milestone_is_closed
+from milestone_status import (
+    ROOT,
+    key,
+    latest_closed_milestone,
+    milestone_is_closed,
+    progression_order,
+)
 
 SCRIPT = ROOT / "docs" / "governance" / "demo-script.md"
 REGISTRY = ROOT / "docs" / "governance" / "recordings.json"
@@ -41,6 +47,46 @@ def _registry():
 def _acts_in_script() -> set:
     return {int(m) for m in re.findall(r"^## Act (\d+)", SCRIPT.read_text(encoding="utf-8"),
                                        re.MULTILINE)}
+
+
+def uncounted_deferrals(acts, readme_text: str | None = None) -> list:
+    """Acts that passed the most recently CLOSED milestone without recording it.
+
+    **The gap this closes.** Every existing assertion here is satisfied by moving
+    `owed_by` forward and leaving `deferred_from` alone: the owner is already in the
+    history after the first slide, the new `owed_by` is legitimately absent from it,
+    and each listed milestone is still closed and still named in `why`. So an act
+    could go `M06 -> M07` recording nothing, and the count would stay at two while
+    the truth was three.
+
+    The milestone that just closed is the entry a fresh deferral adds. If an act is
+    unrecorded, and its owning milestone is at or before the latest closed one, then
+    it was owed during that milestone and passed it -- so that milestone belongs in
+    `deferred_from`, and (by the assertion above) named in `why`.
+
+    `readme_text` is injectable so `test_the_ratchet_fires_when_a_milestone_closes`
+    can ask what happens the day M06 closes, rather than leaving the guard
+    unexercised until the day it matters."""
+    latest = latest_closed_milestone(readme_text)
+    if latest is None:
+        return []
+    order = progression_order(readme_text)
+    problems = []
+    for act in acts:
+        if act.get("recorded"):
+            continue
+        owner = key(act["owner_milestone"])
+        if owner not in order or order.index(owner) > order.index(latest):
+            continue                      # not yet owed when that milestone closed
+        history = [key(t) for t in act.get("deferred_from") or []]
+        if latest not in history:
+            problems.append(
+                f"Act {act['act']} is unrecorded, is owned by {act['owner_milestone']} "
+                f"and passed {latest.upper()} -- the most recently closed milestone -- "
+                f"without listing it in `deferred_from`. Moving `owed_by` forward "
+                "without counting the milestone just passed is the slide this file "
+                "exists to make expensive.")
+    return problems
 
 
 def test_every_act_in_the_script_is_tracked():
@@ -181,3 +227,39 @@ def test_a_deferral_is_counted_and_named():
                 f"Act {act['act']} is owned by {owner}, {owner} is closed, the act is "
                 f"unrecorded, and `deferred_from` does not list {owner}. That is the one "
                 "entry the progression table contradicts on its own.")
+
+
+def test_the_ratchet_counts_the_milestone_that_just_closed():
+    """The honest tree: nothing has passed a close uncounted."""
+    assert uncounted_deferrals(_registry()) == []
+
+
+def test_the_ratchet_fires_when_a_milestone_closes():
+    """**A violating tree, because the honest one cannot exercise this.**
+
+    Every act owed by M06 is green today for the boring reason that M06 has not
+    closed. The guard that matters fires on the day it does, and a guard first
+    exercised on that day is one nobody has run.
+
+    This marks M06 closed in a synthetic progression table and asserts all three
+    unrecorded acts owed by it are reported. It also asserts the OPPOSITE
+    direction -- an act owned by a milestone after the close is not reported --
+    because a check that flags everything is as useless as one that flags nothing."""
+    text = ROOT.joinpath("README.md").read_text(encoding="utf-8")
+    closed_m06 = "\n".join(
+        line.replace("| \u2b1c |", "| \u2705 |") if line.strip().startswith("| 06 |") else line
+        for line in text.splitlines())
+    assert milestone_is_closed("M06", closed_m06), (
+        "the synthetic table does not mark M06 closed, so this test proves nothing")
+
+    problems = uncounted_deferrals(_registry(), readme_text=closed_m06)
+    reported = {int(p.split()[1]) for p in problems}
+    assert reported == {0, 1, 2}, (
+        f"M06 closes and the ratchet reports {sorted(reported)}; acts 0, 1 and 2 are "
+        "the three owed by it and unrecorded")
+
+    for act in _registry():
+        if act["act"] == 3:
+            assert 3 not in reported, (
+                "Act 3 is owned by M07, which is after the close -- it had not been "
+                "owed yet, so reporting it would make this guard noise")
