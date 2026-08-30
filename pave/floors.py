@@ -257,7 +257,56 @@ SCAFFOLD_AUTHOR = "pave-template"
 #: the shas a spec cites. A floor that counts collected tests is partly counting
 #: committed files and cited shas, which is the "deletion plus padding" residual
 #: above observed rather than hypothesised.
-COLLECTED_FLOOR = 2079
+#: **M06 close: 2079 -> 2255, seated after staging.**
+#:
+#: **This pin is named for one quantity and enforces another, and M06 is the
+#: first close where the two disagree.** `collected_floor_failures` matches
+#: `\b(\d+) passed\b` -- the PASSING count -- while this constant is called
+#: `COLLECTED_FLOOR` and every note above it reasons in counts taken with
+#: `pytest --collect-only`. Through M05 no test ever skipped, so the two numbers
+#: were equal and the name was true by accident.
+#:
+#: M06 commits the first binary artifacts in the repository -- three demo
+#: recordings -- and `tests/test_no_account_identifiers.py` skips them, twice
+#: each, `not decodable as text`. Correct behaviour: a video cannot hold a
+#: greppable account ID. But it means collected is 2261 and passing is 2255.
+#: Seating this pin from `--collect-only`, which is what the note above tells
+#: you to do, produced 2261 and `pave check` refused the tree on the next run.
+#: **Found by running the check, not by reading it.**
+#:
+#: The arithmetic, all counts measured rather than asserted:
+#:
+#:   2241  the merged tree at 46d4d1a, before this PR staged anything
+#:   +16   eight files staged: three recordings, three `goldens-run-N.json`,
+#:         `goldens-run-refusals.json`, and the history entry
+#:   +4    two more: this milestone's journal and ADR-054
+#:   ----
+#:   2261  collected -- ten new files at two tests each
+#:   -6    the three recordings' six tests, SKIPPED as undecodable
+#:   ----
+#:   2255  passing, which is the number this pin is compared against
+#:
+#: **The name is not corrected here, and that is a decision.** Renaming reaches
+#: `pave/cli.py`, `pave/twokey.py`'s rule comment and eleven sites in
+#: `tests/test_floors.py`, and it is a two-key path (platform-eng, ai-quality,
+#: security). Doing it inside a close, in the diff that also seats the number,
+#: is how the last four wrong guards arrived. Recorded as owed with the
+#: measurement attached, which is the whole point of writing it here.
+#:
+#: **Slack carried in was 182** -- 2079 against a merged tree passing 2241 --
+#: by a wide margin the largest gap this pin has been left at. The reason is
+#: boring and worth writing down: M06 landed as ten PRs and the floor is
+#: re-seated once, at the close, so ten PRs of new files accrue to one re-seat.
+#: A milestone shipping in one branch never sees a gap this size, and nothing
+#: about the discipline changed.
+#:
+#: **Six of the twenty new tests guard nothing.** They are the recordings', and
+#: they skip on every run. This pin counting committed FILES rather than checks
+#: is the 'deletion plus padding' residual named above, arriving as three video
+#: files raising a floor that guards Python assertions -- except that here they
+#: raise the collected count and not the enforced one, which is the only reason
+#: the divergence was visible at all.
+COLLECTED_FLOOR = 2255
 
 
 # --- ADR-046: the three criteria the verifier needed and this file did not hold --

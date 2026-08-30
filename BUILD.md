@@ -18,7 +18,8 @@ discipline).
 | 03 | `m03-evals` | Eval harness, 25 goldens, judge + 30-case calibration, append-only history | Judge agreement published; auto-demotion test (claim 9) |
 | 04 | `m04-gate` | Fail-closed gate, score-diff PR comment, all 10 probes | **Act 2:** exhibit PR blocked with a score-diff (claims 2, 5) |
 | 05 | `m05-paved-road` | `pave new` + template + manifest verify at deploy | **Act 1:** under 30 min zero-to-governed (claim 1) |
-| 06 | `m06-consequence` | `entitlement-check` (trajectory evals become meaningful); `publish-highlight` + Step Functions approval | Approval interlock demo (claim 10) |
+| 06 | ten PRs | The attack register (`SPEC/06`): 28 attacks measured against the tree, each with the plant that reproduces it. Two-key rules over the gate's own definition surface, `quality/judge/` and `rules/`; the gate moved out of `pave/cli.py`; adversarial contract assertions | Register + gate integrity; **no** interlock, **no** second tool — both renumbered to 06b |
+| 06b | `m06b-consequence` | `entitlement-check` (trajectory evals become meaningful); `publish-highlight` + Step Functions approval | Approval interlock demo (claim 10) |
 | 07 | `m07-rules` | Drive `rules/MER-AI-0001.yaml` end-to-end: disposition adds disclosure cases; gate catches the violation | **Act 3:** law → red service → fix (claim 6) |
 | 08 | `m08-surfaces` | Playwright + k6 emitting the verdict schema; one dashboard | Three surfaces, one schema (claims 3, 12 seed) |
 | 09 | `m09-drill` | Drill scenarios (blackout sweep, captions, alarm self-test) | **Act 4:** NO-GO → delta drill → GO (claim 11) |

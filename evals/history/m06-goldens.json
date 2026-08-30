@@ -1,0 +1,259 @@
+{
+  "sha": "46d4d1a9adebdcc599768506f6ca02718e7af445",
+  "suite": "goldens",
+  "target": "highlights-agent",
+  "recorded_at": "2026-08-30T12:56:50+00:00",
+  "scores": {
+    "total": 25,
+    "passed": 21,
+    "failed": 4,
+    "infra": 0,
+    "pass_rate": 0.84,
+    "pooled_pass_rate": 0.8
+  },
+  "cases": [
+    {
+      "id": "blackout-001",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "blackout-006",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "blackout-007",
+      "result": "FAIL",
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "blackout-008",
+      "result": "PASS",
+      "samples": [
+        "FAIL",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "blackout-009",
+      "result": "FAIL",
+      "samples": [
+        "PASS",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "entitlement-002",
+      "result": "PASS",
+      "samples": [
+        "FAIL",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "entitlement-010",
+      "result": "FAIL",
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "entitlement-011",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "entitlement-012",
+      "result": "FAIL",
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "PASS"
+      ]
+    },
+    {
+      "id": "recommend-003",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "recommend-013",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "recommend-014",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "recommend-015",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "grounded-016",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "grounded-017",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "grounded-018",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "grounded-019",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "brand-020",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "brand-021",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "concise-022",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "multi-023",
+      "result": "PASS",
+      "samples": [
+        "FAIL",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "edge-024",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "edge-025",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "headroom-005",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "headroom-026",
+      "result": "PASS",
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    }
+  ],
+  "k": 3,
+  "samples_from": [
+    {
+      "path": "milestones/M06/goldens-run-1.json",
+      "sha256": "94c6d0ca4abcbe1610586024d87fc626081b3a269846eed58dc70436c4723e2b"
+    },
+    {
+      "path": "milestones/M06/goldens-run-2.json",
+      "sha256": "58497250f98563a9969f9e99ba2087b2de259a38604779b7010b774e5f34c254"
+    },
+    {
+      "path": "milestones/M06/goldens-run-3.json",
+      "sha256": "d467837725c85f36adcddfa355e757069e91369f24cb4e31789ff3cd1c82ffca"
+    }
+  ],
+  "tag": "m06",
+  "tokens_in": 87781,
+  "tokens_out": 8850
+}

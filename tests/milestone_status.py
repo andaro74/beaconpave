@@ -58,6 +58,18 @@ def key(tag: str) -> str:
     return tag.strip().lower().lstrip("m").lstrip("0") or "0"
 
 
+def display(row_key: str) -> str:
+    """`6` -> `M06`, `6b` -> `M06b`, `b` -> `M00b`. The inverse of `key`, for messages.
+
+    The ratchet reported "Act 0 ... passed 6" -- a bare table key in a sentence that
+    opens with an act number, where `6` reads as an act. A guard nobody can parse at a
+    glance is a guard that gets dismissed, and this one fires exactly once, at a close,
+    with an operator deciding on it."""
+    digits = "".join(c for c in row_key if c.isdigit())
+    letters = "".join(c for c in row_key if c.isalpha())
+    return "M" + (digits.zfill(2) if digits else "00") + letters
+
+
 def milestone_is_closed(tag: str, text: str | None = None) -> bool:
     """True when `tag` (`M04`, `m04`, `04`) is marked closed in the progression table.
 

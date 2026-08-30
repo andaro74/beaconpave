@@ -122,6 +122,7 @@ README_GOLDENS = {
     "m00b": "m00b-goldens.json",
     "m01": "m01-goldens.json",
     "m02": "m02-tools-goldens.json",
+    "m06": "m06-goldens.json",
 }
 
 
