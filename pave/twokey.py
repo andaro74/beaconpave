@@ -281,9 +281,26 @@ RULES: tuple[Rule, ...] = (
         ("ai-quality",),
     ),
     Rule(
+        # **Security joined at M06, closing SPEC/06 A19 and decision 6.** Drafts 5-8
+        # recorded this as explicitly NOT an attack, because `frozen.json` is
+        # defended three layers deep -- `held_out_guard()`, `matching_instrument()`
+        # and two position/name pins. All three defences are real. The route that
+        # matters does not attack them: it **satisfies** them.
+        #
+        # Measured: edit `quality/judge/prompt.md`, recompute the digests through
+        # `judge.instrument()`, keep the instrument name `B`, and append the previous
+        # B as a retired row also named `B` -- you do not rename, you shadow. A real
+        # retune is loud (15 failed); the refreeze lands at **1 failed** and then
+        # clean, on **one key**. Attacking the guards directly is dearer and noisier,
+        # which is exactly why the one-key route is the cheap one.
+        #
+        # `security` rather than a third seat, on decision 6's standard and round
+        # 10's settlement: the counterweight must be the seat with a concrete object
+        # to check, and it may not be `ai-quality`, which owns the rubric whose
+        # scores this freeze decides. Security reads instrument digests already.
         "judge rubric, calibration set, and agreement thresholds",
         re.compile(r"^quality/judge/"),
-        ("ai-quality",),
+        ("ai-quality", "security"),
     ),
     Rule(
         "the verdict schema — the contract the gate decides on",
@@ -664,7 +681,15 @@ RULES: tuple[Rule, ...] = (
             r"^(pave/__init__\.py|pave/twokey\.py|pave/tests/test_twokey\.py"
             r"|pave/tests/(?!.*\.py$).+|\.github/workflows/two-key\.yml)$"
         ),
-        ("ai-quality", "platform-eng", "security"),
+        # **`legal-sp` joined at ADR-053, and it was not a choice.** Giving `rules/`
+        # a `requires_adr` rule handed Legal/S&P an ADR requirement, and
+        # `test_the_definition_of_a_decision_record_carries_every_adr_rules_seats`
+        # turned red on exactly that -- `assert not ['legal-sp']`. ADR-052 decision 2
+        # states the property in as many words: *a rule that gives a NEW seat an ADR
+        # requirement turns this red until that seat can also defend what satisfying
+        # it means.* The seat set here is an OUTPUT of that decision, not a preference
+        # expressed in this file.
+        ("ai-quality", "legal-sp", "platform-eng", "security"),
     ),
     Rule(
         # **The process that runs the gate, found by Security in ADR-052 round 3.**
@@ -705,6 +730,40 @@ RULES: tuple[Rule, ...] = (
         # the only thing standing between the two.
         re.compile(r"^pave/(twokeycli|gate|verdict)(\.py|/.+)$"),
         ("platform-eng", "security"),
+    ),
+    Rule(
+        # **G7's registry, on no rule at all until M06 (SPEC/06 A14, decision 12).**
+        # `rules/` is the Legal/S&P seat's entire surface, and flipping
+        # `MER-AI-0001` from `proposed` to `enforced` while its only control is
+        # `no-control` was **2079 passed** -- `tests/test_contracts.py`'s review-by
+        # guard is written `if effective and rule["status"] != "enforced"`, so
+        # declaring a rule enforced switches off its own clock.
+        #
+        # **`(legal-sp, security)`, and the seat choice is decision 12's.** Round 11
+        # refused `data-governance`, which had been chosen off a census -- *What M06
+        # must not do* forbids a rule derived from one. The standard this document
+        # set is decision 6's: the seat with a concrete object to check.
+        # `rules/schema.json` types `disposition.controls[].type` as an enum
+        # including `guardrail`, Security owns guardrails and already reads deployed
+        # guardrail evidence, so it has something to read when a rule disposes into
+        # one. The counterweight cannot be `legal-sp`, which owns the registry.
+        #
+        # `requires_adr` ON, unlike most rules here: a rule's status is a published
+        # governance claim, and decision 12 asks for the ADR by name.
+        #
+        # **This closes the KEY and nothing else, which decision 12 is explicit
+        # about.** Two halves stay open and are recorded in ADR-053 rather than
+        # quietly folded in: `effective` is optional in `rules/schema.json`, so a
+        # rule that simply OMITS it is never examined by the review-by guard at all
+        # (planted: enforced, `review_by: 2099-01-01`, field omitted -- 2079 passed,
+        # a literally immortal enforced rule, green), and making it required is a
+        # schema change that is Legal/S&P's call. "No orphan rules" is owed to M07
+        # with its term still undefined.
+        "the rule registry — a rule's status is a published claim, and `enforced` "
+        "switches off its own review clock",
+        re.compile(r"^rules/"),
+        ("legal-sp", "security"),
+        requires_adr=True,
     ),
     Rule(
         "consequence classes — raising one raises an action's blast radius",

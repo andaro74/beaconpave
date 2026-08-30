@@ -88,6 +88,25 @@ def test_service_source_is_not_two_key():
     assert twokey.evaluate(["services/highlights-agent/src/agent.py"], "") == []
 
 
+#: A path whose rule names exactly ONE seat, for the tests about disposition and
+#: rationale mechanics rather than about seat sets. It was
+#: `quality/judge/rubric-sports.md` until ADR-053 gave that rule Security as a
+#: second key (SPEC/06 A19) and eleven tests failed for a reason none of them was
+#: about. `test_the_one_seat_fixture_still_names_one_seat` holds the premise, so the
+#: next widening is one failure that says so rather than eleven that do not.
+ONE_SEAT_PATH = "services/highlights-agent/evals/golden/cases.yaml"
+
+
+def test_the_one_seat_fixture_still_names_one_seat():
+    """The premise every `ONE_SEAT_PATH` test rests on, asserted rather than assumed."""
+    seats = {s for rule, _ in twokey.triggered([ONE_SEAT_PATH]) for s in rule.seats}
+    assert len(seats) == 1, (
+        f"{ONE_SEAT_PATH} now collects {sorted(seats)}. The tests using ONE_SEAT_PATH "
+        "are about disposition and rationale mechanics and need a single-seat rule; "
+        "point the constant at one that still is, do not add a seat to their bodies."
+    )
+
+
 # --- the paths that are gated --------------------------------------------------
 
 @pytest.mark.parametrize(
@@ -114,7 +133,7 @@ def test_baseline_reset_cannot_ride_along_unattested():
 
 
 def test_correct_disposition_unblocks():
-    assert twokey.evaluate(["quality/judge/rubric-sports.md"], BODY_OK) == []
+    assert twokey.evaluate([ONE_SEAT_PATH], BODY_OK) == []
 
 
 # --- both keys, when a rule needs two ------------------------------------------
@@ -138,7 +157,7 @@ def test_consequence_class_change_needs_legal_sign_off():
 # --- the rationale has to be reasoning ------------------------------------------
 
 def test_disposition_without_rationale_blocks():
-    problems = twokey.evaluate(["quality/judge/rubric-sports.md"], "Two-Key-Disposition: ai-quality")
+    problems = twokey.evaluate([ONE_SEAT_PATH], "Two-Key-Disposition: ai-quality")
     assert problems and "rationale" in problems[0].lower()
 
 
@@ -159,7 +178,7 @@ def test_multiline_rationale_is_accepted():
         "Two-Key-Rationale: the calibration run published an agreement number\n"
         "  that supports this floor, and headroom stays at three cases\n"
     )
-    assert twokey.evaluate(["quality/judge/rubric-sports.md"], body) == []
+    assert twokey.evaluate([ONE_SEAT_PATH], body) == []
 
 
 # --- probe corpus additionally needs an ADR --------------------------------------
@@ -201,7 +220,7 @@ def test_render_names_the_seats_and_the_files():
 # padded to clear a bar the gate had just announced. The rule counts substance
 # now, so padding a pointer makes it longer and no more of a reason.
 
-GATED = ["quality/judge/rubric-sports.md"]
+GATED = [ONE_SEAT_PATH]
 
 
 def _body(rationale: str) -> str:
@@ -804,7 +823,7 @@ def test_citing_an_adr_does_not_block_a_rule_that_needs_none(repo):
     """A false refusal an earlier version invented: citing `docs/adr/README.md` for
     context blocked a `quality/judge/` PR, which owes no ADR at all."""
     root, base = repo
-    assert _verdict(root, base, ["quality/judge/rubric.yaml"],
+    assert _verdict(root, base, [ONE_SEAT_PATH],
                     _attested_body(["ai-quality"], ["docs/adr/README.md"])) == []
 
 

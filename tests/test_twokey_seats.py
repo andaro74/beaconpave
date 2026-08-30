@@ -121,18 +121,18 @@ ADR043_SEATS = {
     # catch it was ONE diff, 2208 passed, keys `ai-quality` and `platform-eng`.
     # Security is on all four rules that require an ADR and alone on
     # `quality/adversarial/`, and was not asked.
-    "pave/twokey.py": {"ai-quality", "platform-eng", "security"},
-    "pave/tests/test_twokey.py": {"ai-quality", "platform-eng", "security"},
-    ".github/workflows/two-key.yml": {"ai-quality", "platform-eng", "security"},
+    "pave/twokey.py": {"ai-quality", "legal-sp", "platform-eng", "security"},
+    "pave/tests/test_twokey.py": {"ai-quality", "legal-sp", "platform-eng", "security"},
+    ".github/workflows/two-key.yml": {"ai-quality", "legal-sp", "platform-eng", "security"},
     # ADR-052 round 2, both from the Security seat. `__init__.py` is 0 bytes and
     # runs on any `pave.X` import -- a shim rebinding `adr_records`, guarded by
     # `if "pytest" not in sys.modules`, made the live gate mint a record for a file
     # the PR never touched at 2219 passed, zero keys. The fixtures hold the replay
     # that justifies ADR-051's largest reversal and the CRLF corpus: inflating the
     # replay 60 -> 300 rows was 2219 passed, zero keys.
-    "pave/__init__.py": {"ai-quality", "platform-eng", "security"},
-    "pave/tests/fixtures/adr_bar_replay.json": {"ai-quality", "platform-eng", "security"},
-    "pave/tests/fixtures/pr_bodies.json": {"ai-quality", "platform-eng", "security"},
+    "pave/__init__.py": {"ai-quality", "legal-sp", "platform-eng", "security"},
+    "pave/tests/fixtures/adr_bar_replay.json": {"ai-quality", "legal-sp", "platform-eng", "security"},
+    "pave/tests/fixtures/pr_bodies.json": {"ai-quality", "legal-sp", "platform-eng", "security"},
     # **What these pins buy, precisely.** Against a NARROWED alternation the
     # ratchet above is what bites, and five of six ADR-052 entries here are
     # redundant to it -- measured, deleting five leaves 177 passed, because
@@ -149,6 +149,15 @@ ADR043_SEATS = {
     # whose 1 -> 0 makes every rule report BLOCKED and exit 0. Two seats: Security
     # because it owns every ADR-requiring rule, Platform Engineering the mechanism.
     "pave/twokeycli.py": {"platform-eng", "security"},
+    # ADR-053, closing SPEC/06 A19 (decision 6) and A14's key half (decision 12).
+    # A19's cheap route SATISFIES the freeze guards rather than attacking them: edit
+    # `prompt.md`, recompute the digests, keep the instrument name and shadow the old
+    # row -- 1 failed then clean, on one key. A14: flipping `MER-AI-0001` to
+    # `enforced` switches off its own review clock at 2079 passed, on no key at all.
+    "quality/judge/prompt.md": {"ai-quality", "security"},
+    "quality/judge/frozen.json": {"ai-quality", "security"},
+    "rules/MER-AI-0001.yaml": {"legal-sp", "security"},
+    "rules/schema.json": {"legal-sp", "security"},
     "pave/gate.py": {"platform-eng", "security"},
     "pave/verdict.py": {"platform-eng", "security"},
 }
@@ -203,8 +212,11 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           "the budget derivation pin",
                                           # ADR-052
                                           "the definition of what discharges one",
-                                          "the gate's own process"))]
-    assert len(added) == 15, (
+                                          "the gate's own process",
+                                          # ADR-053
+                                          "judge rubric, calibration set",
+                                          "the rule registry"))]
+    assert len(added) == 17, (
         f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one, "
         f"ADR-049's three and ADR-052's two, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
@@ -299,6 +311,14 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
         # narrowing the pattern back to `\.py$` was **181 passed, SILENT**, and a
         # package shadowing the module is exactly the attack the arm exists to key.
         # A path that need not exist, like the scaffold's, so it pins the SHAPE.
+        # ADR-053. Both are prefix rules, so the required paths include one that
+        # need not exist -- the shape is what is pinned, not today's file list.
+        "judge rubric, calibration set": [
+            "quality/judge/prompt.md", "quality/judge/frozen.json",
+            "quality/judge/a-rubric-not-written-yet.md"],
+        "the rule registry": [
+            "rules/MER-AI-0001.yaml", "rules/schema.json",
+            "rules/a-rule-nobody-has-drafted.yaml"],
         "the gate's own process": ["pave/twokeycli.py", "pave/gate.py",
                                    "pave/verdict.py",
                                    "pave/twokeycli/__init__.py",
@@ -309,9 +329,9 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # passed -- unlike `len(added) == 15` and `len(ADR043_SEATS) >= 8`, these path
     # lists had no pin of their own.
     total = sum(len(v) for v in required.values())
-    assert total == 51, (
+    assert total == 57, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "51. Deleting a required path in the same diff that "
+        "57. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -629,6 +649,13 @@ def test_g4s_semantics_allowlist_lives_wherever_securitys_key_reaches():
             f"{rel} defines G4's pass-semantics allowlist and collects {sorted(seats)}"
         )
         assert any(rule.requires_adr for rule, _ in hits), f"{rel} owes an ADR and does not"
+#: The seat set on the module that defines what discharges an ADR. `legal-sp`
+#: joined at ADR-053 as an OUTPUT of ADR-052 decision 2, not as a preference: giving
+#: `rules/` a `requires_adr` rule handed Legal/S&P an ADR requirement, and the
+#: derived test refuses a seat holding one it cannot defend.
+FOUR_SEATS = {"ai-quality", "legal-sp", "platform-eng", "security"}
+
+
 def test_weakening_what_discharges_an_adr_collects_security():
     """**Measured on 6589827, one diff, both files.** Restore the substance bar in
     `adr_records` to `< 1` -- v3's defect, the one four seats defeated -- and
@@ -655,12 +682,12 @@ def test_weakening_what_discharges_an_adr_collects_security():
     it fit in one diff: guarding the module alone leaves the tests removable, and
     ADR-044 measured that exact asymmetry twice."""
     _blocked_for(["pave/twokey.py", "pave/tests/test_twokey.py"],
-                 {"ai-quality", "platform-eng", "security"})
+                 {"ai-quality", "legal-sp", "platform-eng", "security"})
     # And EACH file alone. The two-file form unions their seats, so dropping
     # `pave/tests/test_twokey.py` from the rule left this assertion green --
     # measured, and the reason the per-file check is here rather than implied.
-    _blocked_for(["pave/tests/test_twokey.py"], {"ai-quality", "platform-eng", "security"})
-    _blocked_for(["pave/twokey.py"], {"ai-quality", "platform-eng", "security"})
+    _blocked_for(["pave/tests/test_twokey.py"], FOUR_SEATS)
+    _blocked_for(["pave/twokey.py"], FOUR_SEATS)
 
 
 def test_the_definition_of_a_decision_record_carries_every_adr_rules_seats():
@@ -1322,3 +1349,57 @@ def test_the_derivation_reads_execution_not_text(tmp_path):
     root = _workflow_running(
         tmp_path, 'python -m pave.elsewhere --base "$BASE" --changed "${C[@]}"')
     assert _ci_gate_entrypoint(root=root) == "pave/elsewhere.py"
+
+
+def test_refreezing_the_judge_on_one_key_collects_security():
+    """**SPEC/06 A19, and decision 6.** Drafts 5-8 recorded this as explicitly NOT an
+    attack: `quality/judge/frozen.json` is defended three layers deep by
+    `held_out_guard()`, `matching_instrument()` and two position/name pins. All three
+    are real, and all three live in `evals/judge.py`, which is FREE.
+
+    The route that matters does not attack them, it **satisfies** them. Edit
+    `quality/judge/prompt.md`, recompute `prompt_sha256` and `rendered_sha256`
+    through `judge.instrument()`, keep the instrument name `B`, and append the
+    previous B as a retired row also named `B` -- you do not rename, you shadow.
+    A real retune is loud at 15 failed; the refreeze is 1 failed and then clean, on
+    **one key**. Attacking the guards directly is dearer AND noisier, which is why
+    the one-key route is the cheap one.
+
+    `security` and not a third seat, on decision 6's standard settled in round 10:
+    the counterweight is the seat with a concrete object to check, and it may not be
+    `ai-quality`, which owns the rubric whose scores this freeze decides."""
+    _blocked_for(["quality/judge/prompt.md"], {"ai-quality", "security"})
+    _blocked_for(["quality/judge/frozen.json"], {"ai-quality", "security"})
+    seats = _seats_for("quality/judge/prompt.md")
+    assert "ai-quality" in seats and len(seats) > 1, (
+        "G9: the seat that owns the rubric cannot be the only key on the freeze that "
+        "decides what its scores mean"
+    )
+
+
+def test_declaring_a_rule_enforced_collects_two_seats_and_an_adr():
+    """**SPEC/06 A14's key half, and decision 12.** `rules/` is the Legal/S&P seat's
+    entire surface and was on no rule at all. Flipping `MER-AI-0001` from `proposed`
+    to `enforced` while its only control is `no-control` was **2079 passed** --
+    `tests/test_contracts.py`'s guard reads `if effective and rule["status"] !=
+    "enforced"`, so declaring a rule enforced switches off its own review clock.
+
+    `(legal-sp, security)` is decision 12's, not this file's. Round 11 refused
+    `data-governance`, chosen off a census, because *What M06 must not do* forbids a
+    rule derived from one; the standard is decision 6's -- the seat with a concrete
+    object to check. `rules/schema.json` types `disposition.controls[].type` as an
+    enum including `guardrail`, and Security already reads deployed guardrail
+    evidence. The counterweight cannot be `legal-sp`, which owns the registry.
+
+    **This is the key and nothing else, and decision 12 is explicit.** `effective` is
+    optional in the schema, so a rule that OMITS it is never examined -- planted at
+    2079 passed, a literally immortal enforced rule, green -- and making it required
+    is a schema change that is Legal/S&P's call. "No orphan rules" is owed to M07."""
+    _blocked_for(["rules/MER-AI-0001.yaml"], {"legal-sp", "security"})
+    hits = twokey.triggered(["rules/MER-AI-0001.yaml"])
+    assert any(rule.requires_adr for rule, _ in hits), (
+        "decision 12 asks for the ADR by name: a rule's status is a published "
+        "governance claim, not a routine edit"
+    )
+    # A rule file nobody has drafted yet is covered the day it lands.
+    _blocked_for(["rules/a-rule-nobody-has-drafted.yaml"], {"legal-sp", "security"})
