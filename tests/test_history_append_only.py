@@ -715,8 +715,15 @@ def test_a_published_number_with_no_entry_behind_it_is_red(tmp_path):
     # StopIteration. It needs a row whose goldens cell is still `-` and that
     # `README_GOLDENS` pins to nothing, so the mutation it plants is the violation it
     # names. `m06` stopped qualifying at the M06 close, exactly as the note here
-    # predicted, and `m06b` -- the interlock work M06 did not build, renumbered out of
-    # M06 by SPEC/06 decision 2 -- is the next unclosed row.
+    # predicted, and `m06b` is the next unclosed row.
+    #
+    # **What `m06b` carries changed under this anchor, which is worth recording.**
+    # SPEC/06 decision 2 renumbered "the interlock work M06 did not build" onto this
+    # row and ADR-054 wrote it there; ADR-055 took it back off, because the only
+    # recorded disposition on deploying `publish-highlight` is Legal/S&P's `no` and
+    # whether that is standing or M06-scoped is open. The row now carries the
+    # trajectory eval. This comment described the old contents and said so in the
+    # indicative -- the same defect ADR-054 and ADR-055 are both about, one file down.
     #
     # **This anchor expires at every close, by construction.** It is a test that
     # borrows a real row and must be re-pointed when that row fills in; the failure is

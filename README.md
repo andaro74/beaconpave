@@ -39,7 +39,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | | **— part two: the path that creates one —** | | | | | | |
 | 05 | `pave new` scaffold + manifest verify | six PRs ※ | `m05` | not run ※ | not run ※ | not run ※ | ✅ |
 | 06 | Attack register + two-key gate integrity | ten PRs ✦ | `m06` | **21/25** ✦ | not judged ✧ | not run ✦ | ✅ |
-| 06b | 2nd tool + consequence interlock | `m06b-consequence` | `m06b` | –/25 | – | –/10 | ⬜ |
+| 06b | Trajectory eval + `entitlement-check` ❖ | `m06b-trajectory` | `m06b` | –/25 | – | –/10 | ⬜ |
 | 07 | Rules registry + regdelta loop | `m07-rules` | `m07` | –/25 | – | – | ⬜ |
 | 08 | Playwright + k6 on one verdict schema | `m08-surfaces` | `m08` | – | – | – | ⬜ |
 | 09 | Game-day drill + go/no-go artifact | `m09-drill` | `m09` | – | – | – | ⬜ |
@@ -103,8 +103,10 @@ in the history entry itself rather than only in prose. The control claims
 `source: entitlement-check` — a tool it does not have — in 10 of the 11 cases
 asserting provenance: it reads the answer schema out of its own prompt and picks
 the flattering enum value. A tightening (demote `entitlement_source` to advisory
-until M06's trajectory eval can verify the call) is drafted and lands after the
-tag, never before. Three of the ten failures are also latency-only against
+until the trajectory eval can verify the call) is drafted and lands after the
+tag, never before. **That eval was scheduled for M06, which did not build it;
+it is M06b's, and this sentence used to name M06** (❖). Three of the ten
+failures are also latency-only against
 `p95_ms` ceilings never derived from measurement — that correction is owed too,
 and 15/25 is recorded as-run rather than adjusted toward either direction. See
 `milestones/M00b/README.md`.
@@ -302,6 +304,19 @@ drafts 4–5 plus a superseded ADR-045; it was never merged and is **not** what 
 tag `m05` marks. A team onboarding after M05 still does one PR — the split is CI
 hygiene and is invisible to them.
 
+❖ **The 06b row was copied forward past a question nobody asked.** ADR-054 renamed
+M06 to what it shipped and moved the interlock text onto a new `06b` row — by
+copying it, not by re-deriving it against the record. The record holds one
+disposition on deploying `publish-highlight`, `SPEC/06` Decisions 1: *"Answered by
+Legal/S&P: no… Recorded so it is not re-opened."* **Whether that refusal is standing
+or was scoped to M06 is genuinely open**, and it is Legal/S&P's to answer rather
+than anyone's to infer; both readings are recorded in ADR-055. What holds under
+either is that a row may not publish work whose authorization is open — standing,
+the row published refused work; scoped, it published work still needing an approval
+the record has never granted. So the row carries what M06b actually builds, and
+claim 10's `M` cell is `—`: **unscheduled, not refused**, which is the only cell
+that does not pre-empt the seat. ADR-055.
+
 ## What part one produced
 
 Deliberately without restating a scored number: every one of them is in the
@@ -364,7 +379,7 @@ Anything that doesn't serve one is out of scope.
 | 7 | AI proposes, a human disposes, rates published | An `ai-proposed` PR merged; curation panel | 10 |
 | 8 | Self-heal classifies before it repairs | Classifier test suite + one drift-repair PR | 10 |
 | 9 | Judges are calibrated or advisory | ✅ **Advisory, by measurement.** [`held-out-report.json`](milestones/M03/judge/held-out-report.json) — 20 held-out items at `k_judge=3`, every axis demoted, seat correction rate 0/20 published beside it. Auto-demotion test both directions in [`tests/test_judged_entry.py`](tests/test_judged_entry.py); a demoted axis cannot block, a calibrated one turns a deterministic PASS into a judged FAIL | 03 |
-| 10 | Consequence classes gate real actions | `publish_highlight` waits on human approval | 06b |
+| 10 | Consequence classes gate real actions | ⬜ **UNSCHEDULED** ❖ — no milestone carries this claim. It needs a `publish-highlight` deployment, and the only recorded disposition on one is Legal/S&P answering *no* (`SPEC/06` Decisions 1). Whether that refusal is standing or was scoped to M06 is an open question for that seat | — |
 | 11 | Readiness drills produce go/no-go artifacts | NO-GO → fix → delta drill → GO | 09 |
 | 12 | Defect leakage is counted honestly | Increments from rollbacks, never gate failures | 10 |
 
