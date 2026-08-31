@@ -118,7 +118,8 @@ class ToolDecision:
 
     def as_record_fragment(self, *, round_number: int, args: dict | None = None,
                            principal: str | None = None,
-                           exemptions: list[str] | None = None) -> dict:
+                           exemptions: list[str] | None = None,
+                           executed: bool | None = None) -> dict:
         """The `tool` object in an audit record. Carries the arguments so a denial
         can be reconstructed later — a refusal nobody can account for is
         indistinguishable from a bug.
@@ -135,7 +136,16 @@ class ToolDecision:
         **`exemptions` is the interlock's evidence**, and it had a schema slot, a
         producer (`Approval.as_exemptions`) and no wire between them. Wired now,
         while the slot is new, rather than discovered at M06 when a released
-        publish records `allowed`/`none` and looks like an ungated read."""
+        publish records `allowed`/`none` and looks like an ungated read.
+
+        **`executed` is not a property of the decision, which is why it is a
+        parameter.** A `ToolDecision` knows what the plane permitted; only the
+        caller knows whether the tool was then reached. `handler._tool_probe`
+        authorizes and calls nothing, so it passes `False` on an ALLOWED decision --
+        the combination that made a lake-derived trajectory forgeable (`SPEC/06b`
+        B9). Omitted rather than defaulted to `False`, because a fragment built by
+        code that does not know is making no claim, and a `False` it did not mean
+        would be a claim."""
         fragment = {
             "id": self.tool_id,
             "round": round_number,
@@ -143,6 +153,8 @@ class ToolDecision:
             "mechanism": self.mechanism,
             "reasons": list(self.reasons),
         }
+        if executed is not None:
+            fragment["executed"] = executed
         if args is not None:
             fragment["args"] = args
         if principal is not None:

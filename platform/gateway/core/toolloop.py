@@ -137,6 +137,11 @@ class ToolCall:
     args: dict
     tool_use_id: str | None = None
     payload: object | None = None
+    #: Whether the tool function was reached. NOT derivable from `payload`: a call
+    #: that ran and had its result rejected carries `payload=None` and `executed=True`,
+    #: and reading execution off the payload would report those as never having
+    #: happened. See `SPEC/06b` B9.
+    executed: bool = False
 
 
 class TurnFailed(Exception):
@@ -199,6 +204,7 @@ class TurnOutcome:
                 "decision": "allowed" if call.decision.allowed else "denied",
                 "mechanism": call.decision.mechanism,
                 "reasons": list(call.decision.reasons),
+                "executed": call.executed,
             }
             for call in self.calls
         ]
@@ -419,9 +425,14 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
             # of the reason the model is told — see `_tool_result_block`.
             withheld = False
 
+            executed = False
             if decision.allowed:
                 started = clock()
                 reply = call_tool(tool_id, args)
+                # Reached, therefore executed -- decided HERE and not from what
+                # comes back. Everything below this line can turn the decision to
+                # denied, and none of it un-runs the tool.
+                executed = not reply.unreachable
                 totals["tool_ms"] = totals.get("tool_ms", 0) + _tool_ms(started, clock())
                 if reply.error is not None:
                     withheld = True
@@ -440,7 +451,8 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
                         decision = ToolDecision(False, tool_id, checked.mechanism, tuple(
                             f"result rejected: {reason}" for reason in checked.reasons))
 
-            calls.append(ToolCall(decision, turn.rounds, seq, args, use.get("toolUseId"), payload))
+            calls.append(ToolCall(decision, turn.rounds, seq, args, use.get("toolUseId"),
+                                  payload, executed))
 
             # **After the output contract, before the transcript.** The plane
             # decides whether the result is well-formed; the guardrail decides

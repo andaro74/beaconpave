@@ -89,6 +89,61 @@ def keyword(call: ast.Call, name: str):
 
 # --- the control is wired up at all ------------------------------------------
 
+def _call_named(tree, func_name, callee_attr):
+    """Every call to `<something>.<callee_attr>` inside `def func_name`."""
+    import ast
+    fn = next(n for n in ast.walk(tree)
+              if isinstance(n, ast.FunctionDef) and n.name == func_name)
+    return [n for n in ast.walk(fn)
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+            and n.func.attr == callee_attr]
+
+
+def _kwarg(call, name):
+    return next((k.value for k in call.keywords if k.arg == name), None)
+
+
+def test_the_probe_path_records_that_it_ran_nothing(tree):
+    """**`SPEC/06b` B9.** `_tool_probe` authorizes and calls nothing -- its own
+    docstring says *"an allowed probe still calls nothing"* -- and it writes a full
+    `decision: allowed` audit record for that. Until `tool.executed` existed, that
+    record was indistinguishable from a real first tool call, and it could land on
+    the same lake key: `authorize()` increments `calls` before returning, so both
+    this path and `toolloop` hand `seq=1` to `record_key`, and `request_id` is
+    caller-supplied. So a trajectory derived from the lake by counting allowed
+    records credited a call that never happened.
+
+    This is asserted on the source because `handler.py` holds the boto3 clients and
+    is outside the hermetic surface (ADR-039) -- the same reason every other check
+    in this file reads the tree instead of running it."""
+    import ast
+    calls = _call_named(tree, "_tool_probe", "as_record_fragment")
+    assert len(calls) == 1, f"expected one fragment built in _tool_probe, found {len(calls)}"
+    executed = _kwarg(calls[0], "executed")
+    assert executed is not None, (
+        "_tool_probe builds an audit fragment without saying whether the tool ran. "
+        "It runs nothing, so it must say so: an omitted `executed` means UNKNOWN, and "
+        "this path knows.")
+    assert isinstance(executed, ast.Constant) and executed.value is False, (
+        "_tool_probe must record executed=False -- it authorizes and calls nothing")
+
+
+def test_the_model_path_records_execution_from_the_call_and_not_from_the_decision(tree):
+    """The real path must report what the loop OBSERVED, not what the plane
+    permitted. `call.executed` is tracked at the point the tool is reached; reading
+    it off `decision.allowed` would credit a call the platform could not route, and
+    reading it off `payload` would deny one whose result was rejected after it ran."""
+    import ast
+    calls = _call_named(tree, "_tool_records", "as_record_fragment")
+    assert len(calls) == 1, f"expected one fragment built in _tool_records, found {len(calls)}"
+    executed = _kwarg(calls[0], "executed")
+    assert executed is not None, "_tool_records builds a fragment that says nothing about execution"
+    assert isinstance(executed, ast.Attribute) and executed.attr == "executed", (
+        "execution must come from the ToolCall the loop produced")
+    assert isinstance(executed.value, ast.Name) and executed.value.id == "call", (
+        f"expected `call.executed`, got `{ast.unparse(executed)}`")
+
+
 def test_the_handler_is_the_only_thing_that_needs_this_file(tree):
     """A guard on the guard. If `run_turn` stops being called here, every
     assertion below passes vacuously and this file becomes decoration — the

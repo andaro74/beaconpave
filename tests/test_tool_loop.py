@@ -360,6 +360,52 @@ def test_an_unreachable_tool_still_lets_the_turn_finish():
     assert outcome.answer == "answered without the tool"
 
 
+def test_a_call_that_ran_and_was_then_rejected_still_counts_as_executed():
+    """**Execution is not derivable from the payload, which is why it is tracked.**
+
+    A tool whose RESULT fails the output contract carries `payload=None` and a
+    `denied` decision -- but it ran. Reading execution off the payload, or off the
+    final decision, would report it as never having happened, and a trajectory
+    built that way would under-credit exactly the calls whose results were
+    suppressed. `SPEC/06b` B9."""
+    bad = {"results": [{"id": "t001", "blackout_dmas": ["jefferson-city"]}]}
+    converse, tool = Converse(tool_use(), final()), Tool(toolloop.ToolReply(payload=bad))
+    outcome = run(converse, tool)
+
+    assert tool.asked, "the tool must actually have been called for this to mean anything"
+    call = outcome.calls[0]
+    assert call.executed is True, "the tool was reached; only its result was rejected"
+    assert call.payload is None and not call.decision.allowed
+    assert outcome.trajectory()[0]["executed"] is True
+
+
+def test_a_tool_the_platform_could_not_reach_did_not_execute():
+    """The other side of the distinction: unreachable means it never ran, even
+    though the plane allowed it."""
+    converse = Converse(tool_use(), final())
+    outcome = run(converse, Tool(toolloop.ToolReply(error="boom", unreachable=True)))
+    assert outcome.calls[0].executed is False
+    assert outcome.trajectory()[0]["executed"] is False
+
+
+def test_a_refused_call_never_reaches_the_tool():
+    """And a call the plane denied is never even attempted."""
+    converse = Converse(tool_use(name="catalog-purge"), final())
+    tool = Tool(toolloop.ToolReply(payload=RESULT))
+    outcome = run(converse, tool)
+    assert not tool.asked
+    assert outcome.calls[0].executed is False
+    assert outcome.trajectory()[0]["executed"] is False
+
+
+def test_a_call_that_ran_and_returned_a_good_result_is_executed():
+    """The happy path, so the three above are not all measuring `False`."""
+    converse = Converse(tool_use(), final())
+    outcome = run(converse, Tool(toolloop.ToolReply(payload=RESULT)))
+    assert outcome.calls[0].executed is True
+    assert outcome.trajectory()[0]["executed"] is True
+
+
 def test_a_tool_that_errored_is_a_contract_failure_and_not_a_new_mechanism():
     """A tool that failed produced no result, so it fails its output contract.
     Inventing a mechanism for "the tool broke" would have meant one more name to

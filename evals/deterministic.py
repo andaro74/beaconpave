@@ -258,18 +258,46 @@ class Scorer:
                 "tool_before_answer", False,
                 f"no-evidence: no trajectory recorded, so whether {expected} was called "
                 "was never established (INFRA, not FAIL, once this is scored)")
-        called = {step.get("tool") for step in trajectory if step.get("decision") == "allowed"}
+        # **`allowed` is not `ran`, and crediting it was the forgery.** `SPEC/06b` B9:
+        # `handler._tool_probe` writes a full `decision: allowed` record for a call it
+        # explicitly does not make, at a lake key it can share with a real one. An
+        # assert that counted allowed steps credited that. `executed` (ADR-057) is the
+        # field that separates them, so this requires it rather than the decision.
+        called = {step.get("tool") for step in trajectory
+                  if step.get("decision") == "allowed" and step.get("executed") is True}
         if expected in called:
             return AssertResult("tool_before_answer", True, "")
+        # Authorized, and no witness that it ran. Distinguished from "never
+        # authorized" because they are different failures with different owners:
+        # this one is evidence the platform cannot produce, not a model that did
+        # not call the tool. `is True` above, so an ABSENT witness lands here --
+        # every record written before ADR-057 lacks the field, and absent means
+        # unknown, which is not the same as credited.
+        unwitnessed = [step for step in trajectory
+                       if step.get("tool") == expected
+                       and step.get("decision") == "allowed"
+                       and step.get("executed") is not True]
+        if unwitnessed:
+            return AssertResult(
+                "tool_before_answer", False,
+                f"no-evidence: {expected} was authorized but nothing witnesses that it "
+                f"ran (executed={unwitnessed[0].get('executed')!r}) (INFRA, not FAIL, "
+                "once this is scored)")
         refused = [step for step in trajectory
                    if step.get("tool") == expected and step.get("decision") != "allowed"]
         if refused:
             return AssertResult(
                 "tool_before_answer", False,
                 f"{expected} was refused ({refused[0].get('mechanism')}) and never ran")
+        # **The diagnostic reports what was AUTHORIZED, not what ran.** The pass
+        # condition needs the witness; the failure message needs to tell a reader a
+        # wrong tool from no tools at all, and narrowing this to executed steps
+        # silently turned "authorized: ['catalog-search']" into "nothing".
+        authorized = sorted({step.get("tool") for step in trajectory
+                             if step.get("decision") == "allowed"})
         return AssertResult(
             "tool_before_answer", False,
-            f"{expected} never called; authorized: {sorted(called) or 'nothing'}")
+            f"{expected} never called; authorized: {authorized or 'nothing'}")
 
     def budget(self, usage: dict, ceiling: dict) -> AssertResult:
         """Token-denominated (ADR-014). Dollars are rendered at report time and

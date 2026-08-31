@@ -75,6 +75,21 @@
     "scorer_sha256": "e94158d5ffea80c80e3d491a58e7a7cf88eee75cbe2545db7baad493fd864207",
     "semantics_sha256": "fe487fd671953e0ddb93dc0479af1a1916de2ae71d7bbda8b1115ffcebc1e89e"
    }
+  },
+  "m04-F": {
+   "registered": "2026-08-31",
+   "corpus_size": 11,
+   "first_entry": "none yet - registered as a PRECONDITION for the capture change, not a successor to it (ADR-038). No suite is re-scored under it here; the first entry naming it is produced by whatever run records one next.",
+   "why": "The tool-plane record gains an execution witness. `core/toolloop.py` now tracks whether the tool FUNCTION WAS REACHED, distinct from whether the plane authorized the call, and `tool.executed` carries it into the record -- so `guardrail_sha256` moves, which is the only digest that does. Registered as a PRECONDITION for the change rather than after it (ADR-038). Why the capture path needed it: `handler._tool_probe` writes a full `decision: allowed` record for a call it explicitly does not make, at a lake key it can share with a real first call -- `authorize()` increments `calls` before returning, so both paths hand `seq=1` to `record_key` and `request_id` is caller-supplied. A trajectory derived from the lake by counting allowed records therefore credited calls that never ran. Nothing in this instrument scores `executed`; it changes what a captured record CAN say, which is exactly the kind of move a name exists to fence off. `SPEC/06b` B9, ADR-057.",
+   "digests": {
+    "scorer_sha256": "e94158d5ffea80c80e3d491a58e7a7cf88eee75cbe2545db7baad493fd864207",
+    "semantics_sha256": "fe487fd671953e0ddb93dc0479af1a1916de2ae71d7bbda8b1115ffcebc1e89e",
+    "probes_sha256": "9c5a98401697eec5e32ff91bbed3e097cef0248f2c982222c12de6bbcae28b6b",
+    "g4_cases_sha256": "3fe4fef50e254915ffe166d7f82c88e99ad8f445188afbe7d9318bf6c5c4f269",
+    "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+    "guardrail_sha256": "957134b35e6a4546e541b2b301867e4b6df6cc40fc7df96fbff3da2be6da72ec",
+    "capture_sha256": "3aaa3a6f2ae736812c3fe7a39fea4b4cb4167a70f176164d00993ee67e9fb2cb"
+   }
   }
  }
 }
