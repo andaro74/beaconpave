@@ -24,9 +24,11 @@ reason: what a module *can* reach is a stronger statement than what it did.
 Hermetic. Owning seat: AI Quality (comparability) · Platform Engineering.
 """
 import ast
+import copy
 import hashlib
 import json
 import pathlib
+import sys
 from collections import Counter
 
 import pytest
@@ -207,15 +209,129 @@ def test_the_m02_prompt_is_hash_pinned():
 #: `description` and full input schema, which is model-facing text nobody pinned:
 #: the description shipped a reviewer-facing rationale as tool documentation, and
 #: the schema carries catalog vocabulary the control arm had inside `CATALOG:`.
-def rendered_model_surface() -> str:
+def rendered_prompt() -> str:
     schema = (ROOT / "services" / "highlights-agent" / "evals" / "answer.schema.json")
-    prompt = GOVERNED_CONSTANTS["TOOL_SYSTEM"].format(schema=schema.read_text(encoding="utf-8"))
+    return GOVERNED_CONSTANTS["TOOL_SYSTEM"].format(schema=schema.read_text(encoding="utf-8"))
+
+
+def rendered_tool_specs() -> list:
     contracts = json.loads(
         (ROOT / "platform" / "gateway" / "policy" / "tools.contracts.json").read_text(
             encoding="utf-8"))
     routed = infra.routed_tools(json.loads(GATEWAY_SNAPSHOT.read_text(encoding="utf-8")))
-    specs = json.dumps([contracts[t]["input"] for t in routed if t in contracts])
-    return prompt + "\n" + specs
+    return [contracts[t]["input"] for t in routed if t in contracts]
+
+
+def rendered_model_surface() -> str:
+    return rendered_prompt() + "\n" + json.dumps(rendered_tool_specs())
+
+
+def _strings(node, path=""):
+    """Every string in a spec, with the path it sits at.
+
+    A substring scan over the serialised blob cannot tell a declared enum value from
+    a market named in a `description`, and after ADR-056 that difference is the rule."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            yield from _strings(value, f"{path}.{key}")
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            yield from _strings(value, f"{path}[{index}]")
+    elif isinstance(node, str):
+        yield path, node
+
+
+def _enums(node, path=""):
+    """`(path, frozenset(values))` for every string-valued `enum` in a spec."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "enum" and isinstance(value, list) and all(isinstance(v, str) for v in value):
+                yield f"{path}.enum", frozenset(value)
+            else:
+                yield from _enums(value, f"{path}.{key}")
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            yield from _enums(value, f"{path}[{index}]")
+
+
+def _deployed_specs():
+    """What `rendered_tool_specs` returns once M06b's step 2 routes the second tool.
+
+    Built from the committed contracts rather than from a hand-written schema, so
+    these tests move when the real contract moves. A fixture would let the tool's
+    schema drift away from the rule that is supposed to govern it -- which is the
+    shape ADR-047 found between a template and the service it copies."""
+    contracts = json.loads(
+        (ROOT / "platform" / "gateway" / "policy" / "tools.contracts.json").read_text(
+            encoding="utf-8"))
+    return [copy.deepcopy(contracts["catalog-search"]["input"]),
+            copy.deepcopy(contracts["entitlement-check"]["input"])]
+
+
+def _catalog_check(monkeypatch, specs=None, prompt=None):
+    if specs is not None:
+        monkeypatch.setattr(sys.modules[__name__], "rendered_tool_specs", lambda: specs)
+    if prompt is not None:
+        monkeypatch.setattr(sys.modules[__name__], "rendered_prompt", lambda: prompt)
+    test_the_catalog_is_gone_from_everything_the_model_receives()
+
+
+def test_deploying_the_second_tool_is_permitted_by_the_amended_rule(monkeypatch):
+    """**ADR-056's whole claim, asserted rather than described.**
+
+    Before it, routing `entitlement-check` made the check above red on all six
+    market names, because a tool cannot declare which markets it accepts without
+    naming them. This is the test that would go red if the amendment were ever
+    reverted while the tool stayed deployed -- so the decision cannot rot into a
+    comment."""
+    specs = _deployed_specs()
+    assert specs[1]["properties"]["dma"]["enum"], "the tool declares no markets; this is vacuous"
+    _catalog_check(monkeypatch, specs=specs)
+
+
+def test_a_market_enum_narrowed_to_a_subset_is_the_blackout_table(monkeypatch):
+    """The hole ADR-056 had to open and then close in the same diff.
+
+    Publishing the full vocabulary is safe precisely because it distinguishes
+    nothing. `["jefferson-city", "port-william"]` distinguishes exactly the markets
+    that are dark for the derby -- the mapping SPEC/02 removed, re-expressed as a
+    schema the gateway would hand straight to the model."""
+    specs = _deployed_specs()
+    specs[1]["properties"]["dma"]["enum"] = ["jefferson-city", "port-william"]
+    with pytest.raises(AssertionError, match="PROPER SUBSET"):
+        _catalog_check(monkeypatch, specs=specs)
+
+
+def test_a_market_named_in_a_spec_description_is_not_declared_vocabulary(monkeypatch):
+    """Stricter than what it replaced, on the half that was relaxed.
+
+    The old rule was one substring scan and could not tell an enum value from prose.
+    ADR-056 permits the vocabulary *as declared input values* and nowhere else, so a
+    description is checked even though it sits inside a spec the rule now admits.
+    `handler.tool_config` ships descriptions to Bedrock as tool documentation
+    (ADR-043), so prose here reaches the model exactly as the prompt does."""
+    specs = _deployed_specs()
+    specs[1]["properties"]["dma"]["description"] = "e.g. jefferson-city is dark for the derby"
+    with pytest.raises(AssertionError, match="not a declared market enum"):
+        _catalog_check(monkeypatch, specs=specs)
+
+
+def test_an_event_name_is_forbidden_even_as_a_declared_input(monkeypatch):
+    """An event name is half the mapping, and no tool needs to declare one --
+    measured: `jefferson-derby` appears in no committed contract. The relaxation is
+    scoped to markets and does not generalise to 'anything a schema declares'."""
+    specs = _deployed_specs()
+    specs[1]["properties"]["event"] = {"type": "string", "enum": ["jefferson-derby"]}
+    with pytest.raises(AssertionError, match="half the"):
+        _catalog_check(monkeypatch, specs=specs)
+
+
+def test_the_prompt_half_is_untouched_by_the_amendment(monkeypatch):
+    """ADR-056 relaxed the tool specs and nothing else. One bare market name in the
+    system prompt -- no mapping, no event -- is still refused, because that half is
+    where "policy context" would be inlined and is what SPEC/02 refused."""
+    with pytest.raises(AssertionError, match="back in the system prompt"):
+        _catalog_check(monkeypatch, prompt=rendered_prompt() + "\nMarkets: cedar-point.")
 
 
 def test_the_catalog_is_gone_from_everything_the_model_receives():
@@ -225,39 +341,91 @@ def test_the_catalog_is_gone_from_everything_the_model_receives():
     inlined the titles some other way would pass a keyword check.
 
     Checked against the **rendered** surface, including the tool specs. The first
-    version read the pre-`.format()` template and ignored `toolConfig` entirely —
+    version read the pre-`.format()` template and ignored `toolConfig` entirely --
     so it checked one level above where the failure it describes would occur, and
     it did not look at the second thing the model reads at all.
 
-    Every title id, every title string, and the blackout table's own vocabulary
-    must be absent."""
-    prompt = rendered_model_surface()
+    **ADR-056 narrowed what is forbidden and made the check structural.** It used to
+    be one substring scan over prompt-plus-specs banning every DMA name outright,
+    which would have refused `entitlement-check`'s declared input vocabulary -- a
+    tool cannot state which markets it accepts without naming them. What `SPEC/02`
+    argued about is the agent inferring entitlement from its own context, and that
+    needs the *mapping*, which a bare vocabulary does not carry. So:
+
+    - titles, title ids and **event names** stay banned everywhere;
+    - DMA names stay banned outright in the **prompt**, which is the half `SPEC/02`
+      was about and the half where "policy context" would be inlined;
+    - inside tool specs a DMA name is permitted **only** as an enum value, and only
+      where that enum is the *complete* market list.
+
+    The last clause is new, and it closes a hole the old scan closed only by
+    accident. **A `dma` enum narrowed to a subset would leak the mapping** --
+    `["jefferson-city","port-william"]` is precisely the blackout, declared as a
+    schema. Exactness is what makes the vocabulary safe to publish; a subset is the
+    table."""
+    prompt = rendered_prompt()
+    specs = rendered_tool_specs()
+    blob = prompt + "\n" + json.dumps(specs)
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
 
-    assert catalog["titles"], "the catalog fixture has no titles — this check would be vacuous"
-    for title in catalog["titles"]:
-        assert title["id"] not in prompt, f"{title['id']} is inlined in the M02 prompt"
-        assert title["title"] not in prompt, f"{title['title']!r} is inlined in the M02 prompt"
+    assert catalog["titles"], "the catalog fixture has no titles -- this check would be vacuous"
+    assert catalog["blackouts"], "the fixture has no blackout table -- this check would be vacuous"
+    assert catalog["dmas"], "the fixture has no DMAs -- this check would be vacuous"
 
-    # The blackout table's own DATA, not the word "blackout". The answer schema
-    # names `blackout` as a possible verdict and always has — it is in the control
-    # arm's prompt too, so a bare keyword check would fail on something shared by
-    # both arms and prove nothing about either. What must be absent is every DMA
-    # name and every blackout entry, which is the ground truth the agent used to
-    # read out of its own prompt.
-    assert catalog["blackouts"], "the fixture has no blackout table — this check would be vacuous"
-    assert catalog["dmas"], "the fixture has no DMAs — this check would be vacuous"
-    forbidden = set(catalog["dmas"])
-    for event, dmas in catalog["blackouts"].items():
-        forbidden.add(event)
-        forbidden.update(dmas)
-    for token in sorted(forbidden):
+    # 1. The catalog itself, and the EVENT names, stay banned in both halves. These
+    #    are the ground truth the agent used to read out of its own prompt, and no
+    #    tool declares them: measured, `jefferson-derby` is absent from every
+    #    contract, so this clause costs the tool plane nothing.
+    for title in catalog["titles"]:
+        assert title["id"] not in blob, f"{title['id']} is inlined in the M02 prompt"
+        assert title["title"] not in blob, f"{title['title']!r} is inlined in the M02 prompt"
+    for event in catalog["blackouts"]:
+        assert event not in blob.lower(), (
+            f"{event!r} is back in what the model receives. An event name is half the "
+            "blackout mapping and no tool needs to declare one.")
+
+    dmas = frozenset(catalog["dmas"])
+
+    # 2. The prompt half keeps the original rule, undiluted. ADR-056 relaxed the TOOL
+    #    SPECS and nothing else; inlining the table here as "policy context" is the
+    #    thing SPEC/02 refused on the record.
+    for token in sorted(dmas):
         assert token not in prompt.lower(), (
-            f"{token!r} is back in what the model receives. SPEC/02 rejects re-inlining the "
-            "blackout table as 'policy context' on the record: it lets the agent keep inferring "
-            "entitlement from its own prompt while a tool call in the trajectory makes it look "
-            "as though a tool answered — which is what ADR-016 demoted `entitlement_source` for."
-        )
+            f"{token!r} is back in the system prompt. SPEC/02 rejects re-inlining the "
+            "blackout table as 'policy context' on the record: it lets the agent keep "
+            "inferring entitlement from its own prompt while a tool call in the "
+            "trajectory makes it look as though a tool answered -- which is what "
+            "ADR-016 demoted `entitlement_source` for. ADR-056 permits a declared enum "
+            "in a TOOL SPEC; it permits nothing here.")
+
+    # 3. Any enum naming markets must name them ALL. A subset is the mapping.
+    declared = set()
+    for spec in specs:
+        for path, values in _enums(spec):
+            if not values & dmas:
+                continue
+            assert values == dmas, (
+                f"{path} declares {sorted(values)}, a PROPER SUBSET of the market list. "
+                "That is the blackout table wearing a schema: publishing the vocabulary "
+                "is safe because it distinguishes nothing, and a subset distinguishes "
+                "exactly the markets that matter. Declare every market or none.")
+            declared.add(path)
+
+    # 4. Everywhere else in a spec -- descriptions, titles, examples, defaults -- a
+    #    market name is still forbidden. This is what the old substring scan could not
+    #    express, and on this half it is STRICTER than "the blob contains no DMA": a
+    #    description reading "blacked out in jefferson-city" is caught here while
+    #    sitting inside a tool spec the rule now otherwise permits.
+    for spec in specs:
+        for path, value in _strings(spec):
+            if any(path.startswith(f"{d}[") for d in declared):
+                continue
+            hit = next((d for d in sorted(dmas) if d in value.lower()), None)
+            assert hit is None, (
+                f"{hit!r} appears at {path}, which is not a declared market enum. "
+                "ADR-056 permits the vocabulary as a tool's declared input values and "
+                "nowhere else -- prose in a spec reaches the model exactly as the "
+                "prompt does.")
 
 
 def test_the_m02_prompt_is_the_control_prompt_minus_the_catalog_and_nothing_else():
