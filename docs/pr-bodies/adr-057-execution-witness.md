@@ -93,8 +93,12 @@ deletions**, verified append-only with pre-existing rows compared field by field
 
 - **It does not fix the `seq` collision**, deliberately. With the witness present a
   colliding probe record reads `executed: false` — a false negative, which fails
-  closed. Its own entry rather than a widening of the diff carrying an instrument
-  bump.
+  closed, where before the witness the same collision failed **open**. So this diff
+  turns a forgery into a denial-of-evidence: smaller, and the opposite direction.
+  **Registered as `SPEC/06b` B14 in this diff**, with its measurements and its
+  "what a fix must survive" list — the first draft of this PR claimed it was "its
+  own entry" twice while no such entry existed, which is the stated-and-absent
+  shape, caught before this shipped.
 - **It does not deploy `entitlement-check`.** `TOOL_FUNCTIONS` is still
   `['catalog-search']` and the tool has no implementation. With ADR-056, both of
   step 2's recorded blockers are now closed; what remains is building it.
