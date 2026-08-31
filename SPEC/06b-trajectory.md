@@ -1,12 +1,21 @@
 # SPEC/06b — the trajectory eval
 
-**Status:** draft 2, after one round of four seats. **Zero model calls.**
+**Status:** draft 3. **Zero model calls.**
 
 Draft 1 carried seven attacks, and **all seven reproduced exactly** under three
 independent seats. What did not survive was the arithmetic around them and several
-of the conclusions drawn from them. Draft 2 keeps the register, corrects every
-number, and adds six entries the seats found — one of which is a design blocker on
+of the conclusions drawn from them. Draft 2 kept the register, corrected every
+number, and added six entries the seats found — one of which is a design blocker on
 this milestone's own second step.
+
+**Draft 3 withdraws one of those six.** B13 claimed two committed history entries
+contradicted each other about four unearned passes, and called it blocking. The
+facts were right and every conclusion from them was wrong: the entries agree, the
+difference is declared in the instrument, and the attack B13 said was undefended is
+caught three ways. It is replaced by the obligation that was hiding under it — one
+this milestone **creates** rather than inherits. Recorded rather than deleted,
+because a register that quietly drops a claim is the thing this document exists to
+prevent.
 
 ## How to read the numbers in this document
 
@@ -88,8 +97,7 @@ claim, and claims need plants.
 
 **None directly.** No entry in the twelve-claims table says *the platform can tell a
 tool that was called from a tool that was claimed*. What this milestone would make
-true is four other published things — and **one of the four is not what it appears
-to be**, which is B13 and which is itself blocking.
+true is four other published things:
 
 - **The eleven `entitlement_source` asserts**, evaluated on every run and scored on
   none (ADR-016).
@@ -99,9 +107,14 @@ to be**, which is B13 and which is itself blocking.
 - **`SPEC/02`'s pre-registered cost.** M02 took a golden-score loss on purpose by
   taking the blackout table out of the prompt, and wrote that *"M06 is where it is
   repaid."*
-- **The four unearned `m00b` passes** — see **B13**. Draft 1 opened by saying they
-  *"have been unearned since the control was recorded."* That is false as published,
-  and the finding is worse than the error.
+- **The control's fabrication, which the live instrument cannot see.** Draft 1 said
+  *"four `m00b` passes have been unearned since the control was recorded"*, and
+  draft 2 said that claim was invalidated. **Both were wrong, in opposite
+  directions** — see B13. The true statement is sharper: under instrument B,
+  `entitlement_source` is deferred, so the control claiming a tool it does not have
+  costs it **nothing at all** and is recorded in no score. The trajectory eval is
+  what makes that assert scoreable again, at which point the control fails those
+  cases honestly instead of them quietly not counting.
 
 Claim 10 is not in this list and must not be moved. Whether the consequence
 interlock is refused permanently or only for M06 is an **open Legal/S&P
@@ -130,7 +143,7 @@ Neither is a file to edit. Both are decisions above this document.
 Thirteen attacks. Each states the plant, the command, the result, and the restore.
 Read the results as deltas: *baseline* means the suite came back unchanged. B1–B7 are
 draft 1's, independently reproduced by three seats and reported at their 2261
-baseline. B8–B13 are the seats'.
+baseline. B8–B12 are the seats'; B13 is draft 3's, and it refutes a draft-2 entry.
 
 ---
 
@@ -605,29 +618,79 @@ attack that decides Decision 4.
 
 ---
 
-### B13 — two committed history entries share one SHA and disagree about whether four passes are earned
+### B13 — the marks are not owed forward automatically, and un-deferring is what will owe them
 
-**Blocking, and it is not M06b's to fix.** Draft 1's opening rationale was that the
-four `m00b` marks *"have been unearned since the control was recorded."*
+**Draft 2 carried a different B13 and it was wrong. Withdrawn here, with the
+measurement that refutes it**, because a register that quietly drops a claim is the
+thing this document exists to prevent.
+
+**What draft 2 claimed.** Two committed entries share SHA `515ee709` and disagree —
+`m00b-goldens.json` records 15 passed with four unearned marks,
+`m00b-judged-B-goldens.json` records 18 passed with zero — neither declaring the
+other superseded; therefore *"a mark is discharged by silence"*, and the milestone's
+rationale rested on a contradiction. **Every fact in that is true and every
+conclusion drawn from them is false.**
+
+**Why the entries agree.** Entry B declares its instrument, and the instrument says
+what changed:
 
 ```
-m00b-goldens.json           sha=515ee7091518 tag=m00b passed=15 supersedes=None
-                            unearned=['blackout-008','blackout-009','multi-023','edge-024']
-m00b-judged-B-goldens.json  sha=515ee7091518 tag=m00b passed=18 supersedes=None
-                            unearned=[]
-same sha: True   |   all four cases still PASS in both   |   neither carries `supersedes`
+m00b-goldens.json          instrument: ABSENT          entitlement_source SCORED     15/25, 4 marks
+m00b-judged-B-goldens.json instrument.name: "B"
+                           deterministic.scored:   [budget, cited_titles_empty, cited_titles_in_fixture,
+                                                    cites_at_least_one, entitlement, json_schema,
+                                                    must_cite, must_mention, must_not_claim]
+                           deterministic.deferred: ["entitlement_source"]            18/25, 0 marks
 ```
 
-Same SHA, same tag, same suite, same four cases passing — four marks in one entry,
-zero in the other, and **neither declares the other superseded**.
-`tests/test_instrument_stability.py:165` asserts only the *first* entry. `--unearned`
-is opt-in (`evals/run_evals.py:351`); there is no carry-forward and no
-re-adjudication check, so **a mark is discharged by silence**. `m06-goldens.json`
-already records 21/25 with zero marks.
+The marks' own stated reason is *"`entitlement_source` passed on a claim, not a
+fact."* Under instrument B that assert **is not scored at all** (ADR-016), so the
+four cases no longer pass *on* the fabrication — they pass on their other asserts.
+Carrying the marks forward would assert that a pass depends on something the
+instrument does not read. Zero is the correct count for entry B, and the absence of
+`supersedes` is correct too: under ADR-027 an `instrument` entry is a **second
+reading, not a supersession**, and the first entry still stands.
 
-This is a history-integrity question at `('ai-quality','security','platform-eng')`
-and it **must not be fixed inside a feature PR**. Until it is resolved, the sentence
-"four passes are unearned" is not something this milestone can rest on.
+The field that explains all of this exists for exactly this purpose.
+`evals/history/schema.json` on `deferred`: *"Assert kinds evaluated and NOT scored.
+ADR-016 moved `entitlement_source` here, **which is exactly the kind of change a
+bare digest would record without explaining**."*
+
+**And the "discharged by silence" attack is defended three deep.** Planted against
+the real validators in a temp copy of `evals/history/` — a new entry under
+instrument A's semantics with the four marks simply removed:
+
+```
+check_second_rows -> m00b-flattered-goldens.json and m00b-goldens.json share sha 515ee70
+                     and suite goldens and declare no difference -- not arm, not instrument,
+                     not supersedes. A reader cannot tell why the second exists.
+check_pins        -> not in pins.json ... add that line (three keys) only if the row is
+                     a real measurement.
+check_evidence    -> samples_from ... one run is one row.
+```
+
+`check_second_rows` is the one that matters: **a second row under one SHA must
+declare why it exists**, and `tests/test_history_append_only.py:881` asserts that
+exact message. There is no silence to be discharged by.
+
+**The real finding, which is forward-looking and is M06b's.** Nothing carries a mark
+across a *re-adjudication*. The four marks are correctly absent from entry B because
+the assert is deferred — and the moment the trajectory eval **un-defers**
+`entitlement_source` under a future instrument C, those same four `m00b` cases must
+be scored on it again, and the control has no tool, so they must fail. Nothing in the
+tree will raise that. The obligation is not "restore four marks"; it is:
+
+> **an instrument that un-defers an assert owes a re-adjudication of every mark
+> recorded against that assert under an instrument that scored it.**
+
+That is a real gap, it is one this milestone creates rather than inherits, and it is
+cheap to state now and expensive to notice later — which is the whole argument of
+B12 and B7 pointed at history instead of at the scorer.
+
+**What a fix must survive:** a new instrument that un-defers `entitlement_source`
+while the four `m00b` cases keep their entry-A marks unexamined; and an instrument
+that defers a *different* scored assert without stating what happens to marks
+recorded against it.
 
 ---
 
@@ -645,7 +708,8 @@ and it **must not be fixed inside a feature PR**. Until it is resolved, the sent
   ADR-035 shape this register exists to catch."* Seats: toolplane is
   `(platform-eng, security, tool-owner)`; tool schemas add `legal-sp`.
 - **No baseline reset, no golden case edited to make a run pass, no history entry
-  rewritten.** B13 is recorded, not repaired here.
+  rewritten.** The four `m00b` marks stand as recorded under the instrument that
+  scored them; B13 is the obligation this milestone creates, not a repair it owes.
 - **No new judge axis.** Whether a tool was called is deterministic.
 - **No trajectory metric.** Counting calls, or scoring order beyond the one
   `before_answer` relation a case names, rebuilds what `toolloop.py:189` refuses.
@@ -729,8 +793,9 @@ owes and the variants its fix survived.
 
 Two items this register adds:
 
-- **B13 is resolved before any number in this milestone rests on the four marks**,
-  as its own change, at three keys.
+- **B13's re-adjudication is discharged in the diff that un-defers the assert**, not
+  afterwards: the instrument that starts scoring `entitlement_source` states what
+  becomes of every mark recorded against it. Three keys, because it moves history.
 - **The comparator moves, or it does not, in a diff that says which.** Under B7 and
   B12 that is the only thing between an honest instrument change and a silent one.
 
@@ -780,9 +845,10 @@ is corrected below.
    not land first under any ordering.
 10. **B10: defer `concise-022`, or advance the record contract to carry the verdict —
     OPEN.** AI Quality and Platform Engineering.
-11. **B13 and the comparator: whether the eval-before-tool PR may move
-    `evals/comparators.json` at all, or the trajectory assert lands ADVISORY until
-    the tool is deployed — OPEN.** AI Quality, three keys.
+11. **Whether the eval-before-tool PR may move `evals/comparators.json` at all, or
+    the trajectory assert lands ADVISORY until the tool is deployed — OPEN.** AI
+    Quality, three keys. B13's re-adjudication rides in whichever diff un-defers the
+    assert, so this decision and that obligation are settled together or not at all.
 
 ## What M06b must not do
 
@@ -803,7 +869,8 @@ is corrected below.
 - Do not run a plant against the working tree without its restore line.
 - Do not mark claim 10 advanced, and do not deploy `publish-highlight`.
 - Do not edit a golden case to make a run pass, reset a baseline, or rewrite a
-  history entry — **including B13's**, which is resolved by a recorded decision.
+  history entry. B13's marks are not edited; they are re-adjudicated by a new
+  instrument's entry, which is the only shape ADR-027 allows.
 - Do not touch `data/catalog.json`'s or `classify.py`'s bytes incidentally.
 - Do not add `bedrock:InvokeModel` to any role, in any tree, for any reason. G1 has
   no measurement exception. Security planted a second-tool role without the
