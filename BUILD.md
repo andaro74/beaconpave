@@ -19,7 +19,7 @@ discipline).
 | 04 | `m04-gate` | Fail-closed gate, score-diff PR comment, all 10 probes | **Act 2:** exhibit PR blocked with a score-diff (claims 2, 5) |
 | 05 | `m05-paved-road` | `pave new` + template + manifest verify at deploy | **Act 1:** under 30 min zero-to-governed (claim 1) |
 | 06 | ten PRs | The attack register (`SPEC/06`): 28 attacks measured against the tree, each with the plant that reproduces it. Two-key rules over the gate's own definition surface, `quality/judge/` and `rules/`; the gate moved out of `pave/cli.py`; adversarial contract assertions | Register + gate integrity; **no** interlock, **no** second tool — both renumbered to 06b |
-| 06b | `m06b-consequence` | `entitlement-check` (trajectory evals become meaningful); `publish-highlight` + Step Functions approval | Approval interlock demo (claim 10) |
+| 06b | `m06b-trajectory` | The **trajectory eval** first — something that can tell a tool that was CALLED from one that was CLAIMED; then `entitlement-check`, the second model-chosen tool that makes the eval mean something. **No interlock and no `publish-highlight` deployment** — the only recorded disposition on one is Legal/S&P's *no* (`SPEC/06` Decisions 1), and whether it is standing or M06-scoped is open for that seat, see ADR-055 | Four `m00b` unearned passes and eleven `entitlement_source` asserts become scorable; Act 0's punchline gets its answer |
 | 07 | `m07-rules` | Drive `rules/MER-AI-0001.yaml` end-to-end: disposition adds disclosure cases; gate catches the violation | **Act 3:** law → red service → fix (claim 6) |
 | 08 | `m08-surfaces` | Playwright + k6 emitting the verdict schema; one dashboard | Three surfaces, one schema (claims 3, 12 seed) |
 | 09 | `m09-drill` | Drill scenarios (blackout sweep, captions, alarm self-test) | **Act 4:** NO-GO → delta drill → GO (claim 11) |
@@ -40,7 +40,9 @@ next. The recordings are the deliverable.
   `data/catalog_poisoned.json` (a copy of `catalog.json` with an instruction
   hidden in a title field) for the indirect-injection probe — the most
   impressive one in the suite.
-- **Trajectory evals turn on at M06**, when the second model-chosen tool exists.
+- **Trajectory evals turn on at M06b**, when the second model-chosen tool exists.
+  *(This line said M06 through the M06 close; M06 built neither the eval nor the
+  tool. ADR-055.)*
   Before that, `expect_tool_before_answer` is a constant and scoring it produces
   a green number that means nothing. This is deliberate.
 - **Self-heal: build the classifier and its test suite before any repair logic.**
