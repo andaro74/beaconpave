@@ -530,6 +530,14 @@ alternatives are **two** four-seat changes rather than one, because
 `schema.out.json`'s `reason` enum has no `unknown-dma`, so the tool could not say
 what happened to it.
 
+**RESOLVED by ADR-056: the enum stays and the rule is amended.** Eight plants, each
+through the real assertion against the committed contract: the deployed tool with its
+full market enum now **passes**, while a subset enum, a market in a spec
+`description`, an event name declared as an input, the table inlined in the prompt, a
+bare market name in the prompt, and a catalog title in a spec all **fail**. All eight
+are committed tests. Deletability audited: five mutations, five caught, none silent.
+**Step 2 is still blocked by B9.**
+
 ---
 
 ### B9 — a lake-derived trajectory is forgeable, and this milestone's step 2 is what arms it
@@ -890,9 +898,20 @@ is corrected below.
    disposition. Draft 1 converted an open seat question into a closed one by
    citation — G9's exact failure, in the list a builder obeys. The milestone does not
    advance claim 10 either way, so nothing here waits on it.
-8. **B8: how `entitlement-check`'s `dma` enum stops re-inlining the blackout
-   vocabulary — OPEN.** Narrow the enum, make `dma` opaque, or amend `SPEC/02`.
-   Four seats. **Step 2 cannot land before this.**
+8. **B8: `entitlement-check`'s `dma` enum stays, and `SPEC/02`'s rule is amended.
+   TAKEN by the operator, ADR-056.** A registered tool may name markets in its
+   declared input vocabulary; the system prompt keeps the original ban, event names
+   stay banned everywhere including as declared inputs, and an enum naming any market
+   must name them **all** — a subset is the blackout table wearing a schema, which the
+   old substring scan closed only by accident.
+
+   Refused, with the measurement: dropping the enum for a pattern or a bare string
+   deletes the only check refusing `atlantis` at the plane, and is **two** four-seat
+   changes rather than one, because `schema.out.json` has no `unknown-dma` and the
+   tool could not say what happened. Whether `unknown-dma` belongs there is left open
+   and is the Tool Owner's.
+
+   **This unblocks one of step 2's two blockers, not both.** B9 stands.
 9. **B9: whether the `tool` fragment gains an execution witness and `_tool_probe`'s
    records are separated — OPEN.** Security's recorded position is that step 2 must
    not land first under any ordering.
