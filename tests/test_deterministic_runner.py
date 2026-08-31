@@ -95,6 +95,129 @@ def test_entitlement_source_is_evaluated_but_never_scored(scorer):
     assert result.result == det.PASS, "a deferred assert cannot fail the case"
 
 
+# --- the trajectory assert (SPEC/06b) -------------------------------------------
+#
+# Every case below drives `score_case`, not the method in isolation: an assert that
+# is correct and never dispatched is the defect SPEC/06b B1 measures, where twelve
+# `expect_tool_before_answer` expectations were deletable at the baseline because
+# nothing read them.
+
+M02_TRAJECTORIES = json.loads(
+    (ROOT / "milestones" / "M02" / "runs" / "m02-tools-1-trajectory.json").read_text(encoding="utf-8"))
+
+
+def _traj(*steps):
+    """A record carrying a trajectory, in the shape `toolloop.trajectory()` emits."""
+    r = answer()
+    r["trajectory"] = list(steps)
+    return r
+
+
+def _step(tool, decision="allowed", mechanism="none"):
+    return {"round": 1, "seq": 1, "tool": tool, "args": {},
+            "decision": decision, "mechanism": mechanism, "reasons": []}
+
+
+def _tba(result):
+    return next(a for a in result.deferred if a.kind == "tool_before_answer")
+
+
+def test_the_tool_actually_called_is_the_only_thing_that_passes(scorer):
+    """`blackout-001` names `entitlement-check`. Nothing the model can write into
+    its answer reaches this assert -- which is the whole difference from
+    `entitlement_source`, and the reason ADR-016 deferred that one."""
+    result = scorer.score_case(CASES["blackout-001"], _traj(_step("entitlement-check")), CATALOG)
+    assert _tba(result).passed
+
+
+def test_a_trajectory_without_the_tool_names_what_was_authorized_instead(scorer):
+    result = scorer.score_case(CASES["blackout-001"], _traj(_step("catalog-search")), CATALOG)
+    assert not _tba(result).passed
+    assert "never called" in _tba(result).detail
+    assert "catalog-search" in _tba(result).detail, (
+        "the failure says the tool was not called and not what was, so a reader "
+        "cannot tell a wrong tool from no tools at all"
+    )
+
+
+def test_a_refused_call_is_not_a_call(scorer):
+    """The fail-open case, and the one the obvious implementation gets wrong.
+
+    Filtering to allowed steps and treating the empty result as "nothing to
+    contradict" returns PASS here -- SPEC/06b B3 measured that form green at zero
+    keys. A tool the plane REFUSED is the case this assert most needs to catch."""
+    result = scorer.score_case(
+        CASES["blackout-001"], _traj(_step("entitlement-check", "denied", "policy")), CATALOG)
+    assert not _tba(result).passed
+    assert "refused" in _tba(result).detail and "policy" in _tba(result).detail
+
+
+def test_an_empty_trajectory_is_not_satisfaction(scorer):
+    result = scorer.score_case(CASES["blackout-001"], _traj(), CATALOG)
+    assert not _tba(result).passed
+
+
+def test_absent_evidence_is_marked_as_absent_rather_than_as_a_wrong_answer(scorer):
+    """`no-evidence` is the marker the diff that SCORES this assert has to route to
+    INFRA. A deferred assert cannot raise INFRA -- it reaches no case verdict -- so
+    the distinction lives in the detail until then, and this test is what stops it
+    being lost in between."""
+    record = answer()
+    assert "trajectory" not in record
+    result = scorer.score_case(CASES["blackout-001"], record, CATALOG)
+    assert not _tba(result).passed
+    assert _tba(result).detail.startswith("no-evidence:")
+
+
+def test_the_trajectory_assert_reaches_no_case_verdict_while_it_is_deferred(scorer):
+    """Landing ADVISORY, checked rather than promised. It fails on every committed
+    run -- `entitlement-check` is not deployed -- so if it reached the score it
+    would move every pinned comparator in the diff that introduced it."""
+    result = scorer.score_case(CASES["blackout-001"], _traj(_step("catalog-search")), CATALOG)
+    assert not _tba(result).passed
+    assert "tool_before_answer" not in {a.kind for a in result.asserts}, "must not be scored"
+    assert result.result == det.PASS, "a deferred assert cannot fail the case"
+
+
+def test_it_fails_against_the_committed_m02_evidence_which_is_the_point(scorer):
+    """Measured through the real path, not a hand-built fixture.
+
+    `milestones/M02/runs/m02-tools-1-trajectory.json` is a recorded run: 25 cases,
+    35 authorized calls, every one `catalog-search`. The twelve cases naming
+    `entitlement-check` must FAIL against it, because the tool did not exist. A
+    trajectory assert that came back green on this file would be measuring nothing,
+    and that -- not a synthetic fixture -- is the reachability proof B3 asks for."""
+    expecting = [c for c in CASES.values()
+                 if (c.get("trajectory") or {}).get("expect_tool_before_answer")]
+    assert len(expecting) == 12, f"{len(expecting)} cases expect a tool; the register says 12"
+
+    verdicts = []
+    for case in expecting:
+        recorded = M02_TRAJECTORIES.get(case["id"])
+        assert recorded is not None, f"{case['id']} has no committed trajectory"
+        record = answer()
+        record["trajectory"] = recorded["trajectory"]
+        verdicts.append(_tba(scorer.score_case(case, record, CATALOG)))
+
+    assert not any(v.passed for v in verdicts), (
+        "a case passed the trajectory assert against a run in which entitlement-check "
+        "was never called -- the assert is vacuous"
+    )
+    assert all("never called" in v.detail for v in verdicts), [v.detail for v in verdicts]
+
+
+def test_the_instrument_names_the_new_kind_so_the_change_is_not_silent(scorer):
+    """`trajectory` is a sibling of `asserts`, so the instrument's kind walk did not
+    see it. A kind that is withheld from scoring and appears in neither list is the
+    silent instrument move `deterministic_instrument`'s own docstring exists to
+    prevent -- it names ADR-016 deferring `entitlement_source` as its motivating
+    case, and this is the same move."""
+    from evals import judged
+    instrument = judged.deterministic_instrument()
+    assert "tool_before_answer" in instrument["deferred"]
+    assert "tool_before_answer" not in instrument["scored"]
+
+
 def test_a_fabricated_tool_claim_earns_no_credit(scorer):
     """The failure mode that motivated the deferral. A control claiming the tool
     it does not have must gain nothing from saying so — the case scores exactly

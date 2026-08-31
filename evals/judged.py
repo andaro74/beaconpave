@@ -104,8 +104,18 @@ def deterministic_instrument() -> dict:
     from evals import deterministic
 
     cases = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
-    kinds = {key for case in __import__("yaml").safe_load(cases.read_text(encoding="utf-8"))
+    loaded = __import__("yaml").safe_load(cases.read_text(encoding="utf-8"))
+    kinds = {key for case in loaded
              for assertion in case.get("asserts", []) for key in assertion}
+    # **`trajectory` is a sibling of `asserts`, not an entry in it.** Walking
+    # `asserts` alone is how this field would have missed the assert it exists to
+    # make visible: `tool_before_answer` contributes a verdict exactly as
+    # `entitlement_source` does, and ADR-016's change to *that* one is the change
+    # this docstring names as the reason the field is semantic rather than a file
+    # hash. A kind that scores, or is withheld from scoring, and appears in neither
+    # list would be precisely the silent instrument move the field prevents.
+    if any(case.get("trajectory", {}).get("expect_tool_before_answer") for case in loaded):
+        kinds.add("tool_before_answer")
     return {
         "cases_sha256": judge.digest(cases.read_text(encoding="utf-8")),
         "scored": sorted(kinds - set(deterministic.DEFERRED_ASSERTS)),
