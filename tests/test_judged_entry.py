@@ -258,9 +258,22 @@ def test_the_entry_records_what_scored_the_deterministic_half(tmp_path):
     directory = judge_dir(tmp_path, {"blackout-001": {"axes": {"groundedness": 1.0}}})
     parts = judged.entry_parts(directory, calibration(), 3)
     det = parts["instrument"]["deterministic"]
-    assert det["deferred"] == ["entitlement_source"], (
-        "ADR-016 stopped scoring entitlement_source; that is exactly the change this "
-        "block exists to make visible")
+    # **Exact, and it has fired once for real.** SPEC/06b added `tool_before_answer`
+    # as a second deferred kind and this assertion went red on the diff that did it,
+    # which is the behaviour wanted: the list is the instrument's statement about
+    # what contributes to a score, and it must not grow or shrink unnoticed. Kept as
+    # an equality rather than relaxed to membership -- a containment check would
+    # have passed silently on exactly that change.
+    #
+    # `tool_before_answer` is deferred for a DIFFERENT reason from its neighbour,
+    # and the entry cannot say so. `entitlement_source` is deferred because it
+    # cannot be made to mean anything (ADR-016); this one means something already
+    # and is withheld because its evidence path is open and scoring it would move
+    # every pinned comparator at once. `evals/deterministic.py:DEFERRED_ASSERTS`
+    # carries both reasons.
+    assert det["deferred"] == ["entitlement_source", "tool_before_answer"], (
+        "ADR-016 stopped scoring entitlement_source and SPEC/06b added a second "
+        "deferred kind; this block exists to make exactly those changes visible")
     assert "budget" in det["scored"]
     assert det["cases_sha256"] == judge.digest(
         (ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml")

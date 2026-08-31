@@ -287,6 +287,48 @@ score by construction**, so B7's comparator pins cannot see it.
 denied-only trajectories; Guard A; Guard B's ambiguous reading; and the `TurnFailed`
 path that returns no `trajectory` key.
 
+**BUILT, and here is what it survived.** `evals/deterministic.py` gains
+`tool_before_answer`, dispatched from `case["trajectory"]` and appended to
+**`deferred`** — the repo's ADVISORY for a deterministic assert, which is Decision
+11's safe branch and moves no comparator. Absence is not satisfaction: a missing
+trajectory, an empty one, and one where the tool was **refused** all fail, each with
+a distinguishable reason. The refused case is the one the vacuous form gets wrong.
+
+Reachability, which draft 2 asked for and did not have, is proved against committed
+evidence rather than a fixture — `milestones/M02/runs/m02-tools-1-trajectory.json`,
+25 cases and 35 authorized calls, every one `catalog-search`:
+
+```
+m00b           scored 18/25 | tool_before_answer evaluated 12, passing 0
+m01            scored 19/25 | tool_before_answer evaluated 12, passing 0
+m02-tools-1    scored 13/25 | tool_before_answer evaluated 12, passing 0
+m02-control-1  scored 17/25 | tool_before_answer evaluated 12, passing 0
+```
+
+**Every scored number is unchanged and the assert fails on every run**, because
+`entitlement-check` has never been called anywhere. That is the milestone's claim,
+evaluated for the first time.
+
+Deletability audited — the vacuous form is **5 failed**, removing the dispatch is
+**7 failed**, removing the instrument visibility is **1 failed**. No silent check.
+
+Two things this landing does **not** do. It does not choose the evidence source: the
+assert reads whatever trajectory it is handed and reports `no-evidence` when handed
+none, so **Decision 3 stays open** and neither answer changes the semantics. And a
+deferred assert cannot raise INFRA — it reaches no case verdict by construction — so
+the `no-evidence:` marker carries that distinction in a string until the diff that
+scores this assert routes it to INFRA. That mapping is the single easiest thing to
+lose between here and there, and a test pins it.
+
+**`evals/judged.py` had to be taught about it.** `deterministic_instrument()` walks
+`case["asserts"]`, and `trajectory` is a **sibling** of `asserts` — so the new kind
+would have contributed a verdict while appearing in neither `scored` nor `deferred`:
+the silent instrument move that field exists to prevent, in the field whose own
+docstring names ADR-016 deferring `entitlement_source` as its motivating case.
+`tests/test_judged_entry.py`'s exact-equality assertion on `deferred` went red on
+this diff, which is the behaviour wanted, and is kept as an equality rather than
+relaxed to membership.
+
 ---
 
 ### B4 — the scorer is free, and almost everything around it is keyed

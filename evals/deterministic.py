@@ -53,6 +53,19 @@ INFRA = "INFRA"
 #: would lose the requirement while scoring it credits a claim.
 DEFERRED_ASSERTS = {
     "entitlement_source": "reads a self-report; verifiable only by M06's trajectory eval (ADR-016)",
+    # Evaluated and not scored **on purpose, and not for the same reason as the one
+    # above.** `entitlement_source` is deferred because it cannot be made to mean
+    # anything; this one means something already and is withheld because scoring it
+    # would move every pinned comparator in one diff (SPEC/06b B7, Decision 11) and
+    # because the source of the evidence it reads is still open (SPEC/06b Decision 3).
+    #
+    # **Un-deferring it is not a one-line change and must not be done as one.** Three
+    # things land together or none do: the comparator movement, attested; the
+    # re-adjudication SPEC/06b B13 names, since the four `m00b` marks were recorded
+    # against `entitlement_source` under an instrument that scored it; and the
+    # INFRA-not-FAIL mapping below, which a deferred assert structurally cannot
+    # express.
+    "tool_before_answer": "evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)",
 }
 
 
@@ -217,6 +230,47 @@ class Scorer:
             "" if ok else f"verdict came from {got!r}, not {expected!r}",
         )
 
+    def tool_before_answer(self, trajectory, expected: str) -> AssertResult:
+        """Was `expected` actually invoked, as opposed to claimed?
+
+        The assert `entitlement_source` has been waiting for since ADR-016. That one
+        reads a field the model fills in; this one reads what the plane authorized,
+        so no value the model can emit satisfies it.
+
+        **Absence is not satisfaction, and that is the whole design.** The obvious
+        implementation returns PASS when no trajectory was supplied -- "nothing to
+        contradict" -- and SPEC/06b B3 measures that form as green, zero-key, and
+        worthless: it also passes when the tool was *refused*, because filtering to
+        allowed steps leaves an empty list that falls into the same branch. All three
+        absences fail here instead, each with a distinguishable reason.
+
+        **`no-evidence` is a different animal from the other two and is marked so.**
+        `score_case`'s contract is that "the service answered wrongly" and "the
+        harness could not establish whether it answered wrongly" page different
+        people. A missing trajectory is the second. While this assert is deferred it
+        cannot raise INFRA -- a deferred result reaches no case verdict by
+        construction -- so the distinction is carried in the detail string, and the
+        diff that scores this assert is the diff that must route `no-evidence` to
+        INFRA rather than FAIL. Written down here because that mapping is the single
+        easiest thing to lose between this milestone and the one that un-defers it."""
+        if trajectory is None:
+            return AssertResult(
+                "tool_before_answer", False,
+                f"no-evidence: no trajectory recorded, so whether {expected} was called "
+                "was never established (INFRA, not FAIL, once this is scored)")
+        called = {step.get("tool") for step in trajectory if step.get("decision") == "allowed"}
+        if expected in called:
+            return AssertResult("tool_before_answer", True, "")
+        refused = [step for step in trajectory
+                   if step.get("tool") == expected and step.get("decision") != "allowed"]
+        if refused:
+            return AssertResult(
+                "tool_before_answer", False,
+                f"{expected} was refused ({refused[0].get('mechanism')}) and never ran")
+        return AssertResult(
+            "tool_before_answer", False,
+            f"{expected} never called; authorized: {sorted(called) or 'nothing'}")
+
     def budget(self, usage: dict, ceiling: dict) -> AssertResult:
         """Token-denominated (ADR-014). Dollars are rendered at report time and
         never block, because a vendor price change must not move a verdict.
@@ -273,6 +327,14 @@ class Scorer:
         usage = record.get("usage") or {}
         results: list[AssertResult] = []
         deferred: list[AssertResult] = []
+
+        # Read off `case["trajectory"]`, a SIBLING of `asserts` rather than an entry
+        # in it, so it is dispatched here rather than in the loop below. That shape is
+        # why `evals/judged.py` had to be taught about it: the instrument's `scored`
+        # and `deferred` lists walk `case["asserts"]` and would not have seen this.
+        want = (case.get("trajectory") or {}).get("expect_tool_before_answer")
+        if want:
+            deferred.append(self.tool_before_answer(record.get("trajectory"), want))
         for assertion in case.get("asserts", []):
             for key, value in assertion.items():
                 if key == "json_schema":
