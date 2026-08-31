@@ -110,7 +110,7 @@ deletions**, verified append-only with pre-existing rows compared field by field
 ## Verification
 
 ```
-$ python -m pytest -q      2304 passed, 6 skipped     # COLLECTED_FLOOR = 2255
+$ python -m pytest -q      2308 passed, 6 skipped     # COLLECTED_FLOOR = 2255
 $ python -m ruff check .   All checks passed!
 ```
 
