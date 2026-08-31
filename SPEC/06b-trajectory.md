@@ -140,10 +140,11 @@ Neither is a file to edit. Both are decisions above this document.
 
 ## The register
 
-Thirteen attacks. Each states the plant, the command, the result, and the restore.
+Fourteen attacks. Each states the plant, the command, the result, and the restore.
 Read the results as deltas: *baseline* means the suite came back unchanged. B1–B7 are
 draft 1's, independently reproduced by three seats and reported at their 2261
-baseline. B8–B12 are the seats'; B13 is draft 3's, and it refutes a draft-2 entry.
+baseline. B8–B12 are the seats'; B13 is draft 3's, and it refutes a draft-2 entry;
+B14 was found while closing B9 and is left open by it.
 
 ---
 
@@ -256,7 +257,7 @@ $ python -c "from pave import twokey; print(twokey.triggered(['evals/determinist
 ```
 
 **The plant is reachable, and draft 1 did not establish that.** Inverting the same
-wiring to always-FAIL produces **9 failures** (see B14 note in *Sequencing*), so the
+wiring to always-FAIL produces **9 failures** (see *Sequencing*), so the
 green is genuine vacuity and not dead code. A green plant that never executes proves
 nothing; this one executes.
 
@@ -354,7 +355,7 @@ evals/comparators.json                            ('ai-quality','platform-eng','
 **`tests/test_instrument_stability.py` is draft 1's omission** and it matters twice:
 it is three-key, it *does* execute `evals/deterministic.py` via `rescore_m00b()` and
 pins the output at `M00B_UNDER_CURRENT_INSTRUMENT = 18`, and it is one of the pins
-B14 shows the honest eval reddens. Draft 1's *"together with every test that pins its
+*Sequencing* shows the honest eval reddens. Draft 1's *"together with every test that pins its
 behaviour"* was measurably false. It does not rescue the argument — B12 shows a
 material weakening that no number and no key can see — but the register must not
 overstate the gap.
@@ -593,6 +594,16 @@ the `seq` collision with `request_id` under caller control.
 land before the `tool` fragment carries an execution witness and `_tool_probe`'s
 records are separable.
 
+**RESOLVED by ADR-057 for the witness half.** `tool.executed` is optional — absent
+means UNKNOWN, because `additionalProperties: false` means a required field would
+stop the schema validating every record written before it. `_tool_probe` passes
+`False` on an **allowed** decision, which was the unrepresentable combination.
+Execution is tracked where the tool is reached, not inferred: a call whose *result*
+fails the output contract carries `payload=None` and `decision: denied` and **ran**,
+so reading execution off either would under-credit exactly the suppressed calls.
+Seven mutations planted, seven caught, none silent. **The `seq` collision is not
+fixed and is now its own entry** — with the witness present it fails closed.
+
 ---
 
 ### B10 — the record contract carries no verdict, so B6 cannot be closed the way draft 1 said
@@ -755,6 +766,63 @@ recorded against it.
 
 ---
 
+### B14 — the probe path and the model path write to the same lake key
+
+**Found while closing B9, and left open by it deliberately.** ADR-057 says twice
+that this is "its own entry"; for one draft it was not, which is the *stated and
+absent* shape `CLAUDE.md` calls worse than a protection simply missing, because it
+stops anyone looking for the real one. Written down here so the claim is true.
+
+`ToolPlane.Turn.authorize()` increments before it returns:
+
+```
+platform/gateway/core/toolplane.py    self.calls += 1        # first statement
+platform/gateway/handler.py           seq=turn.calls         # _tool_probe
+platform/gateway/core/toolloop.py     seq = turn.calls       # the model path
+```
+
+So both paths hand `1` to `record_key` for the first call of a turn, and
+`request_id` is `event.get("request_id")` — caller-supplied. Measured through the
+real function:
+
+```
+probe-path key : 2026-08-31/highlights-agent/concise-022-m02-tools-1.001.json
+model-path key : 2026-08-31/highlights-agent/concise-022-m02-tools-1.001.json
+IDENTICAL      : True
+
+seq=-1 is accepted and sorts before every real call:
+                 2026-08-31/highlights-agent/concise-022-m02-tools-1.-01.json
+```
+
+`audit.record_key`'s own docstring names this as the failure `versioned: true` was
+chosen to prevent — *"the last one written would be the only one anybody found"* —
+and it is reachable across two code paths rather than within one turn, because a
+handler invocation takes either branch and never both. The attack is two
+invocations sharing a caller-chosen `request_id`.
+
+**Why ADR-057 did not fix it, and why that is defensible.** With `executed` present
+a colliding probe record reads `executed: false`, so a lake-derived trajectory
+concludes *the tool did not run* — a **false negative**. Wrong, and it fails closed:
+the direction that under-credits the platform rather than crediting a call that
+never happened. Before the witness, the same collision failed **open**. So B9's fix
+changes this from a forgery into a denial-of-evidence, which is a different and
+much smaller problem, and folding the key change into a diff already carrying an
+instrument registration would have widened the hardest change in the milestone.
+
+**It is not nothing.** A caller who can guess a request id can make a real tool call
+unprovable, which matters exactly when the trajectory eval is scored — a suite that
+can be silently pushed toward "no evidence" is one an attacker can make say nothing.
+
+**What a fix must survive:** two invocations sharing a `request_id`, one probe and
+one real, in either order; `seq=-1` and any other value that sorts before a real
+call; a probe record that resolves in the lake at a key a derived trajectory reads;
+and a `probe_id` omitted so the record carries no marker distinguishing the path.
+Candidate shapes, none chosen here: a distinct `seq` space for the probe path, a
+mandatory `probe_id` carried into the key, or a `witness` value the derivation
+filters on — the field already exists and already means *who observed*.
+
+---
+
 ## What M06b does not build
 
 - **No consequence interlock and no `publish-highlight` deployment.** The only
@@ -912,9 +980,17 @@ is corrected below.
    and is the Tool Owner's.
 
    **This unblocks one of step 2's two blockers, not both.** B9 stands.
-9. **B9: whether the `tool` fragment gains an execution witness and `_tool_probe`'s
-   records are separated — OPEN.** Security's recorded position is that step 2 must
-   not land first under any ordering.
+9. **B9: the `tool` fragment gains an execution witness. TAKEN by the operator,
+   ADR-057.** `tool.executed`, optional so absence stays UNKNOWN rather than
+   retroactively asserting `false` about every record written before it, tracked
+   where the tool is reached rather than inferred from the payload or the final
+   decision, and consumed by `tool_before_answer` in the same diff. `m04-F`
+   registered as a precondition; `guardrail_sha256` is the only digest that moves.
+
+   **`_tool_probe`'s records are NOT separated, deliberately.** With the witness in
+   place a colliding probe record reads `executed: false` — a false negative, which
+   fails closed. Registered as its own entry rather than folded into a diff already
+   carrying an instrument bump.
 10. **B10: defer `concise-022`, or advance the record contract to carry the verdict —
     OPEN.** AI Quality and Platform Engineering.
 11. **Whether the eval-before-tool PR may move `evals/comparators.json` at all, or

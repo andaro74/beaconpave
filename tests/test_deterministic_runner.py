@@ -126,8 +126,37 @@ def test_the_tool_actually_called_is_the_only_thing_that_passes(scorer):
     """`blackout-001` names `entitlement-check`. Nothing the model can write into
     its answer reaches this assert -- which is the whole difference from
     `entitlement_source`, and the reason ADR-016 deferred that one."""
-    result = scorer.score_case(CASES["blackout-001"], _traj(_step("entitlement-check")), CATALOG)
+    ran = _step("entitlement-check")
+    ran["executed"] = True
+    result = scorer.score_case(CASES["blackout-001"], _traj(ran), CATALOG)
     assert _tba(result).passed
+
+
+def test_an_authorized_call_that_never_ran_is_not_a_call(scorer):
+    """**The forgery `SPEC/06b` B9 describes, refused.**
+
+    `handler._tool_probe` authorizes and calls nothing, and writes a full
+    `decision: allowed` record for it -- at a lake key it can share with a real
+    first call, because `authorize()` increments `calls` before returning and
+    `request_id` is caller-supplied. An assert that credited allowed steps counted
+    that as the tool having been used. This requires the execution witness."""
+    step = _step("entitlement-check")
+    step["executed"] = False
+    result = scorer.score_case(CASES["blackout-001"], _traj(step), CATALOG)
+    assert not _tba(result).passed
+    assert _tba(result).detail.startswith("no-evidence:")
+    assert "authorized but nothing witnesses" in _tba(result).detail
+
+
+def test_an_allowed_step_with_no_witness_at_all_is_not_credited(scorer):
+    """Absent is UNKNOWN, not true. Every trajectory recorded before ADR-057 lacks
+    the field, and crediting them would be reading the absence of evidence as
+    evidence -- the same move `entitlement_source` was deferred for."""
+    step = _step("entitlement-check")
+    assert "executed" not in step
+    result = scorer.score_case(CASES["blackout-001"], _traj(step), CATALOG)
+    assert not _tba(result).passed
+    assert "executed=None" in _tba(result).detail
 
 
 def test_a_trajectory_without_the_tool_names_what_was_authorized_instead(scorer):

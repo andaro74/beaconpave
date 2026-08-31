@@ -292,7 +292,8 @@ def _tool_records(outcome, common, classification):
     for call in outcome.calls:
         decision = call.decision
         fragment = decision.as_record_fragment(
-            round_number=call.round_number, args=call.args, principal=SERVICE_PRINCIPAL)
+            round_number=call.round_number, args=call.args, principal=SERVICE_PRINCIPAL,
+            executed=call.executed)
         record = audit.build_record(
             classification=classification,
             decision="allowed" if decision.allowed else "denied",
@@ -503,8 +504,12 @@ def _tool_probe(probe, common, classification):
         classification=classification,
         decision="allowed" if decision.allowed else "denied",
         mechanism="none" if decision.allowed else decision.mechanism,
+        # **`executed=False` on an ALLOWED decision, and that is the point.** This
+        # path authorizes and calls nothing; without the field its record was
+        # indistinguishable from a real first tool call, at a lake key it could
+        # share (`SPEC/06b` B9).
         tool=decision.as_record_fragment(
-            round_number=1, args=args, principal=SERVICE_PRINCIPAL),
+            round_number=1, args=args, principal=SERVICE_PRINCIPAL, executed=False),
         seq=turn.calls,
         **common,
     )

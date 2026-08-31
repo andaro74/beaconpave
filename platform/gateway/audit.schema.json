@@ -221,6 +221,10 @@
             "type": "string"
           },
           "description": "Context attributes that exempted this call from a forbid \u2014 e.g. an approval interlock granting `approval_granted`. Empty or absent at M02, where nothing grants one. Without this field an approved publish-class call at M06 would record `allowed`/`none` and be indistinguishable from an ungated read, so the interlock would leave no evidence that it was exercised. Added while the interlock is being modelled rather than after."
+        },
+        "executed": {
+          "type": "boolean",
+          "description": "Whether the tool FUNCTION WAS ACTUALLY INVOKED and reached, as opposed to authorized. `decision: allowed` says the plane permitted the call; it does not say the call happened, and until this field existed nothing in the record did. `handler._tool_probe` writes a full allowed record for a call it explicitly does not make -- its own docstring says 'an allowed probe still calls nothing' -- so a trajectory derived from the lake by counting allowed records over-credits. OPTIONAL, and absent means UNKNOWN, never false: every record written before this field existed lacks it, and a reader must treat those as evidence it does not have rather than as evidence the tool did not run. True only when the tool was reached; a call the platform could not route did not execute, while one that ran and then had its RESULT rejected did."
         }
       }
     }

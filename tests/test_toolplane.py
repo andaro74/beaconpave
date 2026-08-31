@@ -307,6 +307,34 @@ def test_an_approval_releases_a_gated_call():
     assert approval.as_exemptions() == [f"{cedar.APPROVAL_CONTEXT_KEY}:stepfn:editorial-approver"]
 
 
+def test_the_fragment_says_nothing_about_execution_unless_it_is_told():
+    """`executed` is omitted, not defaulted to False.
+
+    A fragment built by code that does not know whether the tool ran is making no
+    claim; a `False` it did not mean would be one, and would read as evidence the
+    call did not happen. Absent means UNKNOWN -- which is also what every record
+    written before this field existed carries, so defaulting would retroactively
+    assert something false about all of them."""
+    fragment = authorize().as_record_fragment(round_number=1)
+    assert "executed" not in fragment
+    assert authorize().as_record_fragment(round_number=1, executed=True)["executed"] is True
+    assert authorize().as_record_fragment(round_number=1, executed=False)["executed"] is False
+
+
+def test_an_allowed_decision_can_still_record_that_nothing_ran():
+    """The combination `SPEC/06b` B9 is about, and why `executed` is a parameter
+    rather than a property of the decision.
+
+    `handler._tool_probe` authorizes and calls nothing -- its docstring says so in
+    as many words -- so it produces exactly this shape. Before the field, its
+    record was indistinguishable from a real first tool call, at a lake key it
+    could share."""
+    decision = authorize()
+    assert decision.allowed
+    fragment = decision.as_record_fragment(round_number=1, executed=False)
+    assert fragment["decision"] == "allowed" and fragment["executed"] is False
+
+
 def test_an_approval_must_name_its_approver():
     """`Approval("", "")` released a gated call — the typed wrapper was shape
     without substance. An unattributed approval is indistinguishable from a bug
