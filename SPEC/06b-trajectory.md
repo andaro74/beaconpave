@@ -519,6 +519,17 @@ legal-sp)` — **four seats**. Three resolutions exist and none is this document
 pick: narrow the enum, make `dma` an opaque string the tool resolves, or amend
 `SPEC/02`. **Decision 8.**
 
+**Measured up for the seats in `docs/M06b-B8-blackout-vocabulary.md`**, which adds
+four things this entry did not have. The leak is the **vocabulary, not the mapping** —
+the event name and which DMAs are dark are both absent from the surface. A DMA name
+**already reaches the model on every request** (`gateway_client.py:125`), pinned
+across both arms and the scaffold template, so the question is narrower than *may a
+DMA name reach the model*. The enum is the **only** check that refuses a nonexistent
+DMA at the plane — `atlantis` is accepted under every alternative. And the
+alternatives are **two** four-seat changes rather than one, because
+`schema.out.json`'s `reason` enum has no `unknown-dma`, so the tool could not say
+what happened to it.
+
 ---
 
 ### B9 — a lake-derived trajectory is forgeable, and this milestone's step 2 is what arms it
