@@ -141,3 +141,27 @@ that test plants.
 *Collected count is restated at commit time against `COLLECTED_FLOOR = 2255`
 (`pave/floors.py:309`) — an earlier draft of this body cited 2079, which is
 ADR-045's figure and was re-seated at the M06 close.*
+
+Two-Key-Disposition: platform-eng
+Two-Key-Disposition: security
+Two-Key-Disposition: ai-quality
+Two-Key-Rationale: The only keyed file here is tests/test_history_append_only.py
+  and the only thing that changes in it is the comment above its README anchor.
+  No assertion, no fixture, no arithmetic and no collected count moves; the
+  anchor still resolves the m06b row by its tag cell and still plants a goldens
+  number into a cell that is a dash, which is the mutation it exists to catch,
+  so what the instrument measures is byte-for-byte what it measured before. What
+  moved is a sentence claiming the m06b row carries the interlock work M06 did
+  not build. This diff takes that work off the row, because the record holds one
+  disposition on deploying publish-highlight and it is a refusal whose scope is
+  open; leaving the comment would have left a three-key file describing a row it
+  no longer describes, which is the defect class both ADR-054 and this change
+  are about, arriving a third time one file down. Widening a documentation
+  change to three keys to fix a comment is the expensive direction and is taken
+  deliberately: the cheap direction is to leave stale prose in the file that
+  pins how history is read. Nothing outside that comment is touched in any keyed
+  path — no threshold, no baseline, no golden case, no comparator, no instrument
+  digest, no recorded number, and no evals/history entry. The seat whose
+  disposition this diff would most flatter is not asked to supply it: the ADR
+  refuses to resolve the Legal/S&P question its first draft resolved, and names
+  that seat as owing the answer rather than inferring one.
