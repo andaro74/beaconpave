@@ -102,9 +102,16 @@ take, days before taking it, is not a change to make in this diff.
 | tree | `pytest -q` |
 |---|---|
 | `main` at `6e9ef5b` | **2405** passed, 6 skipped |
-| this branch | **2425** passed, 6 skipped |
+| this branch, files untracked | **2425** passed, 6 skipped |
+| this branch, **committed** | **2432** passed, 6 skipped |
 
 `COLLECTED_FLOOR = 2255` (`pave/floors.py:309`). `make check`: **PASS**.
+
+The last row is this branch paying for its own documents:
+`test_cited_commits_resolve.py` globs the filesystem and
+`test_no_account_identifiers.py` uses `git ls-files`, so an added `.md` is worth
+more committed than untracked. Recorded because a table that stopped at the
+untracked figure would describe a tree nobody will ever check out.
 
 Two-Key-Disposition: ai-quality
 Two-Key-Disposition: security
