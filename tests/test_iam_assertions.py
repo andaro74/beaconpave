@@ -97,10 +97,100 @@ def test_the_governed_service_role_carries_an_explicit_deny():
 
 def test_the_deny_covers_every_model_invoke_action():
     """A Deny naming only `InvokeModel` while `Converse` reaches the same model is
-    the kind of gap that reads as covered."""
+    the kind of gap that reads as covered.
+
+    Reads `Action` literally, so a Deny written with `NotAction` fails here even
+    though it denies *more*. That is deliberate and it is the fail-closed
+    direction: this repository deploys one Deny shape, and an unrecognized one
+    should stop a reviewer rather than be reasoned about by a checker."""
     for entry in infra.model_invoke_denials(load(GATEWAY_SNAPSHOT)):
         missing = infra.MODEL_INVOKE_ACTIONS - infra.actions_of(entry["statement"])
-        assert not missing, f"{entry['policy']}: Deny omits {sorted(missing)}"
+        assert not missing, (
+            f"{entry['policy']}: Deny omits {sorted(missing)}. If this Deny is written with "
+            "NotAction it denies more, not less — say so in an ADR and widen this check "
+            "deliberately rather than here.")
+
+
+def test_every_deny_is_in_force_for_every_model():
+    """**A Deny is not a boolean, and it was read as one.**
+
+    `model_invoke_denials` checked `Effect` and the action list and nothing else,
+    so two shapes read as full coverage while denying almost nothing — both
+    measured green against a live snapshot by the Security seat:
+
+      - `"Resource": "arn:...:foundation-model/a-model-nobody-uses"`, a Deny on a
+        model the platform does not call, which forbids nothing it does;
+      - a `"Condition"` that never matches, a Deny that is never in force.
+
+    Filtering happens in `model_invoke_denials`, so the shapes simply stop
+    counting as denials and `test_the_governed_service_role_carries_an_explicit_deny`
+    goes red. This asserts the property directly as well, because that indirection
+    is exactly the kind a later refactor removes without noticing."""
+    template = load(GATEWAY_SNAPSHOT)
+    denials = infra.model_invoke_denials(template)
+    assert denials, "no effective model-invoke Deny in the stack"
+    for entry in denials:
+        statement = entry["statement"]
+        assert not statement.get("Condition"), (
+            f"{entry['policy']}: the model-invoke Deny carries a Condition, so it is not "
+            "in force for every request. A conditional Deny is a Deny-shaped object.")
+        assert "*" in infra._as_list(statement.get("Resource")), (
+            f"{entry['policy']}: the model-invoke Deny names "
+            f"{statement.get('Resource')!r} rather than every resource. A Deny scoped to "
+            "one model ARN forbids nothing the platform actually calls.")
+
+
+# --- the path that carries no model action at all ----------------------------
+
+def test_no_identity_in_this_stack_may_assume_another_role_in_it():
+    """**G1's transitive hole, and the checker had no concept of it.**
+
+    The tool's Deny is an *identity* policy on the tool's role. `sts:AssumeRole`
+    produces a different session carrying the gateway role's `bedrock:InvokeModel`
+    Allow — so the tool reaches a model with the Deny still standing and every
+    assertion in this file green. The Security seat measured exactly that, and it
+    is one CDK line with no escape hatch:
+    `gatewayFn.role.grantAssumeRole(toolFn.grantPrincipal)`.
+
+    The rule is blunt on purpose: **no role in this stack assumes another role in
+    it.** Nothing here needs to, every role is assumed by `lambda.amazonaws.com`
+    and nothing else, and a narrower rule would have to decide which crossings are
+    safe — which is the reasoning that produced the hole."""
+    template = load(GATEWAY_SNAPSHOT)
+    in_stack = set(infra.roles(template))
+    offenders = sorted(
+        f"{entry['policy']} lets {sorted(entry['roles'])} assume {sorted(entry['targets'] & in_stack)}"
+        for entry in infra.assume_role_grants(template)
+        if entry["targets"] & in_stack
+    )
+    assert not offenders, (
+        "a role in this stack may assume another:\n  " + "\n  ".join(offenders)
+        + "\n\nG1 says the gateway is the only path to a model. A role that can become the "
+          "gateway's role is a second path, and it carries no model action for any check to "
+          "find."
+    )
+
+
+def test_no_role_trusts_an_identity_from_this_stack():
+    """The other half, and the half no role-policy scan can see.
+
+    Assuming a role needs a grant on the assumer **and** a `Principal` in the
+    target's `AssumeRolePolicyDocument`. Asserting on both means either one alone
+    is a failure rather than only the pair — the fail-closed direction, and the
+    one that catches a trust policy widened in advance of the grant."""
+    template = load(GATEWAY_SNAPSHOT)
+    in_stack = set(infra.roles(template))
+    trusts = infra.trust_principals(template)
+    assert trusts, "no role trust policies found; this assertion would prove nothing"
+    for entry in trusts:
+        named = entry["logical_ids"] & in_stack
+        assert not named, (
+            f"{entry['role']}'s trust policy lets {sorted(named)} assume it. Every role here "
+            "is assumed by a service principal and nothing else.")
+        assert entry["services"], (
+            f"{entry['role']}'s trust policy names no service principal: "
+            f"{entry['principal']!r}. An AWS-principal trust is how a role becomes reachable "
+            "from an identity this stack does not describe.")
 
 
 # --- ADR-011's epitaph -------------------------------------------------------
