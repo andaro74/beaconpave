@@ -113,9 +113,19 @@ Measured with the command beside them, on this tree:
 |---|---|
 | `main` at `0ca7a41` | **2386** passed, 6 skipped |
 | this branch, files untracked | **2394** passed, 6 skipped |
-| this branch, **committed** | **2402** passed, 6 skipped |
+| this branch, six files **committed** | **2402** passed, 6 skipped |
+| this branch, **with this body committed** | **2405** passed, 6 skipped |
 
-`COLLECTED_FLOOR = 2255` (`pave/floors.py:309`).
+`COLLECTED_FLOOR = 2255` (`pave/floors.py:309`). Every figure reproduced; 2386
+and 2402 were each taken twice.
+
+**The last row is this document paying its own cost**, and it is recorded rather
+than elided: `test_cited_commits_resolve.py` globs the filesystem and
+`test_no_account_identifiers.py` uses `git ls-files`, so this body is worth +1
+untracked and +3 committed. `SPEC/06b` warned that its own length is load-bearing
+on another PR's mergeability; this is the same effect, in the smallest form, and
+a table that stopped at 2402 would have been describing a tree that no longer
+exists by the time anyone reads it.
 
 **A correction, not an edit.** `docs/pr-bodies/iam-checker-hardening.md` and the
 #84 commit message both record 2382 with main at 2377. Neither reproduces: main
