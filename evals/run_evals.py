@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import hashlib
 import json
 import pathlib
 import sys
@@ -56,6 +57,13 @@ HISTORY = ROOT / "evals" / "history"
 #: than one that was never there.
 HISTORY_SCHEMA = ROOT / "evals" / "history" / "schema.json"
 GOLDENS = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
+#: The two files the recorded tool surface is derived from. The snapshot is the
+#: table the running gateway obeys (`pave.infra.routed_tools` reads it out of the
+#: gateway's own environment), and CI holds it equal to the deployed stack by
+#: re-synthesizing and blocking on drift (ADR-017).
+GATEWAY_SNAPSHOT = (ROOT / "platform" / "infra" / "tests" / "fixtures"
+                    / "BeaconpaveGateway.template.json")
+TOOL_CONTRACTS = ROOT / "platform" / "gateway" / "policy" / "tools.contracts.json"
 MANIFEST = ROOT / "services" / "highlights-agent" / "pave.manifest.yaml"
 CATALOG = ROOT / "data" / "catalog.json"
 
@@ -79,6 +87,62 @@ def _git_sha() -> str:
         return out.stdout.strip() or "unknown"
     except OSError:
         return "unknown"
+
+
+def tool_surface(root: pathlib.Path = ROOT) -> dict | None:
+    """The tool surface the run was taken against: what the gateway routes, and
+    the digest of the specs the model reads.
+
+    **Why a recorded run needs this, and why the git sha does not already give
+    it.** Twelve of the twenty-five golden cases carry
+    `expect_tool_before_answer`, so what the gateway routes decides how they can
+    score. Until this field existed an entry recorded nothing about it: two runs
+    taken either side of a deployment produced entries that were
+    indistinguishable in every field a reader compares, and ADR-058 measured the
+    instrument as byte-identical with `entitlement-check` unrouted. The sha does
+    determine the answer -- the snapshot is a committed file -- but a comparison
+    that requires checking out two commits and re-deriving is a comparison nobody
+    performs, which is the argument ADR-034 already made for putting digests in
+    the registry rather than leaving them recoverable in principle.
+
+    **What it is not.** This is what the committed snapshot routes, not an
+    observation from the run. It is trustworthy exactly as far as ADR-017's
+    synth-freshness job, which re-synthesizes and blocks on drift, and no
+    further; a stack hand-edited in the console would be recorded wrongly here.
+    `TOOL_SPECS_SHA256` rests on the same snapshot for the same reason, so this
+    adds no new trust, and saying so is cheaper than a reader assuming the field
+    is a measurement.
+
+    Returns `None` when either input is missing, and the caller then omits the
+    key. **Absent means UNKNOWN, never "nothing was routed"** -- every entry
+    recorded before this field existed lacks it, and a reader must treat those as
+    evidence it does not have rather than as evidence of an empty surface
+    (ADR-057's rule for `tool.executed`, which is the same hazard).
+    """
+    from pave import infra
+
+    snapshot = root / GATEWAY_SNAPSHOT.relative_to(ROOT)
+    contracts_path = root / TOOL_CONTRACTS.relative_to(ROOT)
+    if not snapshot.is_file() or not contracts_path.is_file():
+        return None
+
+    contracts = json.loads(contracts_path.read_text(encoding="utf-8"))
+    routed = infra.routed_tools(json.loads(snapshot.read_text(encoding="utf-8")))
+    # **The routing table's order, not sorted.** `handler.tool_config` iterates
+    # `TOOL_FUNCTIONS` as written, so the order the model receives the specs in is
+    # the table's. `tests/test_gateway_run_parity.py` pins the same digest and
+    # says the same thing; the two agree by computing the same expression, and a
+    # test asserts they do rather than leaving two copies to drift.
+    specs = json.dumps([contracts[t]["input"] for t in routed if t in contracts],
+                       sort_keys=True)
+    return {
+        # Sorted, because this half is a SET question -- "was the tool routed" --
+        # and a reader diffing two entries should not see a reordering of the
+        # deployment table as a change of surface. The digest above is what
+        # carries order, and it is the half that would move.
+        "routed": sorted(routed),
+        "tool_specs_sha256": hashlib.sha256(specs.encode("utf-8")).hexdigest(),
+    }
 
 
 def dryrun(cases: list) -> int:
@@ -527,6 +591,19 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None) 
             for r in results
         ],
     }
+    # **What the gateway routed when this run was taken.** Twelve of twenty-five
+    # cases carry `expect_tool_before_answer`, so the routed set decides how they
+    # can score, and until this field existed two runs taken either side of a
+    # deployment were indistinguishable in every field a reader compares
+    # (ADR-058, ADR-061). Omitted rather than defaulted when it cannot be
+    # derived: absent means UNKNOWN, never an empty surface.
+    #
+    # **Not under `instrument`.** That key already means the JUDGE instrument on a
+    # golden entry (ADR-032), and two different objects sharing one key across
+    # entry kinds is the substitution the registry exists to prevent.
+    surface = tool_surface(ROOT)
+    if surface is not None:
+        entry["tool_surface"] = surface
     if k > 1:
         entry["k"] = k
     if sources:

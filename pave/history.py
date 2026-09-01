@@ -113,7 +113,14 @@ EVIDENCE_REVISIONS: dict[str, list[tuple[str, str, str]]] = {
 #: The file is three-key, so this is a residual rather than a hole; pinning it
 #: costs one line and makes a loosening a diff in a file with the same keys.
 #: Found by the Security seat against the code.
-SCHEMA_DIGEST = "99d4d72b65abfb56cfb3fecfb289975224e02b18a8e738ee2b9a560ef9e38683"
+#:
+#: **Moved at ADR-061**, which adds the optional `tool_surface` property. The pin
+#: is a ratchet against a LOOSENING, and this is an addition: nothing became
+#: optional that was required, top-level `required` is untouched at five, and the
+#: new sub-schema is `additionalProperties: false` in both directions. Moving it
+#: in the same diff as the schema change is the point of the pin -- the digest is
+#: what makes the edit a line somebody has to defend rather than a silent one.
+SCHEMA_DIGEST = "1d5964c235535bc373359fcfcfda793f2f35624f48569a4e9f4487031cfa99da"
 
 #: README progression rows tied to a goldens entry, by tag (ADR-042 decision 2).
 #: Pinned per tag because `m00b` has two goldens entries and `m02` two arms, so
@@ -735,6 +742,85 @@ def check_registry(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT,
     return problems
 
 
+GATEWAY_SNAPSHOT = "platform/infra/tests/fixtures/BeaconpaveGateway.template.json"
+TOOL_CONTRACTS = "platform/gateway/policy/tools.contracts.json"
+
+
+def check_tool_surface(history: pathlib.Path = HISTORY,
+                       cwd: pathlib.Path = ROOT) -> list[str]:
+    """A recorded `tool_surface` is the surface at THAT entry's own commit.
+
+    ADR-061. The recorder derives the field from the working tree; this re-derives
+    it from the blobs at the entry's `sha` and refuses a disagreement. Without
+    this the field is a string the recording PR chose, which is the defect
+    ADR-041 recorded about `scores.total` and ADR-042 about a fabricated
+    `probes_sha256` -- twice now, a value "the same PR cannot invent" that it
+    could.
+
+    **Absent is not checked, and that is deliberate.** Every entry recorded before
+    the field existed lacks it, and treating absence as an empty surface would
+    assert about runs nobody measured (ADR-057's rule for `tool.executed`). A
+    reader gets UNKNOWN, which is what is true.
+
+    **`pave.infra.routed_tools` is imported rather than duplicated**, unlike
+    `corpus_digest` above. The rule that module follows is *do not import the
+    thing you are checking*: there, the scorer. Here the thing being checked is
+    the RECORDER's claim about a commit, and the CloudFormation reader is shared
+    ground -- a second parser would be a second opinion about the snapshot's
+    shape, which is the fault, not the protection.
+    """
+    from pave import infra
+
+    require_repository(cwd)
+    problems = []
+    for name, entry in _entries(history).items():
+        surface = entry.get("tool_surface")
+        if surface is None:
+            continue
+        sha = entry.get("sha")
+        if not sha:
+            problems.append(f"{name}: records a `tool_surface` and no `sha`, so there is no "
+                            "commit to check it against.")
+            continue
+        blobs = {}
+        for path in (GATEWAY_SNAPSHOT, TOOL_CONTRACTS):
+            proc = _git("show", f"{sha}:{path}", cwd=cwd)
+            if proc.returncode != 0:
+                blobs = None
+                break
+            blobs[path] = _out(proc)
+        if blobs is None:
+            # The commit predates one of the inputs, or is unreachable here. Not a
+            # problem with the entry: a shallow clone cannot see it either, and a
+            # check that failed on that would fail in CI for a reason unrelated to
+            # the evidence.
+            continue
+        try:
+            contracts = json.loads(blobs[TOOL_CONTRACTS])
+            routed = infra.routed_tools(json.loads(blobs[GATEWAY_SNAPSHOT]))
+        except (json.JSONDecodeError, AssertionError) as exc:
+            problems.append(f"{name}: the snapshot or contracts at {sha[:8]} cannot be read "
+                            f"({type(exc).__name__}), so its recorded `tool_surface` is "
+                            "unverifiable rather than verified.")
+            continue
+        specs = json.dumps([contracts[t]["input"] for t in routed if t in contracts],
+                           sort_keys=True)
+        want = {"routed": sorted(routed),
+                "tool_specs_sha256": hashlib.sha256(specs.encode("utf-8")).hexdigest()}
+        if surface.get("routed") != want["routed"]:
+            problems.append(
+                f"{name}: records routed tools {surface.get('routed')!r}, but the snapshot at "
+                f"{sha[:8]} routes {want['routed']!r}. An entry describes the surface its own "
+                "run was taken against; a set the commit does not agree with is a surface the "
+                "recording PR chose.")
+        if surface.get("tool_specs_sha256") != want["tool_specs_sha256"]:
+            problems.append(
+                f"{name}: records tool_specs_sha256 {str(surface.get('tool_specs_sha256'))[:12]}..., "
+                f"but the specs at {sha[:8]} digest to {want['tool_specs_sha256'][:12]}.... The "
+                "specs the model reads are part of the system under measurement.")
+    return problems
+
+
 def check_schema(history: pathlib.Path = HISTORY) -> list[str]:
     """Decision 7's ratchet: top-level `required` is exactly the five, the schema
     is byte-pinned, and every entry on disk validates against it as it stands."""
@@ -879,6 +965,7 @@ def run_all(base: str | None, history: pathlib.Path = HISTORY,
                   lambda: check_reachable(history, cwd),
                   lambda: check_case_ids(history, cwd),
                   lambda: check_registry(history, cwd, with_base()),
+                  lambda: check_tool_surface(history, cwd),
                   lambda: append_only_violations(with_base(), cwd)):
         problems += _guarded(check, refusals)
     return problems, refusals

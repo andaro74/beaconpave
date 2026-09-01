@@ -1110,6 +1110,17 @@ is corrected below.
     Quality, three keys. B13's re-adjudication rides in whichever diff un-defers the
     assert, so this decision and that obligation are settled together or not at all.
 
+    **Its stated precondition is discharged (ADR-061)** and the decision is not.
+    A golden entry now records `tool_surface` — the routed set and
+    `tool_specs_sha256` — checked against the entry's own commit, so two runs
+    taken either side of a deployment are no longer indistinguishable. **What
+    this decision inherits is a split suite**: entries recorded from here are
+    self-describing, and the M02 and M06 runs the comparator actually pins carry
+    nothing, because backfilling them would be a history rewrite. Their surface is
+    recoverable only from their `sha`. That is a smaller obstacle than the one
+    ADR-058 named and it is not none, and Decision 11 should be taken knowing
+    which half it is standing on.
+
 ## What M06b must not do
 
 - Do not write a fix into this document. Build it, attack it, then describe it.

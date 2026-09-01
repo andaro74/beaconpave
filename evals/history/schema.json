@@ -512,6 +512,30 @@
           "type": "integer"
         }
       }
+    },
+    "tool_surface": {
+      "type": "object",
+      "description": "What the gateway routed when this run was taken, and the digest of the tool specs the model reads. Twelve of the twenty-five golden cases carry `expect_tool_before_answer`, so the routed set decides how they can score; before this field an entry recorded nothing about it and two runs taken either side of a deployment were indistinguishable in every field a reader compares (ADR-058, ADR-061). OPTIONAL, and absent means UNKNOWN, never an empty surface: every entry recorded before this field existed lacks it, and a reader must treat those as evidence it does not have. Derived from the committed CDK snapshot, which ADR-017's synth-freshness job holds equal to the deployed stack -- it is not an observation from the run, and it is trustworthy exactly as far as that job and no further.",
+      "required": [
+        "routed",
+        "tool_specs_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "routed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "description": "The tool ids the gateway routes, sorted. Sorted because this half is a set question -- was the tool routed -- and a reader diffing two entries should not read a reordering of the deployment table as a change of surface. `tool_specs_sha256` is the half that carries order."
+        },
+        "tool_specs_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sha256 of the input schemas the model is shown, in the routing table's order. The same expression `tests/test_gateway_run_parity.py` pins as TOOL_SPECS_SHA256; a test asserts the two agree rather than leaving two copies to drift."
+        }
+      }
     }
   }
 }
