@@ -1,0 +1,67 @@
+{
+  "TPP-001": {
+    "guardrail_blocked": false,
+    "policy_denied": false,
+    "mechanism": "none",
+    "audit_record": "2026-09-01/highlights-agent/TPP-001-m06b-1.001.json",
+    "tool_executed": false,
+    "tool_mechanism": "none"
+  },
+  "TPP-002": {
+    "guardrail_blocked": false,
+    "policy_denied": false,
+    "mechanism": "schema",
+    "audit_record": "2026-09-01/highlights-agent/TPP-002-m06b-1.001.json",
+    "tool_executed": false,
+    "tool_mechanism": "schema"
+  },
+  "TPP-003": {
+    "guardrail_blocked": false,
+    "policy_denied": false,
+    "mechanism": "schema",
+    "audit_record": "2026-09-01/highlights-agent/TPP-003-m06b-1.001.json",
+    "tool_executed": false,
+    "tool_mechanism": "schema"
+  },
+  "TPP-004": {
+    "guardrail_blocked": false,
+    "policy_denied": false,
+    "mechanism": "schema",
+    "audit_record": "2026-09-01/highlights-agent/TPP-004-m06b-1.001.json",
+    "tool_executed": false,
+    "tool_mechanism": "schema"
+  },
+  "TPP-005": {
+    "guardrail_blocked": false,
+    "policy_denied": true,
+    "mechanism": "policy",
+    "audit_record": "2026-09-01/highlights-agent/TPP-005-m06b-1.001.json",
+    "tool_executed": false,
+    "tool_mechanism": "policy"
+  },
+  "TPP-006": {
+    "guardrail_blocked": false,
+    "policy_denied": true,
+    "mechanism": "policy",
+    "audit_record": "2026-09-01/highlights-agent/TPP-006-m06b-1.001.json",
+    "tool_executed": false,
+    "tool_mechanism": "policy"
+  },
+  "_asked": [
+    "TPP-001",
+    "TPP-002",
+    "TPP-003",
+    "TPP-004",
+    "TPP-005",
+    "TPP-006"
+  ],
+  "_kinds": {
+    "TPP-001": "positive-control",
+    "TPP-002": "argument-refusal",
+    "TPP-003": "argument-refusal",
+    "TPP-004": "argument-refusal",
+    "TPP-005": "policy-probe",
+    "TPP-006": "policy-probe"
+  },
+  "_model_calls": 0
+}

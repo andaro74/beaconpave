@@ -221,3 +221,92 @@ def test_the_probes_yaml_arm_still_offers_no_tools():
             "header states as its premise that it does not, and the two corpora "
             "now overlap. Update the header and ADR-060, or revert."
         )
+
+
+# --- the deployed run, checked against what the corpus predicted -----------------
+
+OBSERVED = ROOT / "milestones" / "M06b" / "tool-probes-run.json"
+
+
+def test_the_deployed_run_reproduces_what_the_plane_predicts():
+    """The loop this corpus exists to close.
+
+    Every assertion above drives the plane in-process. This one reads what the
+    DEPLOYED gateway actually recorded and checks it against the same table. A
+    corpus that predicts `policy` and a stack that answers `routing` would be two
+    true statements about different systems, and only this comparison can tell
+    them apart -- `SPEC/06b`'s own rule that a prediction confirmed on a
+    hand-built fixture proves nothing.
+
+    Required, not skipped-if-absent: the evidence is committed, and a deleted
+    file must be red rather than quietly reducing this file to its hermetic half.
+    """
+    observations = json.loads(OBSERVED.read_text(encoding="utf-8"))
+
+    mismatches = []
+    for row in ROWS:
+        seen = observations.get(row["id"])
+        if seen is None:
+            mismatches.append(f"{row['id']}: no observation recorded")
+            continue
+        _, want_mechanism = EXPECTED[row["id"]]
+        if seen.get("mechanism") != want_mechanism:
+            mismatches.append(
+                f"{row['id']}: deployed gateway recorded {seen.get('mechanism')!r}, "
+                f"the plane here predicts {want_mechanism!r}")
+
+    assert not mismatches, (
+        "the deployed stack and this tree disagree about what the plane does: "
+        + "; ".join(mismatches)
+    )
+
+
+def test_every_observation_carries_an_audit_record_and_executed_false():
+    """G4's second half, and the invariant the probe path exists to preserve.
+
+    `_tool_probe` authorizes and calls nothing -- *"an allowed probe still calls
+    nothing"* -- so `executed: true` on any row would mean the probe path had
+    become a second route to a tool, which is the one thing the plane exists to
+    prevent. Asserted against the recorded run rather than the docstring."""
+    observations = json.loads(OBSERVED.read_text(encoding="utf-8"))
+
+    for row in ROWS:
+        seen = observations[row["id"]]
+        assert seen.get("audit_record"), (
+            f"{row['id']} has no audit record. G4 requires the refusal AND the record; "
+            "a decision nobody logged is not a control anybody can audit.")
+        assert seen.get("tool_executed") is False, (
+            f"{row['id']} records tool_executed={seen.get('tool_executed')!r}. The probe "
+            "path authorizes and executes nothing; anything else means a second route "
+            "to a tool exists.")
+
+
+def test_the_run_asked_every_row_and_spent_nothing():
+    """`_asked` is the denominator (ADR-041), and the cost is part of the claim."""
+    observations = json.loads(OBSERVED.read_text(encoding="utf-8"))
+
+    assert observations["_asked"] == [row["id"] for row in ROWS], (
+        "the recorded run's `_asked` manifest does not match the corpus. A row the "
+        "arm did not ask scores OUT_OF_SCOPE, and a manifest built from what came "
+        "back instead of from the corpus drops unobserved rows out of the denominator.")
+    assert observations["_model_calls"] == 0, (
+        "this arm's whole argument is that it reaches the plane without a model.")
+
+
+def test_the_two_policy_probes_pass_g4_on_the_recorded_run():
+    """The milestone's substantive result, asserted rather than narrated.
+
+    `cedar_denied_or_approval_required_and_logged` is the semantics `ADV-008` has
+    declared since M01 on an arm that never offers a tool. These two rows are the
+    first observations in this repository that satisfy it."""
+    from evals.adversarial import score_probe
+
+    observations = json.loads(OBSERVED.read_text(encoding="utf-8"))
+    for row in ROWS:
+        if row["kind"] != "policy-probe":
+            continue
+        result = score_probe({"id": row["id"], "pass_when": row["pass_when"]},
+                             observations[row["id"]])
+        assert result.result == "PASS", (
+            f"{row['id']} scores {result.result} on the recorded run: "
+            f"{getattr(result, 'reason', '')}")
