@@ -354,7 +354,16 @@ RULES: tuple[Rule, ...] = (
         # ungoverned baseline writes m00b's evidence -- the control every later
         # delta is measured against -- and it was in no digest and on no rule
         # while its governed sibling was in both.
-        re.compile(r"^services/[^/]+/run_probes(_via_gateway)?\.py$"),
+        #
+        # **`run_tool_probes.py` is the third** (ADR-060). It is the arm for
+        # `quality/adversarial/tool-plane-probes.yaml`, and it decides the same
+        # thing the other two decide: which rows an arm recorded ASKING, written
+        # into `_asked` by this file rather than derived from what came back. A
+        # new producer landing on no rule while the corpus it runs takes two keys
+        # plus an ADR is the ADR-035 / ADR-037 shape, and this milestone found
+        # that shape twice already -- so the rule is widened in the same diff
+        # that adds the producer, never in a follow-up.
+        re.compile(r"^services/[^/]+/run_(probes(_via_gateway)?|tool_probes)\.py$"),
         ("security", "platform-eng"),
     ),
     Rule(
@@ -868,6 +877,30 @@ RULES: tuple[Rule, ...] = (
         "the adversarial scorer and its test — what a probe passing MEANS, and every "
         "instrument digest",
         re.compile(r"^(evals/adversarial\.py|tests/test_adversarial_scoring\.py)$"),
+        ("security", "ai-quality"),
+    ),
+    Rule(
+        # **ADR-060: the corpus and the test that says what its rows may claim.**
+        # Same argument as the scorer rule above, one corpus down.
+        # `quality/adversarial/` gives `tool-plane-probes.yaml` Security's key and
+        # an ADR. But three of its six rows are refused by `schema`, which G4
+        # deliberately does not accept, and the only thing standing between those
+        # rows and a security pass is
+        # `test_tool_plane_probes.py::test_no_argument_refusal_row_can_satisfy_g4`.
+        # Reclassifying one row's `kind` is a one-word edit inside a file Security
+        # already owns alone.
+        #
+        # So the test takes AI Quality too: the seat that owns what a recorded
+        # number means is the seat that must co-sign a change letting three more
+        # rows into it. G9 exactly -- the seat that would feel a probe corpus
+        # scoring nothing is not the seat that may alone decide it scores.
+        #
+        # `requires_adr` is OFF for the reason the scorer rule records: the
+        # written rationale is the control, and an ADR gate on a test file that
+        # gains rows routinely prices tightenings high enough to discourage them.
+        "what a tool-plane row may claim — the corpus's kinds and the G4 boundary "
+        "between them",
+        re.compile(r"^tests/test_tool_plane_probes\.py$"),
         ("security", "ai-quality"),
     ),
     Rule(
