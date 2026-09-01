@@ -511,7 +511,22 @@ export class GatewayStack extends cdk.Stack {
     // naming a tool, so a function built any other way still has to satisfy
     // both; this makes the common path correct, it does not make the check
     // unnecessary.
-    const deployTool = (constructId: string, toolId: string) => {
+    // **One argument, and the construct id is DERIVED.** The first version took
+    // `(constructId, toolId)` as free parameters, and the Platform Engineering seat
+    // planted `deployTool('CatalogSearchFn', ENTITLEMENT_CHECK)`: the deployed
+    // `catalog-search` ships the other tool's bundle and answers entitlement
+    // queries, while `TOOL_FUNCTIONS` still routes `catalog-search` to it. Both
+    // gates stayed green -- `pave/infra.py` normalizes every asset hash to
+    // `<ASSET_HASH>`, so the ONE byte that moved is the one the snapshot cannot
+    // see, and no test in the repository pairs a construct id with a tool id.
+    //
+    // The refactor created that degree of freedom at the same moment it created a
+    // second value to fill it: with one tool, `toolCode(CATALOG_SEARCH)` sat inline
+    // at its single use site and there was nothing to confuse it with. Deriving the
+    // id removes the freedom rather than asserting about it.
+    const deployTool = (toolId: string) => {
+      const constructId = toolId.split('-')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('') + 'Fn';
       const fn = new lambda.Function(this, constructId, {
         runtime: lambda.Runtime.PYTHON_3_12,
         handler: 'server.handler',
@@ -548,7 +563,7 @@ export class GatewayStack extends cdk.Stack {
       return fn;
     };
 
-    const catalogSearchFn = deployTool('CatalogSearchFn', CATALOG_SEARCH);
+    const catalogSearchFn = deployTool(CATALOG_SEARCH);
 
     // The second tool, and it carries **no `BEACONPAVE_CLOCK`**. The evaluation
     // clock is `server.py`'s `CLOCK`, which `test_gateway_run_parity.py` pins
@@ -557,7 +572,7 @@ export class GatewayStack extends cdk.Stack {
     // cannot read — the deployed instant drifting while the suite went on
     // agreeing with itself. The override exists for a drill or a replay, and
     // leaving it unset is what keeps setting it a deliberate act.
-    const entitlementCheckFn = deployTool('EntitlementCheckFn', ENTITLEMENT_CHECK);
+    const entitlementCheckFn = deployTool(ENTITLEMENT_CHECK);
 
     // The routing table, and the gateway derives its offered tool set from it, so
     // it cannot advertise a tool it has no way to call.

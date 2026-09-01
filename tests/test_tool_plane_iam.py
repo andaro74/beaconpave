@@ -142,6 +142,43 @@ def test_the_gateway_actually_holds_the_grant():
     assert granted == targets, f"no invoke grant for {sorted(targets - granted)}"
 
 
+def test_the_gateway_may_invoke_nothing_but_a_routed_tool():
+    """The counterpart to `test_only_the_gateways_own_role_may_invoke_a_tool`, and
+    the half that was missing. That one asks *who may invoke a tool*; this one asks
+    *what the gateway may invoke*, and every other assertion in this file is scoped
+    to `infra.routed_tools`, so a function outside the routing table was outside all
+    of them.
+
+    **Measured, by the Platform Engineering seat, against the closure this milestone
+    introduced.** `deployTool` grants the gateway invoke from inside itself, so a
+    third call to it deploys a fully-formed Lambda -- gateway-invocable, holding
+    `s3:GetObject` on `*` -- that no assertion in the repository knew existed:
+    `2373 passed, 6 skipped`, exactly the baseline, and the snapshot re-recorded
+    without complaint. G1 still held, because the model-invoke Deny is enforced over
+    every non-gateway role rather than over routed tools. G3 did not.
+
+    A grant is the right thing to assert on rather than an inventory of functions.
+    A Lambda nobody may invoke is inert; a Lambda the gateway may invoke is a tool
+    whether or not the registry calls it one."""
+    template = load()
+    targets = set(infra.routed_tools(template).values())
+    by_name = function_names(template)
+    reachable = {
+        logical
+        for grant in infra.tool_invoke_grants(template)
+        for role in grant["roles"] if infra.is_gateway_role(role)
+        for logical in infra.invoke_targets(grant["statement"], by_name)
+    }
+    assert targets, "no routed tools; this comparison would be vacuous"
+    stray = sorted(reachable - targets)
+    assert not stray, (
+        f"the gateway holds lambda:InvokeFunction on {stray}, which the routing table "
+        "does not name. Unregistered tools are unreachable (G3), and a function the "
+        "gateway may call is a tool whichever file declares it: Cedar has no permit and "
+        "no forbid for it, and every other assertion in this file skips it."
+    )
+
+
 def test_no_invoke_grant_is_a_wildcard():
     """A wildcard invoke grant is how a tool added to the registry later becomes
     reachable without anybody granting anything: the grant that already covers it
@@ -404,6 +441,34 @@ def test_the_assertion_catches_an_unregistered_routed_tool():
 
 # --- the routing table is read, not restated ---------------------------------
 
+#: Registered tools with an implementation that are deliberately NOT routed, and why.
+#:
+#: **The message below used to offer a place to write this down and there was no
+#: place.** A protection that is stated and absent is worse than one that is
+#: missing, because it stops the next reader looking for the real one (ADR-035,
+#: ADR-037). The Tool Owner seat found it by building the future that needs it:
+#: implementing `publish-highlight` puts two tests in direct opposition --
+#: `test_an_unbuilt_tool_is_declared_and_unreachable` says remove it from `UNBUILT`
+#: so conformance covers it, and the assertion below says route it -- and routing
+#: it is exactly what Legal/S&P refused. The only green states were "route the
+#: publish-class tool" and "delete the implementation."
+#:
+#: An entry is a decision, not an excuse, and it is guarded the same way `UNBUILT`
+#: is: the tool must still be registered, its consequence class must be gated so a
+#: caller could not reach it in any case, and it must not appear in the routing
+#: table. A tool whose consequence is ungated cannot be parked here.
+NOT_DEPLOYED = {
+    "publish-highlight": (
+        "Deployment refused by Legal/S&P (`SPEC/06` Decisions 1); whether that refusal "
+        "is standing or was scoped to M06 is an open question for that seat (ADR-055). "
+        "Claim 10 -- consequence classes gating real actions -- carries no milestone, and "
+        "`tools.yaml` declares `approval: stepfn:editorial-approver` for which the stack "
+        "holds no resource. Routing it before that exists would be a permitted action "
+        "with a declared and absent interlock."
+    ),
+}
+
+
 def test_the_routing_table_is_parsed_from_the_gateways_own_environment():
     """These assertions follow the table the running gateway follows. A list of
     tool ids in this file would be a second copy, and the failure mode of a second
@@ -412,24 +477,61 @@ def test_the_routing_table_is_parsed_from_the_gateways_own_environment():
     **This test used to close with `== {"catalog-search"}`** -- the literal its own
     docstring forbids, three lines under the sentence forbidding it. It went red at
     M06b for the right reason, and is derived now: a tool is routed exactly when it
-    is registered and has a server. Both halves earn their keep, in opposite
-    directions. A registered, implemented tool missing from the table is the gap
-    this milestone closed -- `entitlement-check` was permitted by Cedar and shipped
-    in the model's contract for four milestones with nothing deployed behind it. A
-    routed tool with no server is the reverse: a route to a 500 that Cedar permits."""
+    is registered, has a server, and is not declared in `NOT_DEPLOYED`.
+
+    The two halves earn their keep in opposite directions. A registered, implemented
+    tool missing from the table is the gap this milestone closed -- `entitlement-check`
+    was permitted by Cedar and shipped in the model's contract for four milestones
+    with nothing deployed behind it. A routed tool with no server is the reverse: a
+    route to a 500 that Cedar permits. **That second half is weak here on its own**
+    -- `is_file()` is satisfied by an empty file, measured -- and it is
+    `tests/test_tool_servers.py` that establishes a server is a server. This test's
+    job is the routing table, not the tool."""
     template = load()
     _, gateway = infra.gateway_function(template)
     variables = gateway["Properties"]["Environment"]["Variables"]
     assert infra.TOOL_ROUTING_ENV in variables
     implemented = {t for t in registry_ids() if (ROOT / "tools" / t / "server.py").is_file()}
     assert implemented, "no registered tool has a server; this comparison would be vacuous"
-    assert set(infra.routed_tools(template)) == implemented, (
+    assert set(infra.routed_tools(template)) == implemented - set(NOT_DEPLOYED), (
         "the routing table and the implemented registry disagree. A registered tool with "
         "an implementation and no route is a tool the model is offered and the gateway "
         "cannot call; a routed tool with no implementation is a route to a 500. If a tool "
-        "is deliberately built and not deployed, that is a decision and it belongs written "
-        "down here rather than left as a difference."
+        "is deliberately built and not deployed, that is a decision: write it in "
+        "NOT_DEPLOYED above with the reason."
     )
+
+
+@pytest.mark.parametrize("tool_id", sorted(NOT_DEPLOYED))
+def test_a_tool_held_back_from_deployment_is_declared_and_unreachable(tool_id):
+    """`NOT_DEPLOYED` may not become a way to park a tool a caller could reach.
+
+    Same load-bearing shape as `UNBUILT` in `tests/test_tool_servers.py`: the entry
+    must still be registered, so a stale exemption cannot silently cover a future
+    tool of the same name; its consequence class must be gated, so the declaration
+    cannot quiet an ungated tool somebody simply forgot to deploy; and it must not
+    be in the routing table, so the declaration and the stack cannot disagree while
+    both look correct."""
+    import sys as _sys
+    _sys.path.insert(0, str(ROOT / "platform" / "gateway"))
+    try:
+        from core import cedar
+    finally:
+        while str(ROOT / "platform" / "gateway") in _sys.path:
+            _sys.path.remove(str(ROOT / "platform" / "gateway"))
+
+    assert tool_id in registry_ids(), f"{tool_id} is held back and not registered; drop the entry"
+    assert NOT_DEPLOYED[tool_id].strip(), f"{tool_id} is held back with no reason"
+    entry = next(t for t in yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
+                 if t["id"] == tool_id)
+    assert entry["consequence"] in cedar.GATED_CONSEQUENCES, (
+        f"{tool_id} is held back from deployment but its consequence class "
+        f"`{entry['consequence']}` is not gated, so nothing but this list stops a caller "
+        "reaching it. Deploy it or gate it; do not park it.")
+    assert tool_id not in infra.routed_tools(load()), (
+        f"{tool_id} is declared NOT_DEPLOYED and the gateway routes it. Remove the "
+        "declaration or remove the route; a list that disagrees with the stack is worse "
+        "than no list.")
 
 
 def test_an_unreadable_routing_table_fails_loudly():
