@@ -113,6 +113,24 @@ def test_the_evaluation_clock_is_the_same_everywhere_it_appears():
             )
 
 
+def test_the_deployment_does_not_define_a_clock_of_its_own():
+    """The half of the rule above that lives outside Python.
+
+    `BEACONPAVE_CLOCK` is an override, and an override set in the stack is a
+    default: the deployed tool would answer against an instant no arm file names
+    and `module_constants` cannot see, so the loop above would go on agreeing with
+    itself while the deployed instrument had moved. The stack sets it nowhere, and
+    this is what keeps that true -- a drill needing another instant sets it at
+    invocation, deliberately, and does not leave it behind."""
+    template = GATEWAY_SNAPSHOT.read_text(encoding="utf-8")
+    assert "BEACONPAVE_CLOCK" not in template, (
+        "the synthesized stack sets BEACONPAVE_CLOCK. That is a second definition of the "
+        "evaluation clock, in a file test_the_evaluation_clock_is_the_same_everywhere_it_"
+        "appears cannot read. If a deployment must pin an instant, pin it against "
+        "BASELINE_CONSTANTS['CLOCK'] here first."
+    )
+
+
 def test_the_model_id_is_the_same_pinned_profile():
     """ADR-015. A run against a different profile is a different measurement, and
     the regional pin is a recorded decision rather than an accident."""
@@ -181,7 +199,15 @@ TOOL_SYSTEM_SHA256 = "c5e0e50584613dbfa75b0dc991fda55e075709dfb07fd3c5f38db8e0a6
 #: milestone, so the description's rewrite is drafted for the Tool Owner with a
 #: semver bump rather than made here — but it cannot move unnoticed in the
 #: meantime.
-TOOL_SPECS_SHA256 = "1912657b11c164df77ed5f162729f6cd785d840f31233bafcc03aeb89dc15c4a"
+#:
+#: **Moved at M06b when `entitlement-check` was routed**, from
+#: `1912657b...dc15c4a`. Nothing about `catalog-search` changed: the digest is
+#: taken over the ROUTED set, so deploying a second tool adds a second document to
+#: what the model reads and the hash moves by construction. That is an ADR-021
+#: event -- the system under measurement is larger than it was -- and no
+#: comparison may span it. Both arms of every M06b comparison run on one side of
+#: this line.
+TOOL_SPECS_SHA256 = "0267054bf6b83b28e60d0b80fdbb4469588b8afc619e12d3d2bc2cb3f3388205"
 
 
 def test_the_tool_specs_the_model_reads_are_hash_pinned():

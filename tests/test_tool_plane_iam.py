@@ -407,12 +407,29 @@ def test_the_assertion_catches_an_unregistered_routed_tool():
 def test_the_routing_table_is_parsed_from_the_gateways_own_environment():
     """These assertions follow the table the running gateway follows. A list of
     tool ids in this file would be a second copy, and the failure mode of a second
-    copy is that it stays green while the first one moves."""
+    copy is that it stays green while the first one moves.
+
+    **This test used to close with `== {"catalog-search"}`** -- the literal its own
+    docstring forbids, three lines under the sentence forbidding it. It went red at
+    M06b for the right reason, and is derived now: a tool is routed exactly when it
+    is registered and has a server. Both halves earn their keep, in opposite
+    directions. A registered, implemented tool missing from the table is the gap
+    this milestone closed -- `entitlement-check` was permitted by Cedar and shipped
+    in the model's contract for four milestones with nothing deployed behind it. A
+    routed tool with no server is the reverse: a route to a 500 that Cedar permits."""
     template = load()
     _, gateway = infra.gateway_function(template)
     variables = gateway["Properties"]["Environment"]["Variables"]
     assert infra.TOOL_ROUTING_ENV in variables
-    assert set(infra.routed_tools(template)) == {"catalog-search"}
+    implemented = {t for t in registry_ids() if (ROOT / "tools" / t / "server.py").is_file()}
+    assert implemented, "no registered tool has a server; this comparison would be vacuous"
+    assert set(infra.routed_tools(template)) == implemented, (
+        "the routing table and the implemented registry disagree. A registered tool with "
+        "an implementation and no route is a tool the model is offered and the gateway "
+        "cannot call; a routed tool with no implementation is a route to a 500. If a tool "
+        "is deliberately built and not deployed, that is a decision and it belongs written "
+        "down here rather than left as a difference."
+    )
 
 
 def test_an_unreadable_routing_table_fails_loudly():

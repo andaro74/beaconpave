@@ -282,6 +282,11 @@
         "Ref": "DirectCallProbeFn1E627152"
       }
     },
+    "EntitlementCheckFunctionName": {
+      "Value": {
+        "Ref": "EntitlementCheckFnA776C4CC"
+      }
+    },
     "GatewayFunctionName": {
       "Value": {
         "Ref": "GatewayFn1123A784"
@@ -500,6 +505,93 @@
       },
       "Type": "AWS::Lambda::Function"
     },
+    "EntitlementCheckFnA776C4CC": {
+      "DependsOn": [
+        "EntitlementCheckFnServiceRoleDefaultPolicy5CCA907A",
+        "EntitlementCheckFnServiceRoleAE28131F"
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+          },
+          "S3Key": "<ASSET_HASH>.zip"
+        },
+        "Environment": {
+          "Variables": {
+            "BEACONPAVE_CATALOG": "/var/task/catalog.json"
+          }
+        },
+        "Handler": "server.handler",
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "EntitlementCheckFnServiceRoleAE28131F",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.12",
+        "Timeout": 10
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "EntitlementCheckFnServiceRoleAE28131F": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "EntitlementCheckFnServiceRoleDefaultPolicy5CCA907A": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "bedrock:Converse",
+                "bedrock:ConverseStream",
+                "bedrock:InvokeModel",
+                "bedrock:InvokeModelWithResponseStream"
+              ],
+              "Effect": "Deny",
+              "Resource": "*"
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "EntitlementCheckFnServiceRoleDefaultPolicy5CCA907A",
+        "Roles": [
+          {
+            "Ref": "EntitlementCheckFnServiceRoleAE28131F"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Policy"
+    },
     "GatewayFn1123A784": {
       "DependsOn": [
         "GatewayFnServiceRoleDefaultPolicy45DD8837",
@@ -538,6 +630,10 @@
                   "{\"catalog-search\":\"",
                   {
                     "Ref": "CatalogSearchFn5CC7AE21"
+                  },
+                  "\",\"entitlement-check\":\"",
+                  {
+                    "Ref": "EntitlementCheckFnA776C4CC"
                   },
                   "\"}"
                 ]
@@ -664,12 +760,32 @@
                   ]
                 },
                 {
+                  "Fn::GetAtt": [
+                    "EntitlementCheckFnA776C4CC",
+                    "Arn"
+                  ]
+                },
+                {
                   "Fn::Join": [
                     "",
                     [
                       {
                         "Fn::GetAtt": [
                           "CatalogSearchFn5CC7AE21",
+                          "Arn"
+                        ]
+                      },
+                      ":*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "EntitlementCheckFnA776C4CC",
                           "Arn"
                         ]
                       },
