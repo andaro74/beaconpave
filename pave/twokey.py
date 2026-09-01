@@ -337,8 +337,15 @@ RULES: tuple[Rule, ...] = (
         # 77.8% -- with the lane PASS, the gate exit 0 and the whole suite green.
         # Security AND AI Quality: the seat that owns what a probe passing means,
         # plus the seat that owns the recorded number it is compared against.
+        # **`tool-probes-run.json` is covered by the same rule** (ADR-060's arm,
+        # observed). It is the tool-plane corpus's evidence and it is what a scope
+        # attack deletes from for exactly the reason the model arm's is: dropping a
+        # failing row's observation and its `_asked` entry shrinks the denominator
+        # rather than raising INFRA. It landed on NO rule while the file beside it
+        # took two keys, which is the gap ADR-060 closed one file over for the
+        # producer -- so it is closed here, in the diff that creates the evidence.
         "committed adversarial evidence and the question set each arm recorded asking",
-        re.compile(r"^milestones/.*/probes-run\.json$"),
+        re.compile(r"^milestones/.*/(tool-)?probes-run\.json$"),
         ("security", "ai-quality"),
     ),
     Rule(

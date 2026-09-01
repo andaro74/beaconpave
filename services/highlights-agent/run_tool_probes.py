@@ -88,6 +88,17 @@ def main(argv=None) -> int:
         if not rows:
             sys.exit(f"no such row: {args.only}")
 
+    # **The output directory is made before the first call, not at write time.**
+    # `run_probes_via_gateway.py` states the rule this file failed to follow:
+    # "Written before anything can exit ... evidence is the expensive part and the
+    # check is free." The first real run of this harness pointed `--out` at
+    # `milestones/M06b/`, which did not exist. All six calls succeeded and six
+    # records landed in the lake; `write_text` then raised `FileNotFoundError` and
+    # threw the observations away. The lake kept the evidence because the gateway
+    # writes it, so nothing was lost that mattered -- which is luck, not design,
+    # and would not hold for the model arm where the calls are paid for.
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+
     deployed = gw.resources()
     function_name = deployed["GatewayFunctionName"]
     bucket = deployed["AuditLakeBucket"]
@@ -171,7 +182,13 @@ def main(argv=None) -> int:
     document["_kinds"] = {row["id"]: row["kind"] for row in rows}
     document["_model_calls"] = 0
 
-    args.out.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+    # **`newline="\n"` explicitly.** `.gitattributes` normalises to LF on commit, so
+    # the committed blob is right either way — but a working copy written CRLF on
+    # Windows digests differently from the blob beside it, and this repository has
+    # already paid for pins taken from a mixed tree (`.gitattributes`' own header
+    # records it). Written the way it will be stored.
+    args.out.write_text(json.dumps(document, indent=2) + "\n",
+                        encoding="utf-8", newline="\n")
     print(f"\nwrote {args.out}")
     return 0
 
