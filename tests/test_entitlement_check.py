@@ -18,17 +18,35 @@ Owning seat: Tool Owner · AI Quality (what a reason means).
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import pathlib
-import sys
 
 import pytest
 import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "tools" / "entitlement-check"))
 
-import entitlement  # noqa: E402
+
+def _load(name: str, path: pathlib.Path):
+    """Load a bundle module by path, under a name of its own.
+
+    **Not `sys.path.insert` + a bare import, and the difference is not style.**
+    That is what this file did first, and because the insert is permanent and at
+    position 0, `tools/entitlement-check/` sat ahead of `tools/catalog-search/` for
+    the whole session. It was invisible until this tool gained a `server.py`: from
+    that moment `test_mcp_server.py`'s bare `import server` resolved to the WRONG
+    TOOL's server, and three of its tests failed while passing in isolation. Two
+    bundles both containing `server.py` cannot share a namespace, so neither
+    should claim one."""
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+entitlement = _load("entitlement_check_logic",
+                    ROOT / "tools" / "entitlement-check" / "entitlement.py")
 
 CATALOG = json.loads((ROOT / "data" / "catalog.json").read_text(encoding="utf-8"))
 CASES = yaml.safe_load(

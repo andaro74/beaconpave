@@ -89,13 +89,23 @@ def test_the_evaluation_clock_is_the_same_everywhere_it_appears():
     ever — a suite whose clock drifted would start failing on its own once the
     fixture events pass, and the failure would look like a regression."""
     clock = BASELINE_CONSTANTS["CLOCK"]
-    for path in (GOVERNED, CONTROL_ARM, TOOL_ARM):
+    # **Tool servers are in this loop, and that is new.** `entitlement-check` has to
+    # answer `not-yet-started`, which needs an instant, and its input contract cannot
+    # supply one -- the caller is the model, and a tool letting the model choose the
+    # moment it is judged against hands back the decision its own output schema calls
+    # the tool's. So the clock arrives as deployment configuration (ADR-023's shape),
+    # and the module that holds it is one more place this value can drift. Discovered
+    # from `tools/` rather than listed, so the next tool that needs a clock is covered
+    # the day it is written rather than the day somebody remembers this loop.
+    tool_servers = sorted((ROOT / "tools").glob("*/server.py"))
+    assert tool_servers, "no tool servers found; this loop would cover nothing"
+    for path in (GOVERNED, CONTROL_ARM, TOOL_ARM, *tool_servers):
         source = path.read_text(encoding="utf-8")
         assert "CLOCK" not in module_constants(path) or module_constants(path)["CLOCK"] == clock, (
             f"{path.name} defines its own CLOCK. There is one evaluation clock; a second "
             "definition is a second instrument."
         )
-        if path is not GOVERNED:
+        if path is not GOVERNED and path not in tool_servers:
             assert "Evaluation clock" not in source, (
                 f"{path.name} builds its own user turn instead of calling `gw.user_turn`. "
                 "The clock reaches the model through that function in both arms, and a "
