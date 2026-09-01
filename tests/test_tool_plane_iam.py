@@ -8,15 +8,26 @@ than on IAM". The plane is a control the gateway applies to callers that go
 through it. A caller that can invoke the tool function directly has not defeated
 the plane — it has gone around it, and no amount of Cedar helps.
 
-So there are three separate things to be false here, and they fail differently:
+So there are **four** separate things to be false here, and they fail differently:
 
 - an **identity** grant: some role holding `lambda:InvokeFunction` on the tool.
-  Read from role policies, which is where a careless `grantInvoke` lands.
+  Read from role policies, which is where a careless `grantInvoke` lands. It does
+  not have to name the function: an alias or a version carries its own invocable
+  ARN, so those resolve back to the function behind them.
 - a **resource** policy: `AWS::Lambda::Permission` letting a principal in from
   the other side. Invisible to every check that reads role policies, and the
   gateway's own narrow grant still looks correct beside it.
 - a **network** route: `AWS::Lambda::Url`, a public HTTPS endpoint in front of
   the function with nothing in between.
+- an **event source**: `AWS::Lambda::EventSourceMapping`. **This list said three
+  for four milestones and the fourth needs no permission at all** — the poller
+  uses the function's own execution role, so there is no invoke grant to find and
+  no resource policy to flag. Found by the Security seat at M06b, planted live,
+  with every assertion in this file green.
+
+And a fifth rule that is not a route but makes the four readable: an invoke grant
+naming something this module cannot resolve to a function is refused rather than
+treated as naming nothing.
 
 Reading the committed snapshot rather than synthesizing, for the reason ADR-017
 records: `make check` is hermetic and CI re-synthesizes and diffs.
@@ -104,13 +115,24 @@ def function_names(template):
 
 
 def invokers_of_tools(template):
-    """Roles holding an invoke grant on a routed tool function."""
+    """Roles holding an invoke grant on a routed tool function.
+
+    **Through aliases and versions, which used to fall out.** `fn.addAlias('live')`
+    plus `alias.grantInvoke(role)` emits `{"Ref": "<Alias>"}`, and this
+    intersection is against `AWS::Lambda::Function` logical ids — so the grant
+    resolved to a resource that was not in `targets` and dropped out, leaving the
+    assertion reporting the gateway as the sole invoker. The Security seat put
+    that grant on the *service* role, the one whose entire purpose is that it must
+    go through the gateway, and measured 70 passed.
+
+    `infra.resolve_functions` maps a pointer back to the function behind it."""
     targets = set(infra.routed_tools(template).values())
     by_name = function_names(template)
     return {
         (role, logical)
         for grant in infra.tool_invoke_grants(template)
-        for logical in infra.invoke_targets(grant["statement"], by_name) & targets
+        for logical in infra.resolve_functions(
+            template, infra.invoke_targets(grant["statement"], by_name)) & targets
         for role in grant["roles"]
     }
 
@@ -201,7 +223,60 @@ def test_a_tool_function_reaches_no_model():
         assert role & denied, f"{tool_id}'s role holds no explicit model-invoke Deny"
 
 
-# --- the two routes that are invisible to a role-policy check ----------------
+def test_no_invoke_grant_names_something_this_check_cannot_resolve():
+    """**Fail closed on the unreadable rather than treating it as empty.**
+
+    `{"Fn::ImportValue": "SomeExport"}` carries an export name, not an ARN, so
+    `invoke_targets` returns nothing and `_names_a_wildcard_function` sees no `*`
+    and no `:function:`. The grant falls out of *both* detectors at once — the
+    "two blind checks agreeing is not coverage" condition `pave/infra.py` already
+    warns about — and `cdk.Fn.importValue()` is the ordinary cross-stack idiom, so
+    it needs no escape hatch and reads as normal in review.
+
+    Same argument as `unreadable_managed_policies`: there is nothing here to read,
+    so the only honest answer is to refuse the shape."""
+    template = load()
+    unresolved = infra.unresolved_invoke_grants(template, function_names(template))
+    offenders = sorted(f"{e['policy']} -> {e['resource']}" for e in unresolved)
+    assert not offenders, (
+        "an invoke grant names something this check cannot resolve to a function:\n  "
+        + "\n  ".join(offenders)
+        + "\n\nAn unresolvable target is not an absent one. Name the function through Ref "
+          "or GetAtt, or bring the resource into this stack."
+    )
+
+
+# --- the routes that are invisible to a role-policy check --------------------
+
+def test_no_event_source_drives_a_function_in_this_stack():
+    """**The fourth route, and the only one that needs no permission at all.**
+
+    This file's own docstring enumerates three things to be false — an identity
+    grant, a resource policy, a network route. An `AWS::Lambda::EventSourceMapping`
+    is a fourth, and it is invisible to all three checks: the poller uses the
+    *function's own execution role*, so there is no invoke grant to find and no
+    `AWS::Lambda::Permission` to flag. A queue with an open `sqs:SendMessage`
+    policy in front of a mapping is a route to the tool with no plane, no Cedar
+    and no audit record — and the Security seat measured 70 passed with exactly
+    that in the template.
+
+    `fn.addEventSource(new SqsEventSource(q))` is one CDK line."""
+    template = load()
+    deployed = set(infra.functions(template))
+    offenders = sorted(
+        f"{m['id']} drives {sorted(m['function'] & deployed)} from {m['source']!r}"
+        for m in infra.event_source_mappings(template)
+        if m["function"] & deployed
+    )
+    assert not offenders, (
+        "an event source invokes a function in this stack:\n  " + "\n  ".join(offenders)
+        + "\n\nThe poller uses the function's own execution role, so this is a route with "
+          "no invoke grant and no resource policy — invisible to every other assertion here. "
+          "If a tool must be driven by an event source, that is a G3 decision and needs an "
+          "ADR, not a construct."
+    )
+
+
 
 def test_no_function_in_the_stack_has_a_public_url():
     """A function URL is a public HTTPS endpoint in front of a function. One on a

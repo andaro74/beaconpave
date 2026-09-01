@@ -148,13 +148,18 @@ def _as_list(value: Any) -> list:
 
 
 def _referenced_roles(refs: Any) -> list[str]:
-    """Logical ids of the roles a policy attaches to."""
+    """Logical ids of the roles a policy attaches to.
+
+    Every reference form, not just `Ref`: a policy whose `Roles` names its target
+    through `Fn::Sub` or `Fn::GetAtt` attaches to that role exactly as hard, and
+    reading only `Ref` made such an attachment invisible to every assertion that
+    asks *which role holds this grant*."""
     names = []
     for ref in _as_list(refs):
-        if isinstance(ref, dict) and "Ref" in ref:
-            names.append(ref["Ref"])
-        elif isinstance(ref, str):
+        if isinstance(ref, str):
             names.append(ref)
+        else:
+            names.extend(sorted(referenced_logical_ids(ref)))
     return names
 
 
@@ -215,28 +220,53 @@ def actions_of(statement: dict) -> set[str]:
     return set(_as_list(statement.get("Action")))
 
 
+def _action_matches(pattern: Any, action: str) -> bool:
+    """Does one IAM action pattern cover one concrete action?"""
+    if not isinstance(pattern, str):
+        return False
+    if pattern == "*":
+        return True
+    if pattern.endswith(":*"):
+        return action.startswith(pattern[:-1])
+    return pattern == action
+
+
 def grants_any(statement: dict, wanted: frozenset) -> bool:
-    """Does this statement's `Action` cover any of `wanted`, wildcards included?
+    """Does this statement cover any of `wanted`, wildcards and `NotAction`
+    included?
 
     **A set intersection is not action matching.** `Action: "*"` and
     `Action: "bedrock:*"` reach every model action and match no literal string, so
     a plain intersection reported them as granting nothing at all. Both G1 and
-    G3's new infra assertion read through here, and both were blind to the
-    broadest possible grant while catching the narrow ones.
+    G3's infra assertions read through here, and both were blind to the broadest
+    possible grant while catching the narrow ones.
 
     The `MODEL_INVOKE_ACTIONS` docstring argues that naming more than the minimum
     protects against a provider *adding* an action. It does. It says nothing about
-    a grant that names none of them by naming all of them."""
-    for action in _as_list(statement.get("Action")):
-        if not isinstance(action, str):
-            continue
-        if action == "*":
-            return True
-        if action.endswith(":*") and any(w.startswith(action[:-1]) for w in wanted):
-            return True
-        if action in wanted:
-            return True
-    return False
+    a grant that names none of them by naming all of them — which is the first
+    thing this function had to learn, and `NotAction` is the second.
+
+    **`NotAction` is the inverse of the list, and it was read as an absent one.**
+    `{"Effect": "Allow", "NotAction": ["s3:GetObject"], "Resource": "*"}` permits
+    every model action while naming none, and `statement.get("Action")` returns
+    `None` for it, so this returned `False` and the grant was invisible. It needs
+    no escape hatch to write: `notActions` is a plain `iam.PolicyStatement` field.
+    Measured green by the Security seat against a live snapshot.
+
+    On a `Deny`, `NotAction` denies *more* than the list, so reporting it as
+    covering `wanted` is correct there too — a broad denial is still a denial."""
+    not_action = _as_list(statement.get("NotAction"))
+    if not_action:
+        # Covered unless every wanted action is excluded by the NotAction list.
+        return any(
+            not any(_action_matches(pattern, want) for pattern in not_action)
+            for want in wanted
+        )
+    return any(
+        _action_matches(pattern, want)
+        for pattern in _as_list(statement.get("Action"))
+        for want in wanted
+    )
 
 
 def model_invoke_grants(template: dict) -> list[dict]:
@@ -251,19 +281,184 @@ def model_invoke_grants(template: dict) -> list[dict]:
     return found
 
 
+def _denies_unconditionally(statement: dict) -> bool:
+    """Is this Deny in force for every request against every model?
+
+    **A Deny is not a boolean.** The first version of `model_invoke_denials`
+    checked `Effect` and the action list and nothing else, so two shapes read as
+    full coverage while denying almost nothing, and the Security seat measured
+    both green against a live snapshot:
+
+      - `"Resource": "arn:...:foundation-model/a-model-nobody-uses"` — a Deny on
+        one model the platform does not call, which forbids nothing it does.
+      - `"Condition": {...}` that never matches — a Deny that is never in force.
+
+    A `Condition` is refused outright rather than analysed. Deciding whether a
+    condition can ever be true is a policy-simulator problem, and a checker that
+    guessed would be wrong in the direction that passes."""
+    if statement.get("Condition"):
+        return False
+    resources = _as_list(statement.get("Resource"))
+    if not resources:
+        return False
+    return any(resource == "*" for resource in resources if isinstance(resource, str))
+
+
 def model_invoke_denials(template: dict) -> list[dict]:
-    """Every statement that explicitly DENIES model-invoke actions.
+    """Every statement that explicitly and UNCONDITIONALLY denies model invocation.
 
     Absence of a grant already denies. An explicit Deny is recorded separately
     because it survives a later careless grant, and because it makes the
-    resulting CloudTrail event say why the call failed."""
+    resulting CloudTrail event say why the call failed — and neither of those is
+    true of a Deny narrowed to one ARN or gated on a condition, which is why
+    `_denies_unconditionally` filters here rather than at the call sites. Every
+    caller wants an *effective* Deny; none of them wants a Deny-shaped object."""
     found = []
     for entry in statements(template):
         statement = entry["statement"]
         if statement.get("Effect") != "Deny":
             continue
-        if grants_any(statement, MODEL_INVOKE_ACTIONS):
+        if grants_any(statement, MODEL_INVOKE_ACTIONS) and _denies_unconditionally(statement):
             found.append(entry)
+    return found
+
+
+#: Actions that let one identity become another. `sts:AssumeRole` is the one CDK
+#: emits; the wildcards are here for the same reason `MODEL_INVOKE_ACTIONS` names
+#: four actions where one would do.
+ASSUME_ROLE_ACTIONS = frozenset({
+    "sts:AssumeRole",
+    "sts:AssumeRoleWithWebIdentity",
+    "sts:AssumeRoleWithSAML",
+})
+
+
+def assume_role_grants(template: dict) -> list[dict]:
+    """Every statement allowing one identity in this stack to become another.
+
+    **The path around G1 that carries no model action at all.** The tool's Deny
+    is an *identity* policy on the tool's role. `sts:AssumeRole` produces a
+    different session, carrying the gateway role's `bedrock:InvokeModel` Allow,
+    and nothing in this module looked at `sts:` or at a trust policy. One CDK
+    line — `gatewayFn.role.grantAssumeRole(toolFn.grantPrincipal)` — with no
+    escape hatch, and the Security seat measured every assertion green with it in
+    place.
+
+    Each entry carries the roles the grant is attached to and the logical ids it
+    names, so the assertion can ask the only question that matters: *does a role
+    that is not the gateway's reach a role that is?*"""
+    found = []
+    for entry in statements(template):
+        statement = entry["statement"]
+        if statement.get("Effect") != "Allow":
+            continue
+        if not grants_any(statement, ASSUME_ROLE_ACTIONS):
+            continue
+        found.append({**entry,
+                      "targets": referenced_logical_ids(_as_list(statement.get("Resource")))})
+    return found
+
+
+def trust_principals(template: dict) -> list[dict]:
+    """Who each role's trust policy lets assume it, as logical ids and as text.
+
+    The other half of the assume-role path, and the half a role-policy scan can
+    never see: a grant needs both an identity policy on the assumer and a
+    matching `Principal` in the target's `AssumeRolePolicyDocument`. Reading both
+    means the assertion fails on either being present rather than only on the
+    pair, which is the fail-closed direction."""
+    found = []
+    for logical_id, resource in template.get("Resources", {}).items():
+        if resource.get("Type") != "AWS::IAM::Role":
+            continue
+        document = resource.get("Properties", {}).get("AssumeRolePolicyDocument", {})
+        for statement in _as_list(document.get("Statement")):
+            principal = statement.get("Principal", {})
+            found.append({
+                "role": logical_id,
+                "principal": principal,
+                "services": sorted(_as_list(principal.get("Service"))
+                                   if isinstance(principal, dict) else []),
+                "logical_ids": referenced_logical_ids(principal),
+                "text": _resource_text(principal),
+            })
+    return found
+
+
+#: Resources that ARE a Lambda function for the purpose of invoking one. An alias
+#: and a version each carry an ARN a caller invokes, and each resolves to the
+#: function behind it.
+FUNCTION_POINTER_TYPES = frozenset({"AWS::Lambda::Alias", "AWS::Lambda::Version"})
+
+
+def function_pointers(template: dict) -> dict[str, str]:
+    """Alias / version logical id -> the function logical id behind it.
+
+    **An invoke grant does not have to name the function.** `fn.addAlias('live')`
+    plus `alias.grantInvoke(role)` produces `{"Ref": "<Alias>"}`, and every G3
+    assertion intersects against `AWS::Lambda::Function` logical ids — so the
+    alias dropped out and the assertion went on reporting the gateway as the sole
+    invoker. Measured green by the Security seat, and *worse* when the grant lands
+    on a role the stack already has: the new-role tripwire in
+    `test_iam_assertions.py` fires on a stranger and says nothing about this."""
+    pointers = {}
+    for logical_id, resource in template.get("Resources", {}).items():
+        if resource.get("Type") not in FUNCTION_POINTER_TYPES:
+            continue
+        named = referenced_logical_ids(resource.get("Properties", {}).get("FunctionName"))
+        deployed = set(functions(template))
+        for target in named & deployed:
+            pointers[logical_id] = target
+    return pointers
+
+
+def resolve_functions(template: dict, logical_ids: set[str]) -> set[str]:
+    """Logical ids with aliases and versions replaced by the function behind them."""
+    pointers = function_pointers(template)
+    return {pointers.get(logical_id, logical_id) for logical_id in logical_ids}
+
+
+def event_source_mappings(template: dict) -> list[dict]:
+    """Every `AWS::Lambda::EventSourceMapping`, with the function it drives.
+
+    **A fourth route, and the only one that needs no permission at all.** The
+    docstring of `tests/test_tool_plane_iam.py` enumerates three ways to reach a
+    tool — an identity grant, a resource policy, a function URL. A mapping is the
+    fourth: the poller uses the *function's own execution role*, so there is no
+    invoke grant to find and no `AWS::Lambda::Permission` to flag. A queue with an
+    open send policy in front of it is a route to the tool with no plane, no
+    Cedar, and no audit record, and every assertion in this repository was green
+    with one in place."""
+    return [
+        {"id": logical_id,
+         "function": referenced_logical_ids(
+             resource.get("Properties", {}).get("FunctionName")),
+         "source": resource.get("Properties", {}).get("EventSourceArn")}
+        for logical_id, resource in template.get("Resources", {}).items()
+        if resource.get("Type") == "AWS::Lambda::EventSourceMapping"
+    ]
+
+
+def unresolved_invoke_grants(template: dict, functions_by_name=None) -> list[dict]:
+    """Invoke grants naming something this module cannot resolve to a function.
+
+    **Fail closed on the unreadable rather than treating it as empty.**
+    `{"Fn::ImportValue": "SomeExport"}` carries an export name, not an ARN, so
+    `invoke_targets` returns nothing and `_names_a_wildcard_function` sees no `*`
+    and no `:function:` — the grant falls out of both detectors at once, which is
+    the "two blind checks agreeing is not coverage" condition this module already
+    warns about one function up. Same argument as
+    `unreadable_managed_policies`: there is nothing here to read, so the only
+    honest answer is to refuse the shape."""
+    found = []
+    for entry in tool_invoke_grants(template):
+        statement = entry["statement"]
+        resource = _as_list(statement.get("Resource"))
+        if invoke_targets(statement, functions_by_name):
+            continue
+        if _names_a_wildcard_function(resource):
+            continue                       # a different, louder finding already
+        found.append({**entry, "resource": resource})
     return found
 
 
@@ -364,12 +559,34 @@ TOOL_ROUTING_ENV = "TOOL_FUNCTIONS"
 _ROUTED_KEY = re.compile(r'"([a-z0-9][a-z0-9-]*)"\s*:\s*"')
 
 
+#: A `${...}` substitution inside an `Fn::Sub` string.
+_SUB_REF = re.compile(r"\$\{([^}]+)\}")
+
+
+def _sub_logical_ids(template_string: Any) -> set[str]:
+    """Logical ids named inside an `Fn::Sub` string.
+
+    `${AWS::Partition}` and friends are pseudo-parameters, not resources, and
+    they contain `::` — which is what separates them from `${SomeRole}` and
+    `${SomeRole.Arn}` without a list of names to keep current."""
+    if not isinstance(template_string, str):
+        return set()
+    return {ref.split(".")[0] for ref in _SUB_REF.findall(template_string) if "::" not in ref}
+
+
 def referenced_logical_ids(value: Any) -> set[str]:
-    """Every logical id a template fragment points at, through `Ref` or `GetAtt`.
+    """Every logical id a template fragment points at, through `Ref`, `GetAtt` or
+    `Fn::Sub`.
 
     Needed because an IAM `Resource` is rarely a string: CDK emits
     `{"Fn::GetAtt": ["CatalogSearchFn...", "Arn"]}`, and a check that only looked
-    at strings would read a narrowly-scoped grant as naming nothing at all."""
+    at strings would read a narrowly-scoped grant as naming nothing at all.
+
+    **`Fn::Sub` was the third form and it was missing.** A policy attached with
+    `Roles: [{"Fn::Sub": "${SomeRole}"}]` resolved to no role at all, so an
+    unrestricted `bedrock:InvokeModel` Allow on it was attached to nobody as far
+    as every G1 assertion could tell. Measured green by the Security seat and
+    reproduced here before it was fixed."""
     found: set[str] = set()
     if isinstance(value, dict):
         for key, item in value.items():
@@ -379,6 +596,12 @@ def referenced_logical_ids(value: Any) -> set[str]:
                 target = item[0] if isinstance(item, list) and item else item
                 if isinstance(target, str):
                     found.add(target.split(".")[0])
+            elif key == "Fn::Sub":
+                # `Fn::Sub` takes either a string or `[string, {vars}]`.
+                head = item[0] if isinstance(item, list) and item else item
+                found |= _sub_logical_ids(head)
+                if isinstance(item, list) and len(item) > 1:
+                    found |= referenced_logical_ids(item[1])
             else:
                 found |= referenced_logical_ids(item)
     elif isinstance(value, list):
