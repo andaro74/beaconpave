@@ -51,6 +51,13 @@ const REPO = path.join(__dirname, '..', '..', '..');
 const CATALOG_SEARCH = 'catalog-search';
 
 /**
+ * The second tool (M06b). Same rule as above: the registry id verbatim, with no
+ * mapping layer anywhere between `tools.yaml`, the Cedar resource, the MCP
+ * `TOOL_NAME`, and the key in `TOOL_FUNCTIONS`.
+ */
+const ENTITLEMENT_CHECK = 'entitlement-check';
+
+/**
  * Stage the tool's Lambda bundle: its own source, plus the catalog fixture it
  * serves.
  *
@@ -488,49 +495,90 @@ export class GatewayStack extends cdk.Stack {
     gatewayFn.grantInvoke(serviceRole);
 
     // --- claim 4's runtime artifact ----------------------------------------
-    // --- the tool plane's one deployed tool (M02) --------------------------
-    // Its own function, with its own role. The process boundary that matters is
-    // not the one around an MCP subprocess — ADR-019 rejected that — it is this
-    // one: the tool's role is separate from the gateway's, so the gateway holds
-    // `lambda:InvokeFunction` on exactly the tools the registry names, and the
-    // tool holds nothing at all.
-    const catalogSearchFn = new lambda.Function(this, 'CatalogSearchFn', {
-      runtime: lambda.Runtime.PYTHON_3_12,
-      handler: 'server.handler',
-      code: toolCode(CATALOG_SEARCH),
-      timeout: cdk.Duration.seconds(10),
-      memorySize: 256,
-      environment: {
-        // Deployment configuration, and the only way the served catalog moves.
-        BEACONPAVE_CATALOG: '/var/task/catalog.json',
-      },
-    });
+    // --- the tool plane (M02: catalog-search; M06b: entitlement-check) ------
+    // Each tool is its own function with its own role. The process boundary that
+    // matters is not the one around an MCP subprocess — ADR-019 rejected that —
+    // it is this one: the tool's role is separate from the gateway's, so the
+    // gateway holds `lambda:InvokeFunction` on exactly the tools the registry
+    // names, and the tool holds nothing at all.
+    //
+    // **One constructor, because the two properties that make a tool safe are
+    // not per-tool decisions.** They are what a tool *is* here, and a second
+    // function written by copying the first is exactly where one of them gets
+    // left out — the Security seat planted that omission during the SPEC/06b
+    // review and it is the reason this is a function rather than a paste.
+    // `tests/test_tool_plane_iam.py` iterates the routing table rather than
+    // naming a tool, so a function built any other way still has to satisfy
+    // both; this makes the common path correct, it does not make the check
+    // unnecessary.
+    // **One argument, and the construct id is DERIVED.** The first version took
+    // `(constructId, toolId)` as free parameters, and the Platform Engineering seat
+    // planted `deployTool('CatalogSearchFn', ENTITLEMENT_CHECK)`: the deployed
+    // `catalog-search` ships the other tool's bundle and answers entitlement
+    // queries, while `TOOL_FUNCTIONS` still routes `catalog-search` to it. Both
+    // gates stayed green -- `pave/infra.py` normalizes every asset hash to
+    // `<ASSET_HASH>`, so the ONE byte that moved is the one the snapshot cannot
+    // see, and no test in the repository pairs a construct id with a tool id.
+    //
+    // The refactor created that degree of freedom at the same moment it created a
+    // second value to fill it: with one tool, `toolCode(CATALOG_SEARCH)` sat inline
+    // at its single use site and there was nothing to confuse it with. Deriving the
+    // id removes the freedom rather than asserting about it.
+    const deployTool = (toolId: string) => {
+      const constructId = toolId.split('-')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('') + 'Fn';
+      const fn = new lambda.Function(this, constructId, {
+        runtime: lambda.Runtime.PYTHON_3_12,
+        handler: 'server.handler',
+        code: toolCode(toolId),
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
+        environment: {
+          // Deployment configuration, and the only way the served catalog moves.
+          BEACONPAVE_CATALOG: '/var/task/catalog.json',
+        },
+      });
 
-    // The tool reaches no model, and says so explicitly rather than relying on
-    // the absence of a grant. Same argument as the service role below: absence
-    // already denies, but a Deny survives a later careless grant — and a tool
-    // that could call a model would be a second control point, which is the one
-    // thing G1 is a singular noun about.
-    catalogSearchFn.addToRolePolicy(
-      new iam.PolicyStatement({
-        effect: iam.Effect.DENY,
-        actions: MODEL_INVOKE_ACTIONS,
-        resources: ['*'],
-      }),
-    );
+      // The tool reaches no model, and says so explicitly rather than relying on
+      // the absence of a grant. Same argument as the service role below: absence
+      // already denies, but a Deny survives a later careless grant — and a tool
+      // that could call a model would be a second control point, which is the one
+      // thing G1 is a singular noun about.
+      fn.addToRolePolicy(
+        new iam.PolicyStatement({
+          effect: iam.Effect.DENY,
+          actions: MODEL_INVOKE_ACTIONS,
+          resources: ['*'],
+        }),
+      );
 
-    // G3 at the infrastructure layer. Until this line, G3 rested entirely on the
-    // plane: a caller that could reach the tool function directly would be a
-    // route nobody authorized, and ADR-019 said so in as many words while the
-    // grant did not yet exist. Narrow by construction — `grantInvoke` names this
-    // one function, so a tool added to the registry and not deployed is not
-    // reachable by a wildcard that happened to already cover it.
-    catalogSearchFn.grantInvoke(gatewayFn);
+      // G3 at the infrastructure layer. Until M02 deployed this, G3 rested
+      // entirely on the plane: a caller that could reach the tool function
+      // directly would be a route nobody authorized, and ADR-019 said so in as
+      // many words while the grant did not yet exist. Narrow by construction —
+      // `grantInvoke` names this one function, so a tool added to the registry
+      // and not deployed is not reachable by a wildcard that happened to already
+      // cover it.
+      fn.grantInvoke(gatewayFn);
+      return fn;
+    };
+
+    const catalogSearchFn = deployTool(CATALOG_SEARCH);
+
+    // The second tool, and it carries **no `BEACONPAVE_CLOCK`**. The evaluation
+    // clock is `server.py`'s `CLOCK`, which `test_gateway_run_parity.py` pins
+    // against every other module defining one (ADR-021: no arm may define a
+    // second clock). A value set here would be a definition in a file that test
+    // cannot read — the deployed instant drifting while the suite went on
+    // agreeing with itself. The override exists for a drill or a replay, and
+    // leaving it unset is what keeps setting it a deliberate act.
+    const entitlementCheckFn = deployTool(ENTITLEMENT_CHECK);
 
     // The routing table, and the gateway derives its offered tool set from it, so
     // it cannot advertise a tool it has no way to call.
     gatewayFn.addEnvironment('TOOL_FUNCTIONS', cdk.Fn.toJsonString({
       [CATALOG_SEARCH]: catalogSearchFn.functionName,
+      [ENTITLEMENT_CHECK]: entitlementCheckFn.functionName,
     }));
 
     // The Cedar principal, from the stack rather than from the request. See
@@ -557,6 +605,7 @@ export class GatewayStack extends cdk.Stack {
     // against the frozen corpus; the name is here because discovering a resource
     // from stack outputs beats pasting one that still resolves after a redeploy.
     new cdk.CfnOutput(this, 'CatalogSearchFunctionName', { value: catalogSearchFn.functionName });
+    new cdk.CfnOutput(this, 'EntitlementCheckFunctionName', { value: entitlementCheckFn.functionName });
     // Output ids must not collide with construct ids in the same stack, which is
     // why this is not simply `GuardrailVersion`.
     new cdk.CfnOutput(this, 'PinnedGuardrailId', { value: guardrail.attrGuardrailId });

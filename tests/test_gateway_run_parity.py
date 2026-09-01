@@ -113,6 +113,68 @@ def test_the_evaluation_clock_is_the_same_everywhere_it_appears():
             )
 
 
+def clock_override_names():
+    """Every environment variable a tool server will accept a clock through.
+
+    **Read from the tool sources, never written down here.** The first version of
+    the test below asserted the literal string `BEACONPAVE_CLOCK`, and the Security
+    seat broke it in two lines: rename `CLOCK_ENV` in `server.py`, set the new name
+    in the stack, and the deployed tool answers against 2020-01-01 with the full
+    suite green and the synth-freshness job reproducing it faithfully. A check
+    pinned to a name the thing it checks is free to change is not pinned to
+    anything."""
+    names = set()
+    for path in sorted((ROOT / "tools").glob("*/server.py")):
+        env = module_constants(path).get("CLOCK_ENV")
+        if isinstance(env, str):
+            names.add(env)
+    return names
+
+
+def environment_keys(template: dict):
+    """Every `Environment.Variables` key in a synthesized template, parsed.
+
+    Parsed rather than grepped, for the other half of the same finding: JSON may
+    write the key as `BEACONPAVE_\u0043LOCK`, which no substring search sees and
+    every CloudFormation deployment reads as the real name."""
+    for resource in template.get("Resources", {}).values():
+        variables = resource.get("Properties", {}).get("Environment", {}).get("Variables")
+        if isinstance(variables, dict):
+            yield from variables
+
+
+@pytest.mark.parametrize(
+    "snapshot",
+    sorted((ROOT / "platform" / "infra" / "tests" / "fixtures").glob("*.template.json")),
+    ids=lambda p: p.stem)
+def test_the_deployment_does_not_define_a_clock_of_its_own(snapshot):
+    """The half of the rule above that lives outside Python.
+
+    A clock override set in the stack is a default: the deployed tool would answer
+    against an instant no arm file names and `module_constants` cannot see, so the
+    loop above would go on agreeing with itself while the deployed instrument had
+    moved. The stack sets one nowhere, and this is what keeps that true -- a drill
+    needing another instant sets it at invocation, deliberately, and does not leave
+    it behind.
+
+    **Every snapshot in the directory**, not the gateway's alone: a second stack is
+    where a clock would land without anyone editing the file this test used to
+    read, and `test_iam_assertions.py` already globs this directory for exactly
+    that reason."""
+    names = clock_override_names()
+    assert names, (
+        "no tool server declares a CLOCK_ENV, so this test would assert nothing. If the "
+        "override was removed, remove this test with it rather than leaving it green.")
+    template = json.loads(snapshot.read_text(encoding="utf-8"))
+    offenders = sorted(names.intersection(environment_keys(template)))
+    assert not offenders, (
+        f"{snapshot.name} sets {offenders}. That is a second definition of the evaluation "
+        "clock, in a file test_the_evaluation_clock_is_the_same_everywhere_it_appears "
+        "cannot read. If a deployment must pin an instant, pin it against "
+        "BASELINE_CONSTANTS['CLOCK'] here first."
+    )
+
+
 def test_the_model_id_is_the_same_pinned_profile():
     """ADR-015. A run against a different profile is a different measurement, and
     the regional pin is a recorded decision rather than an accident."""
@@ -181,15 +243,41 @@ TOOL_SYSTEM_SHA256 = "c5e0e50584613dbfa75b0dc991fda55e075709dfb07fd3c5f38db8e0a6
 #: milestone, so the description's rewrite is drafted for the Tool Owner with a
 #: semver bump rather than made here — but it cannot move unnoticed in the
 #: meantime.
-TOOL_SPECS_SHA256 = "1912657b11c164df77ed5f162729f6cd785d840f31233bafcc03aeb89dc15c4a"
+#:
+#: **Moved at M06b when `entitlement-check` was routed**, from
+#: `1912657b...dc15c4a`. Nothing about `catalog-search` changed: the digest is
+#: taken over the ROUTED set, so routing a second tool adds a second document to
+#: what the model reads and the hash moves by construction. That is an ADR-021
+#: event for a LIVE RUN -- the model-facing surface is larger than it was, and no
+#: live comparison may span this line. It is **not** an event for the committed-
+#: answers lanes: comparators, `cases.yaml` and every instrument digest are
+#: byte-identical across it, because those score frozen artifacts and never reach
+#: the gateway. The AI Quality seat measured both halves.
+#:
+#: The move also carries the description rewrite it exposed. `entitlement-check`'s
+#: shipped description read *"the agent must call this rather than reason about
+#: it"* -- tool-use coaching, which ADR-021 forbids in as many words, aimed at the
+#: behaviour twelve of twenty-five golden cases score. It reached no model while
+#: the tool was unrouted and no pin covered it, which is the ADR-043 escape one
+#: file over. Rewriting it in the same commit keeps this to ONE boundary rather
+#: than two in one milestone.
+TOOL_SPECS_SHA256 = "6097664dba62dbff612b9551f2eed609f5926922179e46b4df01a1c851cf7b03"
 
 
 def test_the_tool_specs_the_model_reads_are_hash_pinned():
+    """**In the routing table's order, not sorted.** `handler.tool_config` iterates
+    `TOOL_FUNCTIONS` as it is written, so the order the model receives the specs in
+    is the table's; a sorted digest agrees with it by coincidence today and would
+    stop agreeing the moment a tool sorts before `catalog-search`. Reordering the
+    table changes what the model reads and must move this pin. Measured: the two
+    orderings produce the same digest at this commit, so the correction is free
+    here and would not have been later. Unreachable with one tool; live from the
+    moment there are two."""
     contracts = json.loads(
         (ROOT / "platform" / "gateway" / "policy" / "tools.contracts.json").read_text(
             encoding="utf-8"))
     routed = infra.routed_tools(json.loads(GATEWAY_SNAPSHOT.read_text(encoding="utf-8")))
-    specs = json.dumps([contracts[t]["input"] for t in sorted(routed) if t in contracts],
+    specs = json.dumps([contracts[t]["input"] for t in routed if t in contracts],
                        sort_keys=True)
     digest = hashlib.sha256(specs.encode("utf-8")).hexdigest()
     assert digest == TOOL_SPECS_SHA256, (
@@ -197,6 +285,51 @@ def test_the_tool_specs_the_model_reads_are_hash_pinned():
         "system under measurement just as the prompt is. Update this pin deliberately, and "
         "never between the two arms of one comparison."
     )
+
+
+#: Phrasings that instruct the model to USE a tool, as opposed to describing what
+#: the tool is. Drawn from ADR-021's own sentence -- *"no 'search before
+#: answering', no 'broaden your query if you get no rows', no worked example"* --
+#: rather than invented, so the check enforces a decision that already exists.
+TOOL_USE_COACHING = (
+    "must call", "should call", "always call", "call this", "call the tool",
+    "before answering", "before you answer", "rather than reason",
+    "broaden your query", "if you get no rows", "for example, ", "e.g. call",
+)
+
+
+@pytest.mark.parametrize("field", ["description"])
+def test_no_routed_tool_coaches_the_model_into_calling_it(field):
+    """**The pin catches movement; it cannot object to text it was initialized
+    with.** That is how this got in: `entitlement-check`'s shipped description read
+    *"the agent must call this rather than reason about it"* while the tool was
+    unrouted, so it reached no model and no pin covered it -- `TOOL_SPECS_SHA256`
+    iterates the ROUTED set. Routing it at M06b would have made a sentence
+    instructing the model to call the tool part of the surface for the twelve
+    golden cases that score whether the model calls the tool.
+
+    ADR-021 forbids exactly this and the AI Quality seat found it by planting the
+    forbidden text verbatim, regenerating the contracts and re-pinning the hash in
+    one diff: **2175 passed**, and AI Quality was not even among the seats the gate
+    demanded for it.
+
+    This is a **floor, not a proof.** It matches the phrasings ADR-021 names and a
+    determined rewrite goes around it. What it removes is the accident -- and the
+    accident is what happened."""
+    contracts = json.loads(
+        (ROOT / "platform" / "gateway" / "policy" / "tools.contracts.json").read_text(
+            encoding="utf-8"))
+    routed = infra.routed_tools(json.loads(GATEWAY_SNAPSHOT.read_text(encoding="utf-8")))
+    assert routed, "no tool is routed; this check would read nothing"
+    for tool_id in routed:
+        text = str(contracts[tool_id]["input"].get(field, "")).lower()
+        found = sorted(phrase for phrase in TOOL_USE_COACHING if phrase in text)
+        assert not found, (
+            f"{tool_id}'s model-facing {field} coaches tool use: {found}. ADR-021 forbids "
+            "it -- twelve of twenty-five golden cases score whether the model calls a tool, "
+            "and a description that tells it to is tuning the surface to the suite. Say "
+            "what the tool returns; do not say when to call it."
+        )
 
 
 def test_the_m02_prompt_is_hash_pinned():

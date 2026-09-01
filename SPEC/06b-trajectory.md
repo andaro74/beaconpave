@@ -816,10 +816,40 @@ can be silently pushed toward "no evidence" is one an attacker can make say noth
 **What a fix must survive:** two invocations sharing a `request_id`, one probe and
 one real, in either order; `seq=-1` and any other value that sorts before a real
 call; a probe record that resolves in the lake at a key a derived trajectory reads;
-and a `probe_id` omitted so the record carries no marker distinguishing the path.
+a `probe_id` omitted so the record carries no marker distinguishing the path; and
+**an execution witness from one turn credited to another** (amendment 1 below).
 Candidate shapes, none chosen here: a distinct `seq` space for the probe path, a
 mandatory `probe_id` carried into the key, or a `witness` value the derivation
 filters on — the field already exists and already means *who observed*.
+
+#### Amendment 1 — "it fails closed" was too strong, and the seat round measured why
+
+Added when `entitlement-check` was routed (ADR-058), which is the commit that makes
+this entry live rather than theoretical. The paragraph above is right about the
+**single** colliding record and wrong about the general case, and ADR-057 and the
+first draft of ADR-058 both carried the stronger sentence. Corrected here rather than
+rewritten above, so the reasoning that was wrong stays readable.
+
+- **Nothing has exercised the claim.** There is no lake-derived trajectory in the
+  repository. `as_record_fragment` keys the tool as `id`; `Scorer.tool_before_answer`
+  reads `step["tool"]`. A derivation must remap before it sees anything at all, and
+  "fails closed" was measured on a shape that returns *no evidence* because it
+  matches nothing.
+- **`executed` does not attribute a run to a turn.** It separates *allowed* from
+  *ran* and stops there. The only field attributing a record to an invocation is
+  `request_id`, and `request_id` is `event.get("request_id")` — chosen by the caller,
+  which is the same property this entry already turns on.
+- **So it fails OPEN one step out.** A turn with two calls writes `.001` and `.002`
+  under one prefix. A second invocation reusing that `request_id` overwrites `.001`
+  and leaves `.002` standing; a derivation reading the prefix credits the first
+  turn's execution witness to the second, and `tool_before_answer` returns **PASS for
+  an invocation that called nothing**. It needs no probe — any second invocation
+  reusing a `request_id` inherits the first one's witness.
+
+This does not change the disposition: B14 stays open and deliberately unfixed. It
+changes what a fix has to be. A `seq` space alone does not answer it, because the
+collision that matters is across invocations rather than within a turn; the fix has
+to make attribution unforgeable, not merely make the keys distinct.
 
 ---
 
