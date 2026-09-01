@@ -1062,6 +1062,16 @@ is corrected below.
    there costs `('platform-eng','security')` **plus a new instrument registration**
    — three keys — **plus 15 tests to bring green**. `handler.py`, where `common_out`
    lives, is in no digest at all.
+
+   **Measured up in `docs/M06b-decisions-3-and-11.md`, and still open.** Four
+   options priced: A (refused, unchanged), B read the sibling `-trajectory.json`,
+   C derive from the lake, D require both and refuse a disagreement — the only one
+   implementing B2's own closing requirement. The memo's finding is that the
+   choice does not bind this milestone, because **no committed run carries
+   `executed: true`** (`grep -ro '"executed": *true' milestones/ | wc -l` → 0), so
+   the assert returns `no-evidence` under every option. Recommended to be taken
+   **after** the scored run produces records carrying the witness, when C and D
+   become measurable rather than argued.
 4. **Whether `evals/deterministic.py` gains a rule, and which seats — still open.**
    Derived from B4 and **B12**, not from a census. G9 constrains it: not
    `ai-quality` alone.
@@ -1110,6 +1120,7 @@ is corrected below.
     Quality, three keys. B13's re-adjudication rides in whichever diff un-defers the
     assert, so this decision and that obligation are settled together or not at all.
 
+<<<<<<< HEAD
     **Its stated precondition is discharged (ADR-061)** and the decision is not.
     A golden entry now records `tool_surface` — the routed set and
     `tool_specs_sha256` — checked against the entry's own commit, so two runs
@@ -1120,6 +1131,25 @@ is corrected below.
     recoverable only from their `sha`. That is a smaller obstacle than the one
     ADR-058 named and it is not none, and Decision 11 should be taken knowing
     which half it is standing on.
+=======
+    **Measured up in `docs/M06b-decisions-3-and-11.md`: not ripe.** Scoring the
+    assert today is **18 failed** (the 9 quoted under *Sequencing* was an
+    always-FAIL stand-in), moving four three-key pins — goldens tools `15 → 9`,
+    control `17 → 12`, `M00B_UNDER_CURRENT_INSTRUMENT` `18 → 10`,
+    `M01_UNDER_CURRENT_INSTRUMENT` `19 → 13`. The headroom table's `18->10` and
+    `19->13` reproduce exactly. **Every one of those movements is `no-evidence`**,
+    which `deterministic.py:248` and this document both require to be INFRA rather
+    than FAIL. So both branches as written — move the comparator, or land ADVISORY
+    — assume the assert can say something true about the runs being scored, and it
+    cannot. Recommended disposition: **blocked on evidence**, unblocked by one
+    scored run carrying `executed`.
+
+    Also recorded there, unfixed: **`DEFERRED_ASSERTS` is a declaration nothing
+    enforces.** `Scorer.score_case` never reads it; the deferral is hardcoded at
+    `deterministic.py:365` and `:385`. Removing the dict entry is **2 failed**,
+    both about the declaration; changing `deferred.append` to `results.append` is
+    the real un-deferral at **18**. The two can disagree.
+>>>>>>> f61b7c9 (Decisions 3 and 11 measured up for the seats)
 
 ## What M06b must not do
 
