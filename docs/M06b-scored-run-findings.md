@@ -127,30 +127,43 @@ was produced by a version of the producer that is not the committed one.
 `run_with_tools.py` is also on **no two-key rule**, which the same follow-up
 should close.
 
-## Amendment 1 — the root cause, and a confound in Finding 1's reasoning
+## Amendment 1 — the cause, and a confound in Finding 1's reasoning
 
 Added by `docs/M06b-guardrail-diagnosis.md` (guardrail v4, zero model calls).
 
-**`entitlement-check`'s own output is refused by the guardrail 3/3, on every
-verdict, including the ones that grant access.** Measured by running the
-committed tool code and handing the result to the deployed guardrail at
-`source="INPUT"`, exactly as `handler._inspect` does. `catalog-search`'s real
-output, same harness and version, is blocked **0/3**. The tool this milestone
-deployed cannot pass the guardrail it is deployed behind.
+**The guardrail blocks `entitlement-check`'s permissive answers and passes its
+refusals.** Measured by running the committed tool code and handing
+`core.toolloop._inspection_text(payload)` — the exact text the gateway sends — to
+the deployed guardrail at `source="INPUT"`, `k=5`:
 
-That explains the 8 `tool_output` refusals directly. It does **not** explain the
-42 `answer` refusals: three arms' committed final answers — M01 0/22, M02-tools
-0/23, M06 0/25 — pass v4 cleanly, so those blocks are not reproducible from the
-committed text. The runtime block on that channel comes from the guardrail
-integrated into `converse`, which assesses the model's generated output inline,
-while every diagnostic here uses standalone `ApplyGuardrail` on the final
-structured answer. **Different text**, and the difference was never captured.
+```
+blackout / entitled:false    0/5 blocked
+upgrade  / entitled:false    0/5 blocked
+entitled:true, reason:ok     5/5 BLOCKED
+entitled:true, reason:ok     5/5 BLOCKED
+```
+
+`catalog-search`'s real output is blocked 0/3, so this is specific to
+`entitlement-check`. The verdict is also unstable under changes that carry no
+meaning: sorting the payload's keys, or removing an unrelated `event` field,
+flips it.
+
+**Two calibration options were tested against frozen corpora and both are
+refuted.** Adding `examples` to the topic changes nothing on the 15 corpus rows
+and takes the false-positive surface from two payloads to four. Amending the
+definition's carve-out does not fix the tool output and silently unblocks
+`ATK-002` and `ATK-004`. Separately, **`ATK-003` is blocked 0/3 by v4** — a
+pre-existing hole in the deployed guardrail, surfaced by running the corpus.
+
+This explains the 8 `tool_output` refusals. It does **not** explain the 42
+`answer` refusals: M01 0/22, M02-tools 0/23 and M06 0/25 committed answers all
+pass v4 cleanly. That channel's block comes from the guardrail integrated into
+`converse`, assessing the model's generated output inline — different text from
+anything the committed evidence holds, and it was never captured.
 
 **Finding 1's contrast with M02's 2–3 refusals is withdrawn as unattributable.**
 M02's arms recorded no guardrail version (the ADR-035 gap); the nearest recorded
-versions are 2, against M06b's 4. Two variables moved and the committed record
-cannot separate them. The tool-output measurement above replaces it and needs no
-cross-milestone comparison.
+is 2 against M06b's 4, so two variables moved.
 
 ## Finding 5 — the check that reports this cannot see the run that proves it
 
