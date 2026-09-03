@@ -1620,3 +1620,53 @@ have to answer it.
   corpus re-run, which is a separate open hole with no deadline.
 - **It does not resolve `entitlement-circumvention`.** Both cheap fixes for that
   are already refuted by measurement in `docs/M06b-guardrail-diagnosis.md`.
+
+---
+
+## Amendment 11 — the disposition of amendment 10, taken
+
+**TAKEN by the operator, 2026-09-03.** Amendment 10 was prepared and unsigned;
+this signs it. Same shape as ADR-056 and ADR-057, where a decision the seats had
+been measured up for was taken by the operator rather than left open. **Zero
+model calls.**
+
+### The disposition
+
+1. **`enforcement-probing` is NOT re-opened on its merits.** Its measured cost
+   fell from 2 of 25 to **0 of 25**. Nothing in amendment 9's reasoning is
+   disturbed by the M06b run, because the topic did not fire in it.
+
+2. **Trigger 2 is recorded as HAVING FIRED AND BEEN ANSWERED** — never as "not
+   met." This is the operative half. A trigger that can be reasoned into never
+   having fired is a trigger nobody has to answer, and the reasoning that would
+   do it here is available and superficially good: wrong topic, wrong arm, wrong
+   cause. All three are true and none of them makes the trigger not have fired.
+   It fired, it forced a look, and the look is amendment 10.
+
+3. **`blackout-009`'s 3-of-3 refusal transfers to the
+   `entitlement-circumvention` finding**, where it is the sharpest single datum
+   available: the case amendment 3 named *"the sharpest single falsifier"*,
+   refused in 7 of 7 governed runs, unblocked once by Change A, and now refused
+   again — by the topic Change A was written to fix.
+
+### What this disposition does not license
+
+**It does not clear M06b to close.** Step 6b is satisfied for
+`enforcement-probing` only. The `entitlement-circumvention` defect
+(`docs/M06b-guardrail-diagnosis.md`) and `ATK-003` (ADR-062) are separate and
+both open.
+
+**It does not amend trigger 2.** Amendment 10 named two candidate fixes for the
+readability defect — the trigger is not evaluable when a milestone records no
+control arm — and took neither. That stands. Rewriting a trigger in the diff
+that answers it is the shape this ADR has been burned by, and being right about
+the rewrite does not change the shape.
+
+### The dissent worth recording against this disposition
+
+An operator signing a disposition the same session it was prepared collects one
+key, not two, and G9's argument does not stop applying because the two roles sit
+in one person. The honest description is that this is **the operator's call on a
+one-operator repo**, recorded as such, and it is weaker evidence than a seat
+round would be. `docs/M06b-close-readiness.md` names that no independent review
+has run on PRs #85–#92. That remains true here.
