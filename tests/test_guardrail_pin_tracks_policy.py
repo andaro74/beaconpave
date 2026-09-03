@@ -60,6 +60,8 @@ import json
 import pathlib
 import re
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SNAPSHOT = ROOT / "platform" / "infra" / "tests" / "fixtures" / "BeaconpaveGateway.template.json"
 PIN = ROOT / "platform" / "infra" / "tests" / "fixtures" / "guardrail-pin.json"
@@ -78,47 +80,72 @@ POLICY_BLOCKS = (
 DESCRIPTION = re.compile(r"^Pinned to policy ([0-9a-f]{12})\.$")
 
 
-def _guardrail(template: dict) -> dict:
-    guardrails = [r for r in template["Resources"].values()
-                  if r.get("Type") == "AWS::Bedrock::Guardrail"]
-    assert len(guardrails) == 1, f"expected exactly one guardrail, found {len(guardrails)}"
-    return guardrails[0]["Properties"]
+#: The guardrail/version pairs this file pins, by logical id.
+#:
+#: **There were two the moment ADR-063 landed, and this file asserted there was
+#: one.** The helpers below took "the only guardrail" and would have gone on
+#: passing for the main pair while the tool-output pair's pin tracked nothing —
+#: which is this file's own defect, one layer out: a hand-written assumption
+#: about what exists, in the file whose whole subject is that a hand-written list
+#: of what matters goes stale.
+#:
+#: Adding a pair here without adding it to `guardrail-pin.json` fails loudly, and
+#: a third guardrail appearing in the snapshot fails
+#: `test_every_guardrail_in_the_snapshot_is_pinned` below.
+PAIRS = (
+    ("Guardrail", "GuardrailVersion", "main"),
+    ("ToolOutputGuardrail", "ToolOutputGuardrailVersion", "tool_output"),
+)
 
 
-def _version_description(template: dict) -> str:
-    versions = [r for r in template["Resources"].values()
-                if r.get("Type") == "AWS::Bedrock::GuardrailVersion"]
-    assert len(versions) == 1, f"expected exactly one guardrail version, found {len(versions)}"
-    return versions[0]["Properties"]["Description"]
+def _guardrail(template: dict, logical_id: str = "Guardrail") -> dict:
+    resource = template["Resources"].get(logical_id)
+    assert resource and resource.get("Type") == "AWS::Bedrock::Guardrail", (
+        f"{logical_id} is not a guardrail in the snapshot. The pairs this file checks are "
+        "named explicitly rather than found by type, so a rename is a red test rather "
+        "than a silently narrower check.")
+    return resource["Properties"]
 
 
-def policy_digest(template: dict) -> str:
+def _version_description(template: dict, logical_id: str = "GuardrailVersion") -> str:
+    resource = template["Resources"].get(logical_id)
+    assert resource and resource.get("Type") == "AWS::Bedrock::GuardrailVersion", (
+        f"{logical_id} is not a guardrail version in the snapshot.")
+    return resource["Properties"]["Description"]
+
+
+def policy_digest(template: dict, logical_id: str = "Guardrail") -> str:
     """This file's own digest of the enforced policy, computed from the snapshot.
 
     Deliberately NOT the CDK's algorithm. Canonical JSON with sorted keys, so a
     stranger re-derives it from the committed template without reading any
     TypeScript — and so it cannot drift into agreement with a sabotaged
     computation by sharing its code."""
-    guardrail = _guardrail(template)
+    guardrail = _guardrail(template, logical_id)
+    # `.get` returns None for a block this guardrail does not declare, and that
+    # None is IN the digest deliberately: the tool-output guardrail declares no
+    # topic policy, and if one ever appeared the digest must move.
     material = {block: guardrail.get(block) for block in POLICY_BLOCKS}
     return hashlib.sha256(
         json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()[:12]
 
 
-def test_the_version_description_moved_when_the_policy_did():
+@pytest.mark.parametrize("guardrail_id, version_id, pin_key", PAIRS)
+def test_the_version_description_moved_when_the_policy_did(guardrail_id, version_id, pin_key):
     """**The assertion the plant defeats.** Not that the two digests agree — they
     are taken over different material and never will — but that neither can move
     alone. A policy change with a frozen description is a version resource that
     will not be replaced, which is a deploy that reports success and changes
     nothing."""
     template = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
-    pinned = json.loads(PIN.read_text(encoding="utf-8"))
+    pinned = json.loads(PIN.read_text(encoding="utf-8"))["pairs"][pin_key]
 
-    policy_now = policy_digest(template)
-    match = DESCRIPTION.match(_version_description(template))
+    policy_now = policy_digest(template, guardrail_id)
+    match = DESCRIPTION.match(_version_description(template, version_id))
     assert match, (
-        f"the version description is {_version_description(template)!r}, which is not "
+        f"{version_id}'s description is {_version_description(template, version_id)!r}, "
+        "which is not "
         "digest-shaped. The version resource will not replace itself when the policy "
         "changes."
     )
@@ -158,7 +185,9 @@ def test_the_version_description_moved_when_the_policy_did():
         f"{pinned['description_digest']}")
 
 
-def test_the_pin_covers_every_policy_block_the_guardrail_declares():
+@pytest.mark.parametrize("guardrail_id, version_id, pin_key", PAIRS)
+def test_the_pin_covers_every_policy_block_the_guardrail_declares(
+        guardrail_id, version_id, pin_key):
     """A coverage check on the coverage check. `POLICY_BLOCKS` is a hand-written
     list, and a hand-written list of what matters is the thing that goes stale —
     it is the same shape as the CDK's five-block list, one layer out.
@@ -168,7 +197,7 @@ def test_the_pin_covers_every_policy_block_the_guardrail_declares():
     unchanged pin. This does NOT close the seat's second finding — a block outside
     both digests still deploys silently until the CDK's list is widened too — but
     it means the next one is caught by a test instead of by a reviewer."""
-    guardrail = _guardrail(json.loads(SNAPSHOT.read_text(encoding="utf-8")))
+    guardrail = _guardrail(json.loads(SNAPSHOT.read_text(encoding="utf-8")), guardrail_id)
     declared = {k for k in guardrail if k.endswith("PolicyConfig")}
     uncovered = declared - set(POLICY_BLOCKS)
     assert not uncovered, (
@@ -177,3 +206,26 @@ def test_the_pin_covers_every_policy_block_the_guardrail_declares():
         "unchanged version pin. Add them to POLICY_BLOCKS here AND to `policyDigest` in "
         "gateway-stack.ts — this file alone cannot make the version resource replace itself."
     )
+
+
+def test_every_guardrail_in_the_snapshot_is_pinned():
+    """`PAIRS` is a hand-written list, and this file's whole subject is that a
+    hand-written list of what matters goes stale.
+
+    A third guardrail added to the stack without a line in `PAIRS` would be
+    enforced by Bedrock, published as a version, and digested by nothing — the
+    same failure the pin exists to prevent, one guardrail over. ADR-063 added the
+    second and this file asserted there was one; that is the evidence this check
+    is needed rather than the argument for it."""
+    template = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+    in_snapshot = {name for name, r in template["Resources"].items()
+                   if r.get("Type") == "AWS::Bedrock::Guardrail"}
+    covered = {guardrail_id for guardrail_id, _, _ in PAIRS}
+    assert in_snapshot == covered, (
+        f"the snapshot declares guardrails {sorted(in_snapshot)} and this file pins "
+        f"{sorted(covered)}. An unpinned guardrail is enforced and digested by nothing.")
+
+    versions_in_snapshot = {name for name, r in template["Resources"].items()
+                            if r.get("Type") == "AWS::Bedrock::GuardrailVersion"}
+    assert versions_in_snapshot == {version_id for _, version_id, _ in PAIRS}, (
+        "a guardrail version in the snapshot is not covered by PAIRS.")

@@ -1,6 +1,18 @@
 {
-  "_comment": "The pair the version pin rests on. `policy_digest` is computed by tests/test_guardrail_pin_tracks_policy.py over the enforced policy in the synth snapshot; `description_digest` is what the CDK put in the guardrail version's description. They are taken over different material and will never be equal - the invariant is that NEITHER CAN MOVE ALONE. A policy change with a frozen description means the version resource will not be replaced, so `cdk deploy` reports UPDATE_COMPLETE while the gateway keeps enforcing the previous published version. That is ADR-024's failure arriving through the mechanism built to prevent it, and the Platform Engineering seat reproduced it with a one-word edit and 24 passing tests. Update BOTH values, after re-synthesising, in the PR that changes the policy.",
-  "policy_digest": "ea66d6da36fe",
-  "description_digest": "71d7e4767fa3",
-  "guardrail_version_at_pin": "v3 is deployed from the previous pin; this pin is the policy that publishes v4 when `enforcement-probing` deploys"
+  "_comment": "The pairs the version pins rest on, one per guardrail. `policy_digest` is computed by tests/test_guardrail_pin_tracks_policy.py over the enforced policy in the synth snapshot; `description_digest` is what the CDK put in that guardrail version's description. They are taken over different material and will never be equal - the invariant is that NEITHER CAN MOVE ALONE. A policy change with a frozen description means the version resource will not be replaced, so `cdk deploy` reports UPDATE_COMPLETE while the gateway keeps enforcing the previous published version. That is ADR-024's failure arriving through the mechanism built to prevent it, and the Platform Engineering seat reproduced it with a one-word edit and 24 passing tests. Update BOTH values of a pair, after re-synthesising, in the PR that changes that policy.",
+  "_shape_changed_at": "ADR-063. This file held a single pair while the stack grew a second guardrail. The flat `policy_digest`/`description_digest` keys became `pairs`, keyed by the same names `PAIRS` uses in the test. The main pair's two values are BYTE-IDENTICAL to what the flat form held - ea66d6da36fe and 71d7e4767fa3 - which is the evidence that ADR-063 added a guardrail and changed nothing about the existing one's policy.",
+  "pairs": {
+    "main": {
+      "_what": "beaconpave-gateway. Every model call transits it, and it keeps its topic policy.",
+      "policy_digest": "ea66d6da36fe",
+      "description_digest": "71d7e4767fa3",
+      "guardrail_version_at_pin": "v4 is deployed from this pin; unchanged by ADR-063"
+    },
+    "tool_output": {
+      "_what": "beaconpave-tool-output (ADR-063). The same policy with TopicPolicyConfig omitted, applied only to the tool-output channel. Its digest covers the same POLICY_BLOCKS list, and TopicPolicyConfig resolves to null in it - deliberately, so a topic policy appearing on this guardrail moves the digest and republishes the version.",
+      "policy_digest": "a3dfba172482",
+      "description_digest": "d8b49013cafa",
+      "guardrail_version_at_pin": "not yet deployed; this pin is the policy that publishes v1 when ADR-063 deploys"
+    }
+  }
 }

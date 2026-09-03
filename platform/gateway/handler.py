@@ -45,6 +45,29 @@ GUARDRAIL_ID = os.environ["GUARDRAIL_ID"]
 # version must fail loudly at cold start, not fall back to something servable.
 GUARDRAIL_VERSION = os.environ["GUARDRAIL_VERSION"]
 
+#: The guardrail applied to the TOOL-OUTPUT channel: the same policy with the
+#: topic policy omitted (ADR-063).
+#:
+#: **Read WITH a default, unlike every other guardrail variable here, and the
+#: direction of the default is the argument.** Absent, both fall back to the main
+#: guardrail — which is the pre-ADR-063 behaviour, and it fails CLOSED: the
+#: channel keeps a topic policy it does not need rather than losing one it does.
+#: `GUARDRAIL_VERSION` above reads without a default because a missing version
+#: there would mean *no pin*; a missing id here means *the older, stricter
+#: policy*, and those are opposite failures.
+#:
+#: The pair is read as a pair. Half a configuration — an id with no version, or
+#: the reverse — is a deployment nobody meant, and silently using the main
+#: guardrail's version against this guardrail's id would ask Bedrock for a
+#: version that does not exist on it.
+_TOOL_OUTPUT_GUARDRAIL_ID = os.environ.get("TOOL_OUTPUT_GUARDRAIL_ID")
+_TOOL_OUTPUT_GUARDRAIL_VERSION = os.environ.get("TOOL_OUTPUT_GUARDRAIL_VERSION")
+if bool(_TOOL_OUTPUT_GUARDRAIL_ID) != bool(_TOOL_OUTPUT_GUARDRAIL_VERSION):
+    raise RuntimeError(
+        "TOOL_OUTPUT_GUARDRAIL_ID and TOOL_OUTPUT_GUARDRAIL_VERSION must be set together "
+        "or not at all (ADR-063). Half of the pair is a deployment nobody meant."
+    )
+
 #: The Cedar principal every tool call in this deployment authorizes as.
 #:
 #: **Deployment configuration, not request data, and that is the whole point.**
@@ -272,12 +295,39 @@ def _inspect():
     token; adding them would make the budget axis report a number with two
     denominations in it."""
     def inspect(text, *, channel):
-        response = _bedrock.apply_guardrail(
-            guardrailIdentifier=GUARDRAIL_ID,
-            guardrailVersion=GUARDRAIL_VERSION,
-            source="INPUT",
-            content=[{"text": {"text": text}}],
-        )
+        # **ADR-063: the tool-output channel gets the topic-free policy.** The
+        # channel was already a parameter and was already recorded; until this
+        # change it selected nothing. Measured, on real tool payloads at k=5: the
+        # poisoned catalog and a schema-valid hostile payload both block under
+        # this policy naming `['PROMPT_ATTACK']`, while `entitlement-check`'s
+        # permissive verdicts stop being refused. The topic was redundant on the
+        # cases it was kept for.
+        #
+        # Selected by an EXPLICIT channel comparison rather than by a mapping
+        # keyed on every channel name. A dict would silently route a channel
+        # added later to whichever policy the default named, and the direction of
+        # that mistake is not knowable in advance.
+        # **Two call sites rather than one with computed arguments, and that is
+        # deliberate.** The first version bound `identifier, version` to locals and
+        # passed those. It worked, and it silently defeated
+        # `tests/test_handler_wiring.py`, which parses this file rather than
+        # importing it (G8) and can only see the pin when the constant is AT the
+        # call site. A guard that cannot read the thing it guards is the shape this
+        # repo keeps finding; a little duplication is the cheaper side of it.
+        if channel == guardrail.CHANNEL_TOOL_OUTPUT and _TOOL_OUTPUT_GUARDRAIL_ID:
+            response = _bedrock.apply_guardrail(
+                guardrailIdentifier=_TOOL_OUTPUT_GUARDRAIL_ID,
+                guardrailVersion=_TOOL_OUTPUT_GUARDRAIL_VERSION,
+                source="INPUT",
+                content=[{"text": {"text": text}}],
+            )
+        else:
+            response = _bedrock.apply_guardrail(
+                guardrailIdentifier=GUARDRAIL_ID,
+                guardrailVersion=GUARDRAIL_VERSION,
+                source="INPUT",
+                content=[{"text": {"text": text}}],
+            )
         return guardrail.interpret_apply(response, channel=channel)
     return inspect
 
