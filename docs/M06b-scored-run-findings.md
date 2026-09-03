@@ -127,6 +127,31 @@ was produced by a version of the producer that is not the committed one.
 `run_with_tools.py` is also on **no two-key rule**, which the same follow-up
 should close.
 
+## Amendment 1 — the root cause, and a confound in Finding 1's reasoning
+
+Added by `docs/M06b-guardrail-diagnosis.md` (guardrail v4, zero model calls).
+
+**`entitlement-check`'s own output is refused by the guardrail 3/3, on every
+verdict, including the ones that grant access.** Measured by running the
+committed tool code and handing the result to the deployed guardrail at
+`source="INPUT"`, exactly as `handler._inspect` does. `catalog-search`'s real
+output, same harness and version, is blocked **0/3**. The tool this milestone
+deployed cannot pass the guardrail it is deployed behind.
+
+That explains the 8 `tool_output` refusals directly. It does **not** explain the
+42 `answer` refusals: three arms' committed final answers — M01 0/22, M02-tools
+0/23, M06 0/25 — pass v4 cleanly, so those blocks are not reproducible from the
+committed text. The runtime block on that channel comes from the guardrail
+integrated into `converse`, which assesses the model's generated output inline,
+while every diagnostic here uses standalone `ApplyGuardrail` on the final
+structured answer. **Different text**, and the difference was never captured.
+
+**Finding 1's contrast with M02's 2–3 refusals is withdrawn as unattributable.**
+M02's arms recorded no guardrail version (the ADR-035 gap); the nearest recorded
+versions are 2, against M06b's 4. Two variables moved and the committed record
+cannot separate them. The tool-output measurement above replaces it and needs no
+cross-milestone comparison.
+
 ## Finding 5 — the check that reports this cannot see the run that proves it
 
 `pave check` prints the SPEC/01 guardrail-refusal band, and with this run
