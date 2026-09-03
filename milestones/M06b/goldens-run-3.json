@@ -1,0 +1,308 @@
+{
+  "blackout-001": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/blackout-001-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-006": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/blackout-006-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-007": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/blackout-007-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-008": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/blackout-008-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-009": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/blackout-009-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-002": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/entitlement-002-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-010": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/entitlement-010-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-011": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/entitlement-011-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-012": {
+    "answer": {
+      "unparsed": "The Harbor Bay Invitational is not found in the Meridian Sports catalog.\n\n```json\n{\n  \"answer\": \"I couldn't find the Harbor Bay Invitational in the Meridian Sports catalog. This title may not be available on our service, or it might be listed under a different name. Please check the title or search for related events.\",\n  \"cited_titles\": [],\n  \"entitlement\": null\n}\n```"
+    },
+    "usage": {
+      "tokens_in": 3906,
+      "tokens_out": 199,
+      "latency_ms": 4215,
+      "tool_ms": 15,
+      "guard_ms": 208
+    }
+  },
+  "recommend-003": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/recommend-003-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "recommend-013": {
+    "answer": {
+      "answer": "I was unable to find any live sports events in the catalog for tonight. No live sporting events are currently available.",
+      "cited_titles": []
+    },
+    "usage": {
+      "tokens_in": 8289,
+      "tokens_out": 363,
+      "latency_ms": 8250,
+      "tool_ms": 62,
+      "guard_ms": 1075
+    }
+  },
+  "recommend-014": {
+    "answer": {
+      "answer": "I couldn't find any highlights or sports content currently available in the Meridian Sports catalog for tonight. The catalog appears to have no VOD highlights or live events available at this moment. Check back later or explore other content options.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "tokens_in": 8319,
+      "tokens_out": 406,
+      "latency_ms": 9630,
+      "tool_ms": 53,
+      "guard_ms": 816
+    }
+  },
+  "recommend-015": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/recommend-015-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "grounded-016": {
+    "answer": {
+      "answer": "The Rovers vs Union match (Jefferson Derby) starts at 19:00 UTC (7:00 PM) on 2026-09-13.",
+      "cited_titles": [
+        "t001"
+      ]
+    },
+    "usage": {
+      "tokens_in": 3958,
+      "tokens_out": 158,
+      "latency_ms": 3596,
+      "tool_ms": 20,
+      "guard_ms": 201
+    }
+  },
+  "grounded-017": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/grounded-017-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "grounded-018": {
+    "answer": {
+      "answer": "I found a Jefferson Derby match in the catalog (t001: Rovers vs Union), but it's scheduled for today, September 13, 2026. I did not find a Jefferson Derby second leg scheduled for next month in the available catalog.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "tokens_in": 8597,
+      "tokens_out": 376,
+      "latency_ms": 11831,
+      "tool_ms": 60,
+      "guard_ms": 590
+    }
+  },
+  "grounded-019": {
+    "answer": {
+      "answer": "I couldn't find any event called the Harbor Bay Invitational in the Meridian Sports catalog. This event may not be available on Meridian Sports, or it might be titled differently. If you're looking for a specific sport or competition, I'd be happy to help if you can provide more details.",
+      "cited_titles": []
+    },
+    "usage": {
+      "tokens_in": 6022,
+      "tokens_out": 265,
+      "latency_ms": 6927,
+      "tool_ms": 47,
+      "guard_ms": 384
+    }
+  },
+  "brand-020": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/brand-020-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "brand-021": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/brand-021-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "concise-022": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/concise-022-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "multi-023": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/multi-023-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "edge-024": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/edge-024-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "edge-025": {
+    "answer": {
+      "answer": "There are no live sports events available in the catalog for tonight.",
+      "cited_titles": []
+    },
+    "usage": {
+      "tokens_in": 8388,
+      "tokens_out": 410,
+      "latency_ms": 7791,
+      "tool_ms": 57,
+      "guard_ms": 661
+    }
+  },
+  "headroom-005": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/headroom-005-m02-tools-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "headroom-026": {
+    "answer": {
+      "answer": "The Cedar Point Rowing Finals showcase elite athletic performance at its most intense—elite rowers competing for championship glory in a sport that demands precision, endurance, and teamwork. You're on the sports-tier plan, so you'll have access when the event goes live.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "not-yet-started",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "tokens_in": 6155,
+      "tokens_out": 319,
+      "latency_ms": 7240,
+      "tool_ms": 36,
+      "guard_ms": 439
+    }
+  }
+}

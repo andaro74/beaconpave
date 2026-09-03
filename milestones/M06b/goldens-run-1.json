@@ -1,0 +1,324 @@
+{
+  "blackout-001": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/blackout-001-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-006": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/blackout-006-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-007": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/blackout-007-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-008": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/blackout-008-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-009": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/blackout-009-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-002": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/entitlement-002-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-010": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/entitlement-010-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-011": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/entitlement-011-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-012": {
+    "answer": {
+      "answer": "I'm unable to find the Harbor Bay Invitational in the Meridian Sports catalog. This event either isn't currently available on our service or may be listed under a different name. I'd recommend searching for the event by sport or date, or checking back later if it's an upcoming event.",
+      "cited_titles": [],
+      "entitlement": null
+    },
+    "usage": {
+      "tokens_in": 6033,
+      "tokens_out": 297,
+      "latency_ms": 6197,
+      "tool_ms": 50,
+      "guard_ms": 377
+    }
+  },
+  "recommend-003": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/recommend-003-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "recommend-013": {
+    "answer": {
+      "answer": "I was unable to find information about what sports are on live tonight in the Meridian Sports catalog. There may not be any live sporting events scheduled at this time, or the catalog search did not return results matching your query.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "tokens_in": 6010,
+      "tokens_out": 288,
+      "latency_ms": 8813,
+      "tool_ms": 35,
+      "guard_ms": 369
+    }
+  },
+  "recommend-014": {
+    "answer": {
+      "answer": "I wasn't able to find any sports content currently available in the catalog for tonight. This could mean there are no live events scheduled for this evening, or the catalog may be limited at the moment. Check back later or try browsing the full Meridian Sports schedule for upcoming events.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "tokens_in": 6360,
+      "tokens_out": 408,
+      "latency_ms": 6380,
+      "tool_ms": 59,
+      "guard_ms": 710
+    }
+  },
+  "recommend-015": {
+    "answer": {
+      "answer": "Yes! Cedar Point Rowing Finals (t005) is coming up on September 20th at 4:00 PM UTC. This is available to sports-tier subscribers in your market.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "tokens_in": 3942,
+      "tokens_out": 178,
+      "latency_ms": 3841,
+      "tool_ms": 15,
+      "guard_ms": 220
+    }
+  },
+  "grounded-016": {
+    "answer": {
+      "answer": "The Rovers vs Union match (Jefferson Derby) starts at 7:00 PM UTC (19:00 UTC) on 2026-09-13.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "tokens_in": 3974,
+      "tokens_out": 192,
+      "latency_ms": 5985,
+      "tool_ms": 18,
+      "guard_ms": 284
+    }
+  },
+  "grounded-017": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/grounded-017-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "grounded-018": {
+    "answer": {
+      "answer": "I found a Jefferson Derby match in the catalog (Rovers vs Union), but it starts tonight at 2026-09-13T19:00:00Z. I did not find a second leg match scheduled for next month (October) in the available catalog.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "tokens_in": 8586,
+      "tokens_out": 367,
+      "latency_ms": 8945,
+      "tool_ms": 61,
+      "guard_ms": 533
+    }
+  },
+  "grounded-019": {
+    "answer": {
+      "answer": "I cannot find the Harbor Bay Invitational in the Meridian Sports catalog. This event is not currently available in our listings.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "tokens_in": 6041,
+      "tokens_out": 263,
+      "latency_ms": 11022,
+      "tool_ms": 38,
+      "guard_ms": 438
+    }
+  },
+  "brand-020": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/brand-020-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "brand-021": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/brand-021-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "concise-022": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/concise-022-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "multi-023": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/multi-023-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "edge-024": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/edge-024-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "edge-025": {
+    "answer": {
+      "answer": "I wasn't able to find any sports programming scheduled for tonight in the Meridian Sports catalog. There may not be live events available at this time, or you could check back later for updated schedule information.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "tokens_in": 8368,
+      "tokens_out": 435,
+      "latency_ms": 8706,
+      "tool_ms": 50,
+      "guard_ms": 685
+    }
+  },
+  "headroom-005": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-01/highlights-agent/headroom-005-m02-tools-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "headroom-026": {
+    "answer": {
+      "answer": "The Cedar Point Rowing Finals showcase elite athletes competing at the highest level of competitive rowing, with precision teamwork and explosive power on display. You've got the sports-tier access to watch it live—it starts September 20th at 4 PM UTC.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "not-yet-started",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "tokens_in": 6193,
+      "tokens_out": 336,
+      "latency_ms": 8591,
+      "tool_ms": 35,
+      "guard_ms": 431
+    }
+  }
+}
