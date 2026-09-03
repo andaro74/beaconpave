@@ -127,6 +127,44 @@ was produced by a version of the producer that is not the committed one.
 `run_with_tools.py` is also on **no two-key rule**, which the same follow-up
 should close.
 
+## Amendment 1 — the cause, and a confound in Finding 1's reasoning
+
+Added by `docs/M06b-guardrail-diagnosis.md` (guardrail v4, zero model calls).
+
+**The guardrail blocks `entitlement-check`'s permissive answers and passes its
+refusals.** Measured by running the committed tool code and handing
+`core.toolloop._inspection_text(payload)` — the exact text the gateway sends — to
+the deployed guardrail at `source="INPUT"`, `k=5`:
+
+```
+blackout / entitled:false    0/5 blocked
+upgrade  / entitled:false    0/5 blocked
+entitled:true, reason:ok     5/5 BLOCKED
+entitled:true, reason:ok     5/5 BLOCKED
+```
+
+`catalog-search`'s real output is blocked 0/3, so this is specific to
+`entitlement-check`. The verdict is also unstable under changes that carry no
+meaning: sorting the payload's keys, or removing an unrelated `event` field,
+flips it.
+
+**Two calibration options were tested against frozen corpora and both are
+refuted.** Adding `examples` to the topic changes nothing on the 15 corpus rows
+and takes the false-positive surface from two payloads to four. Amending the
+definition's carve-out does not fix the tool output and silently unblocks
+`ATK-002` and `ATK-004`. Separately, **`ATK-003` is blocked 0/3 by v4** — a
+pre-existing hole in the deployed guardrail, surfaced by running the corpus.
+
+This explains the 8 `tool_output` refusals. It does **not** explain the 42
+`answer` refusals: M01 0/22, M02-tools 0/23 and M06 0/25 committed answers all
+pass v4 cleanly. That channel's block comes from the guardrail integrated into
+`converse`, assessing the model's generated output inline — different text from
+anything the committed evidence holds, and it was never captured.
+
+**Finding 1's contrast with M02's 2–3 refusals is withdrawn as unattributable.**
+M02's arms recorded no guardrail version (the ADR-035 gap); the nearest recorded
+is 2 against M06b's 4, so two variables moved.
+
 ## Finding 5 — the check that reports this cannot see the run that proves it
 
 `pave check` prints the SPEC/01 guardrail-refusal band, and with this run
