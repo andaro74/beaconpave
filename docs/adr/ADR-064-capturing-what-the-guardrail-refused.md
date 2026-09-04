@@ -1,6 +1,8 @@
 # ADR-064: capturing what the guardrail refused
 
-**Status: PROPOSED. Not accepted, nothing built, nothing deployed.**
+**Status: PROPOSED. Step 0 is RUN, 2026-09-04 — see *Step 0, measured* at
+the end. It killed option C and produced an option this ADR did not contain.
+Nothing accepted, nothing built, nothing deployed.**
 Written before the code, as ADR-063 was, and for the same reason: the last two
 cheap fixes for this topic were both refuted by measurement, and one of them
 would have shipped a security regression. **Zero model calls to write.**
@@ -175,3 +177,107 @@ close and leaves a documented, isolated defect for M07.
   calibration measured on this suite.
 - **It does not re-open ADR-063**, which closed the half it claimed and was
   verified on the deployed gateway.
+
+
+---
+
+## Step 0, measured — 2026-09-04
+
+**Zero model calls.** Every measurement below is `ApplyGuardrail`, which this
+repo's taxonomy excludes from `MODEL_INVOKE_ACTIONS`. Production was never
+modified: `beaconpave-gateway` v4 still carries its 3 topics, the deployed pins
+are unchanged, and the candidate was a throwaway created and deleted inside the
+measurement.
+
+### Option C is dead, and for a specific reason
+
+A topic-policy assessment carries **no content and no offsets**:
+
+```json
+"topicPolicy": {"topics": [
+  {"name": "entitlement-circumvention", "type": "DENY", "action": "BLOCKED", "detected": true}
+]}
+```
+
+This is not a limitation of the API. The **PII policy on the same response
+carries the matched text**:
+
+```json
+"sensitiveInformationPolicy": {"piiEntities": [
+  {"match": "ada.lovelace@example.com", "type": "EMAIL", "action": "BLOCKED", "detected": true}
+]}
+```
+
+So Bedrock *can* report what matched; the topic policy specifically does not.
+`guardrailCoverage.textCharacters` gives `{guarded, total}` counts and no
+offsets. **Option C — capture assessment spans rather than text — has nothing to
+capture.**
+
+### The option this ADR did not contain
+
+`CreateGuardrail`'s `topicsConfig` accepts fields the repo has never used:
+
+```
+inputAction:  enum ['BLOCK', 'NONE']      outputAction: enum ['BLOCK', 'NONE']
+inputEnabled: boolean                     outputEnabled: boolean
+```
+
+The deployed topics set **none of them**, so both channels default to `BLOCK`.
+Setting `outputAction: NONE` on one topic detects without blocking. Measured on a
+throwaway, against the payload known to trip the topic:
+
+```
+source=INPUT   v4           action=GUARDRAIL_INTERVENED  detected=[entitlement-circumvention:BLOCKED]
+source=INPUT   detect-only  action=GUARDRAIL_INTERVENED  detected=[entitlement-circumvention:BLOCKED]
+
+source=OUTPUT  v4           action=GUARDRAIL_INTERVENED  detected=[entitlement-circumvention:BLOCKED]
+source=OUTPUT  detect-only  action=NONE                  detected=[entitlement-circumvention:NONE]
+```
+
+And the frozen attack corpus at `source=INPUT` is **identical across both arms**,
+all nine rows — `ATK-003` still the known miss (ADR-062), everything else still
+blocked.
+
+### Why this is one answer to three problems
+
+Setting `entitlement-circumvention` to `outputAction: NONE` would be, at once:
+
+- **The fix.** The 16 answer-channel refusals stop being refusals. The outage ends.
+- **The capture mechanism.** Nothing is withheld, so the model's text arrives and
+  the harness records it exactly as it records every other answer. **ADR-064's own
+  question dissolves** — there is nothing to build, because the text stops being
+  destroyed.
+- **The observability.** Detection still fires and is still reported, so the
+  audit record can carry *this answer tripped the topic* without withholding it.
+  Today that number is "17 refusals"; under this it becomes "N detections, zero
+  outages", which is a footprint a seat can actually calibrate against.
+
+It needs **no trust-boundary change** (unlike option B), **no gateway off-switch**
+(which option A is refused for), and no second implementation of the loop.
+
+### What it costs, stated plainly
+
+**The platform stops blocking the model from emitting circumvention content on
+the output channel.** That is a real reduction and it is Security's to weigh:
+
+- The **input** side is untouched — a viewer asking for a workaround is still
+  refused, and all nine frozen attacks confirm it.
+- The **content filters** are untouched on both channels.
+- What is given up is the second line: if a request got past the input filter and
+  the model then produced circumvention advice, the platform would now record it
+  rather than withhold it.
+
+**The frozen corpora cannot measure this.** Every ATK and HLD row is a *question*,
+scored at `source=INPUT`. There is no output-side attack corpus, so the weakening
+this trades for is invisible to the instrument that would judge it — which is
+exactly the shape ADR-035 amendment 5 records about `HLD-001/002/003`. **A
+corpus of output-side attacks is owed before this is accepted**, and that is the
+real precondition, not the config change.
+
+### Recommended, and not taken
+
+Option E supersedes B and C on cost and on architecture. It is **not** proposed as
+accepted here, because the precondition above is not met: nothing in this
+repository can currently demonstrate what output-side blocking buys, which means
+nothing can demonstrate what removing it costs. Security's call, with that
+measured first.
