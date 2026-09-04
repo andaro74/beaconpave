@@ -362,8 +362,13 @@ def main(argv=None) -> int:
 
     print("This scores nothing. No audit record was written and no model was called.")
     if args.out:
+        # `newline=""` because the default translates each line feed to the
+        # platform's line ending, and this artifact is committed and read by tests. A
+        # CRLF-only difference shows up as a modified file with an empty diff, which
+        # is the symptom that took a previous branch a while to name. Same defect
+        # still stands in `run_with_tools.py`, and is owed.
         pathlib.Path(args.out).write_text(json.dumps(recorded, indent=2) + chr(10),
-                                          encoding="utf-8")
+                                          encoding="utf-8", newline="")
         print(f"wrote {args.out}")
     return 0
 

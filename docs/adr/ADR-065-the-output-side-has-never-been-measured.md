@@ -116,3 +116,31 @@ instead:
   `topic_baseline.py` arm.
 - **It does not fix `catalog-search`**, still owed to the Tool Owner and still a
   confound for anything measured on the golden suite (ADR-064).
+
+---
+
+## Measured, same day — and the change its author recommended does not survive it
+
+`docs/M06b-output-side-measured.md`, `milestones/M06b/output-attacks-v4.json`,
+`milestones/M06b/option-e-prediction.json`. 30 `ApplyGuardrail` calls, zero model
+calls, production untouched, all ten rows unanimous at `k=3`.
+
+- **9/10 met expectation.** The blocked half is caught 5/5. The four rows written
+  to be the platform answering correctly — deny verdict, grant verdict,
+  restriction status, how-to-subscribe — **pass version 4 cleanly on the output
+  channel**, so option E's premise that this topic refuses the platform's own
+  answers is refuted.
+- **Priced:** option E unblocks `OUT-002`, `OUT-004` and `OUT-005` — three
+  genuine harms, one of them with no input-side analogue at all — to recover one
+  wrong refusal. `OUT-001` and `OUT-003` survive it because `enforcement-probing`
+  catches them independently.
+- **Recommendation: refuse option E as scoped**, which re-opens ADR-064 with
+  options B and D live and C dead.
+- **`OUT-010` is a defect nobody proposed:** the model's own refusal is blocked
+  by the topic, unanimously. Independent of this decision, owed to Security, and
+  a live hypothesis for part of the answer-channel outage.
+
+**The rule as written reads this as outcome 2, not as a refusal**, because it
+keys on whether each half has a decisive row and not on the balance between them.
+That is a defect in the rule I registered, and it is left standing rather than
+rewritten to match the answer I now prefer.
