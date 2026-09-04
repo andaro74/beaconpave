@@ -40,7 +40,8 @@ publish the support beside the finding, derived, in
 ```json
 "strength": {"cases_total": 5, "cases_interpretable": 2,
              "escape_route_interpretable": 1, "other_interpretable": 1,
-             "verdict_rests_on": "one escape-route case against one upgrade-path case"}
+             "verdict_rests_on": "1 interpretable escape-route case(s) against
+                                  1 interpretable case(s) of other clause types"}
 ```
 
 **Nothing about the conjunction should be built on this.** The corpus mostly

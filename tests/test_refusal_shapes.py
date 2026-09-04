@@ -194,3 +194,70 @@ def test_the_decomposition_is_derived_from_both_committed_runs():
         "the decomposition has stopped declaring itself post hoc. This corpus was frozen to test "
         "refusing-versus-complying; the conjunction reading fell out of the anchor row "
         "afterwards, and a post-hoc reading that stops saying so is how it becomes a claim.")
+
+
+# --- fix 2: nothing in the artifact may be checked only against itself ---------
+#
+# The seat round found `controls["OUT-010-echo"]` entirely unread — verdict and
+# assessed both — while the same verdict IS checked one block down in
+# `decomposition.rows`. **Two copies of one number, one reader, and the copy
+# printed as fact in the write-up's headline table was the unread one.**
+# `controls[*].expect` and `kind` were untied to the corpus for the same reason.
+
+#: Every key the artifact may carry, at each level. The inventory generalises the
+#: fix: a new field arriving without the assertion that derives it is a red check
+#: rather than something a seat has to plant for.
+PAIR_KEYS = {
+    "top": {"_what", "_rule", "guardrail_id", "guardrail_version", "k", "source",
+            "pairs", "controls", "summary", "decomposition"},
+    "pair": {"refusal", "compliance", "separates", "collapsed"},
+    "half": {"id", "verdict", "assessed"},
+    "control": {"expect", "verdict", "assessed", "kind"},
+    "summary": {"separates", "collapses", "finding"},
+    "decomposition": {"_what", "_hypothesis", "rows", "reproduced_across_runs", "owed"},
+    "decomposition_row": {"is", "run", "verdict"},
+}
+
+
+def test_the_artifact_carries_no_field_this_file_does_not_check():
+    artifact = _load(PAIRS)
+    assert set(artifact) == PAIR_KEYS["top"], (
+        f"top-level keys are {sorted(set(artifact) ^ PAIR_KEYS['top'])} away from the "
+        "inventory. A field nobody derives is a field nobody notices going stale — add "
+        "the key here AND the assertion that derives it, in the same diff.")
+    assert set(artifact["summary"]) == PAIR_KEYS["summary"]
+    assert set(artifact["decomposition"]) == PAIR_KEYS["decomposition"]
+    for act, pair in artifact["pairs"].items():
+        assert set(pair) == PAIR_KEYS["pair"], f"{act}: unexpected keys"
+        for half in ("refusal", "compliance"):
+            assert set(pair[half]) == PAIR_KEYS["half"], f"{act}/{half}: unexpected keys"
+    for control_id, control in artifact["controls"].items():
+        assert set(control) == PAIR_KEYS["control"], f"{control_id}: unexpected keys"
+    for row_id, row in artifact["decomposition"]["rows"].items():
+        assert set(row) == PAIR_KEYS["decomposition_row"], f"{row_id}: unexpected keys"
+
+
+def test_every_control_is_derived_from_the_run_and_attributed_to_the_corpus():
+    """`OUT-010-echo` is printed in the write-up's headline table as BLOCKED.
+
+    Nothing read it. The same verdict appears in the decomposition block below and
+    IS checked there — so the artifact carried two copies of one number, and the
+    published copy was the one with no reader. Its `expect` and `kind` come from
+    the corpus, and its verdict from the run, and all three are asserted here."""
+    run, artifact = _load(RUN), _load(PAIRS)
+    corpus = {c["id"]: c for c in _corpus()["controls"]}
+    assert set(artifact["controls"]) == set(corpus), (
+        "the artifact and the frozen corpus disagree about which controls exist")
+    for control_id, control in artifact["controls"].items():
+        source = corpus[control_id]
+        assert control["expect"] == source["expect"], (
+            f"{control_id}: artifact says expect={control['expect']!r}, corpus says "
+            f"{source['expect']!r}")
+        assert control["kind"] == source["kind"], (
+            f"{control_id}: artifact says kind={control['kind']!r}, corpus says "
+            f"{source['kind']!r}. `kind` is what makes REF-C01 the gate; a control that "
+            "can be relabelled is a gate that can be moved.")
+        got = _run_verdict(run, ARM, control_id)
+        assert control["verdict"] == got, (
+            f"{control_id}: artifact says {control['verdict']!r}, the run says {got!r}")
+        assert control["assessed"] == run["arms"][ARM]["results"][control_id]["assessed"]

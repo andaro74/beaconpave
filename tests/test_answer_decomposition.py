@@ -221,3 +221,147 @@ def test_the_topic_firing_census_is_derived():
         i for i in controls if TOPIC in results[i]["assessed"])
     assert census["control_it_missed"] == sorted(
         i for i in controls if TOPIC not in results[i]["assessed"])
+
+
+# --- fix 2: nothing in the artifact may be checked only against itself ---------
+#
+# The seat round planted `summary.by_clause_type` with its two buckets swapped,
+# swapped `cases[*].clause_type` to match, and hand-wrote a different `finding`.
+# **18 passed.** `test_the_finding_is_computed_...` derives the readout FROM
+# `by_clause_type`, and nothing tied `by_clause_type` to the corpus that owns the
+# word. The corpus header calls `clause_type` "the discriminator"; the
+# discriminator was the unchecked field.
+#
+# Four smaller fields were silent for the same reason and are tied below:
+# `plain_circumvention_total` (the denominator of the run's self-described
+# sharpest result), `refusals_blocked_alone`, `finding_was_pre_registered`, and
+# `strength.verdict_rests_on` — which was rewritten to "five cases, all clause
+# types, unanimous" and stayed green, inverting the one sentence that says how
+# thin the finding is.
+
+#: Every key the artifact may carry, at each level. The inventory is the part
+#: that generalises: it turns the NEXT unchecked field into a red check instead
+#: of a discovery someone has to plant for.
+CASE_KEYS = {
+    "top": {"_what", "_rule", "guardrail_id", "guardrail_version", "k", "source",
+            "cases", "controls", "summary"},
+    "case": {"clause_type", "act", "refusal", "alternative", "conjunction",
+             "interpretable", "fires"},
+    "part": {"id", "verdict", "assessed"},
+    "control": {"expect", "verdict", "assessed", "topic_fired"},
+    "summary": {"interpretable", "uninterpretable", "fires", "by_clause_type",
+                "refusals_blocked_alone", "finding", "finding_was_pre_registered",
+                "strength", "topic_firing_census"},
+    "strength": {"_what", "cases_total", "cases_interpretable",
+                 "escape_route_interpretable", "other_interpretable", "verdict_rests_on"},
+    "census": {"_what", "refusals_it_blocked", "refusals_total",
+               "plain_circumvention_it_blocked", "plain_circumvention_total",
+               "control_it_missed"},
+}
+
+
+def test_the_artifact_carries_no_field_this_file_does_not_check():
+    artifact = _load(CASES)
+    summary = artifact["summary"]
+    assert set(artifact) == CASE_KEYS["top"], (
+        f"top-level keys are {sorted(set(artifact) ^ CASE_KEYS['top'])} away from the "
+        "inventory. A field nobody derives is a field nobody notices going stale — add "
+        "the key here AND the assertion that derives it, in the same diff.")
+    assert set(summary) == CASE_KEYS["summary"]
+    assert set(summary["strength"]) == CASE_KEYS["strength"]
+    assert set(summary["topic_firing_census"]) == CASE_KEYS["census"]
+    for case_id, case in artifact["cases"].items():
+        assert set(case) == CASE_KEYS["case"], f"{case_id}: unexpected keys"
+        for part in PARTS:
+            assert set(case[part]) == CASE_KEYS["part"], f"{case_id}/{part}: unexpected keys"
+    for control_id, control in artifact["controls"].items():
+        assert set(control) == CASE_KEYS["control"], f"{control_id}: unexpected keys"
+
+
+@pytest.mark.parametrize("case_id", CASE_IDS)
+def test_each_cases_attributes_come_from_the_corpus(case_id):
+    """`clause_type` is the discriminator, so it belongs to the corpus alone.
+
+    The whole reading — conjunction versus escape-route — is which clause types
+    fire. An artifact free to relabel a case can produce either answer from the
+    same run."""
+    row = _load(CASES)["cases"][case_id]
+    source = next(c for c in _corpus()["cases"] if c["id"] == case_id)
+    for field in ("clause_type", "act"):
+        assert row[field] == source[field], (
+            f"{case_id}: the artifact says {field}={row[field]!r}, the frozen corpus says "
+            f"{source[field]!r}.")
+
+
+def test_the_clause_type_buckets_are_built_from_the_corpus_not_from_the_artifact():
+    """The plant that proved this necessary swapped the buckets and stayed green."""
+    artifact = _load(CASES)
+    corpus = {c["id"]: c["clause_type"] for c in _corpus()["cases"]}
+    summary = artifact["summary"]
+
+    expected: dict = {}
+    for case_id in summary["interpretable"]:
+        bucket = expected.setdefault(corpus[case_id], {"interpretable": [], "fires": []})
+        bucket["interpretable"].append(case_id)
+        if artifact["cases"][case_id]["fires"]:
+            bucket["fires"].append(case_id)
+    assert summary["by_clause_type"] == expected, (
+        "by_clause_type is not what the frozen corpus's clause_type values give. The "
+        "finding is derived FROM this table, so a bucket assigned by hand is a finding "
+        "assigned by hand.")
+
+
+def test_the_controls_expectations_come_from_the_corpus():
+    artifact, corpus = _load(CASES), _corpus()
+    expected = {c["id"]: c["expect"] for c in corpus["controls"]}
+    assert {i: c["expect"] for i, c in artifact["controls"].items()} == expected, (
+        "a control's expectation in the artifact is not the corpus's. The controls are "
+        "what stop this corpus being satisfied by a topic that has stopped working.")
+
+
+def _rests_on(escape: int, other: int) -> str:
+    """The one sentence saying how thin the finding is, built from the counts.
+
+    It was free text and it was unread: the seat round rewrote it to "five cases,
+    all clause types, unanimous" and the suite stayed green — turning the single
+    line that qualifies the result into a claim of breadth. Free text beside a
+    derived number is not a caveat; it is a caption anyone can change."""
+    return (f"{escape} interpretable escape-route case(s) against "
+            f"{other} interpretable case(s) of other clause types")
+
+
+def test_the_census_denominators_and_the_strength_sentence_are_derived():
+    """The two numbers the write-up leans on hardest, and both were unchecked.
+
+    `plain_circumvention_total` is the denominator of "1 of 2 plain circumvention
+    statements" — the run's self-described sharpest result — and was changeable to
+    97 with the suite green. A number nobody checks is not evidence, however
+    carefully it was written."""
+    artifact = _load(CASES)
+    summary, cases, controls = artifact["summary"], artifact["cases"], artifact["controls"]
+    census, strength = summary["topic_firing_census"], summary["strength"]
+
+    assert census["plain_circumvention_total"] == len(controls)
+    assert census["refusals_total"] == len(cases)
+    assert summary["refusals_blocked_alone"] == sorted(
+        i for i, c in cases.items() if c["refusal"]["verdict"] == "blocked")
+
+    escape = len(summary["by_clause_type"].get("escape-route", {}).get("interpretable", []))
+    assert strength["verdict_rests_on"] == _rests_on(
+        escape, strength["cases_interpretable"] - escape)
+
+
+def test_the_pre_registration_claim_is_derived_and_not_asserted():
+    """`finding_was_pre_registered` is a claim about process, and it was flippable.
+
+    ADR-068 registered four readings before the run. `mostly-uninterpretable` is
+    not among them — it was added when the run produced it — and the flag is what
+    says so. A hand-set true would let an unregistered reading be published as a
+    registered one."""
+    artifact = _load(CASES)
+    finding = artifact["summary"]["finding"]
+    assert artifact["summary"]["finding_was_pre_registered"] == (
+        finding != "mostly-uninterpretable"), (
+        f"finding_was_pre_registered does not follow from finding={finding!r}. Of the "
+        "readings this artifact can produce, only `mostly-uninterpretable` was added "
+        "after the freeze.")

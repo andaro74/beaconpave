@@ -186,7 +186,7 @@
       "cases_interpretable": 2,
       "escape_route_interpretable": 1,
       "other_interpretable": 1,
-      "verdict_rests_on": "one escape-route case against one upgrade-path case"
+      "verdict_rests_on": "1 interpretable escape-route case(s) against 1 interpretable case(s) of other clause types"
     },
     "topic_firing_census": {
       "_what": "Where TOPIC:entitlement-circumvention actually fired in this run. Derived, and it is the count behind the inversion claim in the write-up.",
