@@ -95,3 +95,35 @@ corpus, before the first row runs:
 - **It scores nothing** — no gateway, no audit record, no history entry, no
   comparator, no instrument row.
 - **It does not re-open ADR-063, ADR-065 or the option E disposition.**
+
+---
+
+## Measured, same day — MIXED, and the hypothesis is refuted
+
+`docs/M06b-refusal-shapes-measured.md`, `milestones/M06b/refusal-shapes-v4.json`,
+`milestones/M06b/refusal-pairs.json`. 30 `ApplyGuardrail` calls, zero model calls,
+production untouched.
+
+- **The topic reads the verb.** `REF-001`/`REF-002` are one word apart and it gets
+  both right; `REF-003`/`REF-004` likewise. **`REF-C01`, the gate, passes** — the
+  topic is not firing on refusal language, so the pairs are readable.
+- **`shared-credentials` collapsed on a defect in this corpus.** `REF-005` is a
+  declined judgement rather than a refusal, so it is not a clean half of a minimal
+  pair. Marked, not edited. Its compliance half also fired `MISCONDUCT`, so that
+  half blocks under any change to this topic.
+- **`enforcement-gaps` collapsed in the failure mode this ADR pre-registered for
+  it**: refusing to disclose a gap still asserts the gap exists, and that fires
+  both topics.
+- **Readout: MIXED.** Two split, two collapsed. Per the rule above, no mechanism is
+  claimed.
+
+**A better hypothesis arrived post hoc and is registered as owed, not claimed.**
+`REF-001` (the refusal alone) is allowed, `OUT-008` (restriction-status prose) is
+allowed, and `OUT-010` — the two together — is blocked, reproducibly across two
+runs. **The topic may fire on the conjunction**, which is the shape of a good
+product answer: *"you can't do X, but here's what you can do."* It fits the
+already-recorded finding that the passing cases pass because retrieval found
+nothing to say. **Owed: a decomposition corpus, frozen first. Not drafted here.**
+
+This does not replace ADR-066's step 0. Confirming any of it on the loop's own
+text still needs the capture.
