@@ -60,6 +60,8 @@ import json
 import pathlib
 import re
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SNAPSHOT = ROOT / "platform" / "infra" / "tests" / "fixtures" / "BeaconpaveGateway.template.json"
 PIN = ROOT / "platform" / "infra" / "tests" / "fixtures" / "guardrail-pin.json"
@@ -78,47 +80,72 @@ POLICY_BLOCKS = (
 DESCRIPTION = re.compile(r"^Pinned to policy ([0-9a-f]{12})\.$")
 
 
-def _guardrail(template: dict) -> dict:
-    guardrails = [r for r in template["Resources"].values()
-                  if r.get("Type") == "AWS::Bedrock::Guardrail"]
-    assert len(guardrails) == 1, f"expected exactly one guardrail, found {len(guardrails)}"
-    return guardrails[0]["Properties"]
+#: The guardrail/version pairs this file pins, by logical id.
+#:
+#: **There were two the moment ADR-063 landed, and this file asserted there was
+#: one.** The helpers below took "the only guardrail" and would have gone on
+#: passing for the main pair while the tool-output pair's pin tracked nothing —
+#: which is this file's own defect, one layer out: a hand-written assumption
+#: about what exists, in the file whose whole subject is that a hand-written list
+#: of what matters goes stale.
+#:
+#: Adding a pair here without adding it to `guardrail-pin.json` fails loudly, and
+#: a third guardrail appearing in the snapshot fails
+#: `test_every_guardrail_in_the_snapshot_is_pinned` below.
+PAIRS = (
+    ("Guardrail", "GuardrailVersion", "main"),
+    ("ToolOutputGuardrail", "ToolOutputGuardrailVersion", "tool_output"),
+)
 
 
-def _version_description(template: dict) -> str:
-    versions = [r for r in template["Resources"].values()
-                if r.get("Type") == "AWS::Bedrock::GuardrailVersion"]
-    assert len(versions) == 1, f"expected exactly one guardrail version, found {len(versions)}"
-    return versions[0]["Properties"]["Description"]
+def _guardrail(template: dict, logical_id: str = "Guardrail") -> dict:
+    resource = template["Resources"].get(logical_id)
+    assert resource and resource.get("Type") == "AWS::Bedrock::Guardrail", (
+        f"{logical_id} is not a guardrail in the snapshot. The pairs this file checks are "
+        "named explicitly rather than found by type, so a rename is a red test rather "
+        "than a silently narrower check.")
+    return resource["Properties"]
 
 
-def policy_digest(template: dict) -> str:
+def _version_description(template: dict, logical_id: str = "GuardrailVersion") -> str:
+    resource = template["Resources"].get(logical_id)
+    assert resource and resource.get("Type") == "AWS::Bedrock::GuardrailVersion", (
+        f"{logical_id} is not a guardrail version in the snapshot.")
+    return resource["Properties"]["Description"]
+
+
+def policy_digest(template: dict, logical_id: str = "Guardrail") -> str:
     """This file's own digest of the enforced policy, computed from the snapshot.
 
     Deliberately NOT the CDK's algorithm. Canonical JSON with sorted keys, so a
     stranger re-derives it from the committed template without reading any
     TypeScript — and so it cannot drift into agreement with a sabotaged
     computation by sharing its code."""
-    guardrail = _guardrail(template)
+    guardrail = _guardrail(template, logical_id)
+    # `.get` returns None for a block this guardrail does not declare, and that
+    # None is IN the digest deliberately: the tool-output guardrail declares no
+    # topic policy, and if one ever appeared the digest must move.
     material = {block: guardrail.get(block) for block in POLICY_BLOCKS}
     return hashlib.sha256(
         json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()[:12]
 
 
-def test_the_version_description_moved_when_the_policy_did():
+@pytest.mark.parametrize("guardrail_id, version_id, pin_key", PAIRS)
+def test_the_version_description_moved_when_the_policy_did(guardrail_id, version_id, pin_key):
     """**The assertion the plant defeats.** Not that the two digests agree — they
     are taken over different material and never will — but that neither can move
     alone. A policy change with a frozen description is a version resource that
     will not be replaced, which is a deploy that reports success and changes
     nothing."""
     template = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
-    pinned = json.loads(PIN.read_text(encoding="utf-8"))
+    pinned = json.loads(PIN.read_text(encoding="utf-8"))["pairs"][pin_key]
 
-    policy_now = policy_digest(template)
-    match = DESCRIPTION.match(_version_description(template))
+    policy_now = policy_digest(template, guardrail_id)
+    match = DESCRIPTION.match(_version_description(template, version_id))
     assert match, (
-        f"the version description is {_version_description(template)!r}, which is not "
+        f"{version_id}'s description is {_version_description(template, version_id)!r}, "
+        "which is not "
         "digest-shaped. The version resource will not replace itself when the policy "
         "changes."
     )
@@ -158,7 +185,9 @@ def test_the_version_description_moved_when_the_policy_did():
         f"{pinned['description_digest']}")
 
 
-def test_the_pin_covers_every_policy_block_the_guardrail_declares():
+@pytest.mark.parametrize("guardrail_id, version_id, pin_key", PAIRS)
+def test_the_pin_covers_every_policy_block_the_guardrail_declares(
+        guardrail_id, version_id, pin_key):
     """A coverage check on the coverage check. `POLICY_BLOCKS` is a hand-written
     list, and a hand-written list of what matters is the thing that goes stale —
     it is the same shape as the CDK's five-block list, one layer out.
@@ -168,7 +197,7 @@ def test_the_pin_covers_every_policy_block_the_guardrail_declares():
     unchanged pin. This does NOT close the seat's second finding — a block outside
     both digests still deploys silently until the CDK's list is widened too — but
     it means the next one is caught by a test instead of by a reviewer."""
-    guardrail = _guardrail(json.loads(SNAPSHOT.read_text(encoding="utf-8")))
+    guardrail = _guardrail(json.loads(SNAPSHOT.read_text(encoding="utf-8")), guardrail_id)
     declared = {k for k in guardrail if k.endswith("PolicyConfig")}
     uncovered = declared - set(POLICY_BLOCKS)
     assert not uncovered, (
@@ -177,3 +206,122 @@ def test_the_pin_covers_every_policy_block_the_guardrail_declares():
         "unchanged version pin. Add them to POLICY_BLOCKS here AND to `policyDigest` in "
         "gateway-stack.ts — this file alone cannot make the version resource replace itself."
     )
+
+
+def test_every_guardrail_in_the_snapshot_is_pinned():
+    """`PAIRS` is a hand-written list, and this file's whole subject is that a
+    hand-written list of what matters goes stale.
+
+    A third guardrail added to the stack without a line in `PAIRS` would be
+    enforced by Bedrock, published as a version, and digested by nothing — the
+    same failure the pin exists to prevent, one guardrail over. ADR-063 added the
+    second and this file asserted there was one; that is the evidence this check
+    is needed rather than the argument for it."""
+    template = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+    in_snapshot = {name for name, r in template["Resources"].items()
+                   if r.get("Type") == "AWS::Bedrock::Guardrail"}
+    covered = {guardrail_id for guardrail_id, _, _ in PAIRS}
+    assert in_snapshot == covered, (
+        f"the snapshot declares guardrails {sorted(in_snapshot)} and this file pins "
+        f"{sorted(covered)}. An unpinned guardrail is enforced and digested by nothing.")
+
+    versions_in_snapshot = {name for name, r in template["Resources"].items()
+                            if r.get("Type") == "AWS::Bedrock::GuardrailVersion"}
+    assert versions_in_snapshot == {version_id for _, version_id, _ in PAIRS}, (
+        "a guardrail version in the snapshot is not covered by PAIRS.")
+
+
+# --- ADR-063: the tool-output guardrail, and the one way it may differ ----------
+#
+# Moved here from `tests/test_iam_assertions.py`, which was the wrong home: that
+# file's rule is "G1's model-invoke allowlist and the assertions defending it",
+# and these assert guardrail POLICY COMPOSITION, which is a different control.
+# The misplacement was caught by `pave gate two-key` refusing one ADR for two
+# ADR-requiring rules -- the checker was right and the fix is the move, not a
+# second ADR written to satisfy it.
+
+def _all_guardrails(template: dict) -> dict:
+    return {name: res["Properties"] for name, res in template["Resources"].items()
+            if res["Type"] == "AWS::Bedrock::Guardrail"}
+
+
+def test_the_two_guardrails_differ_only_by_the_topic_policy():
+    """ADR-063's whole content, asserted against the synth snapshot.
+
+    The tool-output guardrail is built by omission from the gateway guardrail's
+    own properties, so a filter added to one is added to both by construction.
+    That is the answer to `handler._inspect`'s standing objection — *"a second
+    policy would have been a second thing to keep in step"* — and this test is
+    what makes the answer enforceable rather than a claim in a comment.
+
+    **A second divergence is red.** Not "the filters match" but "nothing except
+    the topic policy differs", so a field nobody thought about when this was
+    written cannot drift silently. The measured justification for the one
+    permitted difference is in ADR-063: the poisoned catalog and a schema-valid
+    hostile payload both block under the topic-free policy naming
+    `['PROMPT_ATTACK']`, so the topic was redundant on the cases it was kept
+    for."""
+    template = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+    guardrails = _all_guardrails(template)
+
+    assert set(guardrails) == {"Guardrail", "ToolOutputGuardrail"}, (
+        f"expected exactly the two guardrails ADR-063 describes, found {sorted(guardrails)}. "
+        "A third is a policy nobody has reasoned about; a missing one is a channel "
+        "inspected by something other than what this repo thinks."
+    )
+
+    main, tool = guardrails["Guardrail"], guardrails["ToolOutputGuardrail"]
+    # `Name` and `Description` are identity, not policy, and must differ.
+    ignored = {"Name", "Description"}
+    differing = {
+        key for key in set(main) | set(tool)
+        if key not in ignored and main.get(key) != tool.get(key)
+    }
+
+    assert differing == {"TopicPolicyConfig"}, (
+        f"the two guardrails differ by {sorted(differing)}. ADR-063 permits exactly one "
+        "difference — the topic policy — and the tool-output guardrail is constructed by "
+        "omission from the other so that nothing else CAN differ. Anything here is either "
+        "a hand-written divergence or a field the omission does not cover."
+    )
+
+
+def test_the_tool_output_guardrail_has_no_topic_policy_and_keeps_every_filter():
+    """The direction the test above cannot see on its own.
+
+    `differing == {"TopicPolicyConfig"}` holds if the topic policy is absent from
+    the tool-output guardrail — and would also hold if it were absent from BOTH
+    and present nowhere, which is a guardrail that stopped denying topics
+    entirely. Asserted separately so the two failures are distinguishable."""
+    guardrails = _all_guardrails(json.loads(SNAPSHOT.read_text(encoding="utf-8")))
+    main, tool = guardrails["Guardrail"], guardrails["ToolOutputGuardrail"]
+
+    assert "TopicPolicyConfig" not in tool, (
+        "the tool-output guardrail carries a topic policy, which is the one thing "
+        "ADR-063 exists to remove from it.")
+    assert main.get("TopicPolicyConfig", {}).get("TopicsConfig"), (
+        "the MAIN guardrail has lost its topic policy. ADR-063 removes it from one "
+        "channel, not from the platform.")
+    assert (tool["ContentPolicyConfig"]["FiltersConfig"]
+            == main["ContentPolicyConfig"]["FiltersConfig"]), (
+        "the content filters differ between the two guardrails. `PROMPT_ATTACK` is what "
+        "catches the injection this channel exists to stop (ADR-063 rows 1 and 5); a "
+        "tool-output policy missing a filter is the failure that verification cannot see.")
+
+
+def test_the_tool_output_guardrail_version_is_retained_and_pinned():
+    """A published version is the instrument an observation was taken with.
+
+    Same argument as `GuardrailVersion`: this one will be named by every
+    tool-output observation from here on, and CloudFormation would delete it on
+    the next policy change without RETAIN."""
+    template = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+    version = template["Resources"]["ToolOutputGuardrailVersion"]
+
+    assert version["DeletionPolicy"] == "Retain", (
+        "ToolOutputGuardrailVersion is not retained. A policy change replaces the "
+        "resource, and the old version — the instrument earlier observations name — "
+        "goes with it.")
+    assert "Pinned to policy " in json.dumps(version["Properties"]["Description"]), (
+        "the version's description carries no policy digest, so a policy change would "
+        "not replace it and a version number would stop naming a specific policy.")

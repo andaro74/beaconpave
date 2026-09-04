@@ -364,6 +364,46 @@ export class GatewayStack extends cdk.Stack {
       },
     });
 
+    // --- the tool-output guardrail (ADR-063) -------------------------------
+    // The same policy as above with the TOPIC policy omitted, for the one
+    // channel where a topic classifier is the wrong instrument.
+    //
+    // **Why this exists.** `entitlement-check`'s output is refused by
+    // `entitlement-circumvention` on exactly its permissive verdicts —
+    // `{"entitled": true, "reason": "ok"}` blocked 5/5 — while its refusals pass.
+    // The verdict is also unstable under changes that carry no meaning: sorting
+    // the payload's keys flips it. Two cheap fixes were tested and refuted
+    // (`docs/M06b-guardrail-diagnosis.md`): adding `examples` doubled the
+    // false-positive surface, and amending the definition silently unblocked
+    // `ATK-002` and `ATK-004`.
+    //
+    // **Why removing the topic costs no protection here, measured.** The hazard
+    // in this channel is injection — `ADV-002` rides in a catalog title — and
+    // `PROMPT_ATTACK` is what catches it. Under the full policy both the poisoned
+    // catalog payload and a schema-valid hostile payload block naming
+    // `['PROMPT_ATTACK', 'TOPIC:entitlement-circumvention']`; under this one they
+    // block naming `['PROMPT_ATTACK']` alone, 5 of 5. The topic was redundant on
+    // exactly the cases it was kept for.
+    //
+    // **Constructed by OMISSION, never by a second literal.** Every field is read
+    // off the guardrail above, so a filter added there is added here by
+    // construction and the two cannot drift apart in the direction that matters.
+    // `handler._inspect`'s docstring argues against a second policy precisely
+    // because "a second thing to keep in step" is the cost — this shape is the
+    // answer to that objection, and `test_iam_assertions.py` asserts the two
+    // differ ONLY by the topic policy so a hand-written divergence is red.
+    const toolOutputGuardrail = new bedrock.CfnGuardrail(this, 'ToolOutputGuardrail', {
+      name: 'beaconpave-tool-output',
+      description:
+        'The gateway guardrail minus its topic policy, for the tool-output channel (ADR-063).',
+      blockedInputMessaging: guardrail.blockedInputMessaging,
+      blockedOutputsMessaging: guardrail.blockedOutputsMessaging,
+      contentPolicyConfig: guardrail.contentPolicyConfig,
+      sensitiveInformationPolicyConfig: guardrail.sensitiveInformationPolicyConfig,
+      // topicPolicyConfig: DELIBERATELY ABSENT. This single omission is the whole
+      // of ADR-063; anything else that differs between the two is a defect.
+    });
+
     // A digest of everything the guardrail actually enforces. It exists to force
     // a NEW published version whenever the policy changes — see below for the
     // deploy that proved why.
@@ -437,6 +477,37 @@ export class GatewayStack extends cdk.Stack {
     // the template's deletion semantics rather than the diff.
     guardrailVersion.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
 
+    // The tool-output guardrail's own version, pinned by its own digest for the
+    // same reason: a policy change must replace the version resource, and never
+    // otherwise. Its digest omits `topics` because this guardrail has none — a
+    // digest over an absent field would be a constant and would stop forcing a
+    // new version the day a filter changed.
+    const toolOutputPolicyDigest = crypto
+      .createHash('sha256')
+      .update(
+        JSON.stringify({
+          content: toolOutputGuardrail.contentPolicyConfig,
+          pii: toolOutputGuardrail.sensitiveInformationPolicyConfig,
+          blockedInput: toolOutputGuardrail.blockedInputMessaging,
+          blockedOutput: toolOutputGuardrail.blockedOutputsMessaging,
+        }),
+      )
+      .digest('hex')
+      .slice(0, 12);
+
+    const toolOutputGuardrailVersion = new bedrock.CfnGuardrailVersion(
+      this,
+      'ToolOutputGuardrailVersion',
+      {
+        guardrailIdentifier: toolOutputGuardrail.attrGuardrailId,
+        description: `Pinned to policy ${toolOutputPolicyDigest}.`,
+      },
+    );
+    // RETAINED for the reason the first one is: a published version is the
+    // instrument a recorded score was taken with, and this one will be named by
+    // every tool-output observation from here on.
+    toolOutputGuardrailVersion.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
+
     // --- the gateway -------------------------------------------------------
     const gatewayFn = new lambda.Function(this, 'GatewayFn', {
       runtime: lambda.Runtime.PYTHON_3_12,
@@ -450,6 +521,12 @@ export class GatewayStack extends cdk.Stack {
         AUDIT_LAKE_BUCKET: auditLake.bucketName,
         GUARDRAIL_ID: guardrail.attrGuardrailId,
         GUARDRAIL_VERSION: guardrailVersion.attrVersion,
+        // ADR-063. Absent means the handler falls back to the main guardrail for
+        // every channel, which is the pre-ADR-063 behaviour and fails CLOSED --
+        // the tool-output channel keeps a topic policy it does not need rather
+        // than losing one it does.
+        TOOL_OUTPUT_GUARDRAIL_ID: toolOutputGuardrail.attrGuardrailId,
+        TOOL_OUTPUT_GUARDRAIL_VERSION: toolOutputGuardrailVersion.attrVersion,
         MODEL_ID,
       },
     });
@@ -468,7 +545,11 @@ export class GatewayStack extends cdk.Stack {
     gatewayFn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['bedrock:ApplyGuardrail'],
-        resources: [guardrail.attrGuardrailArn],
+        // Both guardrails. `ApplyGuardrail` is NOT a model-invoking action --
+        // `MODEL_INVOKE_ACTIONS` names `InvokeModel` and its streaming siblings,
+        // and this repo's G1 assertions turn on that distinction -- so a second
+        // guardrail ARN here widens no model access.
+        resources: [guardrail.attrGuardrailArn, toolOutputGuardrail.attrGuardrailArn],
       }),
     );
     auditLake.grantPut(gatewayFn);
@@ -609,6 +690,12 @@ export class GatewayStack extends cdk.Stack {
     // Output ids must not collide with construct ids in the same stack, which is
     // why this is not simply `GuardrailVersion`.
     new cdk.CfnOutput(this, 'PinnedGuardrailId', { value: guardrail.attrGuardrailId });
+    new cdk.CfnOutput(this, 'ToolOutputGuardrailId', {
+      value: toolOutputGuardrail.attrGuardrailId,
+    });
+    new cdk.CfnOutput(this, 'PinnedToolOutputGuardrailVersion', {
+      value: toolOutputGuardrailVersion.attrVersion,
+    });
     new cdk.CfnOutput(this, 'PinnedGuardrailVersion', { value: guardrailVersion.attrVersion });
   }
 }

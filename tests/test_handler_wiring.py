@@ -225,6 +225,18 @@ def test_the_inspection_assesses_content_as_input(tree):
             "apply_guardrail must assess this content as INPUT")
 
 
+#: The module-level constants `handler.py` may pin a guardrail with.
+#:
+#: A CLOSED set, and that is the point: before ADR-063 this test required the
+#: literal names `GUARDRAIL_ID`/`GUARDRAIL_VERSION`, which enforced "pinned,
+#: never a literal, never DRAFT" by enforcing a shape. ADR-063 legitimately adds
+#: a second pair, so the shape moved and the property did not. Widening this set
+#: is how a third pair would be added — deliberately, in a diff that says why —
+#: rather than by relaxing the assertion to "any name will do".
+PINNED_IDENTIFIERS = frozenset({"GUARDRAIL_ID", "_TOOL_OUTPUT_GUARDRAIL_ID"})
+PINNED_VERSIONS = frozenset({"GUARDRAIL_VERSION", "_TOOL_OUTPUT_GUARDRAIL_VERSION"})
+
+
 def test_the_inspection_uses_the_same_pinned_version_as_the_turn(tree):
     """Never DRAFT, and never a literal. A DRAFT guardrail can be edited outside a
     commit and silently change every recorded probe result (ADR-018) — and the IAM
@@ -233,29 +245,73 @@ def test_the_inspection_uses_the_same_pinned_version_as_the_turn(tree):
     what this file passes; this is the assertion that covers the gap."""
     for call in calls_named(tree, "apply_guardrail"):
         version = keyword(call, "guardrailVersion")
-        assert isinstance(version, ast.Name) and version.id == "GUARDRAIL_VERSION", (
-            "apply_guardrail must use the pinned GUARDRAIL_VERSION, never a literal "
-            "and never DRAFT")
         identifier = keyword(call, "guardrailIdentifier")
-        assert isinstance(identifier, ast.Name) and identifier.id == "GUARDRAIL_ID", (
-            "apply_guardrail must use the same guardrail the turn transits")
+        # **The property, not the shape (ADR-063).** This used to require the
+        # literal names `GUARDRAIL_ID`/`GUARDRAIL_VERSION`, which was a proxy for
+        # "pinned, never a literal, never DRAFT" and stopped being true when the
+        # tool-output channel gained its own pinned pair. The proxy is replaced
+        # rather than deleted: both must still be NAMES — a string literal or an
+        # attribute lookup fails here exactly as it did before — and the names
+        # must come from the closed set of module constants below.
+        for node, role in ((version, "guardrailVersion"), (identifier, "guardrailIdentifier")):
+            assert isinstance(node, ast.Name), (
+                f"apply_guardrail passes a non-name for {role}. It must be one of the "
+                "module-level pinned constants, never a literal and never DRAFT.")
+        assert version.id in PINNED_VERSIONS, (
+            f"apply_guardrail uses {version.id!r} as the version; permitted: "
+            f"{sorted(PINNED_VERSIONS)}")
+        assert identifier.id in PINNED_IDENTIFIERS, (
+            f"apply_guardrail uses {identifier.id!r} as the identifier; permitted: "
+            f"{sorted(PINNED_IDENTIFIERS)}")
 
 
 def test_the_converse_path_and_the_inspection_path_pin_the_same_thing(tree):
     """"Equivalently" is meant literally. If the two paths could name different
-    versions, a probe result would be attributable to neither."""
-    versions = set()
+    versions, a probe result would be attributable to neither.
+
+    **ADR-063 narrows what "the same thing" means, and does not drop it.** The
+    tool-output channel now has its own pinned pair, so `apply_guardrail` may name
+    either — but `converse` may name ONLY the main one. A tool-output version
+    reaching the model call would mean the turn transited a guardrail with no
+    topic policy, which is the wiring mistake with the worst blast radius
+    available here, and it is the one this test now exists to catch."""
+    inspection: set = set()
     for call in calls_named(tree, "apply_guardrail"):
-        node = keyword(call, "guardrailVersion")
-        versions.add(getattr(node, "id", None))
-    for call in calls_named(tree, "converse"):
-        config = keyword(call, "guardrailConfig")
-        if isinstance(config, ast.Dict):
-            for key, value in zip(config.keys, config.values, strict=True):
-                if isinstance(key, ast.Constant) and key.value == "guardrailVersion":
-                    versions.add(getattr(value, "id", None))
-    assert versions == {"GUARDRAIL_VERSION"}, (
-        f"the two guardrail paths do not pin the same version: {versions}")
+        inspection.add(getattr(keyword(call, "guardrailVersion"), "id", None))
+
+    # **This half found NOTHING before ADR-063, and the test passed anyway.**
+    # It looked for `guardrailConfig` as a direct keyword of a `converse(...)`
+    # call. `handler.py` builds `kwargs = dict(..., guardrailConfig={...})` and
+    # calls `_bedrock.converse(**kwargs)`, so the keyword was never there, the
+    # set stayed empty, and the assertion was satisfied entirely by the
+    # inspection path. A test named for comparing two paths compared one.
+    #
+    # Found while ADR-063 split the inspection path in two, which is the only
+    # reason the empty half became visible. It is fixed here rather than left,
+    # because the fix is four lines and the alternative is a test whose name is
+    # a claim it does not keep.
+    #
+    # Located by SHAPE now — any dict literal carrying `guardrailIdentifier` and
+    # `guardrailVersion` together — so the same collection survives the config
+    # moving into a variable, a helper, or a call's keyword.
+    converse_versions: set = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Dict):
+            continue
+        keys = {k.value for k in node.keys if isinstance(k, ast.Constant)}
+        if not {"guardrailIdentifier", "guardrailVersion"} <= keys:
+            continue
+        for key, value in zip(node.keys, node.values, strict=True):
+            if isinstance(key, ast.Constant) and key.value == "guardrailVersion":
+                converse_versions.add(getattr(value, "id", None))
+
+    assert converse_versions == {"GUARDRAIL_VERSION"}, (
+        f"the model call pins {converse_versions}, not the main guardrail's version. "
+        "ADR-063 gives the TOOL-OUTPUT channel its own policy; the turn itself still "
+        "transits the guardrail with the topic policy on it.")
+    assert inspection and inspection <= PINNED_VERSIONS, (
+        f"the inspection path pins {sorted(inspection)}; permitted: "
+        f"{sorted(PINNED_VERSIONS)}. Never a literal, never DRAFT.")
 
 
 def test_the_inspected_text_is_not_sliced(tree):

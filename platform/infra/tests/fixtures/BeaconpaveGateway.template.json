@@ -307,6 +307,22 @@
           "Version"
         ]
       }
+    },
+    "PinnedToolOutputGuardrailVersion": {
+      "Value": {
+        "Fn::GetAtt": [
+          "ToolOutputGuardrailVersion",
+          "Version"
+        ]
+      }
+    },
+    "ToolOutputGuardrailId": {
+      "Value": {
+        "Fn::GetAtt": [
+          "ToolOutputGuardrail",
+          "GuardrailId"
+        ]
+      }
     }
   },
   "Parameters": {
@@ -638,6 +654,18 @@
                   "\"}"
                 ]
               ]
+            },
+            "TOOL_OUTPUT_GUARDRAIL_ID": {
+              "Fn::GetAtt": [
+                "ToolOutputGuardrail",
+                "GuardrailId"
+              ]
+            },
+            "TOOL_OUTPUT_GUARDRAIL_VERSION": {
+              "Fn::GetAtt": [
+                "ToolOutputGuardrailVersion",
+                "Version"
+              ]
             }
           }
         },
@@ -717,12 +745,20 @@
             {
               "Action": "bedrock:ApplyGuardrail",
               "Effect": "Allow",
-              "Resource": {
-                "Fn::GetAtt": [
-                  "Guardrail",
-                  "GuardrailArn"
-                ]
-              }
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "Guardrail",
+                    "GuardrailArn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "ToolOutputGuardrail",
+                    "GuardrailArn"
+                  ]
+                }
+              ]
             },
             {
               "Action": [
@@ -986,6 +1022,83 @@
         ]
       },
       "Type": "AWS::IAM::Policy"
+    },
+    "ToolOutputGuardrail": {
+      "Properties": {
+        "BlockedInputMessaging": "Blocked by the Beacon gateway guardrail. This request was not sent to a model.",
+        "BlockedOutputsMessaging": "Blocked by the Beacon gateway guardrail. The model response was withheld.",
+        "ContentPolicyConfig": {
+          "FiltersConfig": [
+            {
+              "InputStrength": "HIGH",
+              "OutputStrength": "NONE",
+              "Type": "PROMPT_ATTACK"
+            },
+            {
+              "InputStrength": "HIGH",
+              "OutputStrength": "HIGH",
+              "Type": "HATE"
+            },
+            {
+              "InputStrength": "MEDIUM",
+              "OutputStrength": "MEDIUM",
+              "Type": "INSULTS"
+            },
+            {
+              "InputStrength": "MEDIUM",
+              "OutputStrength": "MEDIUM",
+              "Type": "VIOLENCE"
+            },
+            {
+              "InputStrength": "HIGH",
+              "OutputStrength": "HIGH",
+              "Type": "SEXUAL"
+            },
+            {
+              "InputStrength": "MEDIUM",
+              "OutputStrength": "MEDIUM",
+              "Type": "MISCONDUCT"
+            }
+          ]
+        },
+        "Description": "The gateway guardrail minus its topic policy, for the tool-output channel (ADR-063).",
+        "Name": "beaconpave-tool-output",
+        "SensitiveInformationPolicyConfig": {
+          "PiiEntitiesConfig": [
+            {
+              "Action": "BLOCK",
+              "Type": "EMAIL"
+            },
+            {
+              "Action": "BLOCK",
+              "Type": "PHONE"
+            },
+            {
+              "Action": "BLOCK",
+              "Type": "CREDIT_DEBIT_CARD_NUMBER"
+            },
+            {
+              "Action": "BLOCK",
+              "Type": "US_SOCIAL_SECURITY_NUMBER"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::Bedrock::Guardrail"
+    },
+    "ToolOutputGuardrailVersion": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "Description": "Pinned to policy d8b49013cafa.",
+        "GuardrailIdentifier": {
+          "Fn::GetAtt": [
+            "ToolOutputGuardrail",
+            "GuardrailId"
+          ]
+        }
+      },
+      "Type": "AWS::Bedrock::GuardrailVersion",
+      "UpdateReplacePolicy": "Retain"
     }
   },
   "Rules": {

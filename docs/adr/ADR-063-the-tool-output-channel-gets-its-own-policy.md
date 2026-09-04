@@ -1,7 +1,8 @@
 # ADR-063: the tool-output channel gets its own guardrail policy
 
-**Status: PROPOSED, and VERIFIED — rows 1-5 measured and passed, 2026-09-03.**
-**Not accepted, nothing built, nothing deployed.** See *Verification* at the end.
+**Status: ACCEPTED and BUILT, 2026-09-03. NOT DEPLOYED.**
+Rows 1–5 measured before the build; row 6 measured on the synth. See
+*Verification* and *The build* at the end. Approved by the operator.
 This is the design for review. It is written before the code, and the operator
 asked for it as a proposal to approve rather than as a decision taken.
 **Zero model calls to write. The build it proposes spends none either; the
@@ -213,3 +214,107 @@ own PR, where it is the first thing that must be true.
   gateway belong to it.
 - **It does not accept the ADR.** Status is still PROPOSED. What changed is that
   the two rows written to kill it did not.
+
+
+---
+
+## The build, 2026-09-03
+
+**Built and synthesised. Nothing deployed** — `cdk deploy` has not run, and rows
+1–3 against the *real* gateway are still owed (see below).
+
+### Row 6, measured on the synth snapshot
+
+```
+guardrails: ['Guardrail', 'ToolOutputGuardrail']
+versions  : ['GuardrailVersion', 'ToolOutputGuardrailVersion']
+  Guardrail           name=beaconpave-gateway     topics=True   filters=6
+  ToolOutputGuardrail name=beaconpave-tool-output topics=False  filters=6
+
+existing Guardrail properties identical:  True
+existing GuardrailVersion identical:      True
+resources ADDED:   ['ToolOutputGuardrail', 'ToolOutputGuardrailVersion']
+resources REMOVED: []
+```
+
+Exactly one new guardrail, and the existing one's properties are **byte-identical**
+to the pre-change snapshot. Independently corroborated by the pin file: the main
+pair's digests are unchanged at policy ea66d6da36fe / description 71d7e4767fa3, computed by a
+test that derives them from the snapshot rather than reading the TypeScript.
+
+### Constructed by omission, and the test that keeps it that way
+
+`ToolOutputGuardrail` reads `blockedInputMessaging`, `blockedOutputsMessaging`,
+`contentPolicyConfig` and `sensitiveInformationPolicyConfig` off the guardrail
+above it and omits `topicPolicyConfig`. A filter added to one is added to both by
+construction.
+
+`test_the_two_guardrails_differ_only_by_the_topic_policy` asserts the two differ
+by **exactly** `{"TopicPolicyConfig"}` — not "the filters match", so a field
+nobody thought about cannot drift. A companion test asserts the omission is on
+the *tool-output* one and that the main guardrail still has its topics, because
+`differing == {"TopicPolicyConfig"}` would also hold if both had lost it.
+
+### The handler fails closed
+
+`TOOL_OUTPUT_GUARDRAIL_ID`/`_VERSION` are read **with** a default, unlike every
+other guardrail variable in `handler.py`. Absent, both channels fall back to the
+main guardrail — the pre-ADR-063 behaviour. That direction is deliberate: a
+missing id means *the older, stricter policy*, where a missing `GUARDRAIL_VERSION`
+would mean *no pin at all*. The pair is validated as a pair; half a configuration
+raises at cold start.
+
+## Two defects this build found in the guards themselves
+
+**1. A pin check that asserted there was one guardrail.**
+`test_guardrail_pin_tracks_policy.py` took "the only guardrail" from the snapshot
+and would have gone on passing for the main pair while the tool-output pair's pin
+tracked nothing. That is this file's own subject — *a hand-written list of what
+matters goes stale* — one layer out. Both pairs are now pinned, `guardrail-pin.json`
+carries a `pairs` map, and `test_every_guardrail_in_the_snapshot_is_pinned`
+refuses a third guardrail that nothing digests.
+
+**2. A test that compared two paths and only ever inspected one.**
+`test_the_converse_path_and_the_inspection_path_pin_the_same_thing` looked for
+`guardrailConfig` as a direct keyword of a `converse(...)` call. `handler.py`
+builds `kwargs = dict(..., guardrailConfig={...})` and calls
+`_bedrock.converse(**kwargs)`, so the keyword was never there, the converse set
+stayed **empty**, and the assertion was satisfied entirely by the inspection path.
+It has been that way since the file was written. Found only because ADR-063 split
+the inspection path in two and the empty half became visible. The collection is
+now located by shape — any dict carrying `guardrailIdentifier` and
+`guardrailVersion` together — so it survives the config moving.
+
+**A third thing this build changed about itself.** The first version bound
+`identifier, version` to locals and passed those to `apply_guardrail`. It worked,
+and it silently defeated `test_handler_wiring.py`, which *parses* the handler
+rather than importing it (G8) and can only see a pin when the constant is at the
+call site. There are now two explicit call sites. A little duplication is the
+cheaper side of a guard that can read what it guards.
+
+### The guards, audited by planting
+
+| plant | caught by |
+|---|---|
+| `converse` pins the tool-output version | `test_the_converse_path_and_the_inspection_path_pin_the_same_thing` |
+| `apply_guardrail` uses a `"DRAFT"` literal | `test_the_inspection_uses_the_same_pinned_version_as_the_turn` |
+| the two guardrails differ by `blockedInputMessaging` | `test_the_two_guardrails_differ_only_by_the_topic_policy` |
+
+Three for three, each confirmed applied before the run and restored after.
+
+## Still owed before this is trusted
+
+- **Deploy, then re-run rows 1–3 against the real gateway.** Rows 1–5 verified
+  the *policy*; row 6 verifies the *synthesised stack*. Neither verifies the
+  **wiring** — that the gateway hands tool output to the new policy and
+  everything else to the old one. That is the one claim no measurement here
+  covers, and it is the one with the worst failure mode.
+- **The instrument consequence.** A new guardrail version is an instrument
+  (ADR-018). Every tool-output observation from here names
+  `beaconpave-tool-output` v1, and the adversarial instrument registry has no row
+  for it. Whether one is owed is AI Quality's, and it is not settled here.
+- **`tests/test_handler_wiring.py` and `tests/test_guardrail_pin_tracks_policy.py`
+  are on NO two-key rule** — both are load-bearing guards on the guardrail pin,
+  and either is editable on one key. Recorded, not fixed: widening `pave/twokey.py`
+  collects all four seats and does not belong in the diff that also changes the
+  tests.
