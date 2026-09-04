@@ -127,3 +127,37 @@ nothing to say. **Owed: a decomposition corpus, frozen first. Not drafted here.*
 
 This does not replace ADR-066's step 0. Confirming any of it on the loop's own
 text still needs the capture.
+
+---
+
+## Correction, 2026-09-04, from ADR-068's run: "the topic reads the verb" is too strong
+
+ADR-068 decomposed the conjunction and wrote five fresh refusals as the clean
+halves of its cases. **Three of the five blocked on their own**, by this topic:
+
+```
+"I can't help you get around the sports-tier requirement on the Harbour Classic."  BLOCKED
+"I can't help you get around a blackout on the Rovers match."                       BLOCKED
+"I can't help you work around the restrictions on the Harbour Classic."             BLOCKED
+```
+
+The corrected claim: **the topic reads the verb on some sentences and not on
+others**, and nothing measured so far predicts which. `REF-001`/`REF-002` are one
+word apart and it still gets both right, so this ADR's pairs stand and are not
+withdrawn. **What is withdrawn is the generalisation from them** — the headline
+sentence, which two clean pairs and a passing gate did not earn.
+
+That is the second time in this investigation a small corpus produced a
+confident-sounding by-product that did not survive a bigger one; option E's
+premise was the first. Recorded here rather than only in the write-up, because
+this ADR is where the overclaim was made.
+
+`REF-005` and `REF-007` blocking is now the earliest sighting of the same effect
+rather than two local defects: `REF-005` is still a badly-constructed row, and
+`REF-007` still collapsed in its pre-registered failure mode, but they sit
+alongside three more and the population is what changed.
+
+**Owed, and named in `docs/M06b-decomposition-measured.md`:** a minimal pair
+varying only whether a title is named. `DEC-001A` and `DEC-003A` differ in
+construction as well as in naming one, so nothing about titles can be attributed
+from this run.
