@@ -144,3 +144,46 @@ calls, production untouched, all ten rows unanimous at `k=3`.
 keys on whether each half has a decisive row and not on the balance between them.
 That is a defect in the rule I registered, and it is left standing rather than
 rewritten to match the answer I now prefer.
+
+---
+
+## Disposition: option E is REFUSED — Security, 2026-09-04
+
+Recorded here because this is the ADR that built the instrument, and repeated on
+ADR-064, which is where option E was found.
+
+**The decision.** `outputAction: NONE` on `entitlement-circumvention` is not
+taken. The deployed policy is unchanged and no topic sets an input or output
+action.
+
+**On what evidence.** `milestones/M06b/output-attacks-v4.json` and
+`milestones/M06b/option-e-prediction.json`, derived by the rule frozen before the
+first row ran, re-derived by `tests/test_output_side_prediction.py`:
+
+- The premise is refuted. Option E was proposed as the fix for the 16
+  answer-channel refusals, on the theory that this topic fires on the platform's
+  own correct entitlement prose. `OUT-006` through `OUT-009` — deny verdict, grant
+  verdict, restriction status, how-to-subscribe — **pass version 4 cleanly at
+  `source=OUTPUT`, unanimously**. Four of the five rows measuring what the change
+  buys back measure it buying back nothing.
+- The cost is real and one-sided. Option E unblocks `OUT-002`, `OUT-004` and
+  `OUT-005` — three genuine harms, and `OUT-005` has no input-side analogue at
+  all — to recover one wrong refusal.
+- What survives is not the same control. `OUT-001` and `OUT-003` stay blocked only
+  because `enforcement-probing` catches them independently, so the redundancy is
+  doing work the topic would be credited for.
+
+**What the refusal does not rest on.** Not on the pre-registered rule, which reads
+this as outcome 2 — a real trade to be weighed — because it keys on the presence
+of decisive rows rather than the balance between them. The rule is left as
+written; the refusal is a seat weighing the trade the rule surfaced, which is what
+outcome 2 says to do.
+
+**Consequences.**
+
+- ADR-064 is re-opened. Option E would have dissolved the capture problem by
+  removing the withholding; it does not, so B and D are live and C is dead.
+  ADR-066 prices B and registers a step 0 that could make it unnecessary.
+- `OUT-010` is carried as an open finding, owed to this seat: the model's own
+  refusal is blocked by this topic, and that is a defect independent of anything
+  proposed so far.

@@ -281,3 +281,30 @@ accepted here, because the precondition above is not met: nothing in this
 repository can currently demonstrate what output-side blocking buys, which means
 nothing can demonstrate what removing it costs. Security's call, with that
 measured first.
+
+---
+
+## Option E is REFUSED, and this ADR is therefore still open — 2026-09-04
+
+Step 0 above produced option E and recommended it as one answer to three problems.
+**ADR-065 built the instrument that could price it, and the measurement went
+against it.** The disposition and its evidence are recorded in full at the end of
+ADR-065; in short: the four rows written to be the platform answering correctly
+pass version 4 cleanly at `source=OUTPUT`, which refutes the premise, and option E
+would unblock three genuine harms to recover one wrong refusal.
+
+So the sentence in *Step 0, measured* that reads **"ADR-064's own question
+dissolves"** does not hold. The question does not dissolve. It stands exactly as
+this ADR posed it:
+
+- **Option C is dead** — topic assessments carry no content and no offsets.
+- **Option A is refused** in its gateway form.
+- **Option E is refused** on measurement.
+- **Options B and D are what remain**, and B has now been priced in its own ADR,
+  as this one said it would need to be. See **ADR-066**, which also registers a
+  step 0 costing one model call that could withdraw B entirely: nobody has ever
+  looked at what `converse` returns on a blocked turn.
+
+One new finding this ADR did not anticipate, from ADR-065's corpus: **the model's
+own refusal is blocked by the topic** (`OUT-010`). If that generalises, part of
+the outage has a mechanism findable without any capture at all.
