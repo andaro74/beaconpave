@@ -191,3 +191,38 @@ The tool-output measurements run the committed tool code and hand
 correction at the top of this page. The candidate guardrail was a throwaway,
 created and deleted inside this investigation; the production guardrail was never
 modified.
+
+---
+
+## Correction 2, added 2026-09-03 (ADR-064)
+
+**Two of the three "committed answers pass v4" figures above are circular**, and
+the correction already on this page did not reach them.
+
+```
+milestones/M01/goldens-run.json        25 cases,  3 refused,  22 answers
+milestones/M02/runs/m02-tools-1.json   25 cases,  2 refused,  23 answers
+milestones/M06/goldens-run-1.json      25 cases,  0 refused,  25 answers
+```
+
+A refused case writes no answer. So **M01 0/22 and M02-tools 0/23 tested exactly
+the survivors** — the same error this page already struck for M06b's own answers,
+left standing for its two siblings. Only M06's 0/25 is a real datum, and that arm
+is the **control** (no tools).
+
+The conclusion those rows were cited for survives in a weaker and more accurate
+form: **there is no committed text for any answer-channel block, on any arm.** Not
+"the blocked text would pass" — the blocked text is absent everywhere.
+
+**Why the survivors survive, which changes the shape of the problem.** Read the
+passing answers rather than their verdicts: `cited_titles: []`,
+`entitlement: null`, and text saying *"not available in the catalog"*. Retrieval
+returned nothing, so no entitlement verdict was stated, so the topic never fired.
+Stating the verdict is what trips it. The survivors survive by failing earlier —
+which also means the false-positive rate measured on this suite is **understated**
+by however many cases fail retrieval first.
+
+`catalog-search` matching only literal terms over `('title', 'event')` at
+`MIN_TERM_LENGTH = 4` is what makes that happen: `sports`, `game`, `match` and
+`highlights` all return zero against a five-title catalog. Recorded in ADR-064 and
+owed to the Tool Owner seat.
