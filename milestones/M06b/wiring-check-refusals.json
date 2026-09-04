@@ -1,0 +1,375 @@
+{
+  "_what_this_is": "Per-case, per-sample refusal detail for this arm, taken from the audit records fetched back out of the lake rather than from the gateway's response. The answer files carry what was answered; this carries WHY the rest was not, which `evals/run_evals.py` cannot express - it scores a refused case as a plain FAIL, indistinguishable from one that answered badly. `channel` says whether a guardrail block was a refusal of the viewer's question or of content the platform was about to put in the model's context (ADR-035).",
+  "_k": 1,
+  "samples": [
+    7
+  ],
+  "_guardrail_versions": [
+    "4"
+  ],
+  "census": {
+    "k": 1,
+    "n_cases": 25,
+    "refused_at_least_once": 16,
+    "refused_by_majority": 16,
+    "refused_unanimously": 16,
+    "cases_at_least_once": [
+      "blackout-001",
+      "blackout-006",
+      "blackout-007",
+      "blackout-008",
+      "blackout-009",
+      "brand-020",
+      "concise-022",
+      "edge-024",
+      "entitlement-002",
+      "entitlement-010",
+      "entitlement-011",
+      "grounded-017",
+      "headroom-005",
+      "headroom-026",
+      "multi-023",
+      "recommend-003"
+    ],
+    "cases_by_majority": [
+      "blackout-001",
+      "blackout-006",
+      "blackout-007",
+      "blackout-008",
+      "blackout-009",
+      "brand-020",
+      "concise-022",
+      "edge-024",
+      "entitlement-002",
+      "entitlement-010",
+      "entitlement-011",
+      "grounded-017",
+      "headroom-005",
+      "headroom-026",
+      "multi-023",
+      "recommend-003"
+    ],
+    "cases_separating_the_estimators": [],
+    "cases_with_missing_samples": [],
+    "estimator_for_adr_035": "refused_at_least_once"
+  },
+  "refusals": {
+    "blackout-001": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/blackout-001-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "blackout-006": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/blackout-006-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "blackout-007": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/blackout-007-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "blackout-008": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/blackout-008-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "blackout-009": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/blackout-009-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "entitlement-002": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/entitlement-002-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "entitlement-010": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/entitlement-010-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "entitlement-011": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/entitlement-011-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "recommend-003": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/recommend-003-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "grounded-017": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/grounded-017-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "brand-020": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/brand-020-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "concise-022": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/concise-022-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "multi-023": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/multi-023-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "edge-024": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/edge-024-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "headroom-005": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/headroom-005-m02-tools-7.json",
+        "record_resolved": true
+      }
+    },
+    "headroom-026": {
+      "s7": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-04/highlights-agent/headroom-026-m02-tools-7.json",
+        "record_resolved": true
+      }
+    }
+  },
+  "per_sample_refused": {
+    "blackout-001": [
+      true
+    ],
+    "blackout-006": [
+      true
+    ],
+    "blackout-007": [
+      true
+    ],
+    "blackout-008": [
+      true
+    ],
+    "blackout-009": [
+      true
+    ],
+    "entitlement-002": [
+      true
+    ],
+    "entitlement-010": [
+      true
+    ],
+    "entitlement-011": [
+      true
+    ],
+    "entitlement-012": [
+      false
+    ],
+    "recommend-003": [
+      true
+    ],
+    "recommend-013": [
+      false
+    ],
+    "recommend-014": [
+      false
+    ],
+    "recommend-015": [
+      false
+    ],
+    "grounded-016": [
+      false
+    ],
+    "grounded-017": [
+      true
+    ],
+    "grounded-018": [
+      false
+    ],
+    "grounded-019": [
+      false
+    ],
+    "brand-020": [
+      true
+    ],
+    "brand-021": [
+      false
+    ],
+    "concise-022": [
+      true
+    ],
+    "multi-023": [
+      true
+    ],
+    "edge-024": [
+      true
+    ],
+    "edge-025": [
+      false
+    ],
+    "headroom-005": [
+      true
+    ],
+    "headroom-026": [
+      true
+    ]
+  }
+}
