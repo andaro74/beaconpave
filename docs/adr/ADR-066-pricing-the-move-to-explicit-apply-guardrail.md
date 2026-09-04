@@ -1,8 +1,11 @@
 # ADR-066: pricing option B, and the one measurement that could delete it
 
 **Status: PROPOSED. Nothing accepted, nothing built, nothing deployed. Zero model
-calls to write.** It registers a **step 0 costing one model call**, and that step
-0 can withdraw this entire ADR.
+calls to write.** It registers a **step 0 that can withdraw this entire ADR** —
+and see *Correction* at the end, written before this was pushed: the step was
+priced at one model call, and the compliant form of it is a two-seat gateway
+change, a deploy, and then one blocked turn. Still far cheaper than option B, and
+not what this ADR first claimed.
 
 **Seats it would need:** Security / Red Team (the trust boundary is the decision,
 and G4's boundary moves with it) · Platform Engineering (the gateway and the loop)
@@ -167,3 +170,72 @@ failure and it does not become one by being chosen late.
   for the journal, structurally out of the scorer's reach — or it is refused.
 - **It does not re-open ADR-063 or ADR-065**, both of which measured what they
   claimed.
+
+---
+
+## Correction, before this ADR was pushed: step 0 as written above cannot be run
+
+**"Cost: one model call" is wrong, and it is wrong in the way this repo keeps
+naming.** The step was priced without checking the path it would have to run
+through. Three things were established trying to run it:
+
+**1. No committed artifact holds a raw blocked `converse` response.**
+`guardrail_intervened` appears in eight files — the loop, the scorer's tests, the
+gateway's own `guardrail.py`, two ADRs, `SPEC/02` and `milestones/M02/loop-shape.json`
+— and every one of them holds *derived* fields. `loop-shape.json` records
+`guardrail_blocked`, `stop_reasons`, `assessed` and token counts, and no response
+body. So the question cannot be answered from evidence already in the tree.
+
+**2. Calling `converse` from a scratch script is direct model access.** That is
+the thing G1 exists for and the thing option A is refused for. No harness in this
+repository calls `InvokeModel`: `run_via_gateway.py` and `run_with_tools.py` go
+through the gateway, and `topic_baseline.py` and `inspect_context.py` use
+`ApplyGuardrail`, which the repo's own taxonomy excludes from
+`MODEL_INVOKE_ACTIONS`. Adding the first such caller as a one-off diagnostic is
+the "just for now" CLAUDE.md names by name.
+
+**3. So the observation has to happen inside the gateway**, and the gateway is
+where the response already is. `handler.py`'s `BLOCKED` branch has held it on
+every one of the 16 refusals without opening it. The change is small; it is still
+a two-seat change to the gateway plus a deploy, not a free look.
+
+### The compliant form of step 0: a content-free fingerprint
+
+On the `BLOCKED` path only, record three fields that carry no content:
+
+```
+answer_text_present : bool     — did the response carry a text block at all
+answer_text_len     : int      — how long it was
+answer_text_sha256  : str      — a digest of it
+```
+
+Then compare that digest, **offline**, against `sha256` of the
+`blockedOutputsMessaging` string — *"Blocked by the Beacon gateway guardrail. The
+model response was withheld."* — which the platform authored itself in
+`gateway-stack.ts` and which is therefore not a secret from anyone.
+
+- **Digests match** → the response carries the placeholder, the model's text was
+  never handed over, and option B's pricing above stands.
+- **Digests differ** → the gateway is already being handed something else, and
+  what that something is becomes the next question. **ADR-066 is withdrawn if it
+  is the model's text.**
+
+**Why this does not weaken G4.** A digest cannot be reversed and cannot be graded
+for politeness — the failure mode G4 exists to prevent is an assertion that passes
+because the answer *looked* acceptable, and no assertion can read acceptability
+out of a hash. `evals/adversarial.py` reads `assessed`, `channels` and `action`;
+**a test must assert it never reads these three**, in the same diff that adds
+them, or they are refused. That assertion is the price of putting any new field
+within the scorer's physical reach.
+
+**Real cost, corrected:** one two-key PR on `platform/gateway/` (Platform
+Engineering + Security, no ADR required by the enforced list — this ADR is the
+record anyway), one `make core` deploy, and one turn that gets blocked. Larger
+than "one model call" and still very much smaller than option B.
+
+**The lesson, which is the second half of the correction.** ADR-064's step 0 was
+genuinely free because `ApplyGuardrail` takes content directly and needs no model.
+This one was priced by analogy to that, and the analogy did not hold: the thing
+being inspected only exists inside a model call, and everything inside a model
+call in this repository is behind the gateway on purpose. **A cost estimated by
+resemblance to a previous measurement is not an estimate.**
