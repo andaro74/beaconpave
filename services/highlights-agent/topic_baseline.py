@@ -13,7 +13,7 @@ history entry. Same standing as `inspect_context.py`, and the same reason: a
 diagnostic that cannot be mistaken for a result is one that is safe to run
 *before* a measurement.
 
-## The three things it separates, and why each was owed
+## The four things it separates, and why each was owed
 
 **1. The question channel (`--questions`).** The 25 golden user turns, at
 `source=INPUT`. The Service Team seat found a contradiction the repo has been
@@ -39,6 +39,20 @@ at `source=INPUT`, frozen before either version was run against it. This is the
 v2 control for over-narrowing: without it, a v3 allow can always be answered with
 "v2 would have allowed it too", and that comparison is unrecoverable after the
 deploy.
+
+**4. The output-side corpus (`--output-attacks`).**
+`quality/adversarial/topic-attacks-output.yaml`, at `source=OUTPUT`, frozen
+before any output-side setting was drafted. Arms 1–3 are all questions, and
+`--answers` reads the platform's own committed replies — so until this arm
+existed, **nothing here could say what the guardrail does to hostile OUTPUT**.
+ADR-064 step 0 found `topicsConfig.outputAction`, never set in this repo and
+therefore defaulting to BLOCK on every topic; this is the instrument that prices
+a change to it, in both directions, and its decision rule is pre-registered in
+the corpus rather than here.
+
+Not in `--all`. `--all` is quoted as a reproduction command in committed
+documents, and an arm that silently adds calls to it changes what those
+documents describe.
 
 ## What these numbers can and cannot support
 
@@ -76,6 +90,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 CASES = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
 ATTACKS = ROOT / "quality" / "adversarial" / "topic-attacks.yaml"
 HELDOUT = ROOT / "quality" / "adversarial" / "topic-attacks-heldout.yaml"
+OUTPUT_ATTACKS = ROOT / "quality" / "adversarial" / "topic-attacks-output.yaml"
 PROBES = ROOT / "quality" / "adversarial" / "probes.yaml"
 CONTROLS = ROOT / "quality" / "adversarial" / "probe-controls.yaml"
 M01_ANSWERS = ROOT / "milestones" / "M01" / "goldens-run.json"
@@ -158,6 +173,30 @@ def expectations() -> dict:
     return {r["id"]: r["expect"] for r in corpus["heldout"]}
 
 
+def output_attacks() -> list[tuple[str, str]]:
+    """The output-side corpus, at `source=OUTPUT` — the only arm here that is
+    not a question.
+
+    Every other corpus this file reads is something a viewer says, scored on the
+    way in. `topic-attacks-output.yaml` is something the PLATFORM says, scored on
+    the way out, and it exists because ADR-064 step 0 found an output-side
+    setting the repo had never used and no instrument that could price a change
+    to it.
+
+    **Its expectations run in both directions and they are not symmetrical.**
+    `expect: blocked` rows are what output-side blocking is for; `expect:
+    allowed` rows are the platform's own correct replies, which is where the 16
+    answer-channel refusals live. A block on the second half is the outage
+    itself, not a proxy for it."""
+    corpus = yaml.safe_load(OUTPUT_ATTACKS.read_text(encoding="utf-8"))
+    return [(r["id"], " ".join(r["text"].split())) for r in corpus["outputs"]]
+
+
+def output_expectations() -> dict:
+    corpus = yaml.safe_load(OUTPUT_ATTACKS.read_text(encoding="utf-8"))
+    return {r["id"]: r["expect"] for r in corpus["outputs"]}
+
+
 #: Probes whose `ApplyGuardrail` verdict on their `input` cannot be read as a
 #: statement about the probe, marked HERE and at freeze time rather than
 #: explained away when the numbers disappoint (ADR-035 amendment 5).
@@ -205,6 +244,11 @@ def main(argv=None) -> int:
                    help="the scored adversarial corpus, at source=INPUT")
     p.add_argument("--controls", action="store_true",
                    help="the positive controls for two-clause probes")
+    p.add_argument("--output-attacks", dest="output_attacks", action="store_true",
+                   help="the output-side corpus, at source=OUTPUT. NOT included in "
+                        "--all, deliberately: --all is a reproduction command quoted "
+                        "in committed documents, and silently adding 30 calls to it "
+                        "changes what those documents describe.")
     p.add_argument("--guardrail-version", dest="guardrail_version",
                    help="ask a RETAINed version instead of the pinned one. ADR-035 "
                         "amendment 5: a row scoring the same under the deployed and "
@@ -218,9 +262,10 @@ def main(argv=None) -> int:
     if args.all:
         args.questions = args.answers = args.attacks = args.heldout = True
     if not (args.questions or args.answers or args.attacks or args.heldout
-            or args.probes or args.controls):
+            or args.probes or args.controls or args.output_attacks):
         p.error("nothing selected; pass --all or one of "
-                "--questions/--answers/--attacks/--heldout/--probes/--controls")
+                "--questions/--answers/--attacks/--heldout/--probes/--controls/"
+                "--output-attacks")
 
     cf = boto3.client("cloudformation")
     outputs = {o["OutputKey"]: o["OutputValue"]
@@ -258,6 +303,12 @@ def main(argv=None) -> int:
         arms.append(("probes", "INPUT", probes(), guardrail.CHANNEL_QUESTION))
     if args.controls:
         arms.append(("controls", "INPUT", controls(), guardrail.CHANNEL_QUESTION))
+    if args.output_attacks:
+        # The only `source=OUTPUT` arm that is not the M01 answers, and the only
+        # one whose corpus was written to be scored there. `CHANNEL_ANSWER` for
+        # the same reason `answers` uses it: the channel a record names is the
+        # channel the text actually travels on.
+        arms.append(("output-attacks", "OUTPUT", output_attacks(), guardrail.CHANNEL_ANSWER))
 
     # **The channel is the arm's own, not `system` for all four (ADR-040).** This
     # file calls its modes "the question channel" and "the answer channel" in its
@@ -279,6 +330,7 @@ def main(argv=None) -> int:
             by_topic += int(TOPIC in assessed)
             expected = (expectations().get(item_id) if arm == "heldout"
                         else control_expectations().get(item_id) if arm == "controls"
+                        else output_expectations().get(item_id) if arm == "output-attacks"
                         else None)
             if arm == "probes" and item_id in UNINTERPRETABLE:
                 results[item_id]["uninterpretable"] = UNINTERPRETABLE[item_id]
@@ -296,7 +348,7 @@ def main(argv=None) -> int:
             elif hits:
                 label = "BLOCKED" if hits == args.k else f"UNSTABLE {hits}/{args.k}"
                 print(f"  {label:12s} {item_id:20s} {assessed}")
-        if arm == "heldout":
+        if arm in ("heldout", "output-attacks"):
             missed = [i for i, r in results.items() if not r.get("met", True)]
             print(f"  {len(items) - len(missed)}/{len(items)} met their expectation"
                   + (f"   MISSED: {missed}" if missed else ""))
