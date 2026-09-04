@@ -811,8 +811,19 @@ RULES: tuple[Rule, ...] = (
         # measured cost on both sides, not a routine re-pin, and this repo has now
         # produced three ADRs about this one topic. If a tightening is worth
         # deploying it is worth a paragraph saying what it should break.
+        # **The pin test joins the policy it guards (ADR-063).** The same shape as
+        # the adversarial scorer and its test: weakened together or not at all.
+        # `test_guardrail_pin_tracks_policy.py` is what makes a policy change
+        # republish the version resource -- ADR-024's failure, caught by a plant --
+        # and it was on NO rule while the policy it defends took two keys and an
+        # ADR. It also asserted there was exactly ONE guardrail, so it would have
+        # gone on passing for the main pair while a second pair's pin tracked
+        # nothing. A guard editable on one key over a control that takes two is
+        # ADR-035's and ADR-037's finding, and this is its next instance.
         "the deployed guardrail policy — the control itself, not the corpus that measures it",
-        re.compile(r"^platform/infra/lib/gateway-stack\.ts$"),
+        re.compile(
+            r"^(platform/infra/lib/gateway-stack\.ts"
+            r"|tests/test_guardrail_pin_tracks_policy\.py)$"),
         ("security", "ai-quality"),
         requires_adr=True,
     ),
@@ -941,7 +952,16 @@ RULES: tuple[Rule, ...] = (
         # tightenings high enough to discourage them.
         "the gateway decision path and the record contract — which channel a block is "
         "attributed to, and what shape may be written",
-        re.compile(r"^platform/gateway/(core/(guardrail|toolloop)\.py|handler\.py|audit\.schema\.json)$"),
+        # `tests/test_handler_wiring.py` is here for the reason the pin test is on
+        # the guardrail rule: it is the ONLY thing asserting what `handler.py`
+        # passes -- the file is imported by no test by design (it holds the boto3
+        # clients), so this parses it instead. It was on no rule, and ADR-063 found
+        # that its converse-path half had been inspecting nothing since it was
+        # written. A guard that can be edited on one key over a two-key subject is
+        # the same shape twice.
+        re.compile(
+            r"^(platform/gateway/(core/(guardrail|toolloop)\.py|handler\.py|audit\.schema\.json)"
+            r"|tests/test_handler_wiring\.py)$"),
         ("platform-eng", "security"),
     ),
     Rule(

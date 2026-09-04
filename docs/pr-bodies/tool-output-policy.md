@@ -84,35 +84,51 @@ Half a pair raises at cold start.
 - **The instrument consequence.** A new guardrail version is an instrument
   (ADR-018). Every tool-output observation from here names a version the
   adversarial registry has no row for. AI Quality's, unsettled.
-- **`test_handler_wiring.py` and `test_guardrail_pin_tracks_policy.py` are on no
-  two-key rule** — load-bearing guards on the guardrail pin, editable on one key.
-  Recorded not fixed: widening `pave/twokey.py` collects all four seats and does
-  not belong in the diff that also changes those tests.
+**Fixed here, having first been recorded as owed:** both guard files were on no
+two-key rule while the controls they defend take two keys and an ADR. They now
+join their own subjects' rules. That widening is what makes this a four-seat PR,
+and the reasoning is in the attestation below.
 
 ## Counts
 
-`main` at `ee47b66`: 2474 passed. This branch: **2480 passed, 6 skipped**.
+`main` at `ee47b66`: 2474 passed. This branch: **2483 passed, 6 skipped**.
 `make check`: PASS. Zero model calls in the build; the pre-build verification
 spent none either.
 
 Two-Key-Disposition: security
 Two-Key-Disposition: ai-quality
 Two-Key-Disposition: platform-eng
-Two-Key-Rationale: Three seats because `gateway-stack.ts` takes Security and AI
-  Quality plus an ADR, `tests/test_iam_assertions.py` takes Security and Platform
-  Engineering plus an ADR, and `handler.py` takes Platform Engineering and
-  Security. ADR-063 is that ADR, and it was proposed, measured against its own
-  named falsifiers, and only then approved — the two rows written to kill it are
-  the poisoned-catalog injection and a schema-valid hostile payload, and both
-  still block under the new policy naming PROMPT_ATTACK. Security's key is the
-  load-bearing one here because this REMOVES a policy from a channel: the
-  justification is that the removed topic caught nothing PROMPT_ATTACK did not
-  already catch, measured at k=5 on real payloads rather than fixtures, and the
-  frozen corpora are unmoved on the question channel because the main guardrail is
-  byte-identical. AI Quality's key is collected because a new guardrail version is
-  an instrument under ADR-018 and every tool-output observation from here will
-  name it; that the registry owes it a row is recorded as open rather than
-  decided. Platform Engineering owns the handler and the channel selection, which
-  fails closed to the stricter policy when the new variables are absent. No golden
-  case, baseline, comparator, threshold or history entry moves, and nothing is
-  deployed by this diff.
+Two-Key-Disposition: legal-sp
+Two-Key-Rationale: Four seats, and the fourth is why this PR grew. `pave gate
+  two-key` refused an earlier revision that put the new guardrail-composition
+  tests in `tests/test_iam_assertions.py`: that triggered a SECOND ADR-requiring
+  rule, and the checker's message is right — one decision record cannot stand for
+  several controls. The tests were misplaced rather than under-documented. That
+  file's rule is "G1's model-invoke allowlist and the assertions defending it",
+  and these assert guardrail POLICY COMPOSITION, which is a different control.
+  They moved to `tests/test_guardrail_pin_tracks_policy.py`, whose subject they
+  actually are, and `tests/test_iam_assertions.py` is restored byte-identical to
+  `main`. The fix was the move, not a second ADR written to satisfy a gate.
+  .
+  `pave/twokey.py` is edited here, which collects all four seats, and it closes a
+  gap this PR itself recorded as owed: both guard files were on NO rule while the
+  controls they defend take two keys and an ADR. They join their own subjects'
+  rules, the way the adversarial scorer and its test already share one — weakened
+  together or not at all. That is not incidental to this change: ADR-063 found
+  that the pin test asserted there was exactly ONE guardrail, and that the handler
+  wiring test's converse half had been inspecting nothing since it was written.
+  Both were editable on one key.
+  .
+  Security's key is load-bearing because this REMOVES a policy from a channel. The
+  justification is measured, not argued: the removed topic caught nothing
+  PROMPT_ATTACK did not already catch, at k=5 on real payloads through the same
+  API the gateway uses, and the frozen corpora are unmoved on the question channel
+  because the main guardrail is byte-identical. AI Quality's is collected because a
+  new guardrail version is an instrument (ADR-018) and every tool-output
+  observation from here names it; that the adversarial registry owes it a row is
+  recorded as OPEN, not decided. Platform Engineering owns the handler and the
+  channel selection, which fails closed to the stricter policy when the new
+  variables are absent. Legal/S&P is collected by the twokey rule and has nothing
+  to refuse: no consequence class moves, no tool is deployed, claim 10 is
+  untouched. No golden case, baseline, comparator, threshold or history entry
+  moves, and NOTHING IS DEPLOYED by this diff.
