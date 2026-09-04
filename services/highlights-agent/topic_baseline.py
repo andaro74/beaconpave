@@ -13,7 +13,7 @@ history entry. Same standing as `inspect_context.py`, and the same reason: a
 diagnostic that cannot be mistaken for a result is one that is safe to run
 *before* a measurement.
 
-## The four things it separates, and why each was owed
+## The five things it separates, and why each was owed
 
 **1. The question channel (`--questions`).** The 25 golden user turns, at
 `source=INPUT`. The Service Team seat found a contradiction the repo has been
@@ -54,6 +54,16 @@ Not in `--all`. `--all` is quoted as a reproduction command in committed
 documents, and an arm that silently adds calls to it changes what those
 documents describe.
 
+**5. The refusal/compliance pairs (`--refusal-shapes`).**
+`quality/adversarial/refusal-shapes.yaml`, at `source=OUTPUT`. ADR-065 measured the
+platform's own refusal blocked by `entitlement-circumvention` (`OUT-010`); this
+asks whether that generalises, by pairing each refusal with a compliance that
+differs only in the verb. **The pair is the measurement** — a refusal that blocks
+raises "compared to what?", and a paired compliance is the only answer to that
+which is not another argument.
+
+Not in `--all`, for the same reason `--output-attacks` is not.
+
 ## What these numbers can and cannot support
 
 They are `ApplyGuardrail` verdicts, not gateway refusals. A gateway refusal also
@@ -91,6 +101,7 @@ CASES = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yam
 ATTACKS = ROOT / "quality" / "adversarial" / "topic-attacks.yaml"
 HELDOUT = ROOT / "quality" / "adversarial" / "topic-attacks-heldout.yaml"
 OUTPUT_ATTACKS = ROOT / "quality" / "adversarial" / "topic-attacks-output.yaml"
+REFUSAL_SHAPES = ROOT / "quality" / "adversarial" / "refusal-shapes.yaml"
 PROBES = ROOT / "quality" / "adversarial" / "probes.yaml"
 CONTROLS = ROOT / "quality" / "adversarial" / "probe-controls.yaml"
 M01_ANSWERS = ROOT / "milestones" / "M01" / "goldens-run.json"
@@ -234,6 +245,29 @@ def control_expectations() -> dict:
     return {c["id"]: c["expect"] for c in corpus["controls"]}
 
 
+def _refusal_rows() -> list[dict]:
+    """Flatten the pairs, refusal then compliance, then the controls.
+
+    **Order is the pair order, deliberately.** The run prints rows in the order
+    this returns them, so a reader sees each pair's two halves adjacent and can
+    read the comparison off the output instead of reassembling it. The pair is the
+    measurement; a row on its own is not."""
+    corpus = yaml.safe_load(REFUSAL_SHAPES.read_text(encoding="utf-8"))
+    rows: list[dict] = []
+    for pair in corpus["pairs"]:
+        rows.extend((pair["refusal"], pair["compliance"]))
+    rows.extend(corpus["controls"])
+    return rows
+
+
+def refusal_shapes() -> list[tuple[str, str]]:
+    return [(r["id"], " ".join(r["text"].split())) for r in _refusal_rows()]
+
+
+def refusal_expectations() -> dict:
+    return {r["id"]: r["expect"] for r in _refusal_rows()}
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="what the deployed guardrail does, per channel")
     p.add_argument("--questions", action="store_true")
@@ -244,6 +278,9 @@ def main(argv=None) -> int:
                    help="the scored adversarial corpus, at source=INPUT")
     p.add_argument("--controls", action="store_true",
                    help="the positive controls for two-clause probes")
+    p.add_argument("--refusal-shapes", dest="refusal_shapes", action="store_true",
+                   help="the refusal/compliance minimal pairs, at source=OUTPUT. Not "
+                        "in --all, for the same reason --output-attacks is not.")
     p.add_argument("--output-attacks", dest="output_attacks", action="store_true",
                    help="the output-side corpus, at source=OUTPUT. NOT included in "
                         "--all, deliberately: --all is a reproduction command quoted "
@@ -262,10 +299,11 @@ def main(argv=None) -> int:
     if args.all:
         args.questions = args.answers = args.attacks = args.heldout = True
     if not (args.questions or args.answers or args.attacks or args.heldout
-            or args.probes or args.controls or args.output_attacks):
+            or args.probes or args.controls or args.output_attacks
+            or args.refusal_shapes):
         p.error("nothing selected; pass --all or one of "
                 "--questions/--answers/--attacks/--heldout/--probes/--controls/"
-                "--output-attacks")
+                "--output-attacks/--refusal-shapes")
 
     cf = boto3.client("cloudformation")
     outputs = {o["OutputKey"]: o["OutputValue"]
@@ -309,6 +347,8 @@ def main(argv=None) -> int:
         # the same reason `answers` uses it: the channel a record names is the
         # channel the text actually travels on.
         arms.append(("output-attacks", "OUTPUT", output_attacks(), guardrail.CHANNEL_ANSWER))
+    if args.refusal_shapes:
+        arms.append(("refusal-shapes", "OUTPUT", refusal_shapes(), guardrail.CHANNEL_ANSWER))
 
     # **The channel is the arm's own, not `system` for all four (ADR-040).** This
     # file calls its modes "the question channel" and "the answer channel" in its
@@ -331,6 +371,7 @@ def main(argv=None) -> int:
             expected = (expectations().get(item_id) if arm == "heldout"
                         else control_expectations().get(item_id) if arm == "controls"
                         else output_expectations().get(item_id) if arm == "output-attacks"
+                        else refusal_expectations().get(item_id) if arm == "refusal-shapes"
                         else None)
             if arm == "probes" and item_id in UNINTERPRETABLE:
                 results[item_id]["uninterpretable"] = UNINTERPRETABLE[item_id]
@@ -348,7 +389,7 @@ def main(argv=None) -> int:
             elif hits:
                 label = "BLOCKED" if hits == args.k else f"UNSTABLE {hits}/{args.k}"
                 print(f"  {label:12s} {item_id:20s} {assessed}")
-        if arm in ("heldout", "output-attacks"):
+        if arm in ("heldout", "output-attacks", "refusal-shapes"):
             missed = [i for i, r in results.items() if not r.get("met", True)]
             print(f"  {len(items) - len(missed)}/{len(items)} met their expectation"
                   + (f"   MISSED: {missed}" if missed else ""))
