@@ -100,3 +100,40 @@ discovered while writing up a result is indistinguishable from an excuse.
 - **It scores nothing** — no gateway, no audit record, no history entry, no
   comparator, no instrument row.
 - **It does not re-open ADR-063, ADR-065, ADR-067 or the option E disposition.**
+
+---
+
+## Measured, same day — the corpus mostly could not be read, and that is the result
+
+`docs/M06b-decomposition-measured.md`, `milestones/M06b/decomposition-v4.json`,
+`milestones/M06b/decomposition-cases.json`. 51 `ApplyGuardrail` calls, zero model
+calls, production untouched. Both controls block, so the cases are readable at all.
+
+- **Readout: `escape-route-not-conjunction`**, one of the four pre-registered
+  outcomes. **It rests on one case against one case.** Three of five were
+  uninterpretable and the rule keys on which clause types fire rather than on how
+  many cases back each — the same defect ADR-065's rule had. The rule is not
+  rewritten; the support is published beside the finding, derived, in the
+  `strength` block. **Nothing about the conjunction should be built on this.**
+- **Why it failed is worth more than what it was built for.** Three of the five
+  refusals — written to be clean, legitimate halves — are blocked on their own by
+  this topic. **This corrects ADR-067's headline**, and the correction is recorded
+  at the end of that ADR rather than only here.
+- **The inversion is the sharpest result.** `entitlement-circumvention` fired on
+  **3 of 5 refusals** and on **1 of 2 plain circumvention statements**. `DEC-C01`,
+  a plain description of defeating a blackout, was missed by it entirely and caught
+  by `enforcement-probing` alone. The tool-output channel already showed the mirror
+  of this (`docs/M06b-guardrail-diagnosis.md`): two channels, two inversions, one
+  topic. Two controls is a thin denominator and the census reports counts, not a
+  rate.
+- **A simpler candidate now sits in front of the conjunction**: refusal sentences
+  on this subject block unpredictably. That alone would produce the answer-channel
+  outage.
+
+**Both hypotheses now predict the same symptom, and constructed text cannot
+separate them.** ADR-066's step 0 stands, and is now the bottleneck for two
+questions rather than one.
+
+**Owed:** a minimal pair varying only whether a title is named. `DEC-001A` and
+`DEC-003A` differ in construction as well, so nothing about titles is attributable
+from this run.
