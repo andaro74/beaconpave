@@ -227,6 +227,32 @@
           "description": "Whether the tool FUNCTION WAS ACTUALLY INVOKED and reached, as opposed to authorized. `decision: allowed` says the plane permitted the call; it does not say the call happened, and until this field existed nothing in the record did. `handler._tool_probe` writes a full allowed record for a call it explicitly does not make -- its own docstring says 'an allowed probe still calls nothing' -- so a trajectory derived from the lake by counting allowed records over-credits. OPTIONAL, and absent means UNKNOWN, never false: every record written before this field existed lacks it, and a reader must treat those as evidence it does not have rather than as evidence the tool did not run. True only when the tool was reached; a call the platform could not route did not execute, while one that ran and then had its RESULT rejected did."
         }
       }
+    },
+    "withheld": {
+      "type": "object",
+      "description": "ADR-066 step 0. What `converse` returned on a blocked turn, DESCRIBED AND NEVER QUOTED. Present only on decision='blocked'. `additionalProperties: false` is the G4 boundary expressed in the schema rather than only in a test: a `text` key cannot be added to this fragment without changing this file, which takes two keys. The digest is compared offline against sha256 of the guardrail's own blockedOutputsMessaging, a string the platform wrote and nobody's secret.",
+      "additionalProperties": false,
+      "required": [
+        "present",
+        "chars",
+        "sha256"
+      ],
+      "properties": {
+        "present": {
+          "type": "boolean",
+          "description": "Did the blocked response carry any text block at all."
+        },
+        "chars": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Its length. A length cannot be graded for politeness."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "One-way digest. Irreversible, and \u2014 the property G4 needs \u2014 ungradeable."
+        }
+      }
     }
   }
 }

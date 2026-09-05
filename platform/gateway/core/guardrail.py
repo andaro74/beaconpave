@@ -15,6 +15,7 @@ Owning seat: Security / Red Team.
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 
 #: Bedrock's stop reason when a guardrail stopped the turn.
@@ -233,3 +234,50 @@ def interpret_apply(response: dict, *, channel: str) -> GuardrailOutcome:
     # how a probe silently stops passing after a service update.
     intervened = response.get("action") == APPLY_ACTION_INTERVENED or bool(names)
     return GuardrailOutcome(intervened, tuple(sorted(set(names))), (channel,))
+
+
+#: The audit key the withheld-output fingerprint travels under.
+#:
+#: **One key, and nested, so G4's boundary is one name to forbid.** ADR-066 named
+#: three flat fields (`answer_text_present`, `answer_text_len`,
+#: `answer_text_sha256`); they are nested under this key instead, because the
+#: assertion that matters is "the scorer's doorway never copies it" and a single
+#: key makes that assertion total rather than a list somebody must keep current.
+#: Recorded as a deviation at the end of ADR-066.
+WITHHELD_KEY = "withheld"
+
+
+def withheld_fingerprint(response: dict) -> dict | None:
+    """What `converse` handed back on a blocked turn, described without quoting it.
+
+    **The question this exists to answer.** The gateway has held the blocked
+    response on every one of M06b's 16 answer-channel refusals and never opened
+    it. Nobody knows whether Bedrock returns the model's text alongside the
+    intervention or replaces it with `blockedOutputsMessaging`. The whole capture
+    argument of ADR-064 and the pricing of ADR-066 turn on which it is, and the
+    answer costs one field.
+
+    **Content-free by construction.** `chars` is a length and `sha256` is a
+    one-way digest: neither can be reversed, and — the property G4 actually needs
+    — **neither can be graded**. The failure G4 exists to prevent is an assertion
+    that passes because the answer *looked* acceptable, and no assertion can read
+    acceptability out of a hash. The digest is compared offline against `sha256`
+    of the platform's own `blockedOutputsMessaging` string, which the platform
+    wrote and is nobody's secret.
+
+    **Total, never raising.** A malformed or unexpected response returns
+    `{"present": False, ...}` rather than an exception. A diagnostic that can fail
+    a refusal which is otherwise correct is worse than no diagnostic: G2 says an
+    errored control blocks, and this is not a control — it must not acquire the
+    power to stop one.
+    """
+    blocks = (((response or {}).get("output") or {}).get("message") or {}).get("content") or ()
+    if not isinstance(blocks, (list, tuple)):
+        blocks = ()
+    text = "".join(block.get("text") or "" for block in blocks
+                   if isinstance(block, dict) and isinstance(block.get("text"), str))
+    return {
+        "present": bool(text),
+        "chars": len(text),
+        "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+    }

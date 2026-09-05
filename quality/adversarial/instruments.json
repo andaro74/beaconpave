@@ -1,95 +1,110 @@
 {
- "_comment": "The adversarial instrument registry. `instrument.name` in an adversarial history entry is a foreign key INTO this file (ADR-027 rule 4), and until it existed the field was a foreign key to nothing: `--instrument-name does-not-exist` recorded happily, which is a row fingerprinting an object nobody can look up. The judge's half of the same idea is `quality/judge/frozen.json`.",
- "_what_a_name_identifies": "The CODE THAT READ THE RUN, and only that. A name resolves to the six computed digests below; two entries naming `m04-A` are comparable exactly because those six were identical both times. `guardrail_version` and `guardrail_policy_sha256` are deliberately NOT here: they describe what PRODUCED the observations, not what scored them, and a later run under a new guardrail version is still scored by this instrument. They stay in the entry, where they vary per run as they should.",
- "_how_to_add_one": "Never edit a registered instrument's digests. If the scorer, the semantics, the probe corpus, the G4 corpus, `classify.py` or the capture path moves, that is a DIFFERENT instrument: register a new name beside this one and leave the old row standing, so every published number keeps a resolvable description of what read it. Editing digests in place would silently redefine every entry that cites the name -- the exact substitution ADR-018 exists to prevent. ADR-038: the registration is a PRECONDITION for any scorer change, not a successor to it -- moving `scorer_sha256` makes the previously-registered row stop describing the tree, and the contract test is scoped so that only the MOST RECENTLY registered instrument must match it. Older rows are historical and exempt; that exemption is scoped to old rows and is NOT a subset check, which would let a future digest be dropped from a registered row unnoticed.",
- "instruments": {
-  "m04-A": {
-   "registered": "2026-08-21",
-   "corpus_size": 10,
-   "first_entry": "evals/history/m04-adversarial.json",
-   "why": "The first adversarial instrument recorded under a name. It scores at k=3 with unanimity deciding (ADR-031), reads each probe's declared `pass_when`, and requires an audit record that resolves -- `resolve_failed` scores FAIL rather than reading as an ordinary miss.",
-   "digests": {
-    "capture_sha256": "56ab314e3d57d9b4241b16c4f39ca469ffb8599d22fd354a2ded74759ae28350",
-    "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
-    "g4_cases_sha256": "441534a824bd2fe8e26ff22109da0764f16a73ec28f1f0b750fd1f7868fc4028",
-    "probes_sha256": "67048382cd49e4243a7d3c2caf8cd4cee9ca0876d12bb3e7b673d22ff1f519b0",
-    "scorer_sha256": "83ed4e5af4396f998cf539fc4652a876e8fc685985e2cd8a60dbb05663941ff0",
-    "semantics_sha256": "d71c09f5e9bd1dba09d8063f9c99f0f0bf07272613ec265b4d86fb8d90517521"
-   }
-  },
-  "m04-B": {
-   "registered": "2026-08-22",
-   "corpus_size": 10,
-   "first_entry": null,
-   "why": "ADR-038. A guardrail block whose attribution names no control no longer satisfies the broad semantics -- the fail-closed reading `_satisfied_by` already argued for the narrow one, applied to the branch nine of the ten probes declare. An observation with NO `assessed` key predates the field and still passes, marked unearned. `semantics_sha256` now covers `_satisfied_by`'s source, because implementing a change to what a probe passing IS left the old digest byte-identical. Three G4 cases were added, including the positive control. NOTHING IS RE-SCORED UNDER THIS NAME HERE: the first entry citing it is produced by whatever run records one next.",
-   "digests": {
-    "capture_sha256": "56ab314e3d57d9b4241b16c4f39ca469ffb8599d22fd354a2ded74759ae28350",
-    "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
-    "g4_cases_sha256": "3c37934341b00224ded62b0d02dc42e505d412b79c25ca7ca7cb8bd481fa2964",
-    "probes_sha256": "67048382cd49e4243a7d3c2caf8cd4cee9ca0876d12bb3e7b673d22ff1f519b0",
-    "scorer_sha256": "896ef0bf33209c8d1156302d0a8a04b770eb2c59626b05eecc1aefd775140cad",
-    "semantics_sha256": "8489730c543b5c00dfcc6deb3e95d13514417ee95a7060fdfc40bfc7a9827ecd"
-   }
-  },
-  "m04-C": {
-   "registered": "2026-08-22",
-   "corpus_size": 10,
-   "first_entry": null,
-   "why": "ADR-038 amendment 1. THREE defects, each of which made ADR-038's closure of the unattributed block untrue in practice. (1) `observation_from_record` now carries `assessed`, keyed on PRESENCE -- the probe harness copied it behind `if assessed:` and an empty list is falsy, so the one shape the rule exists to catch was the one shape routed around it: 9/10 PASS, marked unearned, which reads as honesty about a hole still being fallen into. (2) `score_samples` now propagates `unearned`; it built a fresh PASS and dropped the mark, so the honesty mark did not exist at k>1, which is M04's k and every future run's. (3) A guardrail block carrying NO attribution object at all is no longer read as the legacy population. An observation recorded under m04-B cannot be compared to one recorded here: the two disagree about whether an unattributed block is visible at all.",
-   "digests": {
-    "capture_sha256": "246c79f53d0850367c260ea42a5b1c527817dcdbbd81f141cdb8414ae715b37d",
-    "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
-    "g4_cases_sha256": "3c37934341b00224ded62b0d02dc42e505d412b79c25ca7ca7cb8bd481fa2964",
-    "probes_sha256": "67048382cd49e4243a7d3c2caf8cd4cee9ca0876d12bb3e7b673d22ff1f519b0",
-    "scorer_sha256": "a5306d7449cf353b73a519ddebb2e8115d690bc9ab64e44f92036774ac8a226e",
-    "semantics_sha256": "8489730c543b5c00dfcc6deb3e95d13514417ee95a7060fdfc40bfc7a9827ecd"
-   }
-  },
-  "m04-D": {
-   "registered": "2026-08-22",
-   "corpus_size": 10,
-   "first_entry": null,
-   "why": "ADR-040. A record says WHICH SIDE fired (`channels`, emitted on every intervention including empty), a probe declares the channels its payload travels on, and a block attributed only to channels the probe never reached no longer credits it -- shape B, measured 9/10 before and 0/10 after. Subset, never intersection. Observations with no `channels` key predate the field and are out of scope, a population that is closed because every intervention now emits the key and `test_contracts.py` pins it. `build_record`'s consistency check is symmetric in both directions with a test that it FIRES. A SEVENTH digest, `guardrail_sha256`, covers `core/guardrail.py` and `core/toolloop.py` -- the derivation and the assignment the verdict now turns on, which were in no digest and on no two-key path.",
-   "digests": {
-    "capture_sha256": "5a5a80647445f696f2439ca9284229879e10fdd209c327cf298fd0c8f0db0fe9",
-    "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
-    "g4_cases_sha256": "41b39df5fea08a9a766c900b2eca2c38ba4e7255975487db8cfc383a7203dd10",
-    "guardrail_sha256": "a92dfc1d300d913d95453c3014b7e34bee2b6d620eb3e8d8403422660c8b060f",
-    "probes_sha256": "7e6f522c6801e547453bdcff9718f09806c5383403fbfd2eb725db7b0caf731a",
-    "scorer_sha256": "24f16df89bbc1585e7788915fc41e164ee5094faa947f5f003bf31e73afbbf71",
-    "semantics_sha256": "860eb2b8e7fec72ce3be3b7db2aa44ff04e584f80e9ef55c55e7ed61e0125103"
-   },
-   "_registered_corrected": "Recorded as 2026-08-23 when ADR-040 registered it; the commit is 2026-08-22 12:03:31 -0700 (bd0e247). Corrected by ADR-041, and NOT a cosmetic fix: the contract test resolves `the current instrument` by `registered` date, so a row dated in the future makes an OLDER instrument resolve as current and silently exempts the real one from having to describe this tree. Only the date moved -- no digest, no `why`, and no history entry cites this name."
-  },
-  "m04-E": {
-   "registered": "2026-08-22",
-   "corpus_size": 11,
-   "first_entry": "none yet — registered as a PRECONDITION for the scorer change, not a successor to it. No suite is re-scored under it in this change; the first entry naming it is produced by whatever run records one next.",
-   "why": "ADR-041. Adds OUT_OF_SCOPE: a probe an arm's recorded run never ASKED is no longer INFRA. The L5 lane re-scores committed observations and does not run probes, so an eleventh probe had no historical observation on any arm and all three went INFRA at once -- exit 2, on every service's every PR, with a remediation naming an input nobody can fix. m00b had no gateway and m01 ran under an undeployed guardrail, so neither can ever supply one; without this the corpus was frozen at ten probes. Scope is read from the arm's own `_asked` manifest, never declared by the probe: a deletion then contradicts the record instead of making a declaration true. `semantics_sha256` gains `_scope_verdict` and `asked_from`, because whether a probe is scored on an arm IS what its result means -- measured byte-identical without them. Observations recorded under m04-D and under this instrument disagree about whether an unasked probe is visible at all, which is what a separate instrument name is for.",
-   "digests": {
-    "capture_sha256": "3aaa3a6f2ae736812c3fe7a39fea4b4cb4167a70f176164d00993ee67e9fb2cb",
-    "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
-    "g4_cases_sha256": "3fe4fef50e254915ffe166d7f82c88e99ad8f445188afbe7d9318bf6c5c4f269",
-    "guardrail_sha256": "a92dfc1d300d913d95453c3014b7e34bee2b6d620eb3e8d8403422660c8b060f",
-    "probes_sha256": "9c5a98401697eec5e32ff91bbed3e097cef0248f2c982222c12de6bbcae28b6b",
-    "scorer_sha256": "e94158d5ffea80c80e3d491a58e7a7cf88eee75cbe2545db7baad493fd864207",
-    "semantics_sha256": "fe487fd671953e0ddb93dc0479af1a1916de2ae71d7bbda8b1115ffcebc1e89e"
-   }
-  },
-  "m04-F": {
-   "registered": "2026-08-31",
-   "corpus_size": 11,
-   "first_entry": "none yet - registered as a PRECONDITION for the capture change, not a successor to it (ADR-038). No suite is re-scored under it here; the first entry naming it is produced by whatever run records one next.",
-   "why": "The tool-plane record gains an execution witness. `core/toolloop.py` now tracks whether the tool FUNCTION WAS REACHED, distinct from whether the plane authorized the call, and `tool.executed` carries it into the record -- so `guardrail_sha256` moves, which is the only digest that does. Registered as a PRECONDITION for the change rather than after it (ADR-038). Why the capture path needed it: `handler._tool_probe` writes a full `decision: allowed` record for a call it explicitly does not make, at a lake key it can share with a real first call -- `authorize()` increments `calls` before returning, so both paths hand `seq=1` to `record_key` and `request_id` is caller-supplied. A trajectory derived from the lake by counting allowed records therefore credited calls that never ran. Nothing in this instrument scores `executed`; it changes what a captured record CAN say, which is exactly the kind of move a name exists to fence off. `SPEC/06b` B9, ADR-057.",
-   "digests": {
-    "scorer_sha256": "e94158d5ffea80c80e3d491a58e7a7cf88eee75cbe2545db7baad493fd864207",
-    "semantics_sha256": "fe487fd671953e0ddb93dc0479af1a1916de2ae71d7bbda8b1115ffcebc1e89e",
-    "probes_sha256": "9c5a98401697eec5e32ff91bbed3e097cef0248f2c982222c12de6bbcae28b6b",
-    "g4_cases_sha256": "3fe4fef50e254915ffe166d7f82c88e99ad8f445188afbe7d9318bf6c5c4f269",
-    "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
-    "guardrail_sha256": "957134b35e6a4546e541b2b301867e4b6df6cc40fc7df96fbff3da2be6da72ec",
-    "capture_sha256": "3aaa3a6f2ae736812c3fe7a39fea4b4cb4167a70f176164d00993ee67e9fb2cb"
-   }
+  "_comment": "The adversarial instrument registry. `instrument.name` in an adversarial history entry is a foreign key INTO this file (ADR-027 rule 4), and until it existed the field was a foreign key to nothing: `--instrument-name does-not-exist` recorded happily, which is a row fingerprinting an object nobody can look up. The judge's half of the same idea is `quality/judge/frozen.json`.",
+  "_what_a_name_identifies": "The CODE THAT READ THE RUN, and only that. A name resolves to the six computed digests below; two entries naming `m04-A` are comparable exactly because those six were identical both times. `guardrail_version` and `guardrail_policy_sha256` are deliberately NOT here: they describe what PRODUCED the observations, not what scored them, and a later run under a new guardrail version is still scored by this instrument. They stay in the entry, where they vary per run as they should.",
+  "_how_to_add_one": "Never edit a registered instrument's digests. If the scorer, the semantics, the probe corpus, the G4 corpus, `classify.py` or the capture path moves, that is a DIFFERENT instrument: register a new name beside this one and leave the old row standing, so every published number keeps a resolvable description of what read it. Editing digests in place would silently redefine every entry that cites the name -- the exact substitution ADR-018 exists to prevent. ADR-038: the registration is a PRECONDITION for any scorer change, not a successor to it -- moving `scorer_sha256` makes the previously-registered row stop describing the tree, and the contract test is scoped so that only the MOST RECENTLY registered instrument must match it. Older rows are historical and exempt; that exemption is scoped to old rows and is NOT a subset check, which would let a future digest be dropped from a registered row unnoticed.",
+  "instruments": {
+    "m04-A": {
+      "registered": "2026-08-21",
+      "corpus_size": 10,
+      "first_entry": "evals/history/m04-adversarial.json",
+      "why": "The first adversarial instrument recorded under a name. It scores at k=3 with unanimity deciding (ADR-031), reads each probe's declared `pass_when`, and requires an audit record that resolves -- `resolve_failed` scores FAIL rather than reading as an ordinary miss.",
+      "digests": {
+        "capture_sha256": "56ab314e3d57d9b4241b16c4f39ca469ffb8599d22fd354a2ded74759ae28350",
+        "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+        "g4_cases_sha256": "441534a824bd2fe8e26ff22109da0764f16a73ec28f1f0b750fd1f7868fc4028",
+        "probes_sha256": "67048382cd49e4243a7d3c2caf8cd4cee9ca0876d12bb3e7b673d22ff1f519b0",
+        "scorer_sha256": "83ed4e5af4396f998cf539fc4652a876e8fc685985e2cd8a60dbb05663941ff0",
+        "semantics_sha256": "d71c09f5e9bd1dba09d8063f9c99f0f0bf07272613ec265b4d86fb8d90517521"
+      }
+    },
+    "m04-B": {
+      "registered": "2026-08-22",
+      "corpus_size": 10,
+      "first_entry": null,
+      "why": "ADR-038. A guardrail block whose attribution names no control no longer satisfies the broad semantics -- the fail-closed reading `_satisfied_by` already argued for the narrow one, applied to the branch nine of the ten probes declare. An observation with NO `assessed` key predates the field and still passes, marked unearned. `semantics_sha256` now covers `_satisfied_by`'s source, because implementing a change to what a probe passing IS left the old digest byte-identical. Three G4 cases were added, including the positive control. NOTHING IS RE-SCORED UNDER THIS NAME HERE: the first entry citing it is produced by whatever run records one next.",
+      "digests": {
+        "capture_sha256": "56ab314e3d57d9b4241b16c4f39ca469ffb8599d22fd354a2ded74759ae28350",
+        "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+        "g4_cases_sha256": "3c37934341b00224ded62b0d02dc42e505d412b79c25ca7ca7cb8bd481fa2964",
+        "probes_sha256": "67048382cd49e4243a7d3c2caf8cd4cee9ca0876d12bb3e7b673d22ff1f519b0",
+        "scorer_sha256": "896ef0bf33209c8d1156302d0a8a04b770eb2c59626b05eecc1aefd775140cad",
+        "semantics_sha256": "8489730c543b5c00dfcc6deb3e95d13514417ee95a7060fdfc40bfc7a9827ecd"
+      }
+    },
+    "m04-C": {
+      "registered": "2026-08-22",
+      "corpus_size": 10,
+      "first_entry": null,
+      "why": "ADR-038 amendment 1. THREE defects, each of which made ADR-038's closure of the unattributed block untrue in practice. (1) `observation_from_record` now carries `assessed`, keyed on PRESENCE -- the probe harness copied it behind `if assessed:` and an empty list is falsy, so the one shape the rule exists to catch was the one shape routed around it: 9/10 PASS, marked unearned, which reads as honesty about a hole still being fallen into. (2) `score_samples` now propagates `unearned`; it built a fresh PASS and dropped the mark, so the honesty mark did not exist at k>1, which is M04's k and every future run's. (3) A guardrail block carrying NO attribution object at all is no longer read as the legacy population. An observation recorded under m04-B cannot be compared to one recorded here: the two disagree about whether an unattributed block is visible at all.",
+      "digests": {
+        "capture_sha256": "246c79f53d0850367c260ea42a5b1c527817dcdbbd81f141cdb8414ae715b37d",
+        "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+        "g4_cases_sha256": "3c37934341b00224ded62b0d02dc42e505d412b79c25ca7ca7cb8bd481fa2964",
+        "probes_sha256": "67048382cd49e4243a7d3c2caf8cd4cee9ca0876d12bb3e7b673d22ff1f519b0",
+        "scorer_sha256": "a5306d7449cf353b73a519ddebb2e8115d690bc9ab64e44f92036774ac8a226e",
+        "semantics_sha256": "8489730c543b5c00dfcc6deb3e95d13514417ee95a7060fdfc40bfc7a9827ecd"
+      }
+    },
+    "m04-D": {
+      "registered": "2026-08-22",
+      "corpus_size": 10,
+      "first_entry": null,
+      "why": "ADR-040. A record says WHICH SIDE fired (`channels`, emitted on every intervention including empty), a probe declares the channels its payload travels on, and a block attributed only to channels the probe never reached no longer credits it -- shape B, measured 9/10 before and 0/10 after. Subset, never intersection. Observations with no `channels` key predate the field and are out of scope, a population that is closed because every intervention now emits the key and `test_contracts.py` pins it. `build_record`'s consistency check is symmetric in both directions with a test that it FIRES. A SEVENTH digest, `guardrail_sha256`, covers `core/guardrail.py` and `core/toolloop.py` -- the derivation and the assignment the verdict now turns on, which were in no digest and on no two-key path.",
+      "digests": {
+        "capture_sha256": "5a5a80647445f696f2439ca9284229879e10fdd209c327cf298fd0c8f0db0fe9",
+        "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+        "g4_cases_sha256": "41b39df5fea08a9a766c900b2eca2c38ba4e7255975487db8cfc383a7203dd10",
+        "guardrail_sha256": "a92dfc1d300d913d95453c3014b7e34bee2b6d620eb3e8d8403422660c8b060f",
+        "probes_sha256": "7e6f522c6801e547453bdcff9718f09806c5383403fbfd2eb725db7b0caf731a",
+        "scorer_sha256": "24f16df89bbc1585e7788915fc41e164ee5094faa947f5f003bf31e73afbbf71",
+        "semantics_sha256": "860eb2b8e7fec72ce3be3b7db2aa44ff04e584f80e9ef55c55e7ed61e0125103"
+      },
+      "_registered_corrected": "Recorded as 2026-08-23 when ADR-040 registered it; the commit is 2026-08-22 12:03:31 -0700 (bd0e247). Corrected by ADR-041, and NOT a cosmetic fix: the contract test resolves `the current instrument` by `registered` date, so a row dated in the future makes an OLDER instrument resolve as current and silently exempts the real one from having to describe this tree. Only the date moved -- no digest, no `why`, and no history entry cites this name."
+    },
+    "m04-E": {
+      "registered": "2026-08-22",
+      "corpus_size": 11,
+      "first_entry": "none yet \u2014 registered as a PRECONDITION for the scorer change, not a successor to it. No suite is re-scored under it in this change; the first entry naming it is produced by whatever run records one next.",
+      "why": "ADR-041. Adds OUT_OF_SCOPE: a probe an arm's recorded run never ASKED is no longer INFRA. The L5 lane re-scores committed observations and does not run probes, so an eleventh probe had no historical observation on any arm and all three went INFRA at once -- exit 2, on every service's every PR, with a remediation naming an input nobody can fix. m00b had no gateway and m01 ran under an undeployed guardrail, so neither can ever supply one; without this the corpus was frozen at ten probes. Scope is read from the arm's own `_asked` manifest, never declared by the probe: a deletion then contradicts the record instead of making a declaration true. `semantics_sha256` gains `_scope_verdict` and `asked_from`, because whether a probe is scored on an arm IS what its result means -- measured byte-identical without them. Observations recorded under m04-D and under this instrument disagree about whether an unasked probe is visible at all, which is what a separate instrument name is for.",
+      "digests": {
+        "capture_sha256": "3aaa3a6f2ae736812c3fe7a39fea4b4cb4167a70f176164d00993ee67e9fb2cb",
+        "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+        "g4_cases_sha256": "3fe4fef50e254915ffe166d7f82c88e99ad8f445188afbe7d9318bf6c5c4f269",
+        "guardrail_sha256": "a92dfc1d300d913d95453c3014b7e34bee2b6d620eb3e8d8403422660c8b060f",
+        "probes_sha256": "9c5a98401697eec5e32ff91bbed3e097cef0248f2c982222c12de6bbcae28b6b",
+        "scorer_sha256": "e94158d5ffea80c80e3d491a58e7a7cf88eee75cbe2545db7baad493fd864207",
+        "semantics_sha256": "fe487fd671953e0ddb93dc0479af1a1916de2ae71d7bbda8b1115ffcebc1e89e"
+      }
+    },
+    "m04-F": {
+      "registered": "2026-08-31",
+      "corpus_size": 11,
+      "first_entry": "none yet - registered as a PRECONDITION for the capture change, not a successor to it (ADR-038). No suite is re-scored under it here; the first entry naming it is produced by whatever run records one next.",
+      "why": "The tool-plane record gains an execution witness. `core/toolloop.py` now tracks whether the tool FUNCTION WAS REACHED, distinct from whether the plane authorized the call, and `tool.executed` carries it into the record -- so `guardrail_sha256` moves, which is the only digest that does. Registered as a PRECONDITION for the change rather than after it (ADR-038). Why the capture path needed it: `handler._tool_probe` writes a full `decision: allowed` record for a call it explicitly does not make, at a lake key it can share with a real first call -- `authorize()` increments `calls` before returning, so both paths hand `seq=1` to `record_key` and `request_id` is caller-supplied. A trajectory derived from the lake by counting allowed records therefore credited calls that never ran. Nothing in this instrument scores `executed`; it changes what a captured record CAN say, which is exactly the kind of move a name exists to fence off. `SPEC/06b` B9, ADR-057.",
+      "digests": {
+        "scorer_sha256": "e94158d5ffea80c80e3d491a58e7a7cf88eee75cbe2545db7baad493fd864207",
+        "semantics_sha256": "fe487fd671953e0ddb93dc0479af1a1916de2ae71d7bbda8b1115ffcebc1e89e",
+        "probes_sha256": "9c5a98401697eec5e32ff91bbed3e097cef0248f2c982222c12de6bbcae28b6b",
+        "g4_cases_sha256": "3fe4fef50e254915ffe166d7f82c88e99ad8f445188afbe7d9318bf6c5c4f269",
+        "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+        "guardrail_sha256": "957134b35e6a4546e541b2b301867e4b6df6cc40fc7df96fbff3da2be6da72ec",
+        "capture_sha256": "3aaa3a6f2ae736812c3fe7a39fea4b4cb4167a70f176164d00993ee67e9fb2cb"
+      }
+    },
+    "m04-G": {
+      "registered": "2026-09-05",
+      "corpus_size": 11,
+      "first_entry": "none yet - registered as the precondition for the change, not after it",
+      "why": "ADR-066 step 0. The gateway's BLOCKED path now records a content-free fingerprint of what `converse` returned - present, length, and a one-way digest - so a reader can ask whether Bedrock hands back the model's text or its own blockedOutputsMessaging. That question is the whole of ADR-064's capture problem and ADR-066's pricing, and the response object has sat in that branch unopened on every one of M06b's 16 answer-channel refusals. `capture_sha256` moves because it digests the whole of `core/audit.py`, which gains the `withheld` parameter and its two refusals; `guardrail_sha256` moves because `core/guardrail.py` gains `withheld_fingerprint`. **Nothing a scorer reads changes**: `observation_from_record` is the only doorway from a record to an observation and it does not copy the fragment, which `tests/test_g4_capture_boundary.py` asserts by planting one. Registered beside m04-F rather than editing it, because published numbers cite that name and it has to keep resolving.",
+      "digests": {
+        "scorer_sha256": "e94158d5ffea80c80e3d491a58e7a7cf88eee75cbe2545db7baad493fd864207",
+        "semantics_sha256": "fe487fd671953e0ddb93dc0479af1a1916de2ae71d7bbda8b1115ffcebc1e89e",
+        "probes_sha256": "9c5a98401697eec5e32ff91bbed3e097cef0248f2c982222c12de6bbcae28b6b",
+        "g4_cases_sha256": "3fe4fef50e254915ffe166d7f82c88e99ad8f445188afbe7d9318bf6c5c4f269",
+        "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+        "guardrail_sha256": "05e2f32b632663f09fde587a6979956ddaf6209bda3f6f2177c73225c54f6b58",
+        "capture_sha256": "27ac56b6bc22086c712b2f7d24b80672a24a6d8271e214a6d28bf1f471dd8125"
+      }
+    }
   }
- }
 }

@@ -77,6 +77,12 @@ def record_key(ts: str, service: str, request_id: str, seq: int | None = None) -
     return f"{ts[:10]}/{service}/{request_id}.{seq:03d}.json"
 
 
+#: The only keys a `withheld` fragment may carry (ADR-066 step 0). A closed set,
+#: because the boundary is that the fragment DESCRIBES the stopped text and never
+#: quotes it — and "no `text` key" is a property of a closed set, not of a review.
+WITHHELD_FIELDS = frozenset({"present", "chars", "sha256"})
+
+
 def build_record(
     *,
     request_id: str,
@@ -93,6 +99,7 @@ def build_record(
     probe_id: str | None = None,
     tool: dict | None = None,
     seq: int | None = None,
+    withheld: dict | None = None,
     witness: str = "gateway",
 ) -> dict:
     """Build one audit record conforming to `platform/gateway/audit.schema.json`.
@@ -142,6 +149,31 @@ def build_record(
             "an attribution that names no intervention"
         )
 
+    # **The G4 boundary, enforced where records are written (ADR-066 step 0).**
+    # `withheld` describes the text a guardrail stopped — a length and a one-way
+    # digest — so a reader can ask whether Bedrock returned the model's output or
+    # its own placeholder. Two refusals, because a schema two keys away is not the
+    # only place this can go wrong:
+    #
+    #   1. **Only on a block.** A fingerprint beside an allowed decision describes
+    #      text that was returned, which is not withheld anything and would put a
+    #      digest of served output into the lake for no reason.
+    #   2. **Only these three keys.** The moment this fragment can carry a `text`,
+    #      G4 is a naming convention. `audit.schema.json` says
+    #      `additionalProperties: false` and this says it again, because the schema
+    #      is validated by a caller that a future path could forget to call.
+    if withheld is not None:
+        if decision != "blocked":
+            raise ValueError(
+                f"withheld fingerprint recorded beside decision={decision!r} — nothing was "
+                "withheld from a call that was not blocked")
+        extra = sorted(set(withheld) - WITHHELD_FIELDS)
+        if extra:
+            raise ValueError(
+                f"withheld fragment carries {extra} — it may hold only "
+                f"{sorted(WITHHELD_FIELDS)}. A fragment that can carry the text is G4 as a "
+                "naming convention rather than a boundary.")
+
     if tool is not None and seq is None:
         raise ValueError(
             "a tool-call record needs a `seq` — a turn writes several records under one "
@@ -168,6 +200,8 @@ def build_record(
         record["error"] = error
     if probe_id is not None:
         record["probe_id"] = probe_id
+    if withheld is not None:
+        record["withheld"] = withheld
     if tool is not None:
         # Cross-checked rather than trusted. A record saying the turn was denied
         # while its tool fragment says the call was allowed is the kind of
@@ -213,7 +247,15 @@ def observation_from_record(record: dict) -> dict:
     `model_complied` is deliberately absent. The scorer records it for the
     journal and never scores it, and the gateway has no business forming an
     opinion about it: G4's whole point is that the model's behaviour is not
-    evidence."""
+    evidence.
+
+    **`withheld` is deliberately absent for the same reason, and this is the
+    joint where that is decided (ADR-066 step 0).** The fingerprint describes the
+    text a guardrail stopped, and this function is the ONLY doorway from an audit
+    record to what `evals/adversarial.py` scores — so "the scorer cannot see it"
+    is a property of these few lines rather than of anybody's discipline.
+    `tests/test_g4_capture_boundary.py` asserts it by planting a fingerprint into a
+    record and checking that nothing derived from it changes."""
     decision = record.get("decision")
     mechanism = record.get("mechanism")
     observation = {

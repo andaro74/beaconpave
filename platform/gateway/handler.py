@@ -488,6 +488,18 @@ def handler(event, context):
             classification=routing.classification,
             decision="blocked",
             mechanism="guardrail",
+            # **ADR-066 step 0: open the response, describe it, never quote it.**
+            # This branch has held the blocked `converse` response on every one of
+            # M06b's 16 answer-channel refusals and never looked inside it, so
+            # nobody knows whether Bedrock returns the model's text alongside the
+            # intervention or replaces it with `blockedOutputsMessaging`. ADR-064's
+            # capture question and ADR-066's pricing both turn on which it is.
+            #
+            # `withheld_fingerprint` is total and cannot raise, deliberately: a
+            # diagnostic that can fail a refusal which is otherwise correct is
+            # worse than no diagnostic. It carries a length and a one-way digest,
+            # and `build_record` refuses any fragment holding more than those.
+            withheld=guardrail.withheld_fingerprint(outcome.response),
             guardrail=fragment,
             # **Absent, not zero, when nothing was spent.** A block on the system
             # block lands before the first model call, and the schema says usage is
