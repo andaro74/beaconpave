@@ -40,6 +40,10 @@ from milestone_status import (
 SCRIPT = ROOT / "docs" / "governance" / "demo-script.md"
 REGISTRY = ROOT / "docs" / "governance" / "recordings.json"
 
+#: The progression table's two status cells, named so the fixture below is a
+#: pair of constants rather than two glyphs a reader has to squint at.
+OPEN_CELL, CLOSED_CELL = "| ⬜ |", "| ✅ |"
+
 
 def _registry():
     return json.loads(REGISTRY.read_text(encoding="utf-8"))["acts"]
@@ -252,10 +256,36 @@ def test_the_ratchet_fires_when_a_milestone_closes():
     Four directions, because a check that flags everything is as useless as one that
     flags nothing, and the two middle cases are the ones a naive implementation gets
     wrong."""
+    # **The synthetic table must make M06 the LATEST closed milestone, not merely a
+    # closed one.** `uncounted_deferrals` keys on the latest close, and this fixture
+    # forced `| 06 |` to closed while leaving every later row as the live README has
+    # it. That was correct for exactly as long as nothing after M06 was closed. The
+    # day M06b closed, `latest_closed_milestone` returned M06b, act 91's
+    # `deferred_from` legitimately did not name it, and a test about M06 reported two
+    # acts and went red — a guard coupled to data that legitimately moves, which is
+    # the shape this repository keeps paying for.
+    #
+    # So the fixture re-opens every row after `06`, and asserts the property it
+    # actually depends on rather than two proxies for it.
     text = ROOT.joinpath("README.md").read_text(encoding="utf-8")
-    closed_m06 = "\n".join(
-        line.replace("| ⬜ |", "| ✅ |") if line.strip().startswith("| 06 |") else line
-        for line in text.splitlines())
+    rows, after_m06 = [], False
+    for line in text.splitlines():
+        if line.strip().startswith("| 06 |"):
+            line, after_m06 = line.replace(OPEN_CELL, CLOSED_CELL), True
+        elif after_m06 and line.strip().startswith("|"):
+            line = line.replace(CLOSED_CELL, OPEN_CELL)
+        rows.append(line)
+    closed_m06 = chr(10).join(rows)
+
+    # `latest_closed_milestone` returns the table's own row key ("6"), not the
+    # "M06" spelling `milestone_is_closed` takes. Compared against the key it
+    # returns, so this assertion cannot pass by comparing two things that are
+    # never equal.
+    assert latest_closed_milestone(closed_m06) == "6", (
+        f"the synthetic table's latest closed milestone is "
+        f"{latest_closed_milestone(closed_m06)!r}, not row 06. This test asks what happens "
+        "the day M06 closes; if a later milestone reads as closed it is asking a different "
+        "question and every expectation below is about the wrong close.")
     assert milestone_is_closed("M06", closed_m06), (
         "the synthetic table does not mark M06 closed, so this test proves nothing")
     assert not milestone_is_closed("M07", closed_m06), (
