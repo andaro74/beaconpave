@@ -39,7 +39,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | | **— part two: the path that creates one —** | | | | | | |
 | 05 | `pave new` scaffold + manifest verify | six PRs ※ | `m05` | not run ※ | not run ※ | not run ※ | ✅ |
 | 06 | Attack register + two-key gate integrity | ten PRs ✦ | `m06` | **21/25** ✦ | not judged ✧ | not run ✦ | ✅ |
-| 06b | Trajectory eval + `entitlement-check` ❖ | `m06b-trajectory` | `m06b` | –/25 | – | –/10 | ⬜ |
+| 06b | Trajectory eval + `entitlement-check` ❖ | thirty-four PRs ❆ | `m06b` | 1/25, not recorded ❆ | not judged ✧ | 6/6 tool plane ❆ | ✅ |
 | 07 | Rules registry + regdelta loop | `m07-rules` | `m07` | –/25 | – | – | ⬜ |
 | 08 | Playwright + k6 on one verdict schema | `m08-surfaces` | `m08` | – | – | – | ⬜ |
 | 09 | Game-day drill + go/no-go artifact | `m09-drill` | `m09` | – | – | – | ⬜ |
@@ -316,6 +316,31 @@ the row published refused work; scoped, it published work still needing an appro
 the record has never granted. So the row carries what M06b actually builds, and
 claim 10's `M` cell is `—`: **unscheduled, not refused**, which is the only cell
 that does not pre-empt the seat. ADR-055.
+
+❆ **M06b closes on a red number, deliberately, and neither cell is bold.** A bold
+`n/m` in this table is a claim backed by a pinned history entry
+(`pave/history.py`'s `README_GOLDENS`), and M06b recorded no entry — so the numbers
+are stated without being claimed, which is the distinction the check enforces and
+the reason it refused the first version of this row.  `1/25` is not a quality
+regression: 16 of the 25 cases are refused on the answer channel by
+`entitlement-circumvention`, and a refused case writes no answer and cannot reach
+its assert. That guardrail defect predates M06b and became visible only when a
+second tool let cases get far enough to produce answers worth blocking. Four
+hypotheses were eliminated and two remain, and they predict the same symptom — the
+platform cannot see the text its own control refuses (G4, deliberately), so they
+cannot be separated without the capture ADR-066 prices and does not build. **No
+history entry was recorded**, on AI Quality's and Security's disposition: 1/25
+measures a guardrail outage rather than answer quality, and append-only history
+should not carry it as a quality datum. The `6/6` adversarial cell is the **new
+tool-plane arm** (ADR-060), not the L5 model-arm corpus, which was not re-run
+because nothing in M06b changed it: two `policy-probe` rows denied by Cedar with
+an audit record — the first observations in this repository to satisfy
+`cedar_denied_or_approval_required_and_logged` — three `argument-refusal` rows
+that declare `scores_under_g4: false` and score nothing, and one positive control.
+Zero model calls. The branch cell reads "thirty-four PRs" for the reason the `m05`
+and `m06` rows do; one of them, the guardrail investigation, was work this
+milestone adopted rather than planned. `milestones/M06b/README.md` is the honest
+account.
 
 ## What part one produced
 
