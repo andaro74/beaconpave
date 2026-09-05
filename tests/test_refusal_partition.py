@@ -293,6 +293,20 @@ def test_the_pair_set_is_read_from_the_sidecar_and_goes_red_two_ways(harness):
     assert any("sidecar does not hold" in n and "ref-b#2" in n for n in verdict["notes"])
     assert verdict["scores"]["refused"] == 2, "an unresolved id is a note, never a score"
 
+    # Two sidecars naming the same records under two topics. Last-wins would print
+    # `1 pair` and no note -- the AI Quality seat planted exactly this and the first
+    # draft passed it. Every pair a record is given is kept, so the line goes red.
+    p1 = harness.dir / "green-again.json"
+    p1.write_text(json.dumps(sidecar), encoding="utf-8")
+    p2 = harness.dir / "relabelled.json"
+    p2.write_text(json.dumps(second), encoding="utf-8")
+    for order in ((p1, p2), (p2, p1)):
+        text, verdict = harness.run(paths, "--refusals", str(order[0]), "--refusals", str(order[1]),
+                                    out=f"conflict-{order[0].stem}-verdict.json")
+        assert "refusals: 7/7 resolved to 2 (mechanism, assessed) pairs" in text, order
+        assert any("described two ways" in n and "flip-f#1" in n for n in verdict["notes"])
+        assert any("not one control's footprint" in n for n in verdict["notes"])
+
     text, verdict = harness.run(paths, out="none-verdict.json")
     assert "pair set NOT ASSESSED" in text and "--refusals" in text
     assert "resolved to" not in text
@@ -316,6 +330,70 @@ def test_the_marker_is_read_from_the_record_never_from_the_text(harness):
     assert verdict["scores"]["refused"] == 1, "marked-b, and only marked-b"
     assert verdict["scores"]["answered"] == 1, "polite-a answered, however it sounded"
     assert "of the 2 failed: 1 were refused before scoring, 1 answered and scored wrong" in text
+
+
+REFUSAL_SOUNDING = [
+    "I'm sorry, I can't help with that request.",
+    "I cannot assist with that.",
+    "This request was refused by the guardrail.",
+    "Unable to answer: blocked.",
+    "refused_by_gateway",
+    "I decline to answer that question.",
+    "As an AI I am not able to provide that.",
+    "Access denied.",
+]
+
+
+def test_the_runner_and_the_band_read_the_same_marker_on_every_shape():
+    """The property behind the test above, which a plant keyed on any single
+    phrase would slip past (the Security seat's finding on the first draft). The
+    runner's marker read is a deliberate duplicate of `evals/refusals.py::census`
+    — the band it must not import — and "the two readers cannot disagree" is
+    asserted here over every shape either could meet: refusal-sounding prose
+    without the marker, the marker beside prose, a marker whose value is null, a
+    marker on a non-dict answer, a missing answer, and a missing entry. Whatever
+    `census` counts, the runner counts; nothing else.
+
+    This test may import the band; it is a test, not a scorer."""
+    from evals import refusals
+
+    entries = {f"prose-{i}": answered(text) for i, text in enumerate(REFUSAL_SOUNDING)}
+    entries["marked-plain"] = refused("marked-plain", 1)
+    entries["marked-with-prose"] = {
+        "answer": {"refused_by_gateway": "guardrail", "record_id": record_id("mwp", 1),
+                   "answer": "Here is your rowing schedule."}}
+    entries["marked-classification"] = {"answer": {"refused_by_gateway": "classification",
+                                                   "record_id": record_id("mc", 1)}}
+    entries["answer-is-a-string"] = {"answer": "refused_by_gateway: guardrail"}
+    entries["answer-is-a-list"] = {"answer": ["refused_by_gateway"]}
+    entries["no-answer-key"] = {"usage": {"tokens_in": 0}}
+
+    # `census` reads a file relative to the repo root; give it the same entries.
+    path = ROOT / "tests" / "fixtures" / "_marker_shapes.tmp.json"
+    path.write_text(json.dumps(entries), encoding="utf-8")
+    try:
+        by_band = refusals.census(path.relative_to(ROOT))
+    finally:
+        path.unlink()
+    by_runner = [cid for cid, e in entries.items() if run_evals._refusal_marker(e) is not None]
+
+    assert sum(by_band.values()) == len(by_runner) == 3, (
+        "marked-plain, marked-with-prose, marked-classification and nothing else; "
+        f"runner saw {by_runner}, band counted {by_band}")
+    assert not any(cid.startswith("prose-") for cid in by_runner), (
+        "the runner read a refusal out of prose")
+    assert {"marked-plain", "marked-with-prose", "marked-classification"} == set(by_runner)
+
+    # Shapes the band cannot render: `census` raises on an entry that is not an
+    # object (`record.get` on None) and on a null-valued marker (sorting None
+    # beside str). Measured here, left alone — the band is untouched by M06d
+    # (ADR-069 D1) — and the runner's half stated on its own. Its membership test
+    # is the band's (`"refused_by_gateway" in answer`), so a null-valued marker IS
+    # a refusal for both; a missing or malformed entry is a refusal for neither.
+    null_marker = {"answer": {"refused_by_gateway": None, "record_id": record_id("mn", 1)}}
+    assert run_evals._refusal_marker(null_marker) is not None
+    for shape in (None, "refused_by_gateway", ["refused_by_gateway"], 7, {"answer": "x"}):
+        assert run_evals._refusal_marker(shape) is None, shape
 
 
 # --- 5. answered is computed, not derived -----------------------------------------

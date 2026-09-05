@@ -399,8 +399,8 @@ def _refusal_marker(entry) -> dict | None:
     return None
 
 
-def _refusal_pairs_index(paths) -> dict[str, tuple[str, tuple[str, ...]]]:
-    """`record_id -> (mechanism, assessed)` over every `--refusals` sidecar.
+def _refusal_pairs_index(paths) -> dict[str, set[tuple[str, tuple[str, ...]]]]:
+    """`record_id -> {(mechanism, assessed), ...}` over every `--refusals` sidecar.
 
     The sidecar is `run_with_tools.py`'s projection of the audit records it
     fetched back out of the lake: the answer file is what the agent said, the
@@ -408,15 +408,25 @@ def _refusal_pairs_index(paths) -> dict[str, tuple[str, tuple[str, ...]]]:
     The scorer never queries the lake (G8, one step from G1) and `assessed` is
     never copied into an answer file (the answer channel restating the audit
     record). At scale this is a lake query by that id; the interface already
-    matches (ADR-069 D4)."""
-    index: dict[str, tuple[str, tuple[str, ...]]] = {}
+    matches (ADR-069 D4).
+
+    **A set per record, not last-wins.** The AI Quality seat planted two sidecars
+    naming the same `record_id` under two topics and the first draft printed
+    `resolved to 1 pair`, zero notes -- the one assertion D4 exists to make,
+    defeated by argument order. Every pair a record is given is kept, so a
+    record described two ways widens the pair set and turns the line red."""
+    index: dict[str, set[tuple[str, tuple[str, ...]]]] = {}
     for path in paths:
         sidecar = _load(pathlib.Path(path)) or {}
         for per_sample in (sidecar.get("refusals") or {}).values():
             for detail in (per_sample or {}).values():
                 if isinstance(detail, dict) and detail.get("record_id"):
-                    index[detail["record_id"]] = (
-                        str(detail.get("mechanism")), tuple(detail.get("assessed") or ()))
+                    assessed = detail.get("assessed") or ()
+                    if isinstance(assessed, str):   # one name given bare, not as a list
+                        assessed = (assessed,)
+                    index.setdefault(detail["record_id"], set()).add((
+                        # Missing data reads as missing, never as a mechanism called "None".
+                        detail.get("mechanism") or "<no mechanism>", tuple(assessed)))
     return index
 
 
@@ -530,18 +540,20 @@ def run(args) -> int:
     # which holds because the refusal envelope fails `json_schema` -- on 25 of 25
     # cases -- and carries `usage`, so `budget` does not turn it INFRA (D7). When a
     # precondition goes, the partition does not close, and this SAYS so instead of
-    # printing two numbers that do not add up to the third. A mixed
-    # `[INFRA, FAIL, PASS]` refusal has no strict majority, records ADVISORY, and
-    # lands in no bucket -- so `total == passed + failed + infra` is not an
-    # invariant, and the four-term sum is checked beside the partition.
+    # printing two numbers that do not add up to the third. The reachable route is
+    # a refusal envelope recorded without `usage` at k=1, which `budget` scores
+    # INFRA. ADR-069 D7 rev. 4 also named a mixed `[INFRA, FAIL, PASS]` sample
+    # recording ADVISORY; measured in PR 2, `summarise` refuses INFRA in any sample
+    # before that branch (D7 rev. 5), so the goldens summary cannot record ADVISORY
+    # today and the `advisory` term below is a guard asserted at zero, not a route.
     verdict_of = {r.id: r.result for r in results}
     escaped = sorted(cid for cid in refused_ids if verdict_of.get(cid) != FAIL)
     if escaped:
         notes.append(
             f"partition does not close: {len(escaped)} refused case(s) did not record FAIL: "
             + ", ".join(f"{cid}={verdict_of.get(cid)}" for cid in escaped)
-            + ". ADR-069 D7: a case without `json_schema`, a refusal envelope with no "
-              "`usage`, or a mixed sample with no strict majority.")
+            + ". ADR-069 D7: a case without `json_schema`, or a refusal envelope with no "
+              "`usage`.")
     if scores["passed"] + scores["failed"] + scores["infra"] + advisory != scores["total"]:
         notes.append(
             f"accounting does not close: passed {scores['passed']} + failed {scores['failed']} "
@@ -567,13 +579,21 @@ def run(args) -> int:
     if sidecars:
         index = _refusal_pairs_index(sidecars)
         pairs: set[tuple[str, tuple[str, ...]]] = set()
-        unresolved = []
+        unresolved, conflicting = [], []
         for cid, n, marker in refused_answers:
             hit = index.get(marker.get("record_id"))
             if hit is None:
                 unresolved.append(f"{cid}#{n} -> {marker.get('record_id')!r}")
             else:
-                pairs.add(hit)
+                pairs |= hit
+                if len(hit) > 1:
+                    conflicting.append(f"{cid}#{n}")
+        if conflicting:
+            notes.append(
+                f"{len(conflicting)} refused answer(s) are described two ways across the "
+                f"--refusals sidecars given: {', '.join(conflicting)}. Every pair is kept, "
+                "so the count above is over all of them; the sidecars disagree about the "
+                "same audit record and one of them is wrong.")
         shown = "; ".join(f"{mechanism} / {','.join(assessed) or '<unattributed>'}"
                           for mechanism, assessed in sorted(pairs))
         pair_line = (
