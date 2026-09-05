@@ -433,6 +433,25 @@ is majority-refused and lands in no bucket. So `total == passed + failed + infra
 is not an invariant, and PR 2 asserts `passed + failed + infra + advisory == total`
 beside the partition.
 
+**Corrected in revision 5, measured through the real path in PR 2.** The mixed
+route above does not exist. `summarise` refuses INFRA in *any* sample with a
+`SystemExit` naming the case — *"INFRA does not enter the pool"*, the SPEC/02 rule
+that a bad sample means a full re-run — before its no-strict-majority branch can
+see the split. Over PASS/FAIL at an odd k every case has a strict majority, so the
+goldens summary cannot record ADVISORY today by any path; `run_evals.py`'s own
+comment on that branch says as much and revision 4 did not read it. The fixture
+was built and driven anyway (`tests/test_refusal_partition.py::
+test_the_mixed_sample_is_refused_at_the_door_not_summarised_to_advisory`), so this
+is a measurement, and the INFRA rule was not weakened to make the ADR's fixture
+reachable. What *is* reachable is the uniform route one sentence up: at k=1
+nothing summarises, a refusal envelope without `usage` scores INFRA, and the
+majority-refused case sits outside `failed`. PR 2 carries that fixture instead
+(`..._is_infra_and_the_four_term_sum_still_closes`), and the runner says
+*partition does not close* and prints the four-term accounting on it. The
+`advisory` term stays in the accounting as a guard for a route nothing can take
+today; it is asserted at zero, not exercised at one, and this sentence is the
+disclosure.
+
 **`answered` is computed, not derived.** As `failed - refused` the identity is
 `x + (y - x) == y` — a tautology that can never go red, which would make the
 DoD's "deleted and re-run red" box unsatisfiable. It is
@@ -526,3 +545,10 @@ seventh. Also found and recorded rather than claimed: majority versus
 at-least-once is not separable on this data — `cases_separating_the_estimators`
 is `[]` — so the rescore proves only majority versus unanimous, through
 `recommend-015`. The demo artifact gained a third line.
+
+**Revision 5 was PR 2 building what revisions 1–4 described.** One pre-registered
+fixture failed to reach the code it was written for: the `[INFRA, FAIL, PASS]`
+sample is refused by `summarise`'s INFRA door before the ADVISORY branch, so the
+ADVISORY route in Decision 7 is unreachable and is corrected there rather than
+worked around. Everything else built as written: the counts at the seam, the
+sidecar join, the seven tests, the three demo lines byte-for-byte.

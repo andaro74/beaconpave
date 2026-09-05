@@ -379,6 +379,66 @@ def print_diff(diff: dict, control_label: str, tools_label: str) -> None:
           "M01's headline +1 concealed a real -3 (ADR-021).")
 
 
+def _refusal_marker(entry) -> dict | None:
+    """The refusal marker on one recorded answer, or None (SPEC/06d, ADR-069 D4).
+
+    **Duplicated from `evals/refusals.py::census`, deliberately, rather than
+    imported.** `tests/test_refusal_band.py::test_the_band_blocks_nothing` forbids
+    this module importing that one, because the band is reporting-only and must
+    never reach anything that scores. The two lines are the same two lines so the
+    two readers cannot disagree about what a refusal is.
+
+    Read from the record, never re-derived from the text: whether a control
+    refused a case is a fact about the run that happened, and inferring it from
+    a polite sentence would be this scorer's opinion about a call it did not
+    make. `run_with_tools.py` writes the marker on the refusal path and nothing
+    else does."""
+    answer = entry.get("answer") if isinstance(entry, dict) else None
+    if isinstance(answer, dict) and "refused_by_gateway" in answer:
+        return answer
+    return None
+
+
+def _refusal_pairs_index(paths) -> tuple[dict[str, set[tuple[str, tuple[str, ...]]]], list[str]]:
+    """`record_id -> {(mechanism, assessed), ...}` over every `--refusals` sidecar,
+    and the sidecars that were not objects and so contributed nothing.
+
+    The sidecar is `run_with_tools.py`'s projection of the audit records it
+    fetched back out of the lake: the answer file is what the agent said, the
+    sidecar is what the platform did, and `record_id` is the one key both carry.
+    The scorer never queries the lake (G8, one step from G1) and `assessed` is
+    never copied into an answer file (the answer channel restating the audit
+    record). At scale this is a lake query by that id; the interface already
+    matches (ADR-069 D4).
+
+    **A set per record, not last-wins.** The AI Quality seat planted two sidecars
+    naming the same `record_id` under two topics and the first draft printed
+    `resolved to 1 pair`, zero notes -- the one assertion D4 exists to make,
+    defeated by argument order. Every pair a record is given is kept, so a
+    record described two ways widens the pair set and turns the line red."""
+    index: dict[str, set[tuple[str, tuple[str, ...]]]] = {}
+    malformed: list[str] = []
+    for path in paths:
+        sidecar = _load(pathlib.Path(path))
+        if not isinstance(sidecar, dict) or not isinstance(sidecar.get("refusals", {}), dict):
+            # A list, a scalar, or a `refusals` that is not a map. Recorded, not
+            # raised (D4): a traceback in a gate lane is an errored step instead of
+            # a stated finding, and every record this file should have resolved
+            # will now surface as unresolved beside this note.
+            malformed.append(str(path))
+            continue
+        for per_sample in (sidecar.get("refusals") or {}).values():
+            for detail in (per_sample or {}).values():
+                if isinstance(detail, dict) and detail.get("record_id"):
+                    assessed = detail.get("assessed") or ()
+                    if isinstance(assessed, str):   # one name given bare, not as a list
+                        assessed = (assessed,)
+                    index.setdefault(detail["record_id"], set()).add((
+                        # Missing data reads as missing, never as a mechanism called "None".
+                        detail.get("mechanism") or "<no mechanism>", tuple(assessed)))
+    return index, malformed
+
+
 def run(args) -> int:
     cases = _load(GOLDENS)
     if args.dryrun:
@@ -466,6 +526,107 @@ def run(args) -> int:
         # a property of the system or of the summariser (see `summarise`).
         scores["pooled_pass_rate"] = pooled_pass_rate(per_sample)
 
+    # --- SPEC/06d: the partition of `failed`, computed HERE and not in `tally` ---
+    #
+    # `tally` takes `CaseResult` and cannot see the answer payload; this is the one
+    # seam with the answers AND the results in scope (ADR-069, plan row 2). The
+    # refused set iterates `cases`, not the answer files' keys, and aggregates by
+    # the same per-case MAJORITY `summarise` used for the column it partitions
+    # (D1) -- at k=1 the majority is the sample. `answered` is COMPUTED from
+    # `results`, never `failed - refused`: that difference is a tautology that can
+    # never go red, and the DoD's "deleted and re-run red" needs a number that can.
+    needed = len(loaded) // 2 + 1
+    refused_ids = {
+        case["id"] for case in cases
+        if sum(1 for sample in loaded
+               if _refusal_marker(sample.get(case["id"])) is not None) >= needed
+    }
+    scores["refused"] = len(refused_ids)
+    scores["answered"] = sum(1 for r in results if r.result == FAIL and r.id not in refused_ids)
+    advisory = sum(1 for r in results if r.result == ADVISORY)
+    notes: list[str] = []
+    # `refused + answered == failed` rests on `refused` being a subset of `failed`,
+    # which holds because the refusal envelope fails `json_schema` -- on 25 of 25
+    # cases -- and carries `usage`, so `budget` does not turn it INFRA (D7). When a
+    # precondition goes, the partition does not close, and this SAYS so instead of
+    # printing two numbers that do not add up to the third. The reachable route is
+    # a refusal envelope recorded without `usage` at k=1, which `budget` scores
+    # INFRA. ADR-069 D7 rev. 4 also named a mixed `[INFRA, FAIL, PASS]` sample
+    # recording ADVISORY; measured in PR 2, `summarise` refuses INFRA in any sample
+    # before that branch (D7 rev. 5), so the goldens summary cannot record ADVISORY
+    # today and the `advisory` term below is a guard asserted at zero, not a route.
+    verdict_of = {r.id: r.result for r in results}
+    escaped = sorted(cid for cid in refused_ids if verdict_of.get(cid) != FAIL)
+    if escaped:
+        notes.append(
+            f"partition does not close: {len(escaped)} refused case(s) did not record FAIL: "
+            + ", ".join(f"{cid}={verdict_of.get(cid)}" for cid in escaped)
+            + ". ADR-069 D7: a case without `json_schema`, or a refusal envelope with no "
+              "`usage`.")
+    if scores["passed"] + scores["failed"] + scores["infra"] + advisory != scores["total"]:
+        notes.append(
+            f"accounting does not close: passed {scores['passed']} + failed {scores['failed']} "
+            f"+ infra {scores['infra']} + advisory {advisory} != total {scores['total']}; a "
+            "verdict outside PASS/FAIL/INFRA/ADVISORY reached the goldens summary.")
+
+    # The `(mechanism, assessed)` PAIR set of every refused answer in this run, read
+    # from the `--refusals` sidecar and joined by `record_id` (D4). A singleton
+    # mechanism set is not enough: a second DENY topic and a second guardrail both
+    # record `mechanism: "guardrail"`, and a run split 9/8 across two topics would
+    # be a finding for a different seat reported as one control's footprint. It
+    # records rather than raises -- a raise in a gate lane is an errored CI step
+    # instead of a stated block -- and it can never pass on absent input: no
+    # sidecar means the line says NOT ASSESSED, and an unresolved id is a note in
+    # the verdict, never a score.
+    refused_answers = [
+        (case["id"], n, marker)
+        for case in cases
+        for n, sample in enumerate(loaded, 1)
+        if (marker := _refusal_marker(sample.get(case["id"]))) is not None
+    ]
+    sidecars = getattr(args, "refusals", None)
+    if sidecars:
+        index, malformed = _refusal_pairs_index(sidecars)
+        pairs: set[tuple[str, tuple[str, ...]]] = set()
+        unresolved, conflicting = [], []
+        if malformed:
+            notes.append(
+                f"{len(malformed)} --refusals sidecar(s) are not the object "
+                f"`run_with_tools.py` writes and contributed nothing: {', '.join(malformed)}.")
+        for cid, n, marker in refused_answers:
+            hit = index.get(marker.get("record_id"))
+            if hit is None:
+                unresolved.append(f"{cid}#{n} -> {marker.get('record_id')!r}")
+            else:
+                pairs |= hit
+                if len(hit) > 1:
+                    conflicting.append(f"{cid}#{n}")
+        if conflicting:
+            notes.append(
+                f"{len(conflicting)} refused answer(s) are described two ways across the "
+                f"--refusals sidecars given: {', '.join(conflicting)}. Every pair is kept, "
+                "so the count above is over all of them; the sidecars disagree about the "
+                "same audit record and one of them is wrong.")
+        shown = "; ".join(f"{mechanism} / {','.join(assessed) or '<unattributed>'}"
+                          for mechanism, assessed in sorted(pairs))
+        pair_line = (
+            f"refusals: {len(refused_answers) - len(unresolved)}/{len(refused_answers)} "
+            f"resolved to {len(pairs)} (mechanism, assessed) pair{'' if len(pairs) == 1 else 's'}"
+            + (f" — {shown}" if pairs else ""))
+        if len(pairs) > 1:
+            notes.append(
+                f"the refused set is not one control's footprint: {len(pairs)} (mechanism, "
+                f"assessed) pairs -- {shown}. A second topic, a second guardrail or a "
+                "classification denial is a finding for its own seat (ADR-069 D4).")
+        if unresolved:
+            notes.append(
+                f"{len(unresolved)} refused answer(s) name a record the --refusals sidecar "
+                f"does not hold: {'; '.join(unresolved)}. The pair set above is over the "
+                "resolved answers only.")
+    else:
+        pair_line = ("refusals: (mechanism, assessed) pair set NOT ASSESSED — no --refusals "
+                     "sidecar given (ADR-069 D4)")
+
     width = max(len(r.id) for r in results)
     for r in results:
         # With k > 1 the per-sample verdicts print beside the majority, because
@@ -484,6 +645,19 @@ def run(args) -> int:
                 f"{len(judged_parts['calibrated'])} calibrated axis(es), "
                 f"{len(judged_parts['vetoes'])} case(s) vetoed")
     )
+    # The sentence the instrument could not say until M06d: a case refused before
+    # it produced an answer, apart from a case that answered and scored wrong. No
+    # mechanism named here -- the count does not carry one; the pair line does.
+    print(f"of the {scores['failed']} failed: {scores['refused']} were refused before scoring, "
+          f"{scores['answered']} answered and scored wrong")
+    if advisory or notes:
+        print(f"accounting: passed {scores['passed']} + failed {scores['failed']} + infra "
+              f"{scores['infra']} + advisory {advisory} = "
+              f"{scores['passed'] + scores['failed'] + scores['infra'] + advisory} "
+              f"of {scores['total']}")
+    print(pair_line)
+    for note in notes:
+        print(f"  note: {note}")
     latency = suite_latency(answers, _load(MANIFEST)["gates"]["budgets"].get("p95_ms"))
     print(f"suite latency  {'OK  ' if latency.passed else 'OVER'} {latency.detail}")
     deferred_hits = sum(len(r.deferred) for r in results)
@@ -538,7 +712,7 @@ def run(args) -> int:
             print(f"wrote paired diff: {args.diff_out}")
 
     if args.out:
-        emit_verdict(results, scores, args.out)
+        emit_verdict(results, scores, args.out, notes=notes)
         print(f"wrote verdict: {args.out}")
 
     # Reporting a score is not gating. `pave gate decide` owns the block/allow
@@ -674,7 +848,12 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None) 
     return path
 
 
-def emit_verdict(results, scores, out: str) -> None:
+def emit_verdict(results, scores, out: str, notes: list[str] | None = None) -> None:
+    """The gate verdict. `scores` carries `refused` and `answered` beside the
+    tally from M06d on, and `notes` carries what the partition could not put in a
+    number -- an unresolved record, a pair set that is not a singleton, a
+    partition that did not close. Neither moves `verdict`: `pave gate decide`
+    reads that field and never `scores` (SPEC/06d; ADR-069 consequences)."""
     from pave import verdict as verdict_mod
     blocked = any(r.result == INFRA for r in results)
     unresolved = any(r.result == ADVISORY for r in results)
@@ -693,6 +872,7 @@ def emit_verdict(results, scores, out: str) -> None:
             FAIL if (scores["failed"] or unresolved) else "PASS"),
         fail_closed=True,
         scores={k: v for k, v in scores.items()},
+        notes=notes or None,
     ))
 
 
@@ -703,6 +883,11 @@ def main(argv=None) -> int:
                    help="JSON produced by the agent under test; repeat for k samples")
     p.add_argument("--arm", help="which system produced these answers, when a milestone "
                                  "runs more than one (e.g. control | tools)")
+    p.add_argument("--refusals", action="append",
+                   help="the run's refusal sidecar (`goldens-run-refusals.json`, built from the "
+                        "audit records); repeatable. Joined to refused answers by `record_id` "
+                        "so the report can state the (mechanism, assessed) pair set. Without "
+                        "it the report says the pair set was not assessed (ADR-069 D4)")
     p.add_argument("--against", action="append",
                    help="answers from the OTHER arm; repeat for its k samples. Both arms are "
                         "summarised the same way and the paired per-case diff is reported, "
