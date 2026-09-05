@@ -168,12 +168,19 @@ def test_the_partition_closes_and_reaches_the_entry_and_the_verdict(harness):
     answered wrong on the other two. It is a FAIL that ANSWERED. Under
     at-least-once the sum would exceed `failed` (ADR-069 D1, reason 1)."""
     cases, samples = identity_suite()
+    # A refused entry for a case the golden set does not have. The refused set
+    # iterates `cases`, not the answer files' keys (SPEC/06d constraint 4); on
+    # M06b's files the two coincide, which is why the Platform Engineering seat's
+    # plant of the other iteration survived every test until this line existed.
+    for sample in samples:
+        sample["phantom-z"] = refused("phantom-z", 1)
     paths = harness.plant(cases, samples)
     text, verdict = harness.run(paths, "--record", "--tag", "t-partition")
 
     scores = verdict["scores"]
     assert scores["refused"] + scores["answered"] == scores["failed"]
-    assert scores["refused"] == 2, "ref-a and ref-b; flip-f is a minority refusal"
+    assert scores["refused"] == 2, "ref-a and ref-b; flip-f is a minority refusal; phantom-z is no case"
+    assert "phantom" not in text, "an answer-file key with no golden case reached the report"
     assert scores["answered"] == 2, "wrong-c, and flip-f which answered on two of three"
     assert scores["passed"] == 1 and scores["total"] == 5
 
@@ -307,6 +314,16 @@ def test_the_pair_set_is_read_from_the_sidecar_and_goes_red_two_ways(harness):
         assert any("described two ways" in n and "flip-f#1" in n for n in verdict["notes"])
         assert any("not one control's footprint" in n for n in verdict["notes"])
 
+    # A sidecar that is not the object the harness writes. Records, never raises:
+    # the file is named in a note, and every record it should have carried is
+    # unresolved beside it. The Platform Engineering seat found this as a
+    # traceback out of a gate lane.
+    text, verdict = with_sidecar([sidecar], "listed.json")
+    assert "refusals: 0/7 resolved to 0 (mechanism, assessed) pairs" in text
+    assert any("contributed nothing" in n and "listed.json" in n for n in verdict["notes"])
+    assert any("sidecar does not hold" in n for n in verdict["notes"])
+    assert verdict["scores"]["refused"] == 2, "a malformed sidecar moves no score"
+
     text, verdict = harness.run(paths, out="none-verdict.json")
     assert "pair set NOT ASSESSED" in text and "--refusals" in text
     assert "resolved to" not in text
@@ -352,9 +369,13 @@ def test_the_runner_and_the_band_read_the_same_marker_on_every_shape():
     asserted here over every shape either could meet: refusal-sounding prose
     without the marker, the marker beside prose, a marker whose value is null, a
     marker on a non-dict answer, a missing answer, and a missing entry. Whatever
-    `census` counts, the runner counts; nothing else.
+    `census` counts, the runner counts.
 
-    This test may import the band; it is a test, not a scorer."""
+    **This is enumerated coverage, not a proof of absence.** The Security seat
+    planted a prose match on a phrase outside `REFUSAL_SOUNDING` and this test
+    stayed green. The proof of absence is the structural test below, which reads
+    the function rather than sampling its inputs. This test may import the band;
+    it is a test, not a scorer."""
     from evals import refusals
 
     entries = {f"prose-{i}": answered(text) for i, text in enumerate(REFUSAL_SOUNDING)}
@@ -394,6 +415,43 @@ def test_the_runner_and_the_band_read_the_same_marker_on_every_shape():
     assert run_evals._refusal_marker(null_marker) is not None
     for shape in (None, "refused_by_gateway", ["refused_by_gateway"], 7, {"answer": "x"}):
         assert run_evals._refusal_marker(shape) is None, shape
+
+
+def test_the_marker_read_reads_two_keys_and_nothing_else():
+    """Structural: the proof of absence the enumerated test above cannot give.
+
+    A prose fallback needs a phrase, a regex, a helper, or a list — every one of
+    them is a string literal or a name in the function body. So the body of
+    `_refusal_marker` is walked as syntax and allowed exactly two string
+    literals (`"answer"`, the field it reaches into, and `"refused_by_gateway"`,
+    the key it tests) and the handful of names a two-line dict read needs. A
+    one-line "just for one flaky case" addition of `or "sorry" in text` fails
+    this on the literal; `or _looks_refused(text)` fails it on the name; an
+    imported `re` fails it on the name. Reading the function is the only check
+    whose coverage does not depend on guessing the phrase."""
+    import ast
+    import inspect
+    import textwrap
+
+    tree = ast.parse(textwrap.dedent(inspect.getsource(run_evals._refusal_marker)))
+    func = tree.body[0]
+    assert isinstance(func, ast.FunctionDef)
+    body = func.body[1:] if ast.get_docstring(func) else func.body
+
+    literals = {n.value for stmt in body for n in ast.walk(stmt)
+                if isinstance(n, ast.Constant) and isinstance(n.value, str)}
+    assert literals == {"answer", "refused_by_gateway"}, (
+        f"the marker read carries string literals beyond its two keys: {literals}")
+    names = {n.id for stmt in body for n in ast.walk(stmt) if isinstance(n, ast.Name)}
+    assert names <= {"entry", "answer", "isinstance", "dict"}, (
+        f"the marker read reaches for names a two-key read does not need: {names}")
+    attrs = {n.attr for stmt in body for n in ast.walk(stmt) if isinstance(n, ast.Attribute)}
+    assert attrs <= {"get"}, f"the marker read calls methods beyond `.get`: {attrs}"
+    nodes = [n for stmt in body for n in ast.walk(stmt)]
+    assert not any(isinstance(n, (ast.Import, ast.ImportFrom)) for n in nodes)
+    calls = {getattr(n.func, "id", None) or getattr(n.func, "attr", None)
+             for n in nodes if isinstance(n, ast.Call)}
+    assert calls <= {"isinstance", "get"}, f"the marker read calls {calls}"
 
 
 # --- 5. answered is computed, not derived -----------------------------------------

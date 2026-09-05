@@ -399,8 +399,9 @@ def _refusal_marker(entry) -> dict | None:
     return None
 
 
-def _refusal_pairs_index(paths) -> dict[str, set[tuple[str, tuple[str, ...]]]]:
-    """`record_id -> {(mechanism, assessed), ...}` over every `--refusals` sidecar.
+def _refusal_pairs_index(paths) -> tuple[dict[str, set[tuple[str, tuple[str, ...]]]], list[str]]:
+    """`record_id -> {(mechanism, assessed), ...}` over every `--refusals` sidecar,
+    and the sidecars that were not objects and so contributed nothing.
 
     The sidecar is `run_with_tools.py`'s projection of the audit records it
     fetched back out of the lake: the answer file is what the agent said, the
@@ -416,8 +417,16 @@ def _refusal_pairs_index(paths) -> dict[str, set[tuple[str, tuple[str, ...]]]]:
     defeated by argument order. Every pair a record is given is kept, so a
     record described two ways widens the pair set and turns the line red."""
     index: dict[str, set[tuple[str, tuple[str, ...]]]] = {}
+    malformed: list[str] = []
     for path in paths:
-        sidecar = _load(pathlib.Path(path)) or {}
+        sidecar = _load(pathlib.Path(path))
+        if not isinstance(sidecar, dict) or not isinstance(sidecar.get("refusals", {}), dict):
+            # A list, a scalar, or a `refusals` that is not a map. Recorded, not
+            # raised (D4): a traceback in a gate lane is an errored step instead of
+            # a stated finding, and every record this file should have resolved
+            # will now surface as unresolved beside this note.
+            malformed.append(str(path))
+            continue
         for per_sample in (sidecar.get("refusals") or {}).values():
             for detail in (per_sample or {}).values():
                 if isinstance(detail, dict) and detail.get("record_id"):
@@ -427,7 +436,7 @@ def _refusal_pairs_index(paths) -> dict[str, set[tuple[str, tuple[str, ...]]]]:
                     index.setdefault(detail["record_id"], set()).add((
                         # Missing data reads as missing, never as a mechanism called "None".
                         detail.get("mechanism") or "<no mechanism>", tuple(assessed)))
-    return index
+    return index, malformed
 
 
 def run(args) -> int:
@@ -577,9 +586,13 @@ def run(args) -> int:
     ]
     sidecars = getattr(args, "refusals", None)
     if sidecars:
-        index = _refusal_pairs_index(sidecars)
+        index, malformed = _refusal_pairs_index(sidecars)
         pairs: set[tuple[str, tuple[str, ...]]] = set()
         unresolved, conflicting = [], []
+        if malformed:
+            notes.append(
+                f"{len(malformed)} --refusals sidecar(s) are not the object "
+                f"`run_with_tools.py` writes and contributed nothing: {', '.join(malformed)}.")
         for cid, n, marker in refused_answers:
             hit = index.get(marker.get("record_id"))
             if hit is None:
