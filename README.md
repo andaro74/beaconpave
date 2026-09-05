@@ -41,6 +41,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 06 | Attack register + two-key gate integrity | ten PRs ✦ | `m06` | **21/25** ✦ | not judged ✧ | not run ✦ | ✅ |
 | 06b | Trajectory eval + `entitlement-check` ❖ | thirty-four PRs ❆ | `m06b` | 1/25, not recorded ❆ | not judged ✧ | 6/6 tool plane ❆ | ✅ |
 | 06c | The instrument, repaired ❅ | three PRs ❅ | `m06c` | not re-scored ❅ | – | n/a ❅ | ✅ |
+| 06d | The instrument, readable ❈ | three PRs ❈ | `m06d` | not re-scored ❈ | – | n/a ❈ | ✅ |
 | 07 | Rules registry + regdelta loop | `m07-rules` | `m07` | –/25 | – | – | ⬜ |
 | 08 | Playwright + k6 on one verdict schema | `m08-surfaces` | `m08` | – | – | – | ⬜ |
 | 09 | Game-day drill + go/no-go artifact | `m09-drill` | `m09` | – | – | – | ⬜ |
@@ -382,6 +383,24 @@ discovered defects are recorded with a deadline rather than adopted. That last
 rule is the one M06b did not have: it adopted a defect it did not create and then
 adopted every defect that investigation found, which is how one milestone reached
 thirty-four PRs. The adversarial cell is `n/a` because no corpus changes here.
+
+❈ **M06d fixed the sentence, not the product.** Under ADR-064 option D the tools
+arm still scores 1/25, and until this milestone the report scored a case refused
+before it produced an answer as a plain `FAIL`, indistinguishable from one that
+answered badly. Now the same run prints **"of the 24 failed: 17 were refused before
+scoring, 7 answered and scored wrong"** and, from the run's refusal sidecar, that
+all 50 refused answers resolve to one `(mechanism, assessed)` pair. The 17 is
+`refused@majority`, the same per-case majority that produces the PASS/FAIL column
+beside it (ADR-069 D1); the 16 published elsewhere in this repo is
+`refused@unanimous`, and the two are answers to different questions about the same
+run. **No score moved and no history entry was recorded** — `1/25` is not
+admissible, and the two new `scores` keys wait on the first milestone that records
+a goldens entry to make them derivable or drop them (ADR-069 D5). Reporting only:
+`pave gate decide` reads the verdict and never the scores, and a test says so. One
+pre-registered fixture was found unreachable through the real path and the ADR was
+corrected rather than the INFRA rule weakened. Three PRs, zero model calls, three
+seats signed on the code. The adversarial cell is `n/a`: the G4 test lives in
+`tests/`, not the corpus, so no digest moved.
 
 ## What part one produced
 
