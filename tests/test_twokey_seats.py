@@ -1433,6 +1433,8 @@ M06B_SEATS = {
     # The seat round: the producer of three corpora's measurements, which was
     # missed by the sentence widening the rule for its two siblings.
     "services/highlights-agent/topic_baseline.py": {"security", "platform-eng"},
+    # ADR-066 step 0: the only reader of the field G4's boundary was drawn around.
+    "services/highlights-agent/read_withheld.py": {"security", "platform-eng"},
     "tests/test_topic_baseline.py": {"security", "platform-eng"},
     # The seat round: the only readers of the derived artifacts, which are the
     # only published form of what the output-side corpora measured.
@@ -1462,8 +1464,8 @@ def test_the_m06b_pin_cannot_be_thinned_to_nothing():
     is the shape `test_the_seat_pin_covers_every_rule_this_adr_added` records as
     `ADR043_SEATS = {}` leaving 1814 passed. A count is the cheapest thing that
     makes deleting an entry two edits instead of one."""
-    assert len(M06B_SEATS) == 11, (
-        f"M06B_SEATS holds {len(M06B_SEATS)} paths, expected 11. Deleting an entry in the "
+    assert len(M06B_SEATS) == 12, (
+        f"M06B_SEATS holds {len(M06B_SEATS)} paths, expected 12. Deleting an entry in the "
         "same diff that narrows its rule is the one-edit bypass this constant makes two. "
         "If a path was added on purpose, raise the number here and say why.")
 

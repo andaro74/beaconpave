@@ -308,3 +308,58 @@ this ADR posed it:
 One new finding this ADR did not anticipate, from ADR-065's corpus: **the model's
 own refusal is blocked by the topic** (`OUT-010`). If that generalises, part of
 the outage has a mechanism findable without any capture at all.
+
+---
+
+## Disposition: OPTION D. Accepted, recorded, and not fixed — 2026-09-05
+
+**The answer-channel defect is accepted as an open, documented defect. Capture is
+not built.**
+
+### Every other option is closed, and each on its own evidence
+
+| option | outcome | on what |
+|---|---|---|
+| **A** — generate without the guardrail, apply it offline | **refused on sight** | it is a `skip_guardrail` flag on the control, the shape `tests/test_handler_wiring.py` exists because a seat planted it and watched the suite stay green |
+| **C** — capture the assessment's spans | **dead** | topic assessments carry no content and no offsets; the PII policy on the same response *does* carry `match`, so it is the service's choice and not an API limit (step 0, 2026-09-04) |
+| **E** — `outputAction: NONE` on the topic | **refused** | it would unblock three genuine harms to recover one wrong refusal, and its premise — that the topic refuses the platform's own verdicts — was refuted by the same run (ADR-065) |
+| **B** — move the answer channel to explicit `ApplyGuardrail` | **priced, not built** | ADR-066. Larger than this ADR described: four assessments to reproduce, a trust boundary moved, and a G4 sink in the same change |
+| **the free version of B** — the text is already being handed over | **ruled out** | ADR-066 step 0, measured: the blocked response carries the platform's own 73-character placeholder, digest for digest |
+
+### Why D rather than B
+
+Not because B is wrong — it is the architecturally right answer and this ADR has
+said so from the first draft. Because **B is a milestone and it should be
+scheduled as one.** It moves the guarantee that Bedrock never hands unapproved
+model output to the gateway, and it needs a capture sink `evals/adversarial.py`
+provably cannot reach. A change of that size slid into a six-PR remediation is how
+M06b reached thirty-four PRs, and this disposition exists partly to not do that
+again.
+
+### What accepting it costs, stated plainly
+
+- **The golden suite's tools arm cannot score.** 16 of 25 cases are refused before
+  their assert. Any milestone measured on that arm inherits it, and the number
+  must be carried with the defect named beside it.
+- **Two live hypotheses stay unseparated** — refusal sentences blocking
+  unpredictably, and the topic firing on a refusal joined to its alternative.
+  Both predict the same symptom and only the refused text can tell them apart.
+- **`entitlement-circumvention` keeps a false-positive surface nobody has
+  measured the size of**, because the cases that would show it are refused before
+  they answer.
+
+### What it does not cost
+
+The control is not weakened. No topic is widened, no wording amended, no
+output-side action set, no case edited, no baseline reset. **The suite is wrong
+about answer quality; the guardrail is doing something, and what it is doing is
+now measured on three frozen corpora rather than guessed at.**
+
+### Owed, dated, and left alone
+
+- **The answer-channel defect** carries no fix and no deadline here. It is
+  documented in `docs/M06b-guardrail-diagnosis.md`, `docs/M06b-decomposition-measured.md`
+  and `milestones/M06b/README.md`, and reopening it means scheduling option B as
+  its own milestone with the trust-boundary argument made in its own ADR.
+- **`ATK-003`** is a separate hole with a **M07** deadline (ADR-062), unaffected
+  by this.

@@ -387,8 +387,15 @@ RULES: tuple[Rule, ...] = (
         # times. `tests/test_topic_baseline.py` is the only reader of this
         # producer's arm table; leaving it one-key would be the fifth instance,
         # created by the diff fixing the first four.
+        # **`read_withheld.py` (M06c, ADR-066 step 0).** It reads the audit lake
+        # and decides, from a digest, whether ADR-066 is withdrawn or its pricing
+        # stands. It writes no observation a scorer sees, so it is not a producer
+        # in the narrow sense -- but it is the only reader of the field G4's
+        # boundary was drawn around, and which side of that boundary a tool sits
+        # on is exactly what this rule's two seats exist to decide together.
+        # Added in the diff that creates it, never in a follow-up.
         re.compile(r"^(services/[^/]+/(run_(probes(_via_gateway)?|tool_probes)"
-                   r"|topic_baseline)\.py|tests/test_topic_baseline\.py)$"),
+                   r"|topic_baseline|read_withheld)\.py|tests/test_topic_baseline\.py)$"),
         ("security", "platform-eng"),
     ),
     Rule(
