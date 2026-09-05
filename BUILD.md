@@ -20,10 +20,11 @@ discipline).
 | 05 | `m05-paved-road` | `pave new` + template + manifest verify at deploy | **Act 1:** under 30 min zero-to-governed (claim 1) |
 | 06 | ten PRs | The attack register (`SPEC/06`): 28 attacks measured against the tree, each with the plant that reproduces it. Two-key rules over the gate's own definition surface, `quality/judge/` and `rules/`; the gate moved out of `pave/cli.py`; adversarial contract assertions | Register + gate integrity; **no** interlock, **no** second tool — both renumbered to 06b |
 | 06b | `m06b-trajectory` | The **trajectory eval** first — something that can tell a tool that was CALLED from one that was CLAIMED; then `entitlement-check`, the second model-chosen tool that makes the eval mean something. **No interlock and no `publish-highlight` deployment** — the only recorded disposition on one is Legal/S&P's *no* (`SPEC/06` Decisions 1), and whether it is standing or M06-scoped is open for that seat, see ADR-055 | Four `m00b` unearned passes and eleven `entitlement_source` asserts become scorable; Act 0's punchline gets its answer |
-| 07 | `m07-rules` | Drive `rules/MER-AI-0001.yaml` end-to-end: disposition adds disclosure cases; gate catches the violation | **Act 3:** law → red service → fix (claim 6) |
-| 08 | `m08-surfaces` | Playwright + k6 emitting the verdict schema; one dashboard | Three surfaces, one schema (claims 3, 12 seed) |
-| 09 | `m09-drill` | Drill scenarios (blackout sweep, captions, alarm self-test) | **Act 4:** NO-GO → delta drill → GO (claim 11) |
-| 10 | `m10-selfheal` | Drift-vs-defect classifier + its tests; repair PR flow; curation panel | **Act 5:** ai-proposed repair merged (claims 7, 8, 12) |
+| 07 | `m07-guardrail-per-channel` | The gateway applies the guardrail per channel — `question`, `tool_request`, `tool_output`, `answer` — instead of `converse` applying one policy to every round's output; refused text captured where no scorer can read it (ADR-070, `SPEC/07`) | The tools arm's refusals inside SPEC/01's band, attributed by channel; `ATK-003` dispositioned |
+| 08 | `m08-rules` | Drive `rules/MER-AI-0001.yaml` end-to-end: disposition adds disclosure cases; gate catches the violation | **Act 3:** law → red service → fix (claim 6) |
+| 09 | `m09-surfaces` | Playwright + k6 emitting the verdict schema; one dashboard | Three surfaces, one schema (claims 3, 12 seed) |
+| 10 | `m10-drill` | Drill scenarios (blackout sweep, captions, alarm self-test) | **Act 4:** NO-GO → delta drill → GO (claim 11) |
+| 11 | `m11-selfheal` | Drift-vs-defect classifier + its tests; repair PR flow; curation panel | **Act 5:** ai-proposed repair merged (claims 7, 8, 12) |
 
 Close each milestone with `.claude/skills/close-milestone` before starting the
 next. The recordings are the deliverable.
