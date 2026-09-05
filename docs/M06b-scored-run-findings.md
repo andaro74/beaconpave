@@ -157,7 +157,12 @@ pre-existing hole in the deployed guardrail, surfaced by running the corpus.
 
 This explains the 8 `tool_output` refusals. It does **not** explain the 42
 `answer` refusals: M01 0/22, M02-tools 0/23 and M06 0/25 committed answers all
-pass v4 cleanly. That channel's block comes from the guardrail integrated into
+pass v4 cleanly. **Two of those three figures are circular and this sentence was
+never corrected** — `docs/M06b-guardrail-diagnosis.md` Correction 2 struck M01's
+22 and M02-tools' 23 as measurements over exactly the cases that were never
+refused, and the strike was not carried back here. Only M06's 0/25 is a real
+datum, and that arm is the control. The weaker claim the sentence can still
+support: **there is no committed text for any answer-channel block, on any arm.** That channel's block comes from the guardrail integrated into
 `converse`, assessing the model's generated output inline — different text from
 anything the committed evidence holds, and it was never captured.
 

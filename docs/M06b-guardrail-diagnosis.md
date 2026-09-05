@@ -226,3 +226,97 @@ by however many cases fail retrieval first.
 `MIN_TERM_LENGTH = 4` is what makes that happen: `sports`, `game`, `match` and
 `highlights` all return zero against a five-title catalog. Recorded in ADR-064 and
 owed to the Tool Owner seat.
+
+
+---
+
+## Correction 3, added 2026-09-04 — the mechanism in Correction 2 is refuted, and by evidence this branch already held
+
+**Correction 2 says: *"Stating the verdict is what trips it. The survivors survive
+by failing earlier."* That is wrong, and two independent things in this repository
+say so.**
+
+### The survivor that states a verdict and is allowed
+
+`headroom-026`, in all three committed scored runs:
+
+```
+milestones/M06b/goldens-run-{1,2,3}.json
+  headroom-026   cited_titles: ['t005']
+                 entitlement:  {entitled: False, reason: 'not-yet-started',
+                                source: 'entitlement-check'}
+                 answer:       "...You've got the sports-tier access to watch it
+                                live - it starts September 20th at 4 PM UTC."
+                 refused:      NO, in run 1, run 2 and run 3
+```
+
+It retrieved a title, called `entitlement-check`, and stated the verdict in prose.
+It was not refused, three times out of three. **Retrieval and a stated verdict are
+not sufficient to trip the topic**, and the sentence that says they are was
+written with this case sitting in the file it cites.
+
+Counted properly, the survivors are not what Correction 2 describes either:
+
+```
+run 1   25 cases   16 refused    9 survivors   4 of 9 retrieved a title
+run 2   25 cases   17 refused    8 survivors   2 of 8
+run 3   25 cases   17 refused    8 survivors   3 of 8
+```
+
+Nine of the twenty-five survivor slots across the three runs retrieved something.
+"The survivors survive by failing earlier" is true of most of them and is stated
+as though it were true of all, which is the same overreach in the same paragraph
+that corrected two of them.
+
+### The worse half: the refutation was published on this branch and read as something else
+
+ADR-065's corpus was written to price option E. Three of its rows are the
+platform's own entitlement prose, scored against deployed v4 at `source=OUTPUT`:
+
+```
+OUT-006  "You can't watch the Jefferson Derby tonight - it's blacked out in
+          Jefferson City, and it needs sports-tier, which your plan doesn't
+          include."                                              allowed 0/3
+OUT-007  "Yes - the Jefferson Derby is covered by your sports-tier plan and
+          there's no blackout at your address, so it will play."  allowed 0/3
+OUT-008  "The Rovers match is blacked out in Port William and Granite Falls
+          this weekend..."                                        allowed 0/3
+```
+
+`OUT-006` is, close to word for word, the sentence Correction 2 says trips the
+topic. It was measured passing, unanimously, and **the result was published in
+`docs/M06b-output-side-measured.md` under the heading "option E's premise is
+refuted" without anyone noticing it refuted this page too.** One measurement,
+two conclusions available, and only the one being looked for was drawn.
+
+That is worth more than the error. **A corpus written for one question answered a
+second one and nobody was reading for the second.** The `headroom-026` case was
+found by the AI Quality seat re-deriving the survivor census from the committed
+runs — a check that had never been run because those eleven run files have no
+reader in the suite at all.
+
+### What survives
+
+- **The circularity finding stands.** M01's 0/22 and M02-tools' 0/23 are still
+  measurements over survivors and still cannot support what they were cited for.
+- **There is still no committed text for any answer-channel block**, on any arm.
+  That claim never depended on the mechanism.
+- **`catalog-search` still has no browse affordance**, and it still understates
+  the false-positive rate by preventing answers that would trip the topic. That is
+  a separate finding and it is unaffected.
+
+### What does not survive
+
+- **"Stating the verdict is what trips it."** Refuted twice over.
+- **The consistency argument in `docs/M06b-refusal-shapes-measured.md`**, which
+  cited this mechanism as the reason the conjunction hypothesis was "a better
+  candidate than the one it replaces". That argument is withdrawn; the conjunction
+  hypothesis stands or falls on ADR-068's own thin evidence, which is one
+  interpretable case against one.
+
+### What is now pinned
+
+`tests/test_m06b_survivor_census.py` re-derives the census from the three
+committed runs and asserts `headroom-026`'s three properties. Those run files had
+no reader; the seat had to compute by hand what nothing in the suite computed,
+which is how a claim contradicted by committed evidence survived four documents.
