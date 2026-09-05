@@ -147,3 +147,47 @@ evidence, whichever way it comes out.
   refused.
 - **No number published that no entry backs.** M06b's row is the worked example of
   stating a number without claiming it.
+
+---
+
+## Amendment 1, 2026-09-05 — the claim and the plan were inconsistent when written
+
+**The claim above is not met, and it was not reachable by the plan beneath it.**
+That is a defect in this spec, found by the operator two PRs in, and it is
+recorded rather than corrected away.
+
+**The inconsistency.** The claim is *"a governed run whose score is admissible as
+a history entry."* The plan is *"run step 0, then take option B or option D."*
+Follow it through:
+
+- **Option D** accepts the defect. The suite still scores 1/25 and the entry is
+  still inadmissible. **The claim fails by construction.**
+- **Option B** builds the capture. That lets somebody *see* the refused text —
+  and a fix would still be a further, unscoped piece of work beyond six PRs.
+
+So the most likely path ended with six PRs, a diagnosis, and no fix: **M06b in
+miniature, written by the author who had just spent a milestone learning why
+not to.** A claim that cannot be reached by its own plan is worse than an
+ambitious one, because it reads as a commitment while functioning as a licence to
+keep going.
+
+**The claim is NOT rewritten to match the outcome.** Editing a goal after seeing
+the result is what `CLAUDE.md` forbids about golden cases and baselines, and a
+spec is not exempt because it is prose. It stands as written, and M06c closes
+**not having met it**, with this amendment as the reason.
+
+**What the plan could actually guarantee**, and what a spec of this shape should
+have claimed: *step 0 is answered and a disposition is recorded.* Both happened.
+
+**The milestone stops at three PRs rather than six.** Not because the cap was
+reached — because continuing would have spent the remaining three on work whose
+outcome was already determined. **A cap is a ceiling, not a budget to exhaust.**
+
+### What this changes for the next spec
+
+1. **State the claim, then walk the plan to it and check it arrives.** Two
+   minutes, and it would have caught this before any code.
+2. **A claim whose achievement depends on a decision not yet taken is not a
+   claim.** It is a plan to decide, and it should say so.
+3. **Closing early is a success condition**, and belongs in the spec beside the
+   cap.

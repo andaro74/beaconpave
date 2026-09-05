@@ -1,0 +1,23 @@
+{
+  "_what_this_is": "ADR-066 step 0. The fingerprint the gateway recorded for each blocked turn, read back out of the audit lake, beside sha256 of the DEPLOYED guardrail's own blockedOutputsMessaging. A match means Bedrock replaced the model's output with its own message and the gateway never held the text; a difference means something else came back. Nothing here can say WHAT - it reads a digest and a length, which is G4's boundary.",
+  "guardrail_id": "abayh4ye7f8o",
+  "guardrail_version": "4",
+  "placeholder_sha256": "df8c6816150fc3c9ea9202ffaf7f8332232fc2d864cc4e324d18e6986a11a8e6",
+  "rows": {
+    "blackout-001": {
+      "record_id": "2026-09-05/highlights-agent/blackout-001-m02-tools-1.json",
+      "guardrail_version": "4",
+      "channels": [
+        "answer"
+      ],
+      "withheld": {
+        "present": true,
+        "chars": 73,
+        "sha256": "df8c6816150fc3c9ea9202ffaf7f8332232fc2d864cc4e324d18e6986a11a8e6"
+      },
+      "matches_placeholder": true
+    }
+  },
+  "unreadable": [],
+  "finding": "placeholder"
+}

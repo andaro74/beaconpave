@@ -40,7 +40,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 05 | `pave new` scaffold + manifest verify | six PRs ※ | `m05` | not run ※ | not run ※ | not run ※ | ✅ |
 | 06 | Attack register + two-key gate integrity | ten PRs ✦ | `m06` | **21/25** ✦ | not judged ✧ | not run ✦ | ✅ |
 | 06b | Trajectory eval + `entitlement-check` ❖ | thirty-four PRs ❆ | `m06b` | 1/25, not recorded ❆ | not judged ✧ | 6/6 tool plane ❆ | ✅ |
-| 06c | The instrument, repaired ❅ | `m06c-*` | `m06c` | –/25 | – | n/a ❅ | ⬜ |
+| 06c | The instrument, repaired ❅ | three PRs ❅ | `m06c` | not re-scored ❅ | – | n/a ❅ | ✅ |
 | 07 | Rules registry + regdelta loop | `m07-rules` | `m07` | –/25 | – | – | ⬜ |
 | 08 | Playwright + k6 on one verdict schema | `m08-surfaces` | `m08` | – | – | – | ⬜ |
 | 09 | Game-day drill + go/no-go artifact | `m09-drill` | `m09` | – | – | – | ⬜ |
@@ -342,6 +342,20 @@ Zero model calls. The branch cell reads "thirty-four PRs" for the reason the `m0
 and `m06` rows do; one of them, the guardrail investigation, was work this
 milestone adopted rather than planned. `milestones/M06b/README.md` is the honest
 account.
+
+❅ **M06c closed at three PRs WITHOUT meeting its claim, and the claim is not
+rewritten.** Step 0 was answered — the blocked response carries the platform's own
+73-character placeholder, digest for digest, so **the gateway never had the model's
+text** and the last cheap route to capture is closed. The disposition is **ADR-064
+option D**: the answer-channel defect is accepted as open and documented, and
+capture is not built, because option B moves a trust boundary and is a milestone
+rather than a step. Under D the suite still scores 1/25, so no history entry is
+admissible and the goldens cell stays unscored. `SPEC/06c` amendment 1 records why
+that was inevitable: **the claim was not reachable by its own plan when it was
+written**, which the operator caught two PRs in. The spec's claim stands as
+written — editing a goal to match its result is what this repository forbids about
+golden cases and baselines, and prose is not exempt. Stopping at three of six PRs
+was the point: **a cap is a ceiling, not a budget to exhaust.**
 
 ❅ **M06c exists because M06b closed with its instrument broken.** The golden
 suite scores 1/25 and 16 of 25 cases never reach their assert, so **every number

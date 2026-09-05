@@ -1,0 +1,24 @@
+{
+  "blackout-001": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Jefferson Derby tonight",
+          "brand": "meridian-sports",
+          "type": "live-event"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      }
+    ],
+    "tool_records": [
+      "2026-09-05/highlights-agent/blackout-001-m02-tools-1.001.json"
+    ],
+    "decision": "blocked"
+  }
+}

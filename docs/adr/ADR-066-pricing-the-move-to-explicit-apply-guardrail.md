@@ -296,3 +296,51 @@ response was withheld."* — which is
 `df8c6816150fc3c9ea9202ffaf7f8332232fc2d864cc4e324d18e6986a11a8e6`. A match means
 the placeholder and option B's pricing stands; a difference means **this ADR is
 withdrawn** if what is there is the model's text.
+
+---
+
+## Step 0 is RUN, 2026-09-05. The answer is the placeholder, and this ADR is not withdrawn.
+
+`milestones/M06c/blocked-response-fingerprint.json`. One blocked turn through the
+deployed gateway (`blackout-001`, refused on the `answer` channel by
+`entitlement-circumvention` under guardrail v4), its audit record fetched back out
+of the lake:
+
+```
+blockedOutputsMessaging (fetched from the deployed guardrail, never typed):
+  "Blocked by the Beacon gateway guardrail. The model response was withheld."
+  sha256 df8c6816150fc3c9ea9202ffaf7f8332232fc2d864cc4e324d18e6986a11a8e6
+
+withheld: {present: true, chars: 73,
+           sha256: df8c6816150fc3c9ea9202ffaf7f8332232fc2d864cc4e324d18e6986a11a8e6}
+                                                            -> PLACEHOLDER
+```
+
+**Bedrock replaced the model's output with the platform's own message.** The
+response the gateway has held on every answer-channel refusal contains 73
+characters, and they are the ones we wrote. **The gateway never had the text.**
+
+### What this settles
+
+- **The withdrawal condition did not fire.** This ADR registered *"step 0 finds
+  the text present → this ADR is withdrawn, not amended."* It is not present. The
+  pricing of option B above stands unchanged: four assessments to reproduce, a
+  trust boundary moved, and a G4 sink needed in the same change.
+- **ADR-064's capture problem stands.** Nothing in the repository can see the text
+  the guardrail refuses, and now that is measured rather than inferred.
+- **The cheap route is closed.** Every cheap route is now closed: option A refused
+  on sight, option C dead on the assessment shape, option E refused on
+  measurement, and the free version of capture ruled out here.
+
+### What it does not settle, and deliberately
+
+It says the response carries the placeholder. It does not say what the model
+produced, because nothing in this design can: a digest and a length, which is G4's
+boundary and the reason the measurement was allowed to run at all.
+
+### The disposition
+
+**Option B is priced and not built.** See ADR-064's option D, recorded at the end
+of that ADR. Building B is a milestone of its own — it moves a trust boundary and
+needs a capture sink the scorer provably cannot reach — and sliding it into a
+six-PR remediation is how M06b reached thirty-four.

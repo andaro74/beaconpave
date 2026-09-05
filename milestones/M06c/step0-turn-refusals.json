@@ -1,0 +1,48 @@
+{
+  "_what_this_is": "Per-case, per-sample refusal detail for this arm, taken from the audit records fetched back out of the lake rather than from the gateway's response. The answer files carry what was answered; this carries WHY the rest was not, which `evals/run_evals.py` cannot express - it scores a refused case as a plain FAIL, indistinguishable from one that answered badly. `channel` says whether a guardrail block was a refusal of the viewer's question or of content the platform was about to put in the model's context (ADR-035).",
+  "_k": 1,
+  "samples": [
+    1
+  ],
+  "_guardrail_versions": [
+    "4"
+  ],
+  "census": {
+    "k": 1,
+    "n_cases": 1,
+    "refused_at_least_once": 1,
+    "refused_by_majority": 1,
+    "refused_unanimously": 1,
+    "cases_at_least_once": [
+      "blackout-001"
+    ],
+    "cases_by_majority": [
+      "blackout-001"
+    ],
+    "cases_separating_the_estimators": [],
+    "cases_with_missing_samples": [],
+    "estimator_for_adr_035": "refused_at_least_once"
+  },
+  "refusals": {
+    "blackout-001": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "reasons": [],
+        "record_id": "2026-09-05/highlights-agent/blackout-001-m02-tools-1.json",
+        "record_resolved": true
+      }
+    }
+  },
+  "per_sample_refused": {
+    "blackout-001": [
+      true
+    ]
+  }
+}
