@@ -40,6 +40,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 05 | `pave new` scaffold + manifest verify | six PRs ※ | `m05` | not run ※ | not run ※ | not run ※ | ✅ |
 | 06 | Attack register + two-key gate integrity | ten PRs ✦ | `m06` | **21/25** ✦ | not judged ✧ | not run ✦ | ✅ |
 | 06b | Trajectory eval + `entitlement-check` ❖ | thirty-four PRs ❆ | `m06b` | 1/25, not recorded ❆ | not judged ✧ | 6/6 tool plane ❆ | ✅ |
+| 06c | The instrument, repaired ❅ | `m06c-*` | `m06c` | –/25 | – | n/a ❅ | ⬜ |
 | 07 | Rules registry + regdelta loop | `m07-rules` | `m07` | –/25 | – | – | ⬜ |
 | 08 | Playwright + k6 on one verdict schema | `m08-surfaces` | `m08` | – | – | – | ⬜ |
 | 09 | Game-day drill + go/no-go artifact | `m09-drill` | `m09` | – | – | – | ⬜ |
@@ -341,6 +342,20 @@ Zero model calls. The branch cell reads "thirty-four PRs" for the reason the `m0
 and `m06` rows do; one of them, the guardrail investigation, was work this
 milestone adopted rather than planned. `milestones/M06b/README.md` is the honest
 account.
+
+❅ **M06c exists because M06b closed with its instrument broken.** The golden
+suite scores 1/25 and 16 of 25 cases never reach their assert, so **every number
+measured on it is about a guardrail outage rather than about answer quality** —
+which is why M06b recorded no history entry. M07's claim 6 ends in *"disposed
+end-to-end into eval cases"*, and eval cases that cannot score cannot carry a
+claim, so this is a precondition rather than a debt. Its single claim is narrow
+and checkable: **a governed run whose score is admissible as a history entry** —
+the thing M06b could not produce. It is capped at **six PRs**, its non-goals are
+written in `SPEC/06c-instrument-repair.md` before the branch is cut, and
+discovered defects are recorded with a deadline rather than adopted. That last
+rule is the one M06b did not have: it adopted a defect it did not create and then
+adopted every defect that investigation found, which is how one milestone reached
+thirty-four PRs. The adversarial cell is `n/a` because no corpus changes here.
 
 ## What part one produced
 
