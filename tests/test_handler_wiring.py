@@ -41,19 +41,42 @@ policy. A structural assertion is the weaker of the two and it is the one
 available offline, which is exactly the trade `platform/infra/tests/` already
 makes for the IAM assertions.
 
-Hermetic (G8): reads source, imports nothing under test.
+**What this file reads, and why that grew (seat round on PRs #85-#102).** It read
+`handler.py`'s source and nothing else, and the Security seat showed that was half
+the wiring. The names at the call sites were pinned; **what those names are bound
+to was not.** Swapping the four `GUARDRAIL_*` environment bindings in the
+synthesised stack put every model turn through the guardrail with no topic policy
+and left the suite at 2389 passed — the exact outcome
+`test_the_converse_path_and_the_inspection_path_pin_the_same_thing` says in its
+own docstring it exists to catch. An AST test cannot see a binding, so this file
+now also reads the committed CDK snapshot. Both halves are the wiring; only one
+of them was ever asserted.
+
+Hermetic (G8): reads source and a committed JSON fixture, imports nothing under
+test.
 Owning seat: Platform Engineering (the adapter) · Security (what it must not
 stop doing).
 """
 from __future__ import annotations
 
 import ast
+import json
 import pathlib
 
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 HANDLER = ROOT / "platform" / "gateway" / "handler.py"
+SNAPSHOT = (ROOT / "platform" / "infra" / "tests" / "fixtures"
+            / "BeaconpaveGateway.template.json")
+
+#: The two guardrails, identified by the property that distinguishes them rather
+#: than by their names. `beaconpave-gateway` carries the topic policy and every
+#: model turn transits it; `beaconpave-tool-output` is the same policy with
+#: `TopicPolicyConfig` omitted (ADR-063). Resolving by policy means a rename
+#: cannot satisfy these assertions and neither can a swap.
+MAIN_ENV = ("GUARDRAIL_ID", "GUARDRAIL_VERSION")
+TOOL_OUTPUT_ENV = ("TOOL_OUTPUT_GUARDRAIL_ID", "TOOL_OUTPUT_GUARDRAIL_VERSION")
 
 
 @pytest.fixture(scope="module")
@@ -370,3 +393,166 @@ def test_the_guardrails_own_usage_is_not_folded_into_the_token_meter(tree):
                 assert node.attr != "usage", (
                     "_inspect reads a `usage` off the ApplyGuardrail response. Guardrail "
                     "text units are not tokens (ADR-014).")
+
+
+# --- the other half of the wiring: what those names are BOUND to ---------------
+#
+# Everything above reads `handler.py`. Everything below reads the committed CDK
+# snapshot, because the Security seat's plant lived entirely in the gap between
+# them: the call sites named `GUARDRAIL_VERSION`, every assertion was satisfied,
+# and the variable resolved to the topic-free guardrail.
+
+
+@pytest.fixture(scope="module")
+def template() -> dict:
+    return json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+
+
+def _resources(template: dict, kind: str) -> dict:
+    return {name: body for name, body in template["Resources"].items()
+            if body["Type"] == kind}
+
+
+def _gateway_env(template: dict) -> dict:
+    """The gateway function's environment, found by what it carries.
+
+    Located by the guardrail binding rather than by the CDK's generated logical
+    id, which carries a hash and moves for reasons that are not policy changes."""
+    functions = [body for body in _resources(template, "AWS::Lambda::Function").values()
+                 if "GUARDRAIL_ID" in ((body["Properties"].get("Environment") or {})
+                                       .get("Variables") or {})]
+    assert len(functions) == 1, (
+        f"expected exactly one function carrying GUARDRAIL_ID, found {len(functions)}. "
+        "If a second function now transits a guardrail it needs its own assertions "
+        "here rather than sharing these.")
+    return functions[0]["Properties"]["Environment"]["Variables"]
+
+
+def _referenced(value) -> str | None:
+    """The logical id a `Fn::GetAtt` points at, or None for anything else."""
+    if isinstance(value, dict) and "Fn::GetAtt" in value:
+        return value["Fn::GetAtt"][0]
+    return None
+
+
+def test_the_two_guardrails_are_still_told_apart_by_their_topic_policy(template):
+    """The property the bindings are checked against, asserted before it is used.
+
+    If both guardrails ever carry a topic policy — or neither does — every
+    assertion below silently stops distinguishing them and would keep passing. So
+    the discriminator is established first, and its failure says which."""
+    guardrails = _resources(template, "AWS::Bedrock::Guardrail")
+    with_topics = {name for name, body in guardrails.items()
+                   if body["Properties"].get("TopicPolicyConfig")}
+    assert len(guardrails) == 2 and len(with_topics) == 1, (
+        f"{len(guardrails)} guardrails, {len(with_topics)} carrying a topic policy. "
+        "ADR-063's whole shape is two guardrails differing by that policy; if that "
+        "stops being true, the bindings below can no longer be checked by it and "
+        "this file is asserting nothing.")
+
+
+def test_the_model_turn_is_bound_to_the_guardrail_that_has_the_topic_policy(template):
+    """**The Security seat's plant, asserted.**
+
+    Swapping the four `Fn::GetAtt` targets so `GUARDRAIL_ID` resolved to
+    `ToolOutputGuardrail` left the suite at 2389 passed. Every model turn would
+    then transit a guardrail with no topic policy while tool output transited the
+    one that has it — both pin tests still green, because both guardrails still
+    exist and still differ only by that policy; and snapshot-drift CI is no help,
+    because the same swap written in the TypeScript synthesises to exactly this
+    snapshot.
+
+    Resolved by POLICY rather than by name, so renaming the resources cannot
+    satisfy it."""
+    env = _gateway_env(template)
+    guardrails = _resources(template, "AWS::Bedrock::Guardrail")
+
+    main_id, tool_id = _referenced(env[MAIN_ENV[0]]), _referenced(env[TOOL_OUTPUT_ENV[0]])
+    assert main_id in guardrails and tool_id in guardrails, (
+        f"a guardrail id env var does not resolve to a guardrail resource: "
+        f"{MAIN_ENV[0]}->{main_id!r}, {TOOL_OUTPUT_ENV[0]}->{tool_id!r}")
+    assert main_id != tool_id, (
+        "both guardrail id env vars resolve to the same guardrail; one channel is not "
+        "getting the policy it was given.")
+
+    assert guardrails[main_id]["Properties"].get("TopicPolicyConfig"), (
+        f"{MAIN_ENV[0]} resolves to {main_id!r}, which carries NO topic policy. Every "
+        "model turn transits this guardrail. That is the wiring mistake with the worst "
+        "blast radius available here, and it is what this assertion exists for.")
+    assert not guardrails[tool_id]["Properties"].get("TopicPolicyConfig"), (
+        f"{TOOL_OUTPUT_ENV[0]} resolves to {tool_id!r}, which DOES carry a topic "
+        "policy. ADR-063 exists because that channel must not have one: the topic was "
+        "measured redundant with PROMPT_ATTACK there and caused 8 refusal samples on "
+        "tool output.")
+
+
+@pytest.mark.parametrize("env_pair", [MAIN_ENV, TOOL_OUTPUT_ENV], ids=["main", "tool_output"])
+def test_each_version_binding_belongs_to_the_guardrail_it_is_paired_with(template, env_pair):
+    """A version resource names its own guardrail; assert the pair agrees.
+
+    One guardrail's id with the other's version is the same failure one level
+    down, and in one way it is worse: the API would be asked for a version that
+    does not exist on that id, so the turn fails rather than quietly transiting a
+    weaker control."""
+    env = _gateway_env(template)
+    versions = _resources(template, "AWS::Bedrock::GuardrailVersion")
+
+    id_env, version_env = env_pair
+    guardrail = _referenced(env[id_env])
+    version_resource = _referenced(env[version_env])
+    assert version_resource in versions, (
+        f"{version_env} does not resolve to a guardrail version resource "
+        f"({version_resource!r})")
+    owner = _referenced(versions[version_resource]["Properties"]["GuardrailIdentifier"])
+    assert owner == guardrail, (
+        f"{version_env} resolves to {version_resource!r}, which is a version of "
+        f"{owner!r}, while {id_env} resolves to {guardrail!r}. The pair must name one "
+        "guardrail: a version of the other one does not exist on this id.")
+
+
+#: The two legal (identifier, version) pairings at an `apply_guardrail` call site.
+#:
+#: `PINNED_IDENTIFIERS` and `PINNED_VERSIONS` above are two independent closed
+#: sets, so until now every id could be paired with every version and the whole
+#: cross product passed. The Security seat planted `_TOOL_OUTPUT_GUARDRAIL_ID`
+#: with `GUARDRAIL_VERSION` and this file stayed green — the exact failure
+#: `_inspect`'s own docstring claims to guard, guarded by env-var presence and
+#: never at the call site.
+LEGAL_PINS = frozenset({
+    ("GUARDRAIL_ID", "GUARDRAIL_VERSION"),
+    ("_TOOL_OUTPUT_GUARDRAIL_ID", "_TOOL_OUTPUT_GUARDRAIL_VERSION"),
+})
+
+
+def test_no_call_site_pairs_one_guardrails_id_with_the_others_version(tree):
+    for call in calls_named(tree, "apply_guardrail"):
+        pair = (getattr(keyword(call, "guardrailIdentifier"), "id", None),
+                getattr(keyword(call, "guardrailVersion"), "id", None))
+        assert pair in LEGAL_PINS, (
+            f"apply_guardrail pins {pair}, which is not one of the legal pairings "
+            f"{sorted(LEGAL_PINS)}. An id and a version from different guardrails asks "
+            "Bedrock for a version that does not exist on that id.")
+
+
+def test_the_tool_output_policy_is_selected_by_equality_not_by_its_negation(tree):
+    """`==` flipped to `!=` at the channel comparison left the suite green.
+
+    Every inspected channel except tool output would then run against the
+    topic-free guardrail — the same blast radius as the binding swap, reached
+    from the runtime side instead of the infra side. Located by what it compares,
+    so moving or renaming the `if` does not evade it."""
+    comparisons = [node for node in ast.walk(tree)
+                   if isinstance(node, ast.Compare)
+                   and isinstance(node.left, ast.Name) and node.left.id == "channel"
+                   and any(isinstance(c, ast.Attribute) and c.attr == "CHANNEL_TOOL_OUTPUT"
+                           for c in node.comparators)]
+    assert comparisons, (
+        "no comparison of `channel` against `guardrail.CHANNEL_TOOL_OUTPUT` remains. "
+        "ADR-063 routes by an explicit channel comparison rather than a mapping, "
+        "deliberately: a dict would send a channel added later to whichever policy the "
+        "default named, and the direction of that mistake is not knowable in advance.")
+    for node in comparisons:
+        assert all(isinstance(op, ast.Eq) for op in node.ops), (
+            "the tool-output channel is selected by something other than `==`. Negating "
+            "it routes every OTHER inspected channel to the guardrail with no topic "
+            "policy, which is the control silently getting weaker.")

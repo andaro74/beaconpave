@@ -180,3 +180,66 @@ def test_option_e_is_not_deployed_by_this_evidence():
         assert field not in stack, (
             f"`{field}` now appears in gateway-stack.ts. ADR-065's prediction was derived "
             "against topics that set neither, and a deployed action makes it stale.")
+
+
+# --- fix 2: nothing in the artifact may be checked only against itself ---------
+#
+# The seat round (AI Quality and Platform Engineering, independently) planted
+# `rows["OUT-010"].measures = "what-blocking-buys"` with the corpus unchanged,
+# moved OUT-010 into the other summary list, and hand-wrote the matching
+# `finding`. **2389 passed.**
+#
+# `test_the_prediction_is_derived_row_by_row` ties `expect` to the corpus and
+# never tied `measures`, while `test_the_summary_is_derived_from_the_rows_...`
+# splits the decisive rows using the ARTIFACT's `measures`. So the one field the
+# whole readout turns on was the one field checked against nothing — and
+# `OUT-010` is the only decisive cost-half row, which means that single
+# attribution carries the published conclusion of ADR-065.
+#
+# Two things are added, and the second matters more than the first. Tying
+# `measures` closes this instance. The key inventory below makes the NEXT
+# unchecked field a red check rather than a fifth discovery, which is the
+# difference between fixing a defect and fixing its class.
+
+#: Every key the artifact may carry, at each level. Not decoration: an unchecked
+#: field is only discoverable by someone thinking to look for it, and three seats
+#: had to plant one to find these. A new key here is a deliberate edit that must
+#: arrive with the assertion that derives it.
+PREDICTION_KEYS = {
+    "top": {"_what", "_rule", "guardrail_id", "guardrail_version", "k", "source",
+            "change_under_test", "rows", "summary"},
+    "row": {"expect", "measures", "act", "v4", "assessed",
+            "still_blocking_under_option_e", "predicted_under_option_e", "decisive"},
+    "summary": {"decisive_what_blocking_buys", "decisive_what_blocking_costs",
+                "non_decisive", "finding"},
+}
+
+
+def test_the_artifact_carries_no_field_this_file_does_not_check():
+    prediction = _prediction()
+    assert set(prediction) == PREDICTION_KEYS["top"], (
+        f"top-level keys are {sorted(set(prediction) ^ PREDICTION_KEYS['top'])} away from "
+        "the inventory. A field nobody derives is a field nobody notices going stale — "
+        "add the key here AND the assertion that derives it, in the same diff.")
+    assert set(prediction["summary"]) == PREDICTION_KEYS["summary"]
+    for row_id, row in prediction["rows"].items():
+        assert set(row) == PREDICTION_KEYS["row"], (
+            f"{row_id}: keys are {sorted(set(row) ^ PREDICTION_KEYS['row'])} away from the "
+            "inventory.")
+
+
+@pytest.mark.parametrize("row_id", sorted(r["id"] for r in _corpus()))
+def test_every_row_attribute_comes_from_the_corpus_and_not_from_the_artifact(row_id):
+    """`measures` decides which half of the trade a decisive row lands in.
+
+    The summary derives the two halves from it, and the finding derives from the
+    summary — so an unchecked `measures` is an unchecked finding. `expect` beside
+    it was already tied to the corpus; this is the same tie for the two fields
+    that were not."""
+    row = _prediction()["rows"][row_id]
+    source = next(r for r in _corpus() if r["id"] == row_id)
+    for field in ("measures", "act"):
+        assert row[field] == source[field], (
+            f"{row_id}: the artifact says {field}={row[field]!r}, the frozen corpus says "
+            f"{source[field]!r}. Every attribute of a row belongs to the corpus; the "
+            "artifact may only carry verdicts it derived.")
