@@ -370,7 +370,25 @@ RULES: tuple[Rule, ...] = (
         # plus an ADR is the ADR-035 / ADR-037 shape, and this milestone found
         # that shape twice already -- so the rule is widened in the same diff
         # that adds the producer, never in a follow-up.
-        re.compile(r"^services/[^/]+/run_(probes(_via_gateway)?|tool_probes)\.py$"),
+        #
+        # **`topic_baseline.py` is the fourth, and it was missed by that very
+        # sentence** (the M06b seat round). It gained three arms in one milestone
+        # -- `--output-attacks`, `--refusal-shapes`, `--decomposition` -- and is
+        # the producer for three corpora that each take Security's key plus an
+        # ADR, while its two named siblings were being widened onto this rule for
+        # exactly that argument. Platform Engineering measured it re-wired to
+        # `source="INPUT"` and reading the wrong corpus, both green; Security
+        # found it deciding which rows carry an expectation at all. A producer
+        # that chooses the channel its corpus is scored on is not a diagnostic
+        # beside the corpus, it is half of it.
+        # **And its guard, for the reason this rule keeps being widened.** The
+        # seat round found four new guard files standing over two- and three-key
+        # subjects on no rule at all, in the diffs that closed that shape three
+        # times. `tests/test_topic_baseline.py` is the only reader of this
+        # producer's arm table; leaving it one-key would be the fifth instance,
+        # created by the diff fixing the first four.
+        re.compile(r"^(services/[^/]+/(run_(probes(_via_gateway)?|tool_probes)"
+                   r"|topic_baseline)\.py|tests/test_topic_baseline\.py)$"),
         ("security", "platform-eng"),
     ),
     Rule(
@@ -395,9 +413,18 @@ RULES: tuple[Rule, ...] = (
         # live in one module that `pave gate history --base <event sha>` runs
         # from the workflow, and that module takes the directory's own three keys.
         # A module on no rule would be ADR-042 prediction 7 failing a fourth time.
+        #
+        # **`tests/test_tool_surface.py` joins it (the M06b seat round).** The Tool
+        # Owner seat neutered `check_tool_surface` with an early return and got
+        # exactly three failures, all three in that one file and nowhere else. So
+        # the only thing standing between a fabricated `tool_surface` and
+        # append-only history was a file any single seat could edit, while all
+        # three of its subjects -- this module, `evals/run_evals.py` and
+        # `evals/history/schema.json` -- take three keys. The guard joins the
+        # subject rather than the subject losing the guard.
         "the history checks — completeness, the evidence anchor, the corpus tie, the "
-        "merge-base diff",
-        re.compile(r"^pave/history\.py$"),
+        "merge-base diff — and the test that is their only reader",
+        re.compile(r"^(pave/history\.py|tests/test_tool_surface\.py)$"),
         ("ai-quality", "security", "platform-eng"),
     ),
     Rule(
@@ -916,6 +943,29 @@ RULES: tuple[Rule, ...] = (
         # `requires_adr` is OFF for the reason the scorer rule records: the
         # written rationale is the control, and an ADR gate on a test file that
         # gains rows routinely prices tightenings high enough to discourage them.
+        # **The M06b seat round, and the fourth instance of this shape in the
+        # milestone that closed it three times.** AI Quality and Platform
+        # Engineering independently planted a hand-written attribution into a
+        # derived artifact and watched the finding change with the suite green:
+        # `option-e-prediction.json`'s `measures` moved the readout from "option E
+        # does not survive its own instrument" to the outcome its own corpus header
+        # names "the case for the change", and `decomposition-cases.json`'s
+        # `by_clause_type` -- the field the corpus calls "the discriminator" --
+        # decided which reading ADR-068 published.
+        #
+        # These three files are now the only readers of those artifacts, and the
+        # artifacts are the only published form of what three Security-owned
+        # corpora measured. Same seats as the tool-plane rule below and for the
+        # same reason: Security owns what an output-side verdict means, AI Quality
+        # owns what a recorded number is allowed to claim. No ADR flag -- the
+        # corpora carry that requirement and a guard is not a second decision.
+        "the derived readings of the output-side corpora — the tie between a frozen "
+        "row and the finding published from it",
+        re.compile(r"^tests/test_(output_side_prediction|refusal_shapes|"
+                   r"answer_decomposition)\.py$"),
+        ("security", "ai-quality"),
+    ),
+    Rule(
         "what a tool-plane row may claim — the corpus's kinds and the G4 boundary "
         "between them",
         re.compile(r"^tests/test_tool_plane_probes\.py$"),
