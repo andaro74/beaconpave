@@ -1,0 +1,103 @@
+$ python -m evals.run_evals --arm tools --answers milestones/M06b/goldens-run-1.json --answers milestones/M06b/goldens-run-2.json --answers milestones/M06b/goldens-run-3.json --refusals milestones/M06b/goldens-run-refusals.json
+summarised 3 samples by per-case majority (arm=tools)
+
+blackout-001     FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'blackout' absent from answer
+                   - must_cite: not cited: ['t001']
+                   - entitlement: answer carries no entitlement verdict
+blackout-006     FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'blackout' absent from answer
+                   - must_cite: not cited: ['t001']
+                   - entitlement: answer carries no entitlement verdict
+blackout-007     FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_cite: not cited: ['t001']
+                   - entitlement: answer carries no entitlement verdict
+blackout-008     FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'sports-tier' absent from answer
+                   - must_cite: not cited: ['t001']
+                   - entitlement: answer carries no entitlement verdict
+blackout-009     FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_cite: not cited: ['t001']
+                   - entitlement: answer carries no entitlement verdict
+entitlement-002  FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'sports-tier' absent from answer
+                   - must_cite: not cited: ['t005']
+                   - entitlement: answer carries no entitlement verdict
+entitlement-010  FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_cite: not cited: ['t005']
+                   - entitlement: answer carries no entitlement verdict
+entitlement-011  FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_cite: not cited: ['t003']
+                   - entitlement: answer carries no entitlement verdict
+entitlement-012  FAIL  [FAIL FAIL FAIL]
+                   - entitlement: answer carries no entitlement verdict
+                   - budget: tokens_in=6033 over 6000
+recommend-003    FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+recommend-013    FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'Jefferson Derby' absent from answer
+                   - must_cite: not cited: ['t001']
+                   - budget: tokens_in=6010 over 6000
+recommend-014    FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - budget: tokens_in=6360 over 6000
+recommend-015    FAIL  [PASS FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'Cedar Point Rowing Finals' absent from answer
+                   - must_cite: not cited: ['t005']
+grounded-016     PASS  [PASS PASS PASS]
+grounded-017     FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+grounded-018     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=8586 over 6000; tokens_out=367 over 300
+grounded-019     FAIL  [FAIL PASS FAIL]
+                   - budget: tokens_in=6041 over 6000
+brand-020        FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_cite: not cited: ['t002']
+                   - entitlement: answer carries no entitlement verdict
+brand-021        FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+concise-022      FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_cite: not cited: ['t001']
+multi-023        FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'blackout' absent from answer
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t001', 't003']
+                   - entitlement: answer carries no entitlement verdict
+edge-024         FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'sports-tier' absent from answer
+                   - must_cite: not cited: ['t005']
+                   - entitlement: answer carries no entitlement verdict
+edge-025         FAIL  [FAIL FAIL FAIL]
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_in=8368 over 6000; tokens_out=435 over 300
+headroom-005     FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+headroom-026     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6193 over 6000
+
+1/25 passed (24 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 24 failed: 17 were refused before scoring, 7 answered and scored wrong
+refusals: 50/50 resolved to 1 (mechanism, assessed) pair — guardrail / TOPIC:entitlement-circumvention
+suite latency  OVER p95=11414ms over 2500ms
+deferred, evaluated but not scored: 23 assert(s) across ['entitlement_source', 'tool_before_answer']
+  entitlement_source: reads a self-report; verifiable only by M06's trajectory eval (ADR-016)
+  tool_before_answer: evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)

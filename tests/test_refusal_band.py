@@ -90,7 +90,20 @@ def test_the_band_blocks_nothing():
     Nothing that computes a score, a verdict or a gate decision may import this
     module. A refusal count that reached the score would let a guardrail
     misconfiguration read as a service regression — and would let tuning the
-    guardrail move a recorded number, which is the trade this repo refuses."""
+    guardrail move a recorded number, which is the trade this repo refuses.
+
+    **Amended at M06d (ADR-069 Decision 6), in the same diff as the change that
+    contradicts the paragraph above.** `evals/run_evals.py` now puts `refused` and
+    `answered` into the goldens `scores`. The objection stands as written about
+    THIS module — the band's at-least-once count still reaches nothing — and it
+    was answered, not waived, for the partition: the coupling it warns of already
+    existed and was silent. `scores["passed"]` is 1 of 25 *because* 17 cases are
+    refused, so guardrail tuning already moved a recorded number, the headline
+    one, invisibly. The partition does not create the coupling; it makes it
+    attributable, which is the opposite of a misconfiguration reading as a
+    service regression. The runner still may not import this module: it
+    duplicates the two-line marker read (`run_evals._refusal_marker`) so the two
+    readers cannot disagree, and the assertion below is unchanged."""
     scorers = ("evals/run_evals.py", "evals/deterministic.py", "evals/judged.py",
                "evals/adversarial.py", "evals/run_adversarial.py", "pave/verdict.py")
     for name in scorers:
