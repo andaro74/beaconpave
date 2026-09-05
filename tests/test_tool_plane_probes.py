@@ -30,6 +30,8 @@ against).
 import ast
 import json
 import pathlib
+import re
+from collections import Counter
 
 import yaml
 from core import cedar, toolplane
@@ -310,3 +312,72 @@ def test_the_two_policy_probes_pass_g4_on_the_recorded_run():
         assert result.result == "PASS", (
             f"{row['id']} scores {result.result} on the recorded run: "
             f"{getattr(result, 'reason', '')}")
+
+
+# --- the seat round: the `kind` vocabulary was open, and shrinking it was free --
+#
+# Every assertion in this file dispatches on `row["kind"]` with
+# `if row["kind"] != "policy-probe": continue`, and nothing pinned the vocabulary
+# or the counts. The Tool Owner seat renamed `policy-probe` to a string no branch
+# matches and got **2389 passed**: both loops went vacuous, including
+# `test_the_two_policy_probes_pass_g4_on_the_recorded_run`, whose own docstring
+# calls it "the milestone's substantive result".
+#
+# `TPP-005` and `TPP-006` are the ONLY two observations in this repository that
+# satisfy `cedar_denied_or_approval_required_and_logged`. They are the whole claim
+# of ADR-060, and a one-word edit removed them from every assertion that reads
+# them.
+#
+# **The widening direction was already guarded and the shrinking direction was
+# not.** `pave/twokey.py` gives this file AI Quality's key arguing "reclassifying
+# one row's `kind` is a one-word edit inside a file Security already owns alone" —
+# and shrinking a denominator is the failure that same module names for
+# `tool-probes-run.json` twelve rules earlier. Both directions are closed here.
+
+#: The kinds this corpus may use, and how many rows each must hold.
+#:
+#: Duplicated from the corpus on purpose, exactly as `EXPECTED` is: a census
+#: derived from the file it checks asserts nothing. A row legitimately changing
+#: kind moves this number in the same diff and says which control moved.
+KIND_CENSUS = {"positive-control": 1, "argument-refusal": 3, "policy-probe": 2}
+
+
+def test_the_kind_vocabulary_is_closed_and_the_census_is_what_it_was():
+    measured = Counter(row["kind"] for row in ROWS)
+    assert dict(measured) == KIND_CENSUS, (
+        f"the corpus holds {dict(measured)}, pinned as {KIND_CENSUS}. Every assertion in "
+        "this file dispatches on `kind` and skips what it does not recognise, so a kind "
+        "renamed to an unknown string does not fail — it silently empties the loops that "
+        "read it. TPP-005 and TPP-006 are the only two observations in the repository "
+        "that satisfy G4's Cedar semantics; a one-word edit removed them from every "
+        "assertion here at 2389 passed.")
+
+
+def test_no_assertion_in_this_file_reads_a_kind_the_census_does_not_name():
+    """The census is a list of names; this is what stops it drifting from the code.
+
+    A branch testing for a kind nobody uses is a branch that never runs, and it
+    looks exactly like a branch that passes."""
+    source = pathlib.Path(__file__).read_text(encoding="utf-8")
+    dispatched = set(re.findall(r'row\["kind"\]\s*[!=]=\s*"([a-z-]+)"', source))
+    assert dispatched <= set(KIND_CENSUS), (
+        f"this file dispatches on {sorted(dispatched - set(KIND_CENSUS))}, which the census "
+        "does not name. A branch keyed on a kind no row carries never runs.")
+    assert dispatched, "no kind dispatch found; the reader above has stopped working"
+
+
+def test_the_recorded_runs_kinds_are_the_corpus_kinds():
+    """`_kinds` in the committed evidence was written by the harness and read by
+    nothing.
+
+    `run_tool_probes.py` writes it saying, in its own comment, that it exists so
+    "a scorer that treated every row alike would report `schema` refusals as
+    security passes, which is the widening this corpus was written to refuse."
+    The Tool Owner seat rewrote it so TPP-002/003/004 read `policy-probe` and got
+    **2587 passed**. Corpus and evidence could disagree about what each row claims,
+    in either direction, green — one hole with two mouths."""
+    observations = json.loads(OBSERVED.read_text(encoding="utf-8"))
+    assert observations["_kinds"] == {row["id"]: row["kind"] for row in ROWS}, (
+        "the recorded run's `_kinds` does not match the corpus. It is the field that keeps "
+        "a `schema` refusal from being read as a security pass, and it was the only copy "
+        "of that fact nothing checked.")

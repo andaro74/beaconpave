@@ -1321,10 +1321,28 @@ def policy_generate(argv):
     # run time and the Lambda bundle is what deploys. Same source, same drift
     # check: the registry decides, and these are build products that happen to be
     # committed.
+    # **Inside the same guard, for the same reason, one screen later.** The
+    # `except ValueError` above exists because an escaping exception aborts before
+    # pytest runs and before `--out` writes a verdict — and then this loop read a
+    # registry-named path with no guard at all. The Tool Owner seat registered a
+    # tool whose schema files do not exist and got an unhandled `FileNotFoundError`
+    # at exit 1, which `gate.py` renders as "quality regression / owner: service
+    # team" for a registry contract error that is Platform's. pytest DOES catch the
+    # registration (20 tests go red), but `pave check` runs this drift gate first
+    # and never reaches it. A wrong red that pages the wrong seat, not a green.
     schemas = {}
     for tool in registry:
         for rel in tool["schemas"].values():
-            schemas[rel] = json.loads((ROOT / rel).read_text(encoding="utf-8"))
+            try:
+                schemas[rel] = json.loads((ROOT / rel).read_text(encoding="utf-8"))
+            except OSError as exc:
+                _die(f"{tool['id']} names the schema {rel!r}, which cannot be read: "
+                     f"{exc.__class__.__name__}. A registered tool with no contract is a "
+                     "registry that looks authoritative while nothing renders it.",
+                     gate_mod.EXIT_CONTRACT)
+            except json.JSONDecodeError as exc:
+                _die(f"{tool['id']}'s schema {rel!r} is not valid JSON: {exc}",
+                     gate_mod.EXIT_CONTRACT)
     contracts = json.dumps(toolplane.generate_contracts(registry, schemas), indent=2) + "\n"
 
     if "--check" in argv:
@@ -1348,9 +1366,16 @@ def policy_generate(argv):
     # next reader would find a policy set nothing can evaluate.
     policies = cedar.parse(generated)
 
+    # `newline=""` on both: without it Python translates every line feed to the
+    # platform's ending, so on Windows `policy generate` emitted CRLF and left two
+    # files reported as modified with an empty `git diff`. `--check` could not see
+    # it either, because `read_text` universal-newlines the comparison. Contained —
+    # `tool_specs_sha256` digests parsed JSON, so no pin moved — but these are build
+    # products that ship inside the Lambda bundle, and a generator that is not
+    # byte-idempotent makes every reader ask whether the drift is real.
     POLICY_SET.parent.mkdir(parents=True, exist_ok=True)
-    POLICY_SET.write_text(generated, encoding="utf-8")
-    CONTRACT_SET.write_text(contracts, encoding="utf-8")
+    POLICY_SET.write_text(generated, encoding="utf-8", newline="")
+    CONTRACT_SET.write_text(contracts, encoding="utf-8", newline="")
     print(f"wrote {POLICY_SET.relative_to(ROOT)} and {CONTRACT_SET.relative_to(ROOT)}: "
           f"{len(policies)} policies, {len(registry)} contracts")
 
