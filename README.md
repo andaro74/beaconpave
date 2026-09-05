@@ -323,9 +323,20 @@ that does not pre-empt the seat. ADR-055.
 (`pave/history.py`'s `README_GOLDENS`), and M06b recorded no entry — so the numbers
 are stated without being claimed, which is the distinction the check enforces and
 the reason it refused the first version of this row.  `1/25` is not a quality
-regression: 16 of the 25 cases are refused on the answer channel by
-`entitlement-circumvention`, and a refused case writes no answer and cannot reach
-its assert. That guardrail defect predates M06b and became visible only when a
+regression: 17 of the 25 cases are refused by `entitlement-circumvention`, and a
+refused case writes no answer at all — it fails on answer *shape*, not on answer
+*quality*, so its score says nothing about the agent.
+
+> **On 17, where this row used to say 16.** 17 is the count refused by per-case
+> majority across k=3 — the same estimator that produces the PASS/FAIL column.
+> 16 is the count refused unanimously. This row previously read *"16 … on the
+> answer channel"*, and **16 is not the answer-channel count under any
+> estimator**: those are 11 unanimous and 14 by majority, because 8 of the 50
+> blocks were on the tool-output channel — the eight ADR-063 closed. 16 was the
+> any-channel unanimous figure with a channel qualifier attached. ADR-069
+> reconciles all of it and records why the rest of the repo keeps 16.
+
+That guardrail defect predates M06b and became visible only when a
 second tool let cases get far enough to produce answers worth blocking. Four
 hypotheses were eliminated and two remain, and they predict the same symptom — the
 platform cannot see the text its own control refuses (G4, deliberately), so they
@@ -358,8 +369,9 @@ golden cases and baselines, and prose is not exempt. Stopping at three of six PR
 was the point: **a cap is a ceiling, not a budget to exhaust.**
 
 ❅ **M06c exists because M06b closed with its instrument broken.** The golden
-suite scores 1/25 and 16 of 25 cases never reach their assert, so **every number
-measured on it is about a guardrail outage rather than about answer quality** —
+suite scores 1/25 and 17 of 25 cases are refused before they produce an answer
+to score (majority across k=3; ADR-069), so **every number measured on it is
+about a guardrail outage rather than about answer quality** —
 which is why M06b recorded no history entry. M07's claim 6 ends in *"disposed
 end-to-end into eval cases"*, and eval cases that cannot score cannot carry a
 claim, so this is a precondition rather than a debt. Its single claim is narrow
