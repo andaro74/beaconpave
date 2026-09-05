@@ -57,6 +57,9 @@ count falls from 17 into SPEC/01's band, **0–2 of 25**. Falsifier: 3 or more.
   `OUTPUT` and predicts **14–20** refused; stage 2 moves it to the tool-output
   policy at `INPUT` **only if** at least half of stage 1's refused samples
   attribute to `tool_request`, and predicts **0–2**. Otherwise PR 5 is not built.
+  **Outside 14–20 in either direction, the milestone stops at PR 4**: the count
+  is committed as-run, ADR-070 records it as a finding about B, PR 5 is not
+  built, and PR 6 closes red. PR 4 records the number; it does not explain it.
 - **D5** — G1 and G4, and what checks each.
 - **D6** — `ATK-003` is dispositioned in PR 4 with two keys and an ADR-062
   amendment: a scale cut or a signed extension. Never a checklist edit.
@@ -84,7 +87,10 @@ count falls from 17 into SPEC/01's band, **0–2 of 25**. Falsifier: 3 or more.
    the change; `m04-F` and `m04-G` untouched.
 8. `quality/adversarial/*.yaml` untouched. No probe declares `tool_request`.
 9. Both runs are k=3, both committed as-run, majority against majority. No
-   re-run selection, no case edit, no baseline reset, no threshold move.
+   re-run selection, no case edit, no baseline reset, no threshold move. The
+   one re-run that is not selection: a sample with an INFRA case is refused at
+   the door by `run_evals` (SPEC/02's rule) and is re-run whole, once, with the
+   bad sample committed beside it as `*-infra.json` and passed to nothing.
 10. No topic wording, no `examples`, no `outputAction`.
 
 ## What it builds
@@ -99,7 +105,8 @@ assesses each round's output through `inspect` with `tool_request` or `answer`;
 `handler.py` drops `guardrailConfig` and gains the two arms; `audit.schema.json`
 admits the channel; `test_handler_wiring.py` rewritten; pure tests: channel
 labelling, the four coverage plants, text-free caller response on every
-channel; `tests/test_contracts.py`'s `CHANNELS` pin; `m04-H`. ADR-070 amended
+channel, and an AST pin that `handler.py` calls no serialiser (constraint 3);
+`tests/test_contracts.py`'s `CHANNELS` pin; `m04-H`. ADR-070 amended
 with what was built. Hermetic. No deploy.
 
 **PR 3 — the store, ADR-071.** Where refused text goes, its reader
@@ -109,10 +116,12 @@ no `evals/`/`pave/` reader), and ADR-069's four residual routes as tests. No
 deploy.
 
 **PR 4 — stage 1, measured.** `make core`; tools arm k=3; probe corpus k=3;
-step 6b; committed as `milestones/M07/stage1-goldens-run-{1,2,3}.json`, its
-refusals sidecar, `stage1-probes-run.json`, `topic-baseline.json`;
-`evals/refusals.py --sidecar`; a two-key rule for `goldens-run*.json` and the
-sidecar (ADR-069's M07 debt), widened in the diff that creates the evidence;
+step 6b; committed under `milestones/M07/stage1/` as `goldens-run-{1,2,3}.json`,
+its refusals sidecar, `probes-run.json` (on the existing evidence rule by that
+name), `topic-baseline.json`;
+`evals/refusals.py --sidecar`; `run_with_tools.py`'s pre-flight print and
+sidecar header (Definition of done); a two-key rule for `goldens-run*.json` and
+the sidecar (ADR-069's M07 debt), widened in the diff that creates the evidence;
 `ATK-003`'s disposition (D6). ADR-070 amended with the attribution and D4's
 reading. **If D4 says stage 2 is not built, or the probe suite credits less,
 the milestone closes at PR 6.**
@@ -136,7 +145,11 @@ the final-answer conjunction (`DEC-001`, `OUT-010`) if that is what PR 4 finds �
 rename (SPEC/06b A21; re-dated to the SPEC/08 PR, ADR-070) · ADR-069 D5 cut 2
 (one arm runs; the paired diff has no second arm) · `usage.tokens_in: 0` · the
 headroom check · any golden case, baseline or threshold · a history entry
-unless PR 6's seats sign one.
+unless PR 6's seats sign one · **the p95 ceiling.** Constraint 1 adds one
+`ApplyGuardrail` per round. The suite is already OVER at 11171 ms against
+2500 ms (M06b), PR 4's demo artifact will print a worse number, and the
+`suite latency OVER` line is expected, recorded in `guard_ms`, and not this
+milestone's to fix (ADR-070, *What B costs*).
 
 ## Obligations inherited
 
@@ -152,8 +165,15 @@ this milestone's subject. ADR-062:51 vs `README.md:44` — resolved, PR 1.
 - **Cap: six PRs.** Reaching it closes the milestone, red if necessary. Closing
   early is a success condition; closing red is an available outcome.
 - **Seats on PR 2 only.** Attestations wherever `pave/twokey.py` demands them.
-- **Model calls: at most 210**, all through the deployed gateway, in PR 4 and
-  PR 5 only. PRs 1–3 and 6 are zero. `make check` stays hermetic.
+- **Turns, not model calls.** The meter is broken (`usage.tokens_in` is 0 on
+  every goldens record) and one k=3 tools run is 150–170 `converse` calls on
+  M06b's trajectories, so calls are not what is counted. Pre-registered: **216
+  turns** (75 goldens + 33 probes per stage), plus headroom of **one whole-sample
+  re-run per stage** (75 each) for an INFRA sample, ceiling **366**. A second
+  INFRA sample in one stage is not re-run: the stage closes with what it has and
+  the milestone stops as for a count outside the band. All through the deployed
+  gateway, in PR 4 and PR 5 only. PRs 1–3 and 6 are zero. `make check` stays
+  hermetic.
 - A discovered defect is recorded with a deadline and left alone.
 
 ## Demo artifact
@@ -176,8 +196,9 @@ refusals: S/S resolved to P (mechanism, assessed) pair(s) — …
 channels: tool_request 0 · answer R' · question 0 · tool_output 0
 ```
 
-with `R ≤ 2` and no `TOPIC:*` on `tool_request` or `tool_output`. The same two
-commands on `stage1-*` files print stage 1, where `R` is 14–20 and the channel
+with `R ≤ 2` and no `TOPIC:*` on `tool_request` or `tool_output`, and a
+`suite latency  OVER` line above 11171 ms, which is expected. The same two
+commands on the `stage1/` files print stage 1, where `R` is 14–20 and the channel
 line is the attribution D4 reads.
 
 ## Definition of done
@@ -193,8 +214,14 @@ line is the attribution D4 reads.
 - [ ] Refused text in a store the record does not name; planted text leaves the
       observation unchanged; no `evals/` or `pave/` reader; ADR-069's four
       routes closed as tests.
-- [ ] Stage 1 run committed as-run; count within 14–20; probe suite credits
-      every `m04` probe; step 6b unmoved; attribution recorded in ADR-070.
+- [ ] PR 4's and PR 5's sessions print, **before the first call**: the deployed
+      gateway function, `GUARDRAIL_VERSION` and `TOOL_OUTPUT_GUARDRAIL_VERSION`
+      read from that function's configuration, and the source path of
+      `_inspection_text` (`core/toolloop.py`); the sidecar header carries all
+      three, and a run whose records name any other version is not a reading.
+- [ ] Stage 1 run committed as-run; count read against 14–20; probe suite credits
+      every `m04` probe; step 6b unmoved; attribution recorded in ADR-070. Outside
+      the band: stopped, recorded, not diagnosed.
 - [ ] `ATK-003` dispositioned with two keys and an ADR-062 amendment.
 - [ ] Stage 2 built or not, per D4's rule, and the rule's reading recorded.
 - [ ] If built: the count against 0–2, as-run, no `TOPIC:*` on `tool_request`
@@ -209,4 +236,5 @@ No topic wording moves. No case, baseline or threshold moves. No model text in
 an audit record, an answer file, a sidecar, or anything under `evals/`. No
 `skip_guardrail`, no default that runs a turn uninspected. No stage 2 without
 stage 1's attribution in hand. No count re-run until it fits. No claim
-rewritten to match the outcome.
+rewritten to match the outcome. No diagnosis in PR 4: a count outside the band
+is a finding about the pre-registration, and the milestone stops on it.

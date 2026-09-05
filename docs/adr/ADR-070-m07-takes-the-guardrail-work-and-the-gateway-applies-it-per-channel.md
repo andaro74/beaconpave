@@ -326,3 +326,101 @@ The spec does not choose. *An extension nobody signed is an acceptance*
   matches** — `inspect(text, channel=...)` is already the one call, the policy
   is already selected by channel, and the store is already keyed by
   `record_id`.
+
+## Amendment 1 — two standing questions and four pressure points, before PR 2
+
+**Written 2026-09-05, after PR 1 merged (#115) and before PR 2 branched. Zero
+model calls.** The operator asked the two questions every milestone now gets
+at this point, and named four places a cold reviewer should press. Each answer
+below was checked against the input it depends on, not against the spec's
+wording, and each ends in a decision and the PR that carries it. This is the
+record; the chat and the memory file are not.
+
+### Question 1 — "Is this becoming M06b again?"
+
+M06b was thirty-four PRs under no cap, a 1180-line spec that grew as a register,
+each PR's finding becoming the next PR, four hypotheses eliminated by indirect
+measurement, and one seat round at the end over eighteen PRs. M06d's version was
+seat rounds on the spec before any code, with the cap moving twice.
+
+**On those signals, no.** PR 1 merged in one commit with no review rounds.
+SPEC/07 was 212 lines at the question (238 after this amendment's rules, all of
+them rules). The cap is six, written once, unmoved. Seats review PR 2 only.
+Both predictions carry a falsifier, stage 2 is gated on a rule written before
+stage 1 runs, and closing red is written as an outcome.
+
+**On one dimension, yes.** This is the fifth milestone on one defect: M06b found
+it, M06c repaired the instrument, M06d made it readable, and the tools arm has
+stood at 1/25 since PR #89. The roadmap slid by one row in PR 1. The test of
+whether that pattern continues is decided at PR 4, not by any spec work: M07
+ends with the gateway wiring changed or with another instrument.
+
+**Where it re-enters locally: PR 4.** It carries the stage-1 run, the probe
+suite, step 6b, the `ATK-003` disposition with two keys and an ADR-062
+amendment, and a new two-key rule. That is the PR that splits into 4a and 4b,
+as M05's did, and the cap breaks there. **Decision:** the two zero-call items,
+the `ATK-003` disposition and the two-key rule, move to PR 3 *if and only if*
+PR 4 would otherwise split. Decision 6's reason for PR 4 was that the
+disposition must not wait on a PR that may not be built; PR 3 precedes PR 4 and
+satisfies it. A split is the cap moving, and the cap does not move.
+
+### Question 2 — for each claim, the measurement and the PR
+
+Twenty-six claims mapped. Seventeen are measured by a PR in the plan, four are
+measurable with an input missing or unnamed, three cannot be measured by any PR,
+two are attestation only. The findings, each with its decision:
+
+| finding, on the committed input | decision | PR |
+|---|---|---|
+| **Every planned M07 evidence file is on no two-key rule**, and `milestones/M07/stage1-probes-run.json` escapes the *existing* adversarial-evidence rule, whose regex `^milestones/.*/(tool-)?probes-run\.json$` needs the name right after the slash. | Stage-1 files go under `milestones/M07/stage1/` with the unprefixed names, so the probe run lands on the existing rule. PR 4 widens the goldens rule to `goldens-run-*.json` and the sidecar, and moves `tests/test_twokey_seats.py`'s ratchet from 17 to 18 in the same diff, or the rule reverts silently (M06b's own finding). | 4 |
+| ADR-062 and `evals/refusals.py` are on no rule, so the `two-key` job cannot enforce the two keys on `ATK-003`'s disposition unless the diff touches a ruled path. | The disposition's attestations go in the PR body and are named as attestation, not enforcement, in the ADR-062 amendment. Not widened: a rule over `docs/adr/` is a governance change this milestone does not take. | 4 |
+| "At most 210 model calls" is unmeasurable and about half the real count. `usage.tokens_in` is 0 on every goldens record; M06b's trajectories put one k=3 tools run at 150–170 `converse` calls. The same defect makes "a blocked question spends no tokens" unmeasurable. | Rule 2 below. The tokens claim is struck from what this milestone can show. | spec |
+| The coverage-loss falsifier cannot see the one coverage change Decision 3 names. No probe in `probes.yaml` fires on a conjunction across pieces, so a lost cross-piece block would pass every probe. The last recorded adversarial entry is `m04-A` at guardrail v2, 7/10; the nearest v4 run of the eleven-probe corpus is `milestones/ADR-041/probes-and-controls-v4.json`, older than ADR-063. | PR 4 compares per-probe against ADR-041's v4 file and names it in the sidecar header. The conjunction reduction is recorded as **unmeasured**, a pricing statement and not a measurement, and stays so unless Security adds a probe under its own rule. | 4 |
+| The audit record carries one `guardrail{id, version}` object. A stage-2 turn spans two guardrails: `tool_request` on the tool-output policy, `answer` on the main. "Every record names the deployed version" is ambiguous on such a record. | PR 2 reads the schema before writing the arm and decides which version the turn record names, or whether it gains a per-channel entry. Recorded here as an amendment when decided; not decided blind. | 2 |
+| Constraint 3, "the handler serialises nothing", has no test named anywhere in the plan. | An AST pin in `tests/test_handler_wiring.py`: `handler.py` calls no `_inspection_text` and joins no content blocks. | 2 |
+| The one claim is measured only in PR 5. If Decision 4's rule says stage 2 is not built, no PR measures it. | As designed. The milestone closes red at PR 6 with the attribution, which is what M06b's *What's next* asked for. Stated so nobody reads PR 4's count as the claim. | — |
+
+Confirmed measured, no action: the loop's channel labelling (PR 2, pure), the
+four coverage plants (PR 2), the sidecar's `channels` and `assessed` per refusal
+(present on M06b's), the stage-1 band and the attribution (PR 4, `run_evals.py:651`
+and the sidecar), the store's G4 boundary and ADR-069's four routes (PR 3), the
+instrument digests moving only `guardrail_sha256` and `capture_sha256` (PR 2),
+G1 and the synth snapshot (every PR). Attestation only: "no re-run selection",
+which leaves no trace in the repository.
+
+### Four pressure points, each a place M06b could re-enter
+
+A measurement that comes back off-script turns the measuring PR into a
+diagnosing one. That is how M06b started.
+
+1. **Stage 1 outside 14–20, either side.** Decision 4 said "stops the milestone
+   at PR 4" and did not say what stopping is. It is: the count committed as-run,
+   this ADR amended with the number as a finding about B, PR 5 not built, PR 6
+   closing red. A count of 6 is as much a stop as a count of 24. PR 4 does not
+   explain the number; the explanation, if wanted, is a later milestone's.
+2. **The budget is turns, with headroom, and an INFRA rule.** Decision 3 priced
+   "roughly 210 model calls" with zero headroom: one INFRA sample and the cap is
+   exceeded or a bad run is committed. The unit is now the turn: 216
+   pre-registered (75 goldens and 33 probes per stage), plus one whole-sample
+   re-run per stage for an INFRA sample, ceiling 366. `run_evals` already refuses
+   INFRA at the door (SPEC/02's rule, "a bad sample means a full re-run"); the
+   bad sample is committed as `*-infra.json` and passed to nothing, so the re-run
+   is not selection. A second INFRA sample in a stage is not re-run: the stage
+   closes with what it has and the milestone stops as under rule 1.
+3. **Latency is disclosed now, not discovered in PR 4.** Constraint 1 adds one
+   `ApplyGuardrail` per round to a suite already OVER at 11171 ms against
+   2500 ms. The demo artifact will print `suite latency  OVER` with a worse
+   number; that line is part of the prediction, recorded in `guard_ms`, and
+   outside this milestone.
+4. **The stand-in hazard, in PR 4 and PR 5.** M06b's wrong measurement was three
+   lines from the real path. Before the first call, the session prints the
+   deployed gateway function, both guardrail versions read from that function's
+   configuration, and the source path of `_inspection_text`; the sidecar header
+   carries all three. `run_with_tools.py` today prints the function and reads
+   versions back out of the records after the fact (`:125`, `:301`); PR 4 adds
+   the pre-flight and the header. A run whose records name any other version is
+   not a stage reading.
+
+Rules 1–4 are in SPEC/07's *Pre-registered*, *Implementation constraints*,
+*Bounded*, *Demo artifact* and *Definition of done*; the stage-1 paths and the
+constraint-3 pin are in *What it builds*.
