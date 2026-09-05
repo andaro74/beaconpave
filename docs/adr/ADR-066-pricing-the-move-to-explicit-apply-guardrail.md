@@ -239,3 +239,60 @@ This one was priced by analogy to that, and the analogy did not hold: the thing
 being inspected only exists inside a model call, and everything inside a model
 call in this repository is behind the gateway on purpose. **A cost estimated by
 resemblance to a previous measurement is not an estimate.**
+
+---
+
+## Step 0 is BUILT, 2026-09-05 — and one thing was done differently
+
+The compliant form described in the correction above is implemented and not yet
+run. `platform/gateway/handler.py`'s `BLOCKED` branch now records what `converse`
+returned, described and never quoted.
+
+**The deviation, stated because it is a deviation.** The correction named three
+flat fields — `answer_text_present`, `answer_text_len`, `answer_text_sha256`. They
+are nested under **one** key instead:
+
+```json
+"withheld": {"present": true, "chars": 103, "sha256": "…"}
+```
+
+The assertion that matters is *the scorer's doorway never copies it*, and a single
+key makes that assertion total rather than a list somebody has to keep current.
+
+**The boundary is enforced in three places, because each fails differently.**
+
+- **The doorway.** `core.audit.observation_from_record` is the only path from an
+  audit record to the dict `evals/adversarial.py` scores, and it does not copy the
+  fragment. Asserted by planting a fingerprint and checking the observation is
+  unchanged — never by searching the source for a string, which is the
+  coupled-to-its-own-data failure this milestone has already paid for twice.
+- **The writer.** `build_record` refuses a fragment carrying anything but the
+  three fields, and refuses one beside a decision that was not a block. So a `text`
+  key cannot reach the lake even if a caller tries, and a digest of *served* output
+  cannot either.
+- **The schema.** `audit.schema.json` sets `additionalProperties: false` on the
+  fragment and pins `sha256` to 64 hex characters. Widening it takes two keys.
+
+`tests/test_g4_capture_boundary.py` holds all three, and ships in the same diff as
+the fields — which this ADR made the condition of adding them at all.
+
+**`withheld_fingerprint` cannot raise.** A malformed response returns
+`{"present": false, …}`. It is a diagnostic, not a control: G2 says an errored
+control blocks, and this must never acquire the power to fail a refusal that was
+otherwise correct.
+
+**A new instrument is registered: `m04-G`.** `capture_sha256` digests the whole of
+`core/audit.py` and `guardrail_sha256` the whole of `core/guardrail.py`, so both
+moved. Registered beside `m04-F` rather than editing it, because published numbers
+cite that name and it has to keep resolving — and registered in this diff, since
+ADR-038 makes registration the precondition for the change rather than its
+successor. **Nothing a scorer reads changes**, and the boundary test is what says
+so.
+
+**Still not run.** The deploy and the one blocked turn are the next step; the
+comparison target is `sha256` of the guardrail's own
+`blockedOutputsMessaging` — *"Blocked by the Beacon gateway guardrail. The model
+response was withheld."* — which is
+`df8c6816150fc3c9ea9202ffaf7f8332232fc2d864cc4e324d18e6986a11a8e6`. A match means
+the placeholder and option B's pricing stands; a difference means **this ADR is
+withdrawn** if what is there is the model's text.
