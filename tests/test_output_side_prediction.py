@@ -31,6 +31,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "quality" / "adversarial" / "topic-attacks-output.yaml"
 RUN = ROOT / "milestones" / "M06b" / "output-attacks-v4.json"
 PREDICTION = ROOT / "milestones" / "M06b" / "option-e-prediction.json"
+SNAPSHOT = (ROOT / "platform" / "infra" / "tests" / "fixtures"
+            / "BeaconpaveGateway.template.json")
 
 ARM = "output-attacks"
 #: The topic option E would set to `outputAction: NONE`. It is the ONLY thing
@@ -172,74 +174,124 @@ def test_option_e_is_not_deployed_by_this_evidence():
     """The stack is untouched, and this asserts it rather than trusting the prose.
 
     ADR-065 accepts an instrument and no guardrail change. If a topic in the
-    synthesised stack ever carries an output action, this evidence stopped
-    describing the deployed control and something accepted the change without
-    the confirmation run the corpus reserved for it."""
-    stack = (ROOT / "platform" / "infra" / "lib" / "gateway-stack.ts").read_text(encoding="utf-8")
-    for field in ("outputAction", "inputAction"):
-        assert field not in stack, (
-            f"`{field}` now appears in gateway-stack.ts. ADR-065's prediction was derived "
-            "against topics that set neither, and a deployed action makes it stale.")
+    synthesised stack ever carries an input or output action, this evidence stopped
+    describing the deployed control.
+
+    **Read from the SNAPSHOT, not from the TypeScript source.** The first version
+    was `assert "outputAction" not in stack` over `gateway-stack.ts`, and Platform
+    Engineering went red by adding the comment *"outputAction is discussed in
+    ADR-064 step 0"* above the class. ADR-064 and ADR-066 are both about that
+    field, so the stack file is the natural place to record it as
+    considered-and-rejected — and a guard that forbids naming the thing it watches
+    for is the "coupled to its own data" failure this repo has already paid for.
+    The committed snapshot is what ADR-017's drift gate compares, so it is the
+    subject that can distinguish a deployed action from a sentence about one."""
+    template = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+    guardrails = {name: body for name, body in template["Resources"].items()
+                  if body["Type"] == "AWS::Bedrock::Guardrail"}
+    assert guardrails, "no guardrail in the synthesised stack"
+    for name, body in guardrails.items():
+        for topic in (body["Properties"].get("TopicPolicyConfig") or {}).get("TopicsConfig", []):
+            present = sorted(set(topic) & {"InputAction", "OutputAction",
+                                           "InputEnabled", "OutputEnabled"})
+            assert not present, (
+                f"{name}'s topic {topic.get('Name')!r} now carries {present}. ADR-065's "
+                "prediction was derived against topics that set none of them, and a "
+                "deployed action makes it stale. Option E is refused (ADR-065's "
+                "disposition); accepting it is a separate diff that re-derives this "
+                "evidence.")
 
 
-# --- fix 2: nothing in the artifact may be checked only against itself ---------
-#
-# The seat round (AI Quality and Platform Engineering, independently) planted
-# `rows["OUT-010"].measures = "what-blocking-buys"` with the corpus unchanged,
-# moved OUT-010 into the other summary list, and hand-wrote the matching
-# `finding`. **2389 passed.**
-#
-# `test_the_prediction_is_derived_row_by_row` ties `expect` to the corpus and
-# never tied `measures`, while `test_the_summary_is_derived_from_the_rows_...`
-# splits the decisive rows using the ARTIFACT's `measures`. So the one field the
-# whole readout turns on was the one field checked against nothing — and
-# `OUT-010` is the only decisive cost-half row, which means that single
-# attribution carries the published conclusion of ADR-065.
-#
-# Two things are added, and the second matters more than the first. Tying
-# `measures` closes this instance. The key inventory below makes the NEXT
-# unchecked field a red check rather than a fifth discovery, which is the
-# difference between fixing a defect and fixing its class.
+# --- the rule is asymmetric, and the asymmetry is published rather than patched
 
-#: Every key the artifact may carry, at each level. Not decoration: an unchecked
-#: field is only discoverable by someone thinking to look for it, and three seats
-#: had to plant one to find these. A new key here is a deliberate edit that must
-#: arrive with the assertion that derives it.
-PREDICTION_KEYS = {
-    "top": {"_what", "_rule", "guardrail_id", "guardrail_version", "k", "source",
-            "change_under_test", "rows", "summary"},
-    "row": {"expect", "measures", "act", "v4", "assessed",
-            "still_blocking_under_option_e", "predicted_under_option_e", "decisive"},
-    "summary": {"decisive_what_blocking_buys", "decisive_what_blocking_costs",
-                "non_decisive", "finding"},
+
+#: The keys the sensitivity block may carry. Same inventory discipline as the rest
+#: of the artifact: a field nobody derives is a field nobody notices going stale.
+SENSITIVITY_KEYS = {
+    "top": {"_what", "_why", "sampling_of_record", "rows",
+            "rows_where_the_samplings_disagree", "readings_agree"},
+    "row": {"union", "intersection", "predicted_under_union",
+            "predicted_under_unanimity", "agree"},
 }
 
 
-def test_the_artifact_carries_no_field_this_file_does_not_check():
-    prediction = _prediction()
-    assert set(prediction) == PREDICTION_KEYS["top"], (
-        f"top-level keys are {sorted(set(prediction) ^ PREDICTION_KEYS['top'])} away from "
-        "the inventory. A field nobody derives is a field nobody notices going stale — "
-        "add the key here AND the assertion that derives it, in the same diff.")
-    assert set(prediction["summary"]) == PREDICTION_KEYS["summary"]
-    for row_id, row in prediction["rows"].items():
-        assert set(row) == PREDICTION_KEYS["row"], (
-            f"{row_id}: keys are {sorted(set(row) ^ PREDICTION_KEYS['row'])} away from the "
-            "inventory.")
+def test_the_sensitivity_block_carries_no_field_this_file_does_not_check():
+    sensitivity = _prediction()["sensitivity"]
+    assert set(sensitivity) == SENSITIVITY_KEYS["top"]
+    for row_id, row in sensitivity["rows"].items():
+        assert set(row) == SENSITIVITY_KEYS["row"], f"{row_id}: unexpected keys"
+
+
+def test_the_recorded_assessed_names_are_the_union_over_the_samples():
+    """The fact the asymmetry rests on, asserted before it is reasoned about.
+
+    `topic_baseline._assess` builds `assessed` as a union across `k` samples. If
+    that ever became an intersection, the whole sensitivity block below would be
+    comparing a thing to itself and would keep passing."""
+    run = _run()
+    for row_id, result in run["arms"][ARM]["results"].items():
+        per = [set(sample) for sample in result["per_sample_assessed"]]
+        assert set(result["assessed"]) == set().union(*per), (
+            f"{row_id}: `assessed` is no longer the union over the samples, so the "
+            "sampling this rule reads has changed underneath it.")
 
 
 @pytest.mark.parametrize("row_id", sorted(r["id"] for r in _corpus()))
-def test_every_row_attribute_comes_from_the_corpus_and_not_from_the_artifact(row_id):
-    """`measures` decides which half of the trade a decisive row lands in.
+def test_the_sensitivity_is_derived_from_the_per_sample_names(row_id):
+    """**The Security seat's finding, published rather than fixed.**
 
-    The summary derives the two halves from it, and the finding derives from the
-    summary — so an unchecked `measures` is an unchecked finding. `expect` beside
-    it was already tied to the corpus; this is the same tie for the two fields
-    that were not."""
-    row = _prediction()["rows"][row_id]
-    source = next(r for r in _corpus() if r["id"] == row_id)
-    for field in ("measures", "act"):
-        assert row[field] == source[field], (
-            f"{row_id}: the artifact says {field}={row[field]!r}, the frozen corpus says "
-            f"{source[field]!r}. Every attribute of a row belongs to the corpus; the "
-            "artifact may only carry verdicts it derived.")
+    The deployed verdict requires unanimity — `blocked_samples == k`, and ADR-031
+    says *"a control that stops something twice in three does not stop it"*. The
+    counterfactual reads `assessed`, which is the UNION, so a name appearing in
+    **1 of 3** samples counts as "still blocking under option E" and makes a row
+    non-decisive. The seat planted a 1-of-3 `MISCONDUCT` on three rows and moved
+    the finding from `both-halves-decisive` to the reading the corpus header calls
+    *"the case for the change"* — with the suite green.
+
+    **The rule is not rewritten.** A pre-registered rule improved once it
+    disappoints is not pre-registered; ADR-068's `strength` block is the same
+    decision one corpus over. What is done instead is derive the counterfactual
+    under both samplings and publish whether they differ."""
+    run, sensitivity = _run(), _prediction()["sensitivity"]
+    row = sensitivity["rows"][row_id]
+    per = [set(sample) for sample in run["arms"][ARM]["results"][row_id]["per_sample_assessed"]]
+    union, intersection = set().union(*per), set.intersection(*per)
+
+    assert row["union"] == sorted(union)
+    assert row["intersection"] == sorted(intersection)
+    for key, names in (("predicted_under_union", union),
+                       ("predicted_under_unanimity", intersection)):
+        expected = "blocked" if [n for n in names if n != TOPIC] else "allowed"
+        assert row[key] == expected, (
+            f"{row_id}: {key} says {row[key]!r}, the rule on those names gives {expected!r}")
+    assert row["agree"] == (row["predicted_under_union"] == row["predicted_under_unanimity"])
+
+
+def test_the_sampling_of_record_is_the_one_the_rule_was_registered_with():
+    """Which sampling the published finding used, stated rather than inferred.
+
+    If this ever flips to `unanimity`, the finding above stopped being the
+    pre-registered rule's output and became a different rule's — which may well be
+    the right call, and is a decision that must be visible rather than a default
+    that drifted."""
+    sensitivity = _prediction()["sensitivity"]
+    assert sensitivity["sampling_of_record"] == "union", (
+        "the sampling of record has changed. ADR-065's finding was derived under the "
+        "union; deriving it under unanimity is a different rule and needs saying so in a "
+        "diff, not switching here.")
+
+
+def test_whether_the_two_samplings_agree_is_derived_and_not_asserted():
+    """On the committed run they agree on all ten rows, so no published conclusion
+    is wrong — the instrument is asymmetric and the reading it produced is not.
+
+    That is exactly the kind of reassurance that must be recomputed rather than
+    remembered: it is true of this run and nothing makes it true of the next."""
+    sensitivity = _prediction()["sensitivity"]
+    rows = sensitivity["rows"]
+    disagree = sorted(row_id for row_id, row in rows.items() if not row["agree"])
+    assert sensitivity["rows_where_the_samplings_disagree"] == disagree
+    assert sensitivity["readings_agree"] == (not disagree), (
+        "`readings_agree` does not follow from the rows. It is the sentence that says no "
+        "published conclusion turns on the asymmetry, and it must be computed every time "
+        "rather than carried forward.")

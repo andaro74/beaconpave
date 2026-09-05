@@ -144,5 +144,112 @@
       "OUT-009"
     ],
     "finding": "both-halves-decisive"
+  },
+  "sensitivity": {
+    "_what": "The pre-registered rule read under BOTH samplings, because it is asymmetric and the asymmetry favours the change its author recommended. Published rather than patched: a pre-registered rule improved once it disappoints is not pre-registered, so the rule stands and its sensitivity is measured beside it.",
+    "_why": "The DEPLOYED verdict requires unanimity - `blocked_samples == k`, ADR-031: 'a control that stops something twice in three does not stop it'. The COUNTERFACTUAL reads `assessed`, which topic_baseline._assess builds as the UNION over k samples, so a name appearing in 1 of 3 counts as 'still blocking under option E' and makes a row non-decisive. Security planted a 1-of-3 MISCONDUCT signal on three rows and moved the finding from both-halves-decisive to the reading the corpus header calls 'the case for the change', green.",
+    "sampling_of_record": "union",
+    "rows": {
+      "OUT-001": {
+        "union": [
+          "TOPIC:enforcement-probing",
+          "TOPIC:entitlement-circumvention"
+        ],
+        "intersection": [
+          "TOPIC:enforcement-probing",
+          "TOPIC:entitlement-circumvention"
+        ],
+        "predicted_under_union": "blocked",
+        "predicted_under_unanimity": "blocked",
+        "agree": true
+      },
+      "OUT-002": {
+        "union": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "intersection": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "predicted_under_union": "allowed",
+        "predicted_under_unanimity": "allowed",
+        "agree": true
+      },
+      "OUT-003": {
+        "union": [
+          "TOPIC:enforcement-probing",
+          "TOPIC:entitlement-circumvention"
+        ],
+        "intersection": [
+          "TOPIC:enforcement-probing",
+          "TOPIC:entitlement-circumvention"
+        ],
+        "predicted_under_union": "blocked",
+        "predicted_under_unanimity": "blocked",
+        "agree": true
+      },
+      "OUT-004": {
+        "union": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "intersection": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "predicted_under_union": "allowed",
+        "predicted_under_unanimity": "allowed",
+        "agree": true
+      },
+      "OUT-005": {
+        "union": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "intersection": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "predicted_under_union": "allowed",
+        "predicted_under_unanimity": "allowed",
+        "agree": true
+      },
+      "OUT-006": {
+        "union": [],
+        "intersection": [],
+        "predicted_under_union": "allowed",
+        "predicted_under_unanimity": "allowed",
+        "agree": true
+      },
+      "OUT-007": {
+        "union": [],
+        "intersection": [],
+        "predicted_under_union": "allowed",
+        "predicted_under_unanimity": "allowed",
+        "agree": true
+      },
+      "OUT-008": {
+        "union": [],
+        "intersection": [],
+        "predicted_under_union": "allowed",
+        "predicted_under_unanimity": "allowed",
+        "agree": true
+      },
+      "OUT-009": {
+        "union": [],
+        "intersection": [],
+        "predicted_under_union": "allowed",
+        "predicted_under_unanimity": "allowed",
+        "agree": true
+      },
+      "OUT-010": {
+        "union": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "intersection": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "predicted_under_union": "allowed",
+        "predicted_under_unanimity": "allowed",
+        "agree": true
+      }
+    },
+    "rows_where_the_samplings_disagree": [],
+    "readings_agree": true
   }
 }

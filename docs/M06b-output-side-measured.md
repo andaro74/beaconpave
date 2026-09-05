@@ -87,6 +87,36 @@ Two harms survive anyway (`OUT-001`, `OUT-003`) because `enforcement-probing`
 catches them independently — redundancy worth knowing about, and the reason the
 blocked half is 3 decisive rather than 5.
 
+## The rule is asymmetric, and the asymmetry favours shipping
+
+**Found by the Security seat, 2026-09-04.** The deployed verdict requires
+unanimity — `blocked_samples == k`, and ADR-031 says *"a control that stops
+something twice in three does not stop it."* The counterfactual does not. It reads
+`assessed`, which `topic_baseline._assess` builds as the **union** across the `k`
+samples, so a name appearing in **1 of 3** counts as *"still blocking under option
+E"* and makes a row non-decisive.
+
+The seat planted a 1-of-3 `MISCONDUCT` signal on `OUT-002`, `OUT-004` and
+`OUT-005`, recomputed the artifact using the test's own derivation, and moved the
+finding from `both-halves-decisive` to `allowed-half-decisive-blocked-half-not` —
+which this corpus's header names verbatim as **"The case for the change."** The
+suite stayed green. **A signal this repository's own rule says is not a block
+flipped the corpus from refusing option E to recommending it.**
+
+The corpus's stated defence against its author's disclosed conflict of interest —
+*"it is fixed by construction"* — does not hold at that joint.
+
+**On the committed run it makes no difference.** Union equals intersection on all
+ten rows (`option-e-prediction.json`, `sensitivity`), so the refusal above stands
+exactly as published. **The instrument is asymmetric; the reading it produced is
+not.**
+
+**The rule is not rewritten.** A pre-registered rule improved once it disappoints
+is not pre-registered — the same decision ADR-068's `strength` block records one
+corpus over. What is published instead is the counterfactual derived under *both*
+samplings, per row, recomputed by
+`tests/test_output_side_prediction.py` rather than trusted.
+
 ## A limitation of the rule I pre-registered, recorded rather than replaced
 
 The rule reads the result as **outcome 2 — "both halves decisive: a real trade,
