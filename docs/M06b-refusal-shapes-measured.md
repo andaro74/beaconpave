@@ -1,5 +1,14 @@
 # The topic can tell refusing from complying. It cannot tell a good answer from a bad one.
 
+> **CORRECTED 2026-09-04, twice, and the title overstates what this run showed.**
+> ADR-068 wrote five fresh refusals and three of the five are blocked on their
+> own by this topic, so *"the topic reads the verb"* holds on the pairs below and
+> **does not generalise**. And `docs/M06b-guardrail-diagnosis.md` Correction 3
+> withdraws the consistency argument this page makes for the conjunction
+> hypothesis: the mechanism it leans on — *"stating the verdict is what trips
+> it"* — is refuted by `headroom-026` and by this branch's own `OUT-006`. The
+> measured rows stand; two of the sentences drawn from them do not.
+
 **Zero model calls.** 30 `ApplyGuardrail` calls at `source=OUTPUT`, `k=3`, against
 deployed `abayh4ye7f8o` version 4. Nothing created, modified or deleted in AWS.
 **This scores nothing** — no gateway, no audit record, no history entry, no
@@ -36,9 +45,15 @@ pairs split and claim no mechanism"*, and this document claims none.
   allowed, so the topic is not firing on refusal *language*. That was the outcome
   that would have made every pair unreadable, and it did not happen.
 
-The topic reads the verb. That is a better control than this investigation
-expected to find, and it is worth saying plainly after two rounds of findings
-against it.
+The topic reads the verb *on these rows*. That is a better control than this
+investigation expected to find, and it is worth saying plainly after two rounds
+of findings against it.
+
+**Corrected 2026-09-04.** The sentence originally stopped at "the topic reads the
+verb", with no qualifier. ADR-068 then wrote five fresh refusals and **three of
+the five are blocked on their own**, so the property holds on these two pairs and
+does not generalise — and nothing measured since predicts which refusals block.
+The pairs are not withdrawn; the generalisation from them is.
 
 ## Why the two collapsed pairs collapsed — and one is my row's fault
 
@@ -106,6 +121,14 @@ refused, and the passing ones are the ones that found nothing to say.
 **Consistent. Not confirmed.** Confirming it needs the loop's own text, which is
 still destroyed — so ADR-066's step 0 stands unchanged and this does not replace
 it.
+
+**WITHDRAWN 2026-09-04.** The paragraph above rests on *"stating the verdict is
+what trips it"*, and `docs/M06b-guardrail-diagnosis.md` **Correction 3** refutes
+it: `headroom-026` retrieved a title, stated an entitlement verdict, and was
+allowed in all three committed runs — and `OUT-006`, measured on this same
+branch, is that sentence in constructed form and passes v4 unanimously. **The
+conjunction hypothesis loses its consistency argument** and now stands or falls
+on ADR-068's own evidence, which is one interpretable case against one.
 
 ## What this does not establish
 

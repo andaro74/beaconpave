@@ -75,7 +75,10 @@ separated:
   output inline. `docs/M06b-guardrail-diagnosis.md` records that the committed
   answers from three arms pass v4 cleanly at `source=OUTPUT`, so the blocked text
   is something the loop produced that no file holds — and the audit record carries
-  no assessed text.
+  no assessed text. **Corrected 2026-09-04:** two of those three arms tested only
+  their own survivors, and that page's Correction 2 struck them. The conclusion
+  here does not rest on them — *no committed text exists for any answer-channel
+  block* is the claim, and it holds on M06's control arm alone.
 
 **That capture gap is now the single blocker on M06b.** It was one of two; it is
 the remaining one, and nothing in this repository can currently see the text that
