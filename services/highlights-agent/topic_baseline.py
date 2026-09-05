@@ -303,6 +303,31 @@ def decomposition_expectations() -> dict:
     return {r["id"]: r["expect"] for r in _decomposition_rows()}
 
 
+#: Arm name -> the callable giving `{row id: expected verdict}` for it.
+#:
+#: **One table, because there used to be two and they disagreed by construction.**
+#: The expectation was looked up by a chain of `if arm == "<literal>"` and the
+#: summary line was chosen by a second, independent tuple of the same names.
+#: Platform Engineering measured both halves of that: an arm added to the summary
+#: tuple and not to the chain printed **"17/17 met their expectation"** having
+#: compared nothing, because `r.get("met", True)` defaulted an unmeasured row to
+#: passing — a fall-through that reports a clean sheet rather than reporting
+#: nothing. An arm absent from BOTH printed the blocked/unstable summary and
+#: silently dropped its corpus's expectations on the floor.
+#:
+#: An arm here is an arm whose corpus declares `expect` on its rows. Appending a
+#: new arm in `main()` without adding it here is caught by
+#: `tests/test_topic_baseline.py`, which reads both sets out of this file and
+#: pins them against the corpora themselves.
+EXPECTATION_SOURCES = {
+    "heldout": expectations,
+    "controls": control_expectations,
+    "output-attacks": output_expectations,
+    "refusal-shapes": refusal_expectations,
+    "decomposition": decomposition_expectations,
+}
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="what the deployed guardrail does, per channel")
     p.add_argument("--questions", action="store_true")
@@ -398,6 +423,21 @@ def main(argv=None) -> int:
     # moment they are, it is the two-spellings misread `CHANNELS` exists to stop.
     for arm, source, items, channel in arms:
         print(f"--- {arm} ({len(items)} items, source={source}) " + "-" * 26)
+        # **Resolved ONCE per arm, and its coverage is checked before any row is
+        # scored.** An arm that declares expectations and cannot supply one for
+        # every row is an arm that would score the remainder and report the total,
+        # which is the survivor-versus-population error this repository has made
+        # three times. G2: an errored control blocks, it does not skip.
+        arm_expectations = (EXPECTATION_SOURCES[arm]() if arm in EXPECTATION_SOURCES
+                            else None)
+        if arm_expectations is not None:
+            missing = [item_id for item_id, _ in items if item_id not in arm_expectations]
+            if missing:
+                print(f"{arm}: no expectation for {missing}. This arm declares "
+                      "expectations; scoring the rest and printing the total would "
+                      "report a number about the rows that happened to have one.",
+                      file=sys.stderr)
+                return 2
         results, blocked, unstable, by_topic = {}, 0, 0, 0
         for item_id, text in items:
             hits, assessed, per_sample = _assess(
@@ -408,12 +448,7 @@ def main(argv=None) -> int:
             blocked += int(hits == args.k)
             unstable += int(not unanimous)
             by_topic += int(TOPIC in assessed)
-            expected = (expectations().get(item_id) if arm == "heldout"
-                        else control_expectations().get(item_id) if arm == "controls"
-                        else output_expectations().get(item_id) if arm == "output-attacks"
-                        else refusal_expectations().get(item_id) if arm == "refusal-shapes"
-                        else decomposition_expectations().get(item_id) if arm == "decomposition"
-                        else None)
+            expected = arm_expectations.get(item_id) if arm_expectations else None
             if arm == "probes" and item_id in UNINTERPRETABLE:
                 results[item_id]["uninterpretable"] = UNINTERPRETABLE[item_id]
             verdict = ("blocked" if hits == args.k else "allowed" if hits == 0
@@ -430,8 +465,14 @@ def main(argv=None) -> int:
             elif hits:
                 label = "BLOCKED" if hits == args.k else f"UNSTABLE {hits}/{args.k}"
                 print(f"  {label:12s} {item_id:20s} {assessed}")
-        if arm in ("heldout", "output-attacks", "refusal-shapes", "decomposition"):
-            missed = [i for i, r in results.items() if not r.get("met", True)]
+        # **Derived from whether the arm HAS expectations, not from a second list.**
+        # `controls` had them and printed the other summary, which is the same
+        # divergence one arm over and was harmless only because nobody read it.
+        if arm_expectations is not None:
+            # `met` ABSENT is a miss, never a pass. It defaulted to True, so a row
+            # nothing compared was reported as having met an expectation it was
+            # never given.
+            missed = [i for i, r in results.items() if not r.get("met", False)]
             print(f"  {len(items) - len(missed)}/{len(items)} met their expectation"
                   + (f"   MISSED: {missed}" if missed else ""))
         else:

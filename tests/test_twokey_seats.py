@@ -1403,3 +1403,77 @@ def test_declaring_a_rule_enforced_collects_two_seats_and_an_adr():
     )
     # A rule file nobody has drafted yet is covered the day it lands.
     _blocked_for(["rules/a-rule-nobody-has-drafted.yaml"], {"legal-sp", "security"})
+
+
+# --- the M06b range's rules, pinned because the ratchet above did not reach them
+
+
+#: Every path M06b put on a rule, and the seats it must keep.
+#:
+#: **Why this exists.** `test_the_seat_pin_covers_every_rule_this_adr_added`
+#: ratchets only the rules ADR-043 enumerated, keyed on substrings of `Rule.what`.
+#: M06b added and widened five rules whose `what` matches none of those keywords,
+#: so the ratchet did not reach them — and the Platform Engineering seat reverted
+#: **all five individually, each at 2587 passed**. `run_tool_probes.py` went from
+#: two keys to zero by deleting eight characters from one alternation.
+#:
+#: That is the same measured failure as `_lane` in
+#: `test_the_enumerated_protection_rule_cannot_be_narrowed_by_four_characters`,
+#: one milestone later, in the diffs that cite it. This file's own rule carries
+#: Security's key, so thinning this table is not a one-seat edit.
+M06B_SEATS = {
+    # ADR-060: the tool-plane arm's producer and the evidence it writes.
+    "services/highlights-agent/run_tool_probes.py": {"security", "platform-eng"},
+    "milestones/M06b/tool-probes-run.json": {"security", "ai-quality"},
+    # ADR-060: what a tool-plane row may claim.
+    "tests/test_tool_plane_probes.py": {"security", "ai-quality"},
+    # ADR-063: the guardrail policy pin, and the decision path's own guard.
+    "tests/test_guardrail_pin_tracks_policy.py": {"security", "ai-quality"},
+    "tests/test_handler_wiring.py": {"platform-eng", "security"},
+    # The seat round: the producer of three corpora's measurements, which was
+    # missed by the sentence widening the rule for its two siblings.
+    "services/highlights-agent/topic_baseline.py": {"security", "platform-eng"},
+    "tests/test_topic_baseline.py": {"security", "platform-eng"},
+    # The seat round: the only readers of the derived artifacts, which are the
+    # only published form of what the output-side corpora measured.
+    "tests/test_output_side_prediction.py": {"security", "ai-quality"},
+    "tests/test_refusal_shapes.py": {"security", "ai-quality"},
+    "tests/test_answer_decomposition.py": {"security", "ai-quality"},
+    # The seat round: the sole reader of `check_tool_surface`, joined to the
+    # three-key subject it is the only guard over.
+    "tests/test_tool_surface.py": {"ai-quality", "security", "platform-eng"},
+}
+
+
+def test_the_rules_m06b_added_cannot_be_reverted_silently():
+    for path, seats in sorted(M06B_SEATS.items()):
+        assert _seats_for(path) == seats, (
+            f"{path} is no longer on the rule M06b put it on, or its seats changed. Every "
+            "one of these was reverted individually by the Platform Engineering seat at "
+            "2587 passed — a widened alternation with no pin is a rule that un-keys a file "
+            "for free. If a seat legitimately moved, move it here in the same diff and say "
+            "why.")
+
+
+def test_the_m06b_pin_cannot_be_thinned_to_nothing():
+    """The one-line bypass the table above would otherwise leave open.
+
+    `M06B_SEATS = {}` satisfies every parametrised case by generating none, which
+    is the shape `test_the_seat_pin_covers_every_rule_this_adr_added` records as
+    `ADR043_SEATS = {}` leaving 1814 passed. A count is the cheapest thing that
+    makes deleting an entry two edits instead of one."""
+    assert len(M06B_SEATS) == 11, (
+        f"M06B_SEATS holds {len(M06B_SEATS)} paths, expected 11. Deleting an entry in the "
+        "same diff that narrows its rule is the one-edit bypass this constant makes two. "
+        "If a path was added on purpose, raise the number here and say why.")
+
+
+def test_the_rename_bypass_stays_closed_for_the_rules_m06b_added():
+    """`--no-renames` reports both sides, so the old path is what must match.
+
+    Asserted for M06b's paths for the reason ADR-042 decision 4 gives: a rule a
+    `git mv` walks around is the "stated and absent" shape one level out."""
+    for old in M06B_SEATS:
+        new = old.replace(".py", "_v2.py").replace(".json", "_v2.json")
+        assert twokey.triggered([old, new]), (
+            f"renaming {old} walks around its rule; the old path must still match.")
