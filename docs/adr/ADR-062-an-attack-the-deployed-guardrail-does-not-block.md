@@ -101,3 +101,38 @@ see and never was.
 - **It does not add a probe.** A probe naming this act would be Security's with
   an ADR and belongs with the fix, not with the acceptance — and `probes.yaml`'s
   arm cannot reach the tool plane anyway (ADR-060).
+
+---
+
+## Amendment 1 — dispositioned at M07: accepted as a scale cut, moot if step 6b closes the row
+
+**Written 2026-09-05, in M07 PR 3, zero model calls.** ADR-070 decision 6
+scheduled this disposition for PR 4, after `close-milestone` step 6b re-measures
+the row on the deployed guardrail; amendment 1 of that ADR moved the two
+zero-call items to PR 3 if PR 4 would otherwise split, and amendment 4 records
+that it would. The deadline this ADR set — *M07, closed or reverted, never a
+checklist edit* — is met inside the milestone and before the run that could
+close it for free.
+
+**Disposition: accepted as a scale cut**, in this ADR's own words: *the act is a
+sequence of legitimate transactions, which is not a thing a content filter can
+see and never was; at scale, replace with a subscription-abuse control at the
+billing boundary.* Nothing in M07 moves it: `question` is assessed by the same
+policy at the same source as `converse` assessed it, and the frozen corpus at
+`INPUT` was identical across every arm ADR-064 measured. Both wordings tested
+against this topic regressed attacks, and no third is proposed.
+
+- The row keeps `expect: blocked` and keeps failing. The hole stays visible in
+  every step-6b run, which is the point.
+- **Moot if PR 4's step 6b records `ATK-003` blocked 3/3** on the deployed
+  option-B gateway. Then the row closes itself, the deadline is discharged as
+  ADR-035 amendment 5 discharged `ATK-007`'s, and this acceptance never applied.
+  Not expected — same policy, same source — and written down so the re-measure
+  cannot be read as confirming an acceptance it would have made unnecessary.
+- **Not an extension.** No new date is set. *An extension nobody signed is an
+  acceptance*; this is an acceptance two seats signed.
+
+**Attested, not enforced.** `docs/adr/` is on no two-key rule, so the two keys
+this row's rule asks for — Security and AI Quality — are the dispositions in
+PR 3's body, which that PR collects for other paths anyway, and are named here
+as attestation. The frozen corpus is not edited; the disposition lives here.

@@ -698,3 +698,81 @@ fourth round would lengthen by another twelve. Decision 3's concession is the
 honest description of what the pins are, and the seats' own sentence for it
 is the right one: a human decides whether the list is long enough, and the
 list is in `tests/test_handler_wiring.py` by route.
+
+## Amendment 4 — what PR 3 built, the deferred decision made, and two debts re-dated
+
+**Written 2026-09-05, in PR 3, zero model calls, no seats scheduled.** ADR-071
+is the store; ADR-072 is the `pave/twokey.py` decision amendment 3 owed. This
+amendment records what PR 3 built against what was pre-registered, makes the
+decision amendment 1 deferred, and re-dates two debts with their reasons.
+
+### The deferred decision, made: both zero-call items move to PR 3
+
+Amendment 1: *the `ATK-003` disposition and the two-key rule move to PR 3 if
+and only if PR 4 would otherwise split.* Argued separately:
+
+**`ATK-003` (decision 6): moved.** Zero-call and deadline-bound, and the two
+keys it needs — Security and AI Quality — are collected on PR 3's body for
+other paths already. Decision 6's *"after step 6b re-measures it"* buys only
+the chance that the re-measure closes the row for free, and the disposition is
+written to survive that: **accepted as a scale cut** in ADR-062's own words,
+ADR-062 amendment 1, the row keeps `expect: blocked` and keeps failing, and
+the acceptance is **moot if PR 4's step 6b records the row blocked 3/3**. Not
+expected — `question` is the same policy at the same source — and written so
+the re-measure cannot be read as confirming an acceptance it would have made
+unnecessary. PR 4 loses one attestation pair and one ADR edit, which is where
+its split risk sat.
+
+**The goldens two-key widening: moved.** Amendment 1's hazard — *"or the rule
+reverts silently"* — is a rule with no evidence to pin against. M06b's files
+exist and are pinned; SPEC/07's exact stage-1 and stage-2 names are pinned as
+paths before the files exist (`tests/test_twokey_seats.py::M07_SEATS` and
+`test_the_stage1_evidence_names_spec07_fixes_are_all_on_the_goldens_rule`:
+`goldens-run-{1,2,3}.json`, the sidecar, the trajectories, `-infra` samples,
+under `milestones/M07/stage1/` and `milestones/M07/`). The pattern is
+`^milestones/.*/(goldens-run[^/]*\.json|runs/[^/]+\.json)$`. ADR-069's stated
+M07 debt closes now, and PR 4 creates evidence under a rule that is already red
+to revert, as the probe run does.
+
+**The cap does not move.** Six PRs; PR 4 is now the run, the pre-flight, the
+sidecar header, `--sidecar`, and the reading against 14–20.
+
+### What PR 3 built, where it differs from what was pre-registered
+
+| pre-registered | built | why, and the pin |
+|---|---|---|
+| decision 3, *What B costs*: "`core/audit.py` (PR 3) in `capture_sha256`" | `core/audit.py` untouched; the store's pure code is `core/withheld.py`, on the gateway decision-path rule | the doorway byte-identical is the stronger form of the boundary argument; no digest moves, `m04-H` stays current, nothing registered. `test_the_current_instrument_still_describes_this_tree` green on `m04-H` |
+| decision 5: "the four routes ADR-069 named are closed as tests in PR 3" | closed; route (2) was already closed in M06d PR 2, and ADR-071 says where | `tests/test_adversarial_scoring.py` (routes 1, 3, 4), `tests/test_g4_capture_boundary.py` (route 5) |
+| SPEC/07 PR 3 row: "a store the record does not point to" | keyed by `record_id` verbatim, in a second bucket, put-only for the gateway; the record's closed sets are what make a pointer impossible | ADR-071 decisions 1–2 |
+| silent | the store write is best-effort, after the record, and cannot fail a block | ADR-071 decision 3; `test_hold_puts_the_text_in_the_store_and_cannot_fail_the_block` |
+| silent | every channel is stored, the viewer's turn included (Q7, Data Governance's) | ADR-071 decision 4 |
+| amendment 3, TO-5: "`tool.id` carrying model text is carried to ADR-071 as a question" | answered: assessed text, unchanged | ADR-071 decision 5; `test_a_request_the_guardrail_refuses_leaves_its_name_in_no_record` |
+| `test_handler_wiring.py`'s pins | three went red on the store write — `MODULE_FUNCTIONS`, `MODULE_NAMES`, the blocked branch's `refused` reader — and were widened by exactly `_hold`, `WITHHELD_STORE` and one argument position, with four new pins beside them, one on the snapshot | the pins did what they were written to do: named the text going somewhere before the ADR said where |
+| `tests/test_twokey_seats.py`'s ratchet | did **not** go red on the new registry rule: it counts rules by `Rule.what` keyword, so a rule outside the list is invisible to it — the M06b finding again. The keyword is added (17 → 18) and `M07_SEATS` pins every path this PR keyed | a ratchet that must be told about a rule is a pin, not a ratchet; recorded, not fixed here |
+
+### Two Security probes: re-dated, and why
+
+Amendment 3 recorded the `tool-name-echo` probe as *"owed to Security, dated
+to PR 3 at the latest"*, and round 2 added a probe asserting the
+`tool_request` channel's `guardrail.id` in the record. **Neither lands here,
+and the date was wrong when written.** SPEC/07 constraint 8 binds for the
+whole milestone — `quality/adversarial/*.yaml` untouched, no probe declares
+`tool_request` — and a probe on a tool name fires on exactly that channel. It
+would also move `probes_sha256` and force a registration during the
+measurement, and no deployed arm can plant a model-authored tool name: the
+model arm sends no tools, and the tool-plane arm authorizes a name the harness
+chooses, so under ADR-041's rule the probe would credit nothing on every arm.
+Its only observation today is the loop test PR 2 wrote.
+
+**Re-dated to the SPEC/08 PR**, the next PR that may touch the corpus, with the
+arm question owed first: which harness can produce a model-authored name
+through the deployed gateway. Both probes, one date. This is a conflict between
+two lines of the same ADR resolved in favour of the binding constraint, written
+down so it is not a slide.
+
+### One debt recorded, not fixed
+
+`docs/adr/README.md`'s index stops at ADR-057. Fourteen records since have no
+row — ADR-058 through ADR-072, less the numbers never used — and adding one
+row for ADR-071 would make the gap read as a choice. **Owed to the PM seat at
+PR 6**, the close, where the journal is written anyway.

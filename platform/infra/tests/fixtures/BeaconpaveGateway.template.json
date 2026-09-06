@@ -323,6 +323,11 @@
           "GuardrailId"
         ]
       }
+    },
+    "WithheldStoreBucket": {
+      "Value": {
+        "Ref": "WithheldStore40F96F34"
+      }
     }
   },
   "Parameters": {
@@ -666,6 +671,9 @@
                 "ToolOutputGuardrailVersion",
                 "Version"
               ]
+            },
+            "WITHHELD_STORE_BUCKET": {
+              "Ref": "WithheldStore40F96F34"
             }
           }
         },
@@ -770,20 +778,36 @@
                 "s3:PutObjectVersionTagging"
               ],
               "Effect": "Allow",
-              "Resource": {
-                "Fn::Join": [
-                  "",
-                  [
-                    {
-                      "Fn::GetAtt": [
-                        "AuditLake1BF36E0E",
-                        "Arn"
-                      ]
-                    },
-                    "/*"
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "AuditLake1BF36E0E",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
                   ]
-                ]
-              }
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "WithheldStore40F96F34",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
             },
             {
               "Action": "lambda:InvokeFunction",
@@ -1099,6 +1123,78 @@
       },
       "Type": "AWS::Bedrock::GuardrailVersion",
       "UpdateReplacePolicy": "Retain"
+    },
+    "WithheldStore40F96F34": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        }
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "WithheldStorePolicyF1BB6B31": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "WithheldStore40F96F34"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Effect": "Deny",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "WithheldStore40F96F34",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "WithheldStore40F96F34",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        }
+      },
+      "Type": "AWS::S3::BucketPolicy"
     }
   },
   "Rules": {

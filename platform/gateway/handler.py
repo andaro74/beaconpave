@@ -30,13 +30,18 @@ import time
 import uuid
 
 import boto3
-from core import audit, cedar, classify, guardrail, meter, toolloop, toolplane
+from core import audit, cedar, classify, guardrail, meter, toolloop, toolplane, withheld
 
 # ADR-015: the regional inference profile. The bare model id cannot be invoked —
 # Haiku 4.5 is INFERENCE_PROFILE only, and passing it fails with a
 # ValidationException that reads like a missing access grant. See BUILD.md.
 MODEL_ID = os.environ.get("MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
 AUDIT_LAKE = os.environ["AUDIT_LAKE_BUCKET"]
+#: The refused-content store (ADR-071): a second bucket, keyed by `record_id`,
+#: that the audit lake never references. Read without a default, as the lake
+#: is: a gateway that cannot name its store must refuse to start, not block
+#: silently and hold nothing.
+WITHHELD_STORE = os.environ[withheld.STORE_ENV]
 GUARDRAIL_ID = os.environ["GUARDRAIL_ID"]
 
 # Never DRAFT. A DRAFT guardrail can be edited outside a commit and silently
@@ -165,6 +170,26 @@ def _write(record):
         ContentType="application/json",
     )
     return record["record_id"]
+
+
+def _hold(record, text):
+    """Put the text a guardrail refused in the store, keyed by the record it
+    describes (ADR-071).
+
+    **After the record, and best-effort.** The record is G4's evidence half and
+    is written first; the store is evidence for people, not a control, and a
+    store outage must not turn a correct refusal into an INFRA for the harness
+    — that would let the store's availability move the adversarial score, which
+    is the capture weakening G4 in the one form ADR-064 named. So a failed put
+    is printed to the function's log and the block is returned as the block it
+    is. The lost object surfaces as `missing` in `read_withheld.py`, which is
+    the finding it should be. `held_object` refuses a text the record does not
+    describe, so nothing here can hold one text while recording another."""
+    try:
+        _s3.put_object(**withheld.held_object(WITHHELD_STORE, record, text))
+    except Exception as exc:  # noqa: BLE001 — a diagnostic must not fail a refusal
+        print(f"withheld store: put failed for {record['record_id']}: "
+              f"{type(exc).__name__}: {exc}")
 
 
 def tool_config(offered):
@@ -541,7 +566,7 @@ def handler(event, context):
             # a length and a one-way digest of that text — the model's own words
             # now, not Bedrock's placeholder — and `build_record` refuses any
             # fragment holding more than those three fields. Where the text goes
-            # from here is ADR-071 (PR 3); this branch writes none of it anywhere.
+            # from here is the store (ADR-071), below, after the record is written.
             withheld=guardrail.fingerprint_text(outcome.refused),
             guardrail=fragment,
             # **Absent, not zero, when nothing was spent.** A block on the system
@@ -552,12 +577,18 @@ def handler(event, context):
             usage=meter.assert_token_denominated(outcome.usage) or None,
             **common,
         )
+        # **The record first, then the text it describes (ADR-071).** The store
+        # is keyed by the id the lake just accepted, and it holds the one thing
+        # the record may not: the refused text, read from `outcome.refused` here
+        # and in the fingerprint above and nowhere else.
+        record_id = _write(record)
+        _hold(record, outcome.refused)
         # The guardrail-derived keys come from the dataclass that owns them
         # (ADR-039). They were assembled here, in a module no test can import
         # because it pulls in boto3 and `tests/` is hermetic — so these lines ran
         # in CI never, and a field rename crashed this path under a green suite.
         return {"decision": "blocked", "mechanism": "guardrail",
-                "record_id": _write(record),
+                "record_id": record_id,
                 **outcome.guardrail.as_response_fields(),
                 "usage": outcome.usage, **common_out}
 

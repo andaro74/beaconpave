@@ -772,6 +772,52 @@ def test_each_version_binding_belongs_to_the_guardrail_it_is_paired_with(templat
         "guardrail: a version of the other one does not exist on this id.")
 
 
+def _bucket_referenced(value) -> str | None:
+    if isinstance(value, dict) and "Ref" in value:
+        return value["Ref"]
+    return None
+
+
+def test_the_store_is_not_the_lake_and_the_gateway_can_only_put_to_it(template):
+    """**ADR-071, the binding half.** `WITHHELD_STORE_BUCKET` resolves to a bucket
+    of its own, not the audit lake's, and the gateway's role holds nothing but
+    put-shaped actions on it: the gateway writes what it refused to return and
+    cannot read it back. Asserted on the snapshot because the handler's pins
+    read names, and a stack binding both names to one bucket would satisfy
+    every one of them while the lake carried the text beside the record."""
+    from pave import infra
+
+    env = _gateway_env(template)
+    lake, store = _bucket_referenced(env["AUDIT_LAKE_BUCKET"]), _bucket_referenced(
+        env["WITHHELD_STORE_BUCKET"])
+    buckets = _resources(template, "AWS::S3::Bucket")
+    assert lake in buckets and store in buckets, (
+        f"AUDIT_LAKE_BUCKET->{lake!r}, WITHHELD_STORE_BUCKET->{store!r}; both must be buckets "
+        "in this stack")
+    assert lake != store, (
+        "the store IS the lake: the refused text would sit in the bucket the audit record "
+        "lives in, one prefix away from the evidence G4 says it cannot reach")
+    props = buckets[store]["Properties"]
+    assert props.get("VersioningConfiguration", {}).get("Status") == "Enabled"
+    assert props.get("PublicAccessBlockConfiguration", {}).get("BlockPublicAcls") is True
+
+    gateway_roles = [r for r in infra.roles(template) if infra.is_gateway_role(r)]
+    assert gateway_roles, "no gateway role in the snapshot"
+    on_store = []
+    for grant in infra.statements(template):
+        if not set(grant["roles"]) & set(gateway_roles):
+            continue
+        if store in json.dumps(grant["statement"].get("Resource")):
+            on_store.extend(infra.actions_of(grant["statement"]))
+    assert on_store, "the gateway holds no grant on the store; nothing could be held"
+    readers = sorted(a for a in on_store
+                     if not (a.startswith("s3:Put") or a.startswith("s3:Abort")))
+    assert not readers, (
+        f"the gateway role holds {readers} on the store. Put only: the gateway cannot read "
+        "back the text it refused to return, and a `Get` here is the handler one line away "
+        "from quoting it")
+
+
 #: The two legal (identifier, version) pairings at an `apply_guardrail` call site.
 #:
 #: `PINNED_IDENTIFIERS` and `PINNED_VERSIONS` above are two independent closed
@@ -898,8 +944,15 @@ def test_the_blocked_branch_is_composed_from_the_dataclass_and_record_id(tree):
     blocked branch must not be the place it leaks. Its return dict is pinned:
     four literal keys, the spread of `as_response_fields()` (whose key set the
     loop tests pin), and the spread of `common_out` — nothing else, and no key
-    that could carry text. `refused` is read in that branch only as the argument
-    of `fingerprint_text`, which is how `withheld` is built."""
+    that could carry text. `refused` is read in that branch in exactly two
+    places: as the argument of `fingerprint_text`, which is how `withheld` is
+    built, and as the second argument of `_hold`, which is how the store is
+    written (ADR-071). **The second reader was added by widening this pin, and
+    the pin went red first**: PR 3 planted the store write and this assertion
+    named it as text going somewhere, which is the sentence it exists to say.
+    The widening admits one call, by name and by argument position, and
+    `test_the_blocked_branch_holds_the_refused_text_after_the_record_is_written`
+    pins what that call is."""
     branch = _blocked_branch(tree)
     returns = [n for n in ast.walk(branch) if isinstance(n, ast.Return)]
     assert len(returns) == 1 and isinstance(returns[0].value, ast.Dict)
@@ -910,6 +963,11 @@ def test_the_blocked_branch_is_composed_from_the_dataclass_and_record_id(tree):
         else:
             assert isinstance(key, ast.Constant)
             literal.add(key.value)
+            if key.value == "record_id":
+                assert isinstance(value, ast.Name) and value.id == "record_id", (
+                    f"the blocked branch returns record_id={ast.unparse(value)}; it must be "
+                    "the id `_write` returned, bound once, so the store is keyed by the id "
+                    "the lake accepted")
     assert literal == {"decision", "mechanism", "record_id", "usage"}, (
         f"the blocked branch returns {sorted(literal)}; a key beyond these four is a "
         "place model text could travel")
@@ -919,12 +977,80 @@ def test_the_blocked_branch_is_composed_from_the_dataclass_and_record_id(tree):
 
     fingerprinted = {id(call.args[0]) for call in calls_named(branch, "fingerprint_text")
                      if call.args}
+    held = {id(call.args[1]) for call in calls_named(branch, "_hold") if len(call.args) == 2}
     for node in ast.walk(branch):
         if isinstance(node, ast.Attribute) and node.attr == "refused":
-            assert id(node) in fingerprinted, (
+            assert id(node) in fingerprinted | held, (
                 "the blocked branch reads `outcome.refused` somewhere other than as the "
-                "argument of guardrail.fingerprint_text — that is the refused text going "
-                "somewhere the record or the response could carry it")
+                "argument of guardrail.fingerprint_text or the second argument of _hold — "
+                "that is the refused text going somewhere the record or the response could "
+                "carry it")
+
+
+def test_the_blocked_branch_holds_the_refused_text_after_the_record_is_written(tree):
+    """**ADR-071: the record first, then the text it describes, then the caller.**
+    The branch is exactly four statements — build the record, write it and bind
+    the id, hold the text, return — so the store is keyed by an id the lake has
+    accepted and a store object can never exist for a record that does not.
+    `_hold` is called from this branch and nowhere else in the module: the
+    allowed and loop-bound paths hold nothing, because nothing was refused."""
+    branch = _blocked_branch(tree)
+    shape = [type(stmt).__name__ for stmt in branch.body]
+    assert shape == ["Assign", "Assign", "Expr", "Return"], (
+        f"the blocked branch is {shape}; it must be `record = ...`, `record_id = _write(record)`, "
+        "`_hold(record, outcome.refused)`, `return {...}` in that order")
+    build, write, hold, _ = branch.body
+    assert ast.unparse(build.targets[0]) == "record"
+    assert ast.unparse(write) == "record_id = _write(record)", (
+        f"the second statement is `{ast.unparse(write)}`; the id must be bound from _write")
+    assert ast.unparse(hold) == "_hold(record, outcome.refused)", (
+        f"the third statement is `{ast.unparse(hold)}`; the store is written from the "
+        "record the lake accepted and the text the loop refused, nothing else")
+    holds = calls_named(tree, "_hold")
+    assert len(holds) == 1 and holds[0] is hold.value, (
+        f"_hold is called {len(holds)} time(s); once, from the blocked branch, or a path "
+        "that refused nothing writes to the store")
+
+
+def test_hold_puts_the_text_in_the_store_and_cannot_fail_the_block(tree):
+    """**ADR-071: best-effort, and to the store only.** `_hold`'s body is one
+    guarded put of `withheld.held_object(WITHHELD_STORE, record, text)`; the
+    `except` prints and returns nothing, so a store outage cannot turn a correct
+    refusal into an INFRA for the harness and move the adversarial score. The
+    store's name is read without a default, once, and `_hold` is the only
+    function that names it; `_write` names the lake and never the store, so the
+    two buckets cannot be swapped inside either transport."""
+    hold = _function(tree, "_hold")
+    body = [s for s in hold.body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant))]
+    assert len(body) == 1 and isinstance(body[0], ast.Try), "_hold's body must be one try"
+    assert [type(s).__name__ for s in body[0].body] == ["Expr"]
+    put = body[0].body[0].value
+    assert isinstance(put, ast.Call) and ast.unparse(put.func) == "_s3.put_object"
+    assert not put.args and len(put.keywords) == 1 and put.keywords[0].arg is None, (
+        f"the put is `{ast.unparse(put)}`; it must be `_s3.put_object(**withheld.held_object(...))` "
+        "so the object is built by the pure module and nothing here composes it")
+    built = put.keywords[0].value
+    assert (isinstance(built, ast.Call) and ast.unparse(built.func) == "withheld.held_object"
+            and [ast.unparse(a) for a in built.args] == ["WITHHELD_STORE", "record", "text"]), (
+        f"the object is built as `{ast.unparse(built)}`")
+    assert len(body[0].handlers) == 1 and not body[0].orelse and not body[0].finalbody
+    handler_ = body[0].handlers[0]
+    assert not any(isinstance(n, (ast.Raise, ast.Return)) for n in ast.walk(handler_)), (
+        "_hold's except raises or returns; a failed put must be printed and swallowed, "
+        "because the store is a diagnostic and must not acquire the power to fail a block")
+    assert not any(isinstance(n, ast.Return) for n in ast.walk(hold)), "_hold returns a value"
+
+    def names_in(fn):
+        return {n.id for n in ast.walk(fn) if isinstance(n, ast.Name)}
+    assert "WITHHELD_STORE" in names_in(hold) and "AUDIT_LAKE" not in names_in(hold)
+    write = _function(tree, "_write")
+    assert "AUDIT_LAKE" in names_in(write) and "WITHHELD_STORE" not in names_in(write)
+    for fn in [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name != "_hold"]:
+        assert "WITHHELD_STORE" not in names_in(fn), f"{fn.name} names the store"
+    binds = [n for n in tree.body if isinstance(n, ast.Assign)
+             and any(isinstance(t, ast.Name) and t.id == "WITHHELD_STORE" for t in n.targets)]
+    assert len(binds) == 1 and ast.unparse(binds[0].value) == "os.environ[withheld.STORE_ENV]", (
+        "WITHHELD_STORE must be read once, from the environment, with no default")
 
 
 def test_the_loop_bound_branch_returns_no_answer(tree):
@@ -952,8 +1078,12 @@ def test_the_loop_bound_branch_returns_no_answer(tree):
 #: module constants and returned the refused text passed every pin, because every
 #: pin resolves `def handler`. A closed list: adding a function is a diff somebody
 #: has to defend, and `run_turn` is called from exactly one of them.
+#:
+#: `_hold` joined at ADR-071, and this pin went red on it first — which is the
+#: diff-somebody-has-to-defend the sentence above asks for. Its shape is pinned
+#: by `test_hold_puts_the_text_in_the_store_and_cannot_fail_the_block`.
 MODULE_FUNCTIONS = frozenset({
-    "_now", "_write", "tool_config", "_call_tool", "_converse", "_inspect",
+    "_now", "_write", "_hold", "tool_config", "_call_tool", "_converse", "_inspect",
     "_tool_records", "handler", "_tool_probe",
 })
 
@@ -976,8 +1106,9 @@ def test_the_module_defines_exactly_these_functions_and_only_handler_runs_a_turn
 #: what the NAME was bound to afterwards. Bindings are the closed set here; a
 #: module-level statement is one of six kinds; no class is defined; and no
 #: pinned function name is ever a Store target anywhere in the file.
+#: `WITHHELD_STORE` joined at ADR-071 (red here first, like `_hold`).
 MODULE_NAMES = frozenset({
-    "MODEL_ID", "AUDIT_LAKE", "GUARDRAIL_ID", "GUARDRAIL_VERSION",
+    "MODEL_ID", "AUDIT_LAKE", "WITHHELD_STORE", "GUARDRAIL_ID", "GUARDRAIL_VERSION",
     "_TOOL_OUTPUT_GUARDRAIL_ID", "_TOOL_OUTPUT_GUARDRAIL_VERSION", "SERVICE_PRINCIPAL",
     "TOOL_FUNCTIONS", "POLICY_DIR", "POLICIES", "CONTRACTS", "_unknown", "PLANE",
     "_bedrock", "_lambda", "_s3",
@@ -1120,9 +1251,17 @@ def test_the_bedrock_client_and_the_guardrail_module_are_the_real_ones(tree):
                    and any(a.name == "guardrail" and a.asname is None for a in n.names)
                    for n in tree.body)
     assert imported, "`guardrail` is not imported from core"
-    rebound = [n for n in ast.walk(tree) if isinstance(n, ast.Name) and n.id in {"guardrail", "_bedrock"}
+    # `withheld` too (ADR-071): the store object is built by the pure module by
+    # dotted name, and a shim under that name could hold one text while
+    # recording another.
+    imported_store = any(isinstance(n, ast.ImportFrom) and n.module == "core"
+                         and any(a.name == "withheld" and a.asname is None for a in n.names)
+                         for n in tree.body)
+    assert imported_store, "`withheld` is not imported from core"
+    rebound = [n for n in ast.walk(tree) if isinstance(n, ast.Name)
+               and n.id in {"guardrail", "_bedrock", "withheld"}
                and isinstance(n.ctx, ast.Store) and n is not binds[0].targets[0]]
-    assert not rebound, "`guardrail` or `_bedrock` is rebound somewhere in handler.py"
+    assert not rebound, "`guardrail`, `_bedrock` or `withheld` is rebound somewhere in handler.py"
 
 
 def test_the_withheld_fragment_describes_the_refused_text(tree):

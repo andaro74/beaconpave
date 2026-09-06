@@ -26,6 +26,7 @@ If a future change makes one of these fail, the change is wrong, not the test.
 
 Hermetic (G8). Owning seat: Security / Red Team.
 """
+import ast
 import pathlib
 
 import pytest
@@ -340,6 +341,148 @@ def test_the_goldens_partition_keys_do_not_move_a_probe_verdict():
                     == adv.score_one(probe, {"samples": [decorated] * 3}))
     assert adv.score_one(PROBE, satisfying(PROBE)).result == PASS, "the satisfying half is live"
     assert adv.score_one(PROBE, obs(model_complied=False)).result == FAIL, "and the failing half"
+
+
+# --- ADR-069's residual routes, closed at M07 (ADR-071, PR 3) -------------------
+#
+# The test above is route (2), scoring time through `score_one`, closed in M06d
+# PR 2. ADR-069 D5 named four it could not see and dated them to M07. Route (5),
+# capture time, closes in `tests/test_g4_capture_boundary.py`; routes (1), (3)
+# and (4) close here, each as a test that fails on the mechanism rather than on
+# a substring of the source.
+
+PARTITION = {"refused_by_gateway": "guardrail", "refused": 17, "answered": 7}
+
+#: `ProbeResult`'s fields, literally. **Route (3)** — a `refused` key reaching
+#: `adv.tally` — can only travel through this dataclass, because `tally` takes
+#: results and nothing else. A field added here is the route opening, and the
+#: pin makes that a visible diff on a two-key file rather than a quiet one.
+PROBE_RESULT_FIELDS = {"id", "result", "reason", "model_complied", "unearned",
+                       "unearned_reason", "samples", "unstable", "code"}
+
+#: What a file read looks like in source. `_policy_mechanisms` loads
+#: `core/audit.py` through the import machinery, so `exec_module` is a read.
+FILE_READERS = {"open", "read_text", "read_bytes", "load", "exec_module", "safe_load"}
+
+
+def _reads_a_file(node) -> bool:
+    if not isinstance(node, ast.Call):
+        return False
+    label = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", None)
+    return label in FILE_READERS
+
+
+def _scoring_workload():
+    """Every entrypoint the L5 lane and the recorder call to turn observations
+    into a verdict, over the committed corpus and a synthetic run."""
+    for probe in (PROBE, CEDAR_PROBE):
+        for bare in (satisfying(probe), obs(model_complied=False),
+                     obs(guardrail_blocked=True, audit_record=None)):
+            adv.score_one(probe, bare)
+            adv.score_one(probe, dict(bare, **PARTITION))
+            adv.score_one(probe, {"samples": [bare] * 3})
+    adv.check_semantics(SEMANTICS)
+    results = [adv.score_one(p, satisfying(p)) for p in PROBES]
+    adv.tally(results)
+    asked = frozenset(p["id"] for p in PROBES)
+    adv.score_one(PROBE, satisfying(PROBE), asked=asked)
+
+
+def test_scoring_opens_no_file(monkeypatch):
+    """**Route (1): `evals/adversarial.py` opening a goldens answer file.** Not
+    "the source does not mention `milestones/`" — every way of opening a file
+    is made to raise while the whole scoring workload runs, so a scorer that
+    reached for an answer file, a sidecar or the store by any path fails here
+    on the read itself. The AST half below says where the module's only reads
+    are, so a read moved into a helper is visible too."""
+    import builtins
+    import io
+    import os
+
+    def refuse(*args, **kwargs):
+        raise AssertionError(f"scoring opened a file: {args[:2]}")
+
+    monkeypatch.setattr(builtins, "open", refuse)
+    monkeypatch.setattr(io, "open", refuse)
+    monkeypatch.setattr(os, "open", refuse)
+    monkeypatch.setattr(pathlib.Path, "open", refuse)
+    monkeypatch.setattr(pathlib.Path, "read_text", refuse)
+    monkeypatch.setattr(pathlib.Path, "read_bytes", refuse)
+    _scoring_workload()
+
+
+def test_the_scorers_only_file_reads_are_the_instrument_digests():
+    tree = ast.parse((ROOT / "evals" / "adversarial.py").read_text(encoding="utf-8"))
+    readers = set()
+    for fn in [n for n in tree.body if isinstance(n, ast.FunctionDef)]:
+        if any(_reads_a_file(n) for n in ast.walk(fn)):
+            readers.add(fn.name)
+    module_level = [n for n in tree.body if not isinstance(n, ast.FunctionDef)
+                    and any(_reads_a_file(m) for m in ast.walk(n))]
+    assert not module_level, "evals/adversarial.py reads a file at import time"
+    assert readers == {"instrument_digests", "_policy_mechanisms"}, (
+        f"evals/adversarial.py reads files in {sorted(readers)}; only the instrument digests "
+        "may, and they read the tree, never a run. A scorer that opens an answer file, a "
+        "sidecar or the refused-content store is refused (ADR-064, ADR-069 route 1).")
+
+
+def test_no_observation_key_reaches_the_tally():
+    """**Route (3): a `refused` key reaching `adv.tally`.** `tally` reads only
+    `ProbeResult` attributes, `ProbeResult` has exactly the pinned fields, and
+    none of them is populated from an observation key the goldens partition
+    writes — so a tally over partition-carrying observations equals the tally
+    over bare ones, and adding the field is a red diff."""
+    import dataclasses
+
+    fields = {f.name for f in dataclasses.fields(adv.ProbeResult)}
+    assert fields == PROBE_RESULT_FIELDS, (
+        f"ProbeResult's fields are {sorted(fields)}; a field beyond the pinned set is a "
+        "place an observation key can ride into the tally (ADR-069 route 3)")
+
+    tree = ast.parse((ROOT / "evals" / "adversarial.py").read_text(encoding="utf-8"))
+    tally = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "tally")
+    body = ast.Module(body=tally.body, type_ignores=[])  # the body, not the annotations
+    read = {n.attr for n in ast.walk(body) if isinstance(n, ast.Attribute)
+            and isinstance(n.value, ast.Name) and n.value.id == "r"}
+    assert read <= PROBE_RESULT_FIELDS, f"tally reads {sorted(read - PROBE_RESULT_FIELDS)}"
+    subscripts = [ast.unparse(n) for n in ast.walk(body) if isinstance(n, ast.Subscript)]
+    assert not subscripts, f"tally subscripts {subscripts}; it reads dataclass attributes only"
+
+    bare = [adv.score_one(p, satisfying(p)) for p in PROBES] + [
+        adv.score_one(PROBE, obs(model_complied=False)),
+        adv.score_one(PROBE, {"samples": [satisfying(PROBE), obs(model_complied=False),
+                                          satisfying(PROBE)]})]
+    decorated = [adv.score_one(p, dict(satisfying(p), **PARTITION)) for p in PROBES] + [
+        adv.score_one(PROBE, dict(obs(model_complied=False), **PARTITION)),
+        adv.score_one(PROBE, {"samples": [dict(satisfying(PROBE), **PARTITION),
+                                          dict(obs(model_complied=False), **PARTITION),
+                                          dict(satisfying(PROBE), **PARTITION)]})]
+    assert adv.tally(bare) == adv.tally(decorated)
+    assert bare == decorated, "a ProbeResult differs by an observation key it should not see"
+    assert adv.tally(bare)["failed"] >= 1 and adv.tally(bare)["unstable"] >= 1, (
+        "the workload exercises neither a failure nor an unstable sample; the equality is vacuous")
+
+
+def test_the_scorer_imports_only_verdict_constants_from_the_deterministic_runner():
+    """**Route (4): a helper in `evals/deterministic.py`** — on no rule, in no
+    digest, and already imported by the scorer. The only thing the scorer may
+    take from it is the three verdict strings; a function crossing that import
+    is a route from the goldens runner (which opens answer files) into the
+    adversarial verdict, invisible to every digest."""
+    tree = ast.parse((ROOT / "evals" / "adversarial.py").read_text(encoding="utf-8"))
+    from_evals = [n for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)
+                  and (n.module or "").startswith("evals")]
+    assert [n.module for n in from_evals] == ["evals.deterministic"], (
+        f"evals/adversarial.py imports from {[n.module for n in from_evals]}; only the "
+        "deterministic runner's verdict vocabulary may cross")
+    assert sorted(a.name for a in from_evals[0].names) == ["FAIL", "INFRA", "PASS"], (
+        f"evals/adversarial.py imports {[a.name for a in from_evals[0].names]} from "
+        "evals.deterministic; only FAIL, INFRA and PASS")
+    assert not [n for n in ast.walk(tree) if isinstance(n, ast.Import)
+                and any(a.name.startswith("evals") for a in n.names)], (
+        "evals/adversarial.py imports an evals module whole")
+    import evals.deterministic as det
+    assert all(isinstance(getattr(det, name), str) for name in ("FAIL", "INFRA", "PASS"))
 
 
 # --- the checker checks itself ------------------------------------------------

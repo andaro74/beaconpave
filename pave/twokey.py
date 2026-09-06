@@ -441,8 +441,22 @@ RULES: tuple[Rule, ...] = (
         # resolved to no rule at all, so "evidence that is itself under two keys"
         # was true for one filename. AI Quality owns the number the answers score
         # to; Platform Engineering owns the lane that re-scores them.
+        #
+        # **Widened at M07 PR 3 (ADR-070 amendment 4), closing ADR-069's M07
+        # debt.** The pattern matched `goldens-run.json` and `runs/*.json`, not
+        # the `goldens-run-N.json` naming M06b used, so every number in ADR-069
+        # rested on files editable on one key; and the refusals sidecar --
+        # `run_evals --refusals`' input since M06d, the file the `(mechanism,
+        # assessed)` pair assertion reads -- was on no rule at all. Now every
+        # `goldens-run*.json` at any depth: the answers, the trajectories the
+        # deterministic scorer reads, the sidecar, and an `-infra` sample
+        # committed beside a re-run. `.*/` rather than `[^/]+/` because M07
+        # commits stage 1 under `milestones/M07/stage1/`. Widened before the
+        # evidence exists, and pinned against SPEC/07's exact stage-1 names in
+        # `tests/test_twokey_seats.py`, so the evidence lands on a rule that is
+        # already red to revert rather than on one written in the same diff.
         "committed goldens evidence — the answers a recorded entry was summarised from",
-        re.compile(r"^milestones/[^/]+/(goldens-run\.json|runs/[^/]+\.json)$"),
+        re.compile(r"^milestones/.*/(goldens-run[^/]*\.json|runs/[^/]+\.json)$"),
         ("ai-quality", "platform-eng"),
     ),
     Rule(
@@ -868,6 +882,34 @@ RULES: tuple[Rule, ...] = (
         requires_adr=True,
     ),
     Rule(
+        # **ADR-072. The registry of what read every recorded adversarial number,
+        # co-signed by the seat that owns what a recorded number means.** The
+        # corpus rule above gives `instruments.json` Security's key and an ADR,
+        # and the AI Quality seat measured (M07 PR 2, finding Q2) that a
+        # historical row's digests edited in place passed 2557 tests on that
+        # key alone -- a re-registration that silently redefines every history
+        # entry citing the name, which is ADR-018's hazard and the one the
+        # `gateway-stack.ts` rule already collects AI Quality for. This rule
+        # STACKS on the corpus rule: one seat, no ADR flag of its own, because a
+        # second `requires_adr` rule over one file would demand two decision
+        # records per registration. Combined, the registry takes Security, AI
+        # Quality and an ADR.
+        #
+        # **And it is the answer to the channel predicate's key (Q6).** The
+        # `is_request` label in `core/toolloop.py` is worth ten probes and sits
+        # on `(platform-eng, security)`. It is also inside `guardrail_sha256`,
+        # so any change to it moves the digest, and
+        # `test_the_current_instrument_still_describes_this_tree` makes an
+        # unregistered move red -- the route to a scoring-relevant predicate
+        # change runs through this file, which now collects AI Quality. One
+        # decision, one key, at the registry, rather than a third seat on every
+        # gateway change.
+        "the instrument registry — the seat that owns what a recorded number means "
+        "co-signs what read it",
+        re.compile(r"^quality/adversarial/instruments\.json$"),
+        ("ai-quality",),
+    ),
+    Rule(
         # **The corpus rule above says "and only with an ADR". The assertions that
         # make that true lived on a rule that collected neither Security nor an
         # ADR.** They were eight tests inside `tests/test_contracts.py` -- 47 tests
@@ -986,8 +1028,17 @@ RULES: tuple[Rule, ...] = (
         # into the observation the scorer reads. The ADR-036 review measured that a
         # record can assert a guardrail block while its own attribution says nothing
         # fired, and score the probe PASS; the fix for that lands under this rule.
+        #
+        # **`tests/test_g4_capture_boundary.py` joins it (ADR-071).** It is the
+        # file that plants a refused text through the real loop and asserts the
+        # doorway does not copy it, that the record cannot be given a pointer to
+        # the store, and that nothing under `evals/` or `pave/` can name the
+        # store. A boundary test on no rule over a doorway on two is the
+        # guard-on-one-key shape this table records a dozen times; the doorway
+        # and the test that plants through it are weakened together or not at
+        # all.
         "the audit record shape and the observation the scorer reads",
-        re.compile(r"^platform/gateway/core/audit\.py$"),
+        re.compile(r"^(platform/gateway/core/audit\.py|tests/test_g4_capture_boundary\.py)$"),
         ("platform-eng", "security"),
     ),
     Rule(
@@ -1016,9 +1067,15 @@ RULES: tuple[Rule, ...] = (
         # that its converse-path half had been inspecting nothing since it was
         # written. A guard that can be edited on one key over a two-key subject is
         # the same shape twice.
+        #
+        # **`core/withheld.py` joined at ADR-071.** It builds the object the
+        # handler puts in the refused-content store and refuses one that does
+        # not describe the record it is keyed to; G4's boundary moves with any
+        # capture (ADR-070's seat line), and the module that decides what a
+        # capture holds cannot sit on fewer keys than the handler that calls it.
         re.compile(
-            r"^(platform/gateway/(core/(guardrail|toolloop)\.py|handler\.py|audit\.schema\.json)"
-            r"|tests/test_handler_wiring\.py)$"),
+            r"^(platform/gateway/(core/(guardrail|toolloop|withheld)\.py|handler\.py"
+            r"|audit\.schema\.json)|tests/test_handler_wiring\.py)$"),
         ("platform-eng", "security"),
     ),
     Rule(
