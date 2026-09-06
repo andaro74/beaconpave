@@ -139,7 +139,7 @@ DEFERRED = {
         "row 14 refuses a brand the judge cannot score; it does not build the pack "
         "that would make a second brand scoreable. One fictional news title is 16 "
         "failed, because the catalog is embedded model-facing in the judge prompt "
-        "and digested into `quality/judge/frozen.json`. The second brand is M08's.",
+        "and digested into `quality/judge/frozen.json`. The second brand is M10's.",
     "whether the declaration is honest":
         "`classification` is a declaration the repository refuses to merge when it "
         "is outside the vocabulary. `handler.py:309` still takes `declared` from the "
@@ -321,7 +321,7 @@ def _check_identity(manifest: dict, directory: pathlib.Path, rel: str) -> list[F
             "A brand is supported when the rubric under `quality/judge/` carries a "
             f"`brand_tone:{brand}` axis — `evals/judge.py` raises without it, so every "
             "judged case in this service would be scored against a rubric that does "
-            "not mention it. Building a second brand pack is M08's (ADR-046)."))
+            "not mention it. Building a second brand pack is M10's (ADR-046)."))
 
     api = manifest.get("apiVersion")
     if api is not None and api != API_VERSION:

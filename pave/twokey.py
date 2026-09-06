@@ -460,6 +460,43 @@ RULES: tuple[Rule, ...] = (
         ("ai-quality", "platform-eng"),
     ),
     Rule(
+        # **The producer of the goldens evidence, on no rule for two milestones
+        # (M07 close; M08 PR 2, SPEC/08).** `run_with_tools.py` writes every
+        # `goldens-run*.json` -- the answers, the trajectories and the refusals
+        # sidecar -- and it decides what `refused_by_gateway` and `channels` a
+        # sidecar carries, which is what the `(mechanism, assessed)` pair
+        # assertion and the per-case `refused` field are derived from. The rule
+        # above keys the files it writes on two seats; the file that writes them
+        # was on none, while its three siblings (`run_probes*`, `run_tool_probes`,
+        # `topic_baseline`) sat on the producer rule. ADR-035's shape -- the
+        # thermometer keyed and the hand that reads it free -- found at M07's
+        # close by the seat round and not widened in the measuring PR because
+        # this file takes four seats. The same two seats as the evidence: AI
+        # Quality owns the number the answers score to, Platform Engineering the
+        # lane that produced them. A path pattern, so a scaffolded service's
+        # producer lands here the day it is written.
+        "the goldens producer — the arm that writes every goldens evidence file and "
+        "the refusals sidecar",
+        re.compile(r"^services/[^/]+/run_with_tools\.py$"),
+        ("platform-eng", "ai-quality"),
+    ),
+    Rule(
+        # **The step-6b record (M07 close; M08 PR 2, SPEC/08).** Every
+        # `topic-baseline.json` -- M06b's, M06d's, M07's and M07 stage 1's -- is
+        # the `ApplyGuardrail` k=3 sweep close-milestone step 6b reads `ATK-003`
+        # and the `enforcement-probing` trigger from. Its producer,
+        # `topic_baseline.py`, has taken two keys since the M06b seat round; the
+        # file it writes took none, so the row a close reads could be edited on
+        # one key after the run. Security, because the corpora it sweeps are
+        # Security's own rule; AI Quality, because a close's disposition is read
+        # from it. `.*/` for the same reason as the evidence rule: stage
+        # subdirectories.
+        "the topic baseline — the step-6b record a close reads ATK-003 and the "
+        "enforcement-probing trigger from",
+        re.compile(r"^milestones/.*/topic-baseline\.json$"),
+        ("security", "ai-quality"),
+    ),
+    Rule(
         # **ADR-049. The obligation register, and the check that reads it.** The
         # data half alone was SPEC/05's row; the test is here for ADR-043 decision
         # 1's reason -- an instrument and the thing it measures are weakened

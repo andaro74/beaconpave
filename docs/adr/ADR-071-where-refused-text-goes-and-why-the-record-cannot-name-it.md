@@ -207,3 +207,72 @@ does not touch it: the store's pure code is `core/withheld.py`, on the gateway
 decision-path rule, and the doorway is byte-identical — which is the stronger
 form of the boundary argument. No digest moves, `m04-H` stays the current
 instrument, and nothing is registered. Recorded in ADR-070 amendment 4.
+
+## Amendment 1 — Data Governance's answer on decision 4
+
+**Written 2026-09-06, in M08 PR 2. Zero model calls; nothing deployed; no
+gateway code moves (SPEC/08 constraint 5).** Decision 4 was written as *"the
+author's answer for Data Governance to overturn at PR 6"*; ADR-070 amendment 6
+dated the seat's answer to PR 6, the M07 close re-dated it to the SPEC/08 PR,
+and ADR-073 amendment 1 (question 4) moved it here, where its key is an
+attestation line and nothing in the diff needs a seat the PR is not already
+collecting. Read against the seat's six questions, in their order, against the
+committed record rather than the design.
+
+1. **Classification honesty.** The store object carries the record's own
+   classification as S3 metadata (decision 1) and `verify` refuses an object
+   whose metadata disagrees with its record. Nothing is re-labelled on the way
+   to the store. **Upheld.**
+2. **G5.** `sensitive` never reaches `converse`, so it never reaches a
+   `question` assessment and never the store:
+   `tests/test_gateway_core.py::test_personal_data_about_subscribers_is_sensitive_and_refused`
+   and `::test_sensitive_is_refused_even_for_a_service_declared_sensitive`.
+   The store is downstream of the block, and the block on `question` is
+   upstream of the first model call. **Upheld.**
+3. **Test data.** What the store holds under `question` today is read off the
+   committed sidecars: `channels: question 0` in M06b's, M07 stage 1's and
+   stage 2's goldens runs, so no golden viewer turn is in the store; the probe
+   suite's blocks are on `question` (ADR-070 amendments 5 and 6, *"every block
+   on `question`"*), and every probe prompt is committed corpus text under
+   `quality/adversarial/`, fictional entities only. No real-person data can be
+   in the store from any committed run because none was sent. **Upheld.**
+4. **Redaction placement.** There is no redaction path to place: the store
+   receives text the assessment refused, after the record is written, and
+   nothing the store holds is read back into a model call or a response
+   (decision 2's three closed sets; decision 7's no-reader test). **Not
+   applicable, and the reason is recorded rather than assumed.**
+5. **Audit retention.** **The one finding.** The store is a new data category
+   — refused viewer turns and refused model text, verbatim, under `RETAIN` —
+   and ADR-071 lists retention as undecided. Decision 4 makes the `question`
+   channel part of that category rather than exempt from it, which is the
+   right default (an exemption would store less than the record describes,
+   decision 4's own argument) and which makes the retention decision the
+   seat's, not the design's. **Recorded as Data Governance's open item**, with
+   Platform Engineering for the bucket: the trigger is the first viewer turn
+   the store holds that is not committed corpus text, which no milestone
+   through M12 schedules — the gateway serves the eval harness and the probe
+   arms — and which `close-milestone` step 6b reads at every close (*Open holes
+   and triggers*), so the item is looked for rather than remembered. Not a
+   defect; a decision with a trigger.
+6. **Fictional-only.** The `question` texts in the store are the probe
+   corpus's fictional markets, titles and viewers. **Upheld.**
+
+**Answer: decision 4 stands as written — one rule, no channel exemption.** The
+digest adds no linkability the record lacks; the platform already held the
+text for the call; G5 keeps `sensitive` out by construction; and the seat's
+one concern, retention, is a property of the store and not of which channels
+feed it. Two conditions travel with the answer and are already true: the
+object's classification metadata stays the record's, and the store stays
+unreadable by anything under `evals/`, `pave/` or `tools/`
+(`tests/test_g4_capture_boundary.py`). If either moves, decision 4 is re-read.
+
+The attestation the PR body carries for this answer, the seat being unenforced
+in `pave/twokey.py` (ADR-073 amendment 1, question 4):
+
+```
+Two-Key-Disposition: data-governance
+Two-Key-Rationale: decision 4 upheld with no channel exemption; every question
+  text in the store from a committed run is probe-corpus text, sensitive never
+  reaches the store by G5's two pins, and retention is the seat's open item
+  carried as a step-6b trigger rather than a date
+```

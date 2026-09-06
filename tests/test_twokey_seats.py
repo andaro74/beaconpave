@@ -162,6 +162,12 @@ ADR043_SEATS = {
     "pave/verdict.py": {"platform-eng", "security"},
     # ADR-072: the instrument registry, Security's corpus key plus AI Quality's.
     "quality/adversarial/instruments.json": {"security", "ai-quality"},
+    # M08 PR 2 (SPEC/08, the M07 close's register). The producer of every goldens
+    # evidence file, keyed the same as the files it writes; and the step-6b
+    # record, keyed as its producer has been since M06b. Measured on 895fdd7:
+    # both files on zero keys, `two-key: not required`.
+    "services/highlights-agent/run_with_tools.py": {"platform-eng", "ai-quality"},
+    "milestones/M07/topic-baseline.json": {"security", "ai-quality"},
 }
 
 
@@ -219,10 +225,14 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           "judge rubric, calibration set",
                                           "the rule registry",
                                           # ADR-072
-                                          "the instrument registry"))]
-    assert len(added) == 18, (
+                                          "the instrument registry",
+                                          # M08 PR 2, SPEC/08
+                                          "the goldens producer",
+                                          "the topic baseline"))]
+    assert len(added) == 20, (
         f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one, "
-        f"ADR-049's three, ADR-052's two, ADR-053's two and ADR-072's one, found "
+        f"ADR-049's three, ADR-052's two, ADR-053's two, ADR-072's one and SPEC/08's "
+        f"two, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -294,6 +304,18 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
         # ADR-072. One file, and the pin is what stops the rule being deleted
         # in the diff that edits a registered row.
         "the instrument registry": ["quality/adversarial/instruments.json"],
+        # M08 PR 2 (SPEC/08). A path pattern for the producer, so a scaffolded
+        # service's arm lands on the rule the day it is written; every committed
+        # step-6b record member by member, plus one that need not exist, because
+        # `.*/` narrowed to `[^/]+/` would silently drop `stage1/`'s — the
+        # ADR-044 `_lane` narrowing in a rule written after it.
+        "the goldens producer": ["services/highlights-agent/run_with_tools.py",
+                                 "services/a-service-that-does-not-exist-yet/run_with_tools.py"],
+        "the topic baseline": ["milestones/M06b/topic-baseline.json",
+                               "milestones/M06d/topic-baseline.json",
+                               "milestones/M07/topic-baseline.json",
+                               "milestones/M07/stage1/topic-baseline.json",
+                               "milestones/M09/topic-baseline.json"],
         # ADR-052. Enumerated here because the audit measured both narrowings
         # silent otherwise: deleting the three pin entries below left 173 passed,
         # and dropping `pave/tests/test_twokey.py` from the alternation was caught
@@ -336,10 +358,11 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # passed -- unlike `len(added) == 15` and `len(ADR043_SEATS) >= 8`, these path
     # lists had no pin of their own.
     total = sum(len(v) for v in required.values())
-    # 57 -> 58 at ADR-072: the instrument registry's one path.
-    assert total == 58, (
+    # 57 -> 58 at ADR-072: the instrument registry's one path. 58 -> 65 at M08
+    # PR 2: the goldens producer's two and the topic baseline's five.
+    assert total == 65, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "58. Deleting a required path in the same diff that "
+        "65. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -464,6 +487,30 @@ def test_widening_the_g1_allowlist_with_its_own_pin_collects_security():
     failure, and only a second assertion at another path would."""
     _blocked_for(["pave/infra.py", "tests/test_iam_assertions.py"],
                  {"security", "platform-eng"})
+
+
+def test_the_goldens_producer_collects_the_seats_its_evidence_takes():
+    """Measured on 895fdd7 (M08 PR 2): `run_with_tools.py` on zero keys,
+    `two-key: not required`, while every file it writes took two. The M07
+    close's register: the producer decides what `refused_by_gateway` and
+    `channels` a sidecar carries, and the pre-flight header it writes records
+    the pinned values without recording that each matched. The rule is a path
+    pattern, so the second path here is a service that does not exist yet."""
+    _blocked_for(["services/highlights-agent/run_with_tools.py"],
+                 {"platform-eng", "ai-quality"})
+    _blocked_for(["services/a-service-that-does-not-exist-yet/run_with_tools.py"],
+                 {"platform-eng", "ai-quality"})
+
+
+def test_a_step_6b_record_collects_security_and_ai_quality():
+    """Measured on 895fdd7 (M08 PR 2): every committed `topic-baseline.json` on
+    zero keys, `two-key: not required` -- the file `ATK-003` and the
+    `enforcement-probing` trigger are read from at a close, whose producer has
+    taken two keys since the M06b seat round. Stage 1's, under a subdirectory,
+    is the member a narrowed `[^/]+/` would drop silently."""
+    for path in ("milestones/M06b/topic-baseline.json", "milestones/M06d/topic-baseline.json",
+                 "milestones/M07/topic-baseline.json", "milestones/M07/stage1/topic-baseline.json"):
+        _blocked_for([path], {"security", "ai-quality"})
 
 
 def test_a_forged_permit_from_the_generator_collects_four_seats():
@@ -1527,9 +1574,11 @@ def test_the_stage1_evidence_names_spec07_fixes_are_all_on_the_goldens_rule():
         for prefix in ("milestones/M07/stage1/", "milestones/M07/"):
             assert _seats_for(prefix + name) == {"ai-quality", "platform-eng"}, (
                 f"{prefix + name} is not on the goldens evidence rule")
-    # the rule stays narrow: the probe run is the adversarial rule's, not this one's
+    # the rule stays narrow: the probe run is the adversarial rule's, not this one's,
+    # and the step-6b record is its own rule's (M08 PR 2) — this line asserted
+    # `== set()` from M07 PR 3 until then, which was the gap the M07 close registered
     assert _seats_for("milestones/M07/stage1/probes-run.json") == {"security", "ai-quality"}
-    assert _seats_for("milestones/M07/stage1/topic-baseline.json") == set()
+    assert _seats_for("milestones/M07/stage1/topic-baseline.json") == {"security", "ai-quality"}
 
 
 def test_the_m06b_pin_cannot_be_thinned_to_nothing():

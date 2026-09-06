@@ -120,7 +120,7 @@ def check(service: str, brand: str) -> None:
             f"`brand_tone:{brand}` axis — `evals/judge.py` raises without it, so every "
             "judged case in the service would be scored against a rubric that does not "
             "mention it. Adding one is a judge re-freeze (two-key `ai-quality`) plus "
-            "superseding history entries; ADR-047 records why that is M08's and not a "
+            "superseding history entries; ADR-047 records why that is M10's and not a "
             "flag on this command.")
     target = SERVICES / service
     if target.exists():

@@ -335,7 +335,7 @@ COLLECTED_FLOOR = 2255
 #: under their own rules; this tuple is only the verifier's admission list, exactly
 #: as `DECLARABLE_LEVELS` is to `classify.LEVELS`. Adding a brand here without a
 #: rubric axis is red; adding the axis is a judge re-freeze (two-key `ai-quality`)
-#: and superseding history entries, which is why the second brand is M08's.
+#: and superseding history entries, which is why the second brand is M10's.
 SUPPORTED_BRANDS = ("meridian-sports",)
 
 #: What a manifest's `gates.budgets` must bound.

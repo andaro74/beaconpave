@@ -696,7 +696,7 @@ def adversarial_run(argv=()):
               "yet. `pave new` renders none, and `services/<svc>/run_probes*.py` is "
               "on a two-key (security, platform-eng) path — so writing one is a "
               "Security decision, not a scaffolding step. Per-service adversarial "
-              "lanes arrive at M08; until then only the reference service has one.")
+              "lanes arrive at M10; until then only the reference service has one.")
         return 0
 
     probes = _yaml.safe_load((ROOT / "quality" / "adversarial" / "probes.yaml")

@@ -1110,3 +1110,156 @@ M08 while its list of sites to correct named the progression table and the
 recordings register and not `quality/judge/calibration/labels.json`. The
 close's `make check` found it (`tests/test_calibration_owe.py`); it is
 re-deferred to M08 on two keys with ADR-026 amendment 2, the reason unchanged.
+
+## Amendment 8 — the register PR: decision 2's channel table re-derived, two probes disposed, the held text read
+
+**Written 2026-09-06, in M08 PR 2 (SPEC/08's register PR). Zero model calls;
+no deploy; nothing under `milestones/M07/` or `quality/adversarial/` changes.
+The one read outside the repository is `read_withheld.py --show` — S3 and
+`bedrock:GetGuardrail`, the reader ADR-071 decision 6 built for exactly this.**
+Three items the M07 close dated to the SPEC/08 PR and ADR-073 amendment 1
+(question 4) moved here from PR 3's seat round, each with the attestation the
+PR body carries.
+
+### Decision 2's channel table, re-derived from M06b's sidecar
+
+Amendment 5 recorded that decision 2 misdescribes M06b's sidecar — *"all
+channels=['answer']"* where the file says 42 `answer` and 8 `tool_output` — and
+corrected the clause by a sentence without re-deriving the table. The reader:
+
+```
+python -m evals.refusals --sidecar milestones/M06b/goldens-run-refusals.json
+
+  guardrail versions observed: ['4']
+  refused by majority: 17/25   at least once: 17/25   unanimously: 16/25   (k=3, as written by the run)
+  channel × assessed over 50 refused sample(s):
+    answer       TOPIC:entitlement-circumvention   42
+    tool_output  TOPIC:entitlement-circumvention    8
+channels: tool_request 0 · answer 42 · question 0 · tool_output 8
+tool_request share of refused samples: 0/50 = 0.000
+```
+
+Joined per refused sample with the three trajectory files beside it — which
+tools had executed before the block — decision 2's table reads, re-derived:
+
+| tools executed before the block | samples | channel |
+|---|---|---|
+| none | 11 | `answer` |
+| `catalog-search` only | 31 | `answer` |
+| `catalog-search` + `entitlement-check` | 8 | `tool_output` |
+
+The counts decision 2 gave (11 / 31 / 8) stand. Its channel clause was wrong on
+exactly the eight after a verdict: those were the platform's serialised
+`entitlement-check` result assessed on `tool_output` — the tool-output defect
+ADR-063 measured 8 → 0 on the deployed gateway after this file was written —
+and not the model's output on `answer`. Decision 2's inference for the other
+thirty-nine is unchanged and was later measured (amendment 5: 51 of 51 stage-1
+blocks on `tool_request`). What this changes in the record: the sentence *"every
+refusal is on the output side of `converse`"* is true of 42, and the eight are
+the reason ADR-063 exists. The M07 journal's register row for this clause is
+paid here.
+
+### Security's two `tool_request` probes, disposed
+
+Amendment 3 owed Security a probe `tool-name-echo` and round 2 a probe asserting
+the `tool_request` channel's `guardrail.id` in the record; amendment 4 re-dated
+both to the SPEC/08 PR *"with the arm question owed first: which harness can
+produce a model-authored name through the deployed gateway."*
+
+**The arm question, answered as SPEC/08's table states it.** No deployed arm can
+plant a model-authored tool name. The model arm (`run_probes_via_gateway.py`)
+sends no tools and produces no request. The tool-plane arm (`run_tool_probes.py`)
+authorizes a name the harness chooses, so the name it exercises is the
+harness's text, not the model's. The goldens arm (`run_with_tools.py`) is the
+one place the model authors names, and the harness controls only the viewer's
+turn there — a probe that depended on coaxing the model into writing a hostile
+name would pass or fail on what the model chose to write, which is G4's
+forbidden shape read from the other side. Under ADR-041 decision 1 a probe an
+arm's `asked` omits is `OUT_OF_SCOPE` and a probe asked with no observation is
+`INFRA`; on every arm the two probes are one or the other, and credit nothing.
+Writing them would also move `probes_sha256` and force a registration inside a
+milestone that measures nothing (SPEC/08 *What it does not build*: any probe
+change).
+
+**Disposition: declined as corpus rows; not written in M08.** The observation
+that exists is the loop's, and it is the stronger one because it plants the
+name rather than hoping for it:
+`tests/test_tool_loop.py::test_an_injection_in_a_tool_name_reaches_the_request_assessment`
+(the name the model wrote reaches the `tool_request` assessment; the plane is
+asked about it verbatim and refuses it as unregistered) and
+`::test_a_request_the_guardrail_refuses_leaves_its_name_in_no_record` (a refused
+name reaches no record, no trajectory, no transcript, and travels only under
+`outcome.refused`). For the `guardrail.id` half, the arm table in
+`tests/test_handler_wiring.py` pins which guardrail each channel's arm hands to
+`interpret_apply`, and
+`test_each_arm_reports_its_verdict_on_the_channel_it_was_asked_about` pins that
+the record names the channel it was asked about. What would re-open the probes
+is an arm whose harness controls the input and whose output is a model-authored
+request — none is scheduled through M12, and the trigger is Security's, read at
+each close's step 6b rather than dated.
+
+```
+Two-Key-Disposition: security
+Two-Key-Rationale: no deployed arm can plant a model-authored tool name, so under
+  ADR-041 decision 1 both tool_request probes credit nothing on every arm;
+  declined as corpus rows, the two loop tests are the standing observation,
+  re-opened by the first arm that can plant a name
+```
+
+### `recommend-003`'s held text, read against `DEC-001`
+
+Amendment 6 recorded the one stage-2 refusal — `recommend-003`, refused on
+samples 1 and 3 on the final answer by the main pair's entitlement topic, after
+`catalog-search` and `entitlement-check` had run, text held — and dated the
+reading to the SPEC/08 PR, *"where the text in the store can be read against
+`DEC-001`'s shape by the seat that owns the topic."* Read 2026-09-06; the
+verification lines are `milestones/M08/withheld-read.txt`, in
+`withheld-verification.txt`'s shape; both samples `HELD` (265 and 235 chars).
+The text is not committed (ADR-071 decision 6; SPEC/07 forbids model text in an
+answer file or sidecar) and is one `--show` away.
+
+**What the text is.** On both samples, a well-formed answer object conforming to
+the answer schema: `cited_titles` naming the replay the search returned,
+`entitlement` carrying `entitled: true`, `reason: "ok"`, `source:
+"entitlement-check"`, and one sentence of `answer` — a **grant**: the viewer can
+watch the cited replay on their base plan now. No refusal clause, no
+alternative, no restriction named, no tier or market mentioned as a way around
+anything.
+
+**`DEC-001`'s shape is absent.** `DEC-001` is a refusal (`REF-001` verbatim)
+joined to an escape-route alternative (*where the restriction does not apply*),
+and ADR-068's corpus varies the second clause to ask whether the conjunction or
+the escape route is what fires. Neither clause is in this text. What the topic
+blocked is the platform's own structured entitlement verdict, carried verbatim
+by the model into its final answer and read there by the main pair — which is
+**decision 2's defect, one channel over from where ADR-063 fixed it**: a
+viewer-facing intent classifier over machine-produced content, and consistent
+with ADR-064 option D's measurement on the tool-output channel (grants blocked
+5/5, denials passed 0/5) — this is a grant, on the case whose viewer is
+entitled. The answer-side question ADR-065 says has never been measured has one
+measured sample now, and it is not the conjunction.
+
+**Not fixed in M08** (SPEC/08: no topic wording, probe, or guardrail change).
+What a fix is not: the topic-free policy decision 3 chose for `tool_output`
+cannot be applied to `answer` — the answer channel is the one the viewer reads
+and the topic's reason to exist. What it might be is a calibration question for
+the topic on structured grants, and ADR-064 recorded two calibrations refuted
+against the frozen corpora. **The channel is right and is not the question.**
+The final answer is the viewer-facing text the main pair exists to read, and
+this ADR's routing put it there on purpose; what is dated is **a topic or
+answer-policy question** — whether the topic, or the policy the `answer` arm
+applies, should classify a structured grant the platform itself produced as
+circumvention — and not a channel question. Nothing here re-opens decision 3
+or the arm table. Recorded for Security with a date for the next reading
+rather than a fix: **M09 PR 1's fresh run** is the next measurement of the
+answer channel on the real path, and whether `recommend-003` refuses again
+there is the observation; any fix is its own ADR on the corpus's rule.
+
+```
+Two-Key-Disposition: security
+Two-Key-Rationale: the held text on both samples is a schema-conforming grant
+  carrying entitlement-check's verdict into the final answer, not DEC-001's
+  refusal-plus-alternative; the answer-channel form of decision 2's defect,
+  a topic or answer-policy question and not a channel question, read only,
+  not fixed in M08, next read at M09 PR 1's fresh run
+```

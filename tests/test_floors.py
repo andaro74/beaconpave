@@ -247,7 +247,7 @@ def test_every_supported_brand_has_an_axis_the_judge_scores(brand):
     This is the same form as `test_every_declarable_level_serves_an_ordinary_request`
     and it cannot be satisfied by editing `pave/floors.py`: making it green means
     editing the rubric, which is a judge re-freeze (two-key `ai-quality`) and
-    superseding history entries. That cost is why the second brand is M08's."""
+    superseding history entries. That cost is why the second brand is M10's."""
     from evals import judge
     assert f"brand_tone:{brand}" in judge.rubric_axes(), (
         f"the rubric under `quality/judge/` carries no `brand_tone:{brand}` axis, so "

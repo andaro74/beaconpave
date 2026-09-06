@@ -25,7 +25,7 @@ README. A template could have drifted for four milestones unnoticed.
 
 **No `run_probes*.py`.** That path is on a `(security, platform-eng)` rule, so
 emitting one would hand every team a file it could never edit alone. Per-service
-adversarial lanes arrive at M08.
+adversarial lanes arrive at M10.
 
 **No `gate.yml`, no CODEOWNERS entry.** M05 builds no per-service lane, and
 ADR-013 records that CODEOWNERS collects nothing on a one-operator repository.
