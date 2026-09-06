@@ -1089,7 +1089,13 @@ that an allowed record names the main guardrail only. What measures the arm is
 the difference between the stages under one pre-flight (51 of 51 stage-1 blocks
 on `tool_request`, 0 at stage 2, the same eighteen cases answering) and the
 wiring pins, which decision 3 already calls *a closed list of routes, not a
-proof*. Recorded beside the reading, not answered by it.
+proof*. Recorded beside the reading, not answered by it. The seat's first
+wording, that the wiring "rests on the bundle sha and the plant test", was
+withdrawn by the seat on reading the producer: the pre-flight compares all five
+pinned values against the stack's outputs and the bundle against the tree, and
+exits before the first call on any mismatch (amendment 1, pressure point 4).
+What survives, low and dated with `run_with_tools.py`'s rule in the journal:
+the committed header records the values, not the fact of the match.
 
 **Re-dated, and named as slides.** The ADR index (amendment 4: PR 6) and Data
 Governance's answer on ADR-071 decision 4 (amendment 6: PR 6) move to the

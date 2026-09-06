@@ -95,8 +95,14 @@ header, zero model calls, no edits. All three: **admissible with conditions.**
   every cited evidence file on the goldens two-key rule. Condition: cut 1 first
   (met). Finding, carried: *the moved arm's only evidence is a null result — the
   tool-output pair is named in zero observed records, so an arm never invoked
-  yields byte-identical evidence; the wiring rests on the bundle sha and the
-  plant test.* Finding, dated below: `topic-baseline.json` is on no two-key rule.
+  yields byte-identical evidence; deployment is established, exercise is not.*
+  The seat first wrote that the wiring "rests on the bundle sha and the plant
+  test" and withdrew that on reading the producer: `run_with_tools.py`'s
+  pre-flight compares all five pinned values against the stack's outputs and
+  the bundle against the tree, and exits before the first call on any
+  mismatch. What survives of that half, low: the committed header records the
+  values and not the fact that they matched. Finding, dated below:
+  `topic-baseline.json` is on no two-key rule.
 - **Platform Engineering.** Deployed bundle equal to the tree at `095f7a3`, both
   files; answer files LF and their digests stable. Conditions, both met: the
   recorder names the arm in the filename, and it names `HEAD`, so the entry was
@@ -204,7 +210,7 @@ questions 0/25 blocked, committed answers 0/22, attacks 8/9, held-out 6/6 met.
 
 | debt | owed to | date |
 |---|---|---|
-| `run_with_tools.py` is on no two-key rule — the producer of every goldens evidence file, and of `refused_by_gateway` and `channels` in the sidecar | Platform Engineering + AI Quality, via `pave/twokey.py` (four seats, five-seat pin) | SPEC/08 PR |
+| `run_with_tools.py` is on no two-key rule — the producer of every goldens evidence file, and of `refused_by_gateway` and `channels` in the sidecar; and its `_preflight` header records the pinned values without recording that each matched a stack output (Security, this close, low) | Platform Engineering + AI Quality, via `pave/twokey.py` (four seats, five-seat pin) | SPEC/08 PR |
 | ADR-070 decision 2's channel clause misdescribes M06b's sidecar (42 `answer`, 8 `tool_output`, not "all `answer`"); corrected by a sentence in amendment 5, the census table not re-derived | PM seat | SPEC/08 PR |
 | The M08 code sites decision 1 lists — `pave/cli.py:699`, `pave/floors.py:338`, `pave/manifest.py:142,324`, `pave/scaffold.py:123`, `templates/agent-tools/README.md:28`, `tests/test_floors.py:250` — say *M08* and mean M09 | three two-key rules, one of them four seats | SPEC/08 PR |
 | Security's two probes on the `tool_request` channel (`tool-name-echo`; a block naming `guardrail.id`), with the arm question first: which harness can produce a model-authored tool name through the deployed gateway | Security | SPEC/08 PR (amendment 4) |
