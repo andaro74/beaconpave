@@ -210,3 +210,34 @@ not closed"* as a literal and went red for the same reason
 asserts the property — a closed row and an open row both resolve — so the next
 close does not pay this cost again. This amendment is the third file that says
 so; the pattern is in the record, and a linter for it is not.
+
+## Amendment 3 (2026-09-06, at the M08 open): re-deferred to M09, in the same diff as the table
+
+**ADR-073 renumbered the milestone again.** M08 takes the `tokens_in` budget
+question M07's close handed it, and the rules registry — the milestone that
+adds graded content, the one amendment 1's reason names — moves to M09, with
+every later row shifted by one. The reason stands unchanged and the number
+follows it: `re_deferred_to` in `quality/judge/calibration/labels.json` becomes
+`M09`.
+
+**What is different from amendment 2.** That one was found by the close's
+`make check` after the table had moved without the file. This one moves the
+file in the same diff as the table, which is what ADR-070's sweep omitted and
+what ADR-073's sweep lists by name. `tests/test_calibration_owe.py` would not
+have fired until M08's close either way; the difference is that this time it
+will have nothing to find.
+
+**What this is not.** Not a payment: paying needs a wider deterministic draw
+hand-labelled under the existing discipline, which is a judge run, and M08 is
+zero model calls by SPEC/08. Not a lapse: the target moved on the day the
+milestone it named was renumbered, on two keys (AI Quality and Security, the
+`quality/judge/` rule). M08 adds no graded content: its one claim is about a
+token ceiling, decided by a census of committed runs, and every judged axis on
+the tools arm waits on that ceiling before a judge would read the answers.
+`how_it_must_be_paid` is unchanged, and "still one value" is still the finding
+it would be.
+
+**Counted, so it is not a slide by another name.** Owed to M04; lapsed there;
+re-deferred to M07 (amendment 1), to M08 (amendment 2), to M09 (this). Two of
+the three moves are renumberings of the same milestone under two ADRs, and one
+was a lapse. The file carries all three; the test reads the current one.

@@ -21,10 +21,11 @@ discipline).
 | 06 | ten PRs | The attack register (`SPEC/06`): 28 attacks measured against the tree, each with the plant that reproduces it. Two-key rules over the gate's own definition surface, `quality/judge/` and `rules/`; the gate moved out of `pave/cli.py`; adversarial contract assertions | Register + gate integrity; **no** interlock, **no** second tool — both renumbered to 06b |
 | 06b | `m06b-trajectory` | The **trajectory eval** first — something that can tell a tool that was CALLED from one that was CLAIMED; then `entitlement-check`, the second model-chosen tool that makes the eval mean something. **No interlock and no `publish-highlight` deployment** — the only recorded disposition on one is Legal/S&P's *no* (`SPEC/06` Decisions 1), and whether it is standing or M06-scoped is open for that seat, see ADR-055 | Four `m00b` unearned passes and eleven `entitlement_source` asserts become scorable; Act 0's punchline gets its answer |
 | 07 | `m07-guardrail-per-channel` | The gateway applies the guardrail per channel — `question`, `tool_request`, `tool_output`, `answer` — instead of `converse` applying one policy to every round's output; refused text captured where no scorer can read it (ADR-070, `SPEC/07`) | The tools arm's refusals inside SPEC/01's band, attributed by channel; `ATK-003` dispositioned |
-| 08 | `m08-rules` | Drive `rules/MER-AI-0001.yaml` end-to-end: disposition adds disclosure cases; gate catches the violation | **Act 3:** law → red service → fix (claim 6) |
-| 09 | `m09-surfaces` | Playwright + k6 emitting the verdict schema; one dashboard | Three surfaces, one schema (claims 3, 12 seed) |
-| 10 | `m10-drill` | Drill scenarios (blackout sweep, captions, alarm self-test) | **Act 4:** NO-GO → delta drill → GO (claim 11) |
-| 11 | `m11-selfheal` | Drift-vs-defect classifier + its tests; repair PR flow; curation panel | **Act 5:** ai-proposed repair merged (claims 7, 8, 12) |
+| 08 | `m08-budget` | The tools arm's `tokens_in` budget: a zero-call census of the committed stage-2 trajectories decides between an agent carrying context it does not need and a ceiling derived for a shape that no longer exists (ADR-073, `SPEC/08`); the chosen outcome is built on two keys and measured on the real path | The 6000 question answered by census, not by count; claim 6's suite scorable on the tools arm |
+| 09 | `m09-rules` | Drive `rules/MER-AI-0001.yaml` end-to-end: disposition adds disclosure cases; gate catches the violation | **Act 3:** law → red service → fix (claim 6) |
+| 10 | `m10-surfaces` | Playwright + k6 emitting the verdict schema; one dashboard | Three surfaces, one schema (claims 3, 12 seed) |
+| 11 | `m11-drill` | Drill scenarios (blackout sweep, captions, alarm self-test) | **Act 4:** NO-GO → delta drill → GO (claim 11) |
+| 12 | `m12-selfheal` | Drift-vs-defect classifier + its tests; repair PR flow; curation panel | **Act 5:** ai-proposed repair merged (claims 7, 8, 12) |
 
 Close each milestone with `.claude/skills/close-milestone` before starting the
 next. The recordings are the deliverable.

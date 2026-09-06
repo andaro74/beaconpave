@@ -18,7 +18,7 @@ and rename it for yours.
 ## Two parts, and this is the end of part one
 
 **Part one (M00a–M04) built the machinery that judges an agent. Part two
-(M05–M11) builds the path that creates one.** Nothing in part one lets a team
+(M05–M12) builds the path that creates one.** Nothing in part one lets a team
 make an agent: `pave new` is a stub that prints a sentence and exits 0, and
 `templates/agent-tools/` is one README. That is the honest description of where
 this repo stands, and M05 is where it stops being true. What part one actually
@@ -43,10 +43,11 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 06c | The instrument, repaired ❅ | three PRs ❅ | `m06c` | not re-scored ❅ | – | n/a ❅ | ✅ |
 | 06d | The instrument, readable ❈ | three PRs ❈ | `m06d` | not re-scored ❈ | – | n/a ❈ | ✅ |
 | 07 | The guardrail, applied per channel by the gateway ✚ | six PRs ✚ | `m07` | **2/25** ✚ | not judged ✧ | 7/11, not recorded ✚ | ✅ |
-| 08 | Rules registry + regdelta loop | `m08-rules` | `m08` | –/25 | – | – | ⬜ |
-| 09 | Playwright + k6 on one verdict schema | `m09-surfaces` | `m09` | – | – | – | ⬜ |
-| 10 | Game-day drill + go/no-go artifact | `m10-drill` | `m10` | – | – | – | ⬜ |
-| 11 | Self-heal classifier + curation panel | `m11-selfheal` | `m11` | –/25 | – | –/10 | ⬜ |
+| 08 | The tools arm's budget: the context or the ceiling ✜ | `m08-budget` | `m08` | –/25 | – | – | ⬜ |
+| 09 | Rules registry + regdelta loop | `m09-rules` | `m09` | –/25 | – | – | ⬜ |
+| 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
+| 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
+| 12 | Self-heal classifier + curation panel | `m12-selfheal` | `m12` | –/25 | – | –/10 | ⬜ |
 
 Fill each row at milestone close (see `.claude/skills/close-milestone`).
 
@@ -375,7 +376,7 @@ suite scores 1/25 and 17 of 25 cases are refused before they produce an answer
 to score (majority across k=3; ADR-069), so **every number measured on it is
 about a guardrail outage rather than about answer quality** —
 which is why M06b recorded no history entry. Claim 6 — M07's when this was
-written, M08's since ADR-070 — ends in *"disposed end-to-end into eval
+written, M08's after ADR-070, M09's since ADR-073 — ends in *"disposed end-to-end into eval
 cases"*, and eval cases that cannot score cannot carry a claim, so this is a
 precondition rather than a debt. Its single claim is narrow
 and checkable: **a governed run whose score is admissible as a history entry** —
@@ -408,7 +409,8 @@ seats signed on the code. The adversarial cell is `n/a`: the G4 test lives in
 room (ADR-070).** This row used to read *Rules registry + regdelta loop*, while
 ADR-062 had already dated `ATK-003` to *"M07, the milestone that takes the
 guardrail work"*; the operator resolved the disagreement in ADR-062's favour.
-Claim 6 is M08's, surfaces M09's, the drill M10's, self-heal M11's. The
+Claim 6 is M08's, surfaces M09's, the drill M10's, self-heal M11's (each
+shifted once more by ADR-073 — see ✜). The
 milestone's one claim, its two staged measurements and the rule that decides
 between them are in `SPEC/07-guardrail-per-channel.md`; the numbers arrive at
 close, never before.
@@ -436,6 +438,18 @@ without `--record`: the probe run was the coverage falsifier for ADR-070
 decision 3, not a claim about the platform's adversarial posture, so no
 adversarial entry is written. `ATK-003` still 0/3, accepted as a scale cut
 (ADR-062 amendment 1).
+
+✜ **M08 takes the budget question, and the rows below it shifted by one again
+(ADR-073).** M07 closed with all 22 of its answered-and-wrong cases over the
+`tokens_in` ceiling and named that M08's first question; the operator decided
+M08 answers it before the rules registry touches the tools arm. Claim 6 is
+M09's, surfaces M10's, the drill M11's, self-heal M12's. The milestone opens
+on a zero-call census of the committed stage-2 trajectories
+(`milestones/M08/context-census.json`) and pre-registers two outcomes — the
+agent carries context it does not need, or 6000 is the wrong ceiling for a
+two-tool loop — with the rule that picks between them written before the
+number was read. The census picked the second; `SPEC/08-budget-context-or-ceiling.md`
+carries the claim, the band and the falsifier. Numbers arrive at close.
 
 ## What part one produced
 
@@ -492,16 +506,16 @@ Anything that doesn't serve one is out of scope.
 |---|---|---|---|
 | 1 | One command → governed service | ⬜ **INCOMPLETE** ⁂ — `pave new` renders five files and `pave verify` refuses fourteen ways, but **nothing is deployed** and the developer's remaining authorship is **well over an hour** against a claim of thirty minutes | 05 |
 | 2 | Gates fail closed and teach | ✅ [PR #29](https://github.com/andaro74/beaconpave/pull/29) — labeled `exhibit`, closed unmerged. Six lines make a probe pass because the model declined; the gate answers `BLOCKED (quality regression); exit 1` and its comment names the five probes that moved, the comparator they moved against, and what to do. Exit **1**, never 2 — a caught regression, not a broken harness | 04 |
-| 3 | One verdict schema, many runners | Agent evals + Playwright + k6 emit identical JSON | 09 |
+| 3 | One verdict schema, many runners | Agent evals + Playwright + k6 emit identical JSON | 10 |
 | 4 | No direct model access | ✅ [PR #14](https://github.com/andaro74/beaconpave/pull/14) blocked by the IAM assertion; the denial witnessed in `milestones/M01/direct-call-witness.json` | 01 |
 | 5 | Adversarial pass = blocked-and-logged | ✅ [`m04-adversarial`](evals/history/m04-adversarial.json) — 10 probes × 3 samples, **7/10** under unanimity. Every observation fetched back **out of the audit lake** rather than taken from the gateway's word; a record that does not resolve scores FAIL. No probe passes on the model's manners — `model_complied` is recorded and never scored | 04 |
-| 6 | Rules have owners and dispositions | A rule delta disposed end-to-end into eval cases | 08 |
-| 7 | AI proposes, a human disposes, rates published | An `ai-proposed` PR merged; curation panel | 11 |
-| 8 | Self-heal classifies before it repairs | Classifier test suite + one drift-repair PR | 11 |
+| 6 | Rules have owners and dispositions | A rule delta disposed end-to-end into eval cases | 09 |
+| 7 | AI proposes, a human disposes, rates published | An `ai-proposed` PR merged; curation panel | 12 |
+| 8 | Self-heal classifies before it repairs | Classifier test suite + one drift-repair PR | 12 |
 | 9 | Judges are calibrated or advisory | ✅ **Advisory, by measurement.** [`held-out-report.json`](milestones/M03/judge/held-out-report.json) — 20 held-out items at `k_judge=3`, every axis demoted, seat correction rate 0/20 published beside it. Auto-demotion test both directions in [`tests/test_judged_entry.py`](tests/test_judged_entry.py); a demoted axis cannot block, a calibrated one turns a deterministic PASS into a judged FAIL | 03 |
 | 10 | Consequence classes gate real actions | ⬜ **UNSCHEDULED** ❖ — no milestone carries this claim. It needs a `publish-highlight` deployment, and the only recorded disposition on one is Legal/S&P answering *no* (`SPEC/06` Decisions 1). Whether that refusal is standing or was scoped to M06 is an open question for that seat | — |
-| 11 | Readiness drills produce go/no-go artifacts | NO-GO → fix → delta drill → GO | 10 |
-| 12 | Defect leakage is counted honestly | Increments from rollbacks, never gate failures | 11 |
+| 11 | Readiness drills produce go/no-go artifacts | NO-GO → fix → delta drill → GO | 11 |
+| 12 | Defect leakage is counted honestly | Increments from rollbacks, never gate failures | 12 |
 
 ⁂ **Claim 1 is INCOMPLETE at the M05 tag, for two reasons, and neither is a
 rounding error.**

@@ -82,7 +82,8 @@ there is no `--classification` flag (the template fixes it at `internal`, the on
 declarable level), and `meridian-news` is refused, because the judge's rubric
 carries no `brand_tone:meridian-news` axis and every judged case would be scored
 against a rubric that does not mention it. Adding a brand is a judge re-freeze —
-M09's, per ADR-047 (M08's when that ADR was written; ADR-070 shifted the roadmap).
+M10's, per ADR-047 (M08's when that ADR was written; ADR-070 and ADR-073 each
+shifted the roadmap by one).
 
 **Line:** "Compliance stopped being a phase. It's the shape of the only road —
 and the road tells you where you still are, out loud, before you deploy."
@@ -120,7 +121,7 @@ next person what to do, which is the half of a gate that usually goes missing."
 > and this act is the platform blocking exactly that probe, 3 of 3, under
 > guardrail v2. Together it is an arc; apart it is two clips.
 
-## Act 3 — The seat disposes (M08) · 3 min
+## Act 3 — The seat disposes (M09) · 3 min
 The fictional State of Jefferson AI Disclosure Act arrives as a delta. The
 Legal/S&P seat disposes it: three golden cases plus one guardrail line. Next
 run, recap-agent goes red. Fix. Then show the registry linking law → rule →
@@ -133,13 +134,13 @@ the assertion greps for that record — not for a polite refusal.
 **Line:** "The rule has an owner, a source, an enforcing control, and a
 review-by date. Audit is a query, not an archaeology project."
 
-## Act 4 — The audience isn't in the room (M10) · 2 min
+## Act 4 — The audience isn't in the room (M11) · 2 min
 `pave drill --event jefferson-derby --tier 3`. Seeded caption failure produces a
 machine-signed NO-GO with a named owner and a fix-by time. Fix, delta-drill,
 GO. Note that the artifact is never hand-edited: humans fix systems or formally
 accept risks.
 
-## Act 5 — AI proposes, humans dispose (M11) · 90s
+## Act 5 — AI proposes, humans dispose (M12) · 90s
 Tool schema bump turns contract tests red. The classifier says *drift, not
 defect*. Claude proposes the repair as an `ai-proposed` PR with reasoning. The
 tool owner curates. The curation-rate panel ticks.
