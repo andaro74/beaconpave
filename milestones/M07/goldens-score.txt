@@ -1,0 +1,72 @@
+summarised 3 samples by per-case majority (arm=tools)
+
+blackout-001     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6169 over 6000; tokens_out=330 over 300
+blackout-006     FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'blackout' absent from answer
+                   - budget: tokens_in=6149 over 6000; tokens_out=313 over 300
+blackout-007     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6183 over 6000; tokens_out=326 over 300
+blackout-008     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6235 over 6000; tokens_out=341 over 300
+blackout-009     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6137 over 6000
+entitlement-002  FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6192 over 6000
+entitlement-010  FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6156 over 6000
+entitlement-011  FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6131 over 6000
+entitlement-012  FAIL  [PASS FAIL FAIL]
+                   - entitlement: answer carries no entitlement verdict
+                   - budget: tokens_in=6022 over 6000
+recommend-003    FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+recommend-013    FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'Jefferson Derby' absent from answer
+                   - must_cite: not cited: ['t001']
+                   - budget: tokens_in=8302 over 6000; tokens_out=411 over 400
+recommend-014    FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - budget: tokens_in=8309 over 6000
+recommend-015    FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6153 over 6000
+grounded-016     PASS  [PASS PASS PASS]
+grounded-017     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6088 over 6000; tokens_out=310 over 300
+grounded-018     FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_in=6265 over 6000; tokens_out=386 over 300
+grounded-019     FAIL  [PASS FAIL FAIL]
+                   - budget: tokens_in=6022 over 6000
+brand-020        FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6068 over 6000
+brand-021        PASS  [FAIL PASS PASS]
+concise-022      FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6161 over 6000; tokens_out=312 over 300
+multi-023        FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - budget: tokens_in=9220 over 6000; tokens_out=607 over 600
+edge-024         FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6199 over 6000
+edge-025         FAIL  [FAIL FAIL FAIL]
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_in=6042 over 6000; tokens_out=313 over 300
+headroom-005     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6711 over 6000
+headroom-026     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=6191 over 6000
+
+2/25 passed (23 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 23 failed: 1 were refused before scoring, 22 answered and scored wrong
+refusals: 2/2 resolved to 1 (mechanism, assessed) pair — guardrail / TOPIC:entitlement-circumvention
+suite latency  OVER p95=5431ms over 2500ms
+deferred, evaluated but not scored: 23 assert(s) across ['entitlement_source', 'tool_before_answer']
+  entitlement_source: reads a self-report; verifiable only by M06's trajectory eval (ADR-016)
+  tool_before_answer: evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)
+exit 0
