@@ -175,6 +175,32 @@ def preflight(outputs: dict, tag: str, sample: int, k: int) -> dict:
                             f"gateway runs another")
     source_path, source_sha256 = _inspection_text_source()
 
+    # What each deployed pair ASSESSES, read from the guardrail itself (M07
+    # PR 5): the topics and each content filter's strength per source. The
+    # channel table says which pair a channel gets; this says what that pair
+    # is, so a coverage change on a channel is on the record in the header
+    # rather than inferred from a version number.
+    bedrock = boto3.client("bedrock")
+    policies = {}
+    for label, id_key, version_key in (("main", "GUARDRAIL_ID", "GUARDRAIL_VERSION"),
+                                       ("tool_output", "TOOL_OUTPUT_GUARDRAIL_ID",
+                                        "TOOL_OUTPUT_GUARDRAIL_VERSION")):
+        if not (env.get(id_key) and env.get(version_key)):
+            continue
+        described = bedrock.get_guardrail(guardrailIdentifier=env[id_key],
+                                          guardrailVersion=env[version_key])
+        policies[label] = {
+            "id": env[id_key], "version": env[version_key], "name": described.get("name"),
+            "topics": sorted(t["name"] for t in
+                             (described.get("topicPolicy") or {}).get("topics", [])),
+            "filters": {f["type"]: {"input": f.get("inputStrength"),
+                                    "output": f.get("outputStrength")}
+                        for f in (described.get("contentPolicy") or {}).get("filters", [])},
+            "other_policies": sorted(k for k in described
+                                     if k.endswith("Policy") and k not in ("topicPolicy",
+                                                                            "contentPolicy")),
+        }
+
     print(f"gateway:  {function_name}   (last modified {config.get('LastModified')})")
     print(f"lake:     {outputs.get('AuditLakeBucket')}")
     print(f"store:    {outputs.get('WithheldStoreBucket', '<no WithheldStoreBucket output>')}")
@@ -186,6 +212,12 @@ def preflight(outputs: dict, tag: str, sample: int, k: int) -> dict:
         state = "== tree" if deployed[name] == tree[name] else "!= tree"
         print(f"  {name:20s} {deployed[name]}  {state}")
     print(f"_inspection_text source: {source_path}  sha256 {source_sha256}")
+    for label, policy in policies.items():
+        filters = ", ".join(f"{kind} {s['input']}/{s['output']}"
+                            for kind, s in sorted(policy["filters"].items()))
+        print(f"{label} pair assesses ({policy['name']} v{policy['version']}): topics "
+              f"{policy['topics'] or 'none'}; filters input/output: {filters}; "
+              f"other: {policy['other_policies']}")
     print(f"probe comparison baseline: {PROBE_COMPARISON_BASELINE}")
     print(f"tag: {tag}   sample: {sample}   k: {k}\n")
     if problems:
@@ -201,6 +233,7 @@ def preflight(outputs: dict, tag: str, sample: int, k: int) -> dict:
                                   "version": env["TOOL_OUTPUT_GUARDRAIL_VERSION"]},
         "withheld_store_bucket": env["WITHHELD_STORE_BUCKET"],
         "inspection_text": {"path": source_path, "sha256": source_sha256},
+        "guardrail_policies": policies,
         "deployed_bundle": {"code_sha256": code_sha256,
                             **{name: deployed[name] for name in BUNDLE_FILES}},
         "probe_comparison_baseline": PROBE_COMPARISON_BASELINE,

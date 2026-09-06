@@ -245,21 +245,23 @@ def test_the_untrusted_declaration_is_still_wired_through(tree):
 
 # --- and wired up correctly ---------------------------------------------------
 
-#: The stage-1 channel table (ADR-070 decisions 3 and 4): for each arm of
+#: The stage-2 channel table (ADR-070 decisions 3 and 4): for each arm of
 #: `_inspect`, keyed by the `guardrail.CHANNEL_*` constant its comparison names
 #: (`None` is the fall-through arm), the identifier name, the version name and
 #: the `source` its `apply_guardrail` call must carry.
 #:
-#: **This is the table PR 5 edits, and nothing else.** Stage 2 moves
-#: `CHANNEL_TOOL_REQUEST` to the tool-output pair at `INPUT`; the other three
-#: rows do not move. `INPUT` is where `PROMPT_ATTACK` fires — input-only by the
-#: service's design, one of the two policies that fired on M04's user-turn arm —
-#: so it is the source for content read as an instruction: the viewer's turn, a
-#: tool result. `OUTPUT` is what `converse` assessed the model's own output as,
-#: and stage 1 keeps identical coverage.
-STAGE_1_ARMS = {
+#: **PR 5 edited this table by one row, and nothing else.** Stage 1 assessed
+#: `CHANNEL_TOOL_REQUEST` with the main pair at `OUTPUT`, `converse`'s own
+#: coverage, and measured 51 of 51 refusals there (amendment 5). Stage 2 moves
+#: that row to the tool-output pair at `INPUT`; the other three rows do not
+#: move. `INPUT` is where `PROMPT_ATTACK` fires — input-only by the service's
+#: design, one of the two policies that fired on M04's user-turn arm — so it is
+#: the source for content read as an instruction: the viewer's turn, a tool
+#: result, and now a tool request. `OUTPUT` is what `converse` assessed the
+#: model's own output as, and the answer keeps it.
+STAGE_2_ARMS = {
     "CHANNEL_TOOL_OUTPUT": ("_TOOL_OUTPUT_GUARDRAIL_ID", "_TOOL_OUTPUT_GUARDRAIL_VERSION", "INPUT"),
-    "CHANNEL_TOOL_REQUEST": ("GUARDRAIL_ID", "GUARDRAIL_VERSION", "OUTPUT"),
+    "CHANNEL_TOOL_REQUEST": ("_TOOL_OUTPUT_GUARDRAIL_ID", "_TOOL_OUTPUT_GUARDRAIL_VERSION", "INPUT"),
     "CHANNEL_ANSWER": ("GUARDRAIL_ID", "GUARDRAIL_VERSION", "OUTPUT"),
     None: ("GUARDRAIL_ID", "GUARDRAIL_VERSION", "INPUT"),
 }
@@ -334,7 +336,7 @@ def _arm(body: list) -> dict:
 #: pair may be unconfigured — is the only one this admits.
 ARM_CONDITIONS = {
     "CHANNEL_TOOL_OUTPUT": "channel == guardrail.CHANNEL_TOOL_OUTPUT and _TOOL_OUTPUT_GUARDRAIL_ID",
-    "CHANNEL_TOOL_REQUEST": "channel == guardrail.CHANNEL_TOOL_REQUEST",
+    "CHANNEL_TOOL_REQUEST": "channel == guardrail.CHANNEL_TOOL_REQUEST and _TOOL_OUTPUT_GUARDRAIL_ID",
     "CHANNEL_ANSWER": "channel == guardrail.CHANNEL_ANSWER",
 }
 
@@ -375,7 +377,7 @@ def arms(tree) -> dict:
 
 
 def test_each_arm_pins_the_pair_and_source_its_channel_names(tree):
-    """**The stage-1 table, read off the source (ADR-070 decisions 3 and 4).**
+    """**The stage-2 table, read off the source (ADR-070 decisions 3 and 4).**
 
     This replaces the test that required `source="INPUT"` on every call — true
     when the only inspected content was platform-supplied, and false the moment
@@ -383,7 +385,7 @@ def test_each_arm_pins_the_pair_and_source_its_channel_names(tree):
     as OUTPUT. The property is now per channel, and it is the whole table rather
     than one property of it: an arm at the wrong source, or a channel routed to
     the wrong pair, or a missing arm, each reads as a different row."""
-    assert {k: v["apply"] for k, v in arms(tree).items()} == STAGE_1_ARMS
+    assert {k: v["apply"] for k, v in arms(tree).items()} == STAGE_2_ARMS
 
 
 #: The module-level constants `handler.py` may pin a guardrail with.
@@ -472,7 +474,7 @@ def test_the_model_call_carries_no_guardrail(tree):
 def test_every_inspection_site_pins_a_published_version_of_the_guardrail_its_channel_names(tree):
     """The inspection half, per arm. Every `apply_guardrail` names a version from
     the closed set of pinned constants — never a literal, never DRAFT — and, arm
-    by arm, the pair it names is the pair the stage-1 table gives that channel.
+    by arm, the pair it names is the pair the stage-2 table gives that channel.
     `test_each_arm_pins_the_pair_and_source_its_channel_names` reads the table
     whole; this one is the ADR-018 property on its own, so a DRAFT literal fails
     here with the message about pinning rather than as a table mismatch."""
@@ -482,9 +484,9 @@ def test_every_inspection_site_pins_a_published_version_of_the_guardrail_its_cha
         f"the inspection path pins {sorted(inspection)}; permitted: "
         f"{sorted(PINNED_VERSIONS)}. Never a literal, never DRAFT.")
     for channel, arm in arms(tree).items():
-        assert arm["apply"][1] == STAGE_1_ARMS[channel][1], (
-            f"the {channel or 'fall-through'} arm pins {arm['apply'][1]!r}, and the stage-1 "
-            f"table says {STAGE_1_ARMS[channel][1]!r}")
+        assert arm["apply"][1] == STAGE_2_ARMS[channel][1], (
+            f"the {channel or 'fall-through'} arm pins {arm['apply'][1]!r}, and the stage-2 "
+            f"table says {STAGE_2_ARMS[channel][1]!r}")
 
 
 def test_each_arm_hands_interpret_apply_the_pair_it_applied(tree):
@@ -504,7 +506,7 @@ def test_each_arm_hands_interpret_apply_the_pair_it_applied(tree):
 
 def test_each_arm_is_reachable_by_its_channel_comparison_alone(tree):
     """The conditions, whole. A pinned arm that never executes is the
-    stated-and-absent shape: `STAGE_1_ARMS` would describe an arm the content
+    stated-and-absent shape: `STAGE_2_ARMS` would describe an arm the content
     never reaches, and PR 4's stage-1 band would measure a mechanism the ADR
     did not price. See `ARM_CONDITIONS`."""
     conditions = {k: v["condition"] for k, v in arms(tree).items() if k is not None}

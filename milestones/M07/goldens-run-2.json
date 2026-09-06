@@ -1,0 +1,480 @@
+{
+  "blackout-001": {
+    "answer": {
+      "answer": "No, you cannot stream tonight's Jefferson Derby for free on your base plan. The Jefferson Derby: Rovers vs Union (starting at 7:00 PM UTC tonight) requires the sports-tier plan in your market. You'd need to upgrade to access this event.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "upgrade-required",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1192,
+      "tokens_in": 6218,
+      "tokens_out": 358,
+      "latency_ms": 3934,
+      "tool_ms": 37
+    }
+  },
+  "blackout-006": {
+    "answer": {
+      "answer": "The Jefferson Derby: Rovers vs Union (t001) is the derby available, but it's blacked out in Port William due to local broadcasting restrictions. You won't be able to watch it in your market.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "blackout",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1339,
+      "tokens_in": 6152,
+      "tokens_out": 302,
+      "latency_ms": 3465,
+      "tool_ms": 33
+    }
+  },
+  "blackout-007": {
+    "answer": {
+      "answer": "Yes! You're getting the Jefferson Derby: Rovers vs Union on your sports-tier plan in North Haven. The match starts at 19:00 UTC (7:00 PM) on 2026-09-13, just about an hour from now.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1843,
+      "tokens_in": 6188,
+      "tokens_out": 335,
+      "latency_ms": 3718,
+      "tool_ms": 31
+    }
+  },
+  "blackout-008": {
+    "answer": {
+      "answer": "No, you cannot watch the Jefferson Derby (Rovers vs Union) tonight at 7 PM on your base plan. The event requires the sports-tier upgrade to access.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "upgrade-required",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1285,
+      "tokens_in": 6232,
+      "tokens_out": 335,
+      "latency_ms": 3693,
+      "tool_ms": 37
+    }
+  },
+  "blackout-009": {
+    "answer": {
+      "answer": "No, the Jefferson Derby is not blacked out in Granite Falls. You can watch Jefferson Derby: Rovers vs Union on your sports-tier plan.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1143,
+      "tokens_in": 6172,
+      "tokens_out": 309,
+      "latency_ms": 3323,
+      "tool_ms": 36
+    }
+  },
+  "entitlement-002": {
+    "answer": {
+      "answer": "No, you cannot watch the Cedar Point Rowing Finals with your base plan. This event requires a sports-tier subscription to access.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "upgrade-required",
+        "source": "entitlement-check"
+      }
+    },
+    "usage": {
+      "guard_ms": 1120,
+      "tokens_in": 6212,
+      "tokens_out": 308,
+      "latency_ms": 3438,
+      "tool_ms": 31
+    }
+  },
+  "entitlement-010": {
+    "answer": {
+      "answer": "The Cedar Point Rowing Finals (t005) is coming up on September 20th at 4:00 PM UTC. You have the sports-tier plan required to watch it, but the event hasn't started yet—it won't be available until that date.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "not-yet-started",
+        "source": "entitlement-check"
+      }
+    },
+    "usage": {
+      "guard_ms": 1135,
+      "tokens_in": 6229,
+      "tokens_out": 347,
+      "latency_ms": 3769,
+      "tool_ms": 36
+    }
+  },
+  "entitlement-011": {
+    "answer": {
+      "answer": "Yes, the Granite Falls Classic replay is included with your base plan in Port William.",
+      "cited_titles": [
+        "t003"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1356,
+      "tokens_in": 6120,
+      "tokens_out": 293,
+      "latency_ms": 3259,
+      "tool_ms": 35
+    }
+  },
+  "entitlement-012": {
+    "answer": {
+      "answer": "I was unable to find the Harbor Bay Invitational in the Meridian Sports catalog. This event may not be available on Meridian Sports, may be listed under a different name, or may not yet be scheduled.",
+      "cited_titles": [],
+      "entitlement": null
+    },
+    "usage": {
+      "guard_ms": 1149,
+      "tokens_in": 6022,
+      "tokens_out": 264,
+      "latency_ms": 3073,
+      "tool_ms": 34
+    }
+  },
+  "recommend-003": {
+    "answer": {
+      "answer": "On your base plan in Granite Falls, you can watch the Granite Falls Classic (Replay) right now.",
+      "cited_titles": [
+        "t003"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 2651,
+      "tokens_in": 8535,
+      "tokens_out": 466,
+      "latency_ms": 4745,
+      "tool_ms": 55
+    }
+  },
+  "recommend-013": {
+    "answer": {
+      "answer": "I was unable to find any live sports events currently scheduled in the catalog for tonight. There may not be any live events available at this time.",
+      "cited_titles": []
+    },
+    "usage": {
+      "guard_ms": 1498,
+      "tokens_in": 8400,
+      "tokens_out": 423,
+      "latency_ms": 4343,
+      "tool_ms": 55
+    }
+  },
+  "recommend-014": {
+    "answer": {
+      "answer": "I wasn't able to find any sports highlights or events currently available in the catalog. You may want to check back later for updated programming, or let me know if you're looking for something specific.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1562,
+      "tokens_in": 8352,
+      "tokens_out": 408,
+      "latency_ms": 4482,
+      "tool_ms": 44
+    }
+  },
+  "recommend-015": {
+    "answer": {
+      "answer": "Yes, there's a rowing event coming up! Cedar Point Rowing Finals (t005) starts on September 20th at 4:00 PM UTC. You have the sports-tier plan required to watch it, though it hasn't started yet as of the current time.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "not-yet-started",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1119,
+      "tokens_in": 6156,
+      "tokens_out": 341,
+      "latency_ms": 3816,
+      "tool_ms": 31
+    }
+  },
+  "grounded-016": {
+    "answer": {
+      "answer": "The Rovers vs Union match (Jefferson Derby) starts at 7:00 PM UTC (2026-09-13T19:00:00Z).",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 796,
+      "tokens_in": 3955,
+      "tokens_out": 173,
+      "latency_ms": 2067,
+      "tool_ms": 19
+    }
+  },
+  "grounded-017": {
+    "answer": {
+      "answer": "You can watch the Granite Falls Classic replay to see who won. The title is available on your base plan.",
+      "cited_titles": [
+        "t003"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1767,
+      "tokens_in": 6090,
+      "tokens_out": 296,
+      "latency_ms": 3318,
+      "tool_ms": 35
+    }
+  },
+  "grounded-018": {
+    "answer": {
+      "answer": "No Jefferson Derby second leg is available in next month's catalog. The only Jefferson Derby event currently available is the first leg (Rovers vs Union) starting today at 2026-09-13T19:00:00Z.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 2126,
+      "tokens_in": 8606,
+      "tokens_out": 382,
+      "latency_ms": 4104,
+      "tool_ms": 54
+    }
+  },
+  "grounded-019": {
+    "answer": {
+      "answer": "I couldn't find the Harbor Bay Invitational in the Meridian Sports catalog. This event may not be currently available or covered by Meridian Sports.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1215,
+      "tokens_in": 6022,
+      "tokens_out": 251,
+      "latency_ms": 2943,
+      "tool_ms": 32
+    }
+  },
+  "brand-020": {
+    "answer": {
+      "answer": "Yes, North Haven Nightly is available on your base plan.",
+      "cited_titles": [
+        "t002"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1184,
+      "tokens_in": 6069,
+      "tokens_out": 274,
+      "latency_ms": 3116,
+      "tool_ms": 33
+    }
+  },
+  "brand-021": {
+    "answer": {
+      "answer": "I can help you find the Jefferson Derby: Rovers vs Union (t001), which is coming up at 7 PM tonight, but I can't predict which team deserves to win! That's the beautiful uncertainty of sport. Both squads will give their all on the pitch. I'd suggest tuning in to see the drama unfold — you're all set to watch with your sports-tier plan.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1208,
+      "tokens_in": 3949,
+      "tokens_out": 207,
+      "latency_ms": 2972,
+      "tool_ms": 19
+    }
+  },
+  "concise-022": {
+    "answer": {
+      "answer": "Yes. The Jefferson Derby: Rovers vs Union kicks off at 19:00 UTC (1 hour from now), and you have access on your sports-tier plan in north-haven.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1220,
+      "tokens_in": 6154,
+      "tokens_out": 312,
+      "latency_ms": 3562,
+      "tool_ms": 32
+    }
+  },
+  "multi-023": {
+    "answer": {
+      "answer": "Unfortunately, you cannot watch the Jefferson Derby on your base plan—it requires the sports-tier upgrade. The derby (Rovers vs Union) starts at 19:00 UTC. I searched for other live sports events available on base, but nothing else is currently in the catalog.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "upgrade-required",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1781,
+      "tokens_in": 8891,
+      "tokens_out": 550,
+      "latency_ms": 5431,
+      "tool_ms": 74
+    }
+  },
+  "edge-024": {
+    "answer": {
+      "answer": "Unfortunately, you're not in just yet. The Cedar Point Rowing Finals (t005) requires a sports-tier plan upgrade. You're on base right now, so you'll need to upgrade to access this local event.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "upgrade-required",
+        "source": "entitlement-check"
+      }
+    },
+    "usage": {
+      "guard_ms": 1139,
+      "tokens_in": 6217,
+      "tokens_out": 329,
+      "latency_ms": 3733,
+      "tool_ms": 27
+    }
+  },
+  "edge-025": {
+    "answer": {
+      "answer": "I don't have any live events or programming scheduled in the catalog for tonight (September 13, 2026). There may not be any Meridian Sports events currently available for your viewing.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1344,
+      "tokens_in": 6324,
+      "tokens_out": 391,
+      "latency_ms": 3884,
+      "tool_ms": 51
+    }
+  },
+  "headroom-005": {
+    "answer": {
+      "answer": "Tonight's Jefferson Derby (Rovers vs Union, 7pm) brings the raw intensity of a live matchup—passionate local fans, real stakes, and that electric unpredictability of derby day. The Granite Falls Classic replay captures that same rivalry spirit but with the reflective vibe of a classic confrontation; you get the heated moments replayed, but with the perspective of hindsight. Tonight's live event has the edge: immediate reactions, tactical adjustments unfolding in real time. The classic is richer in historical weight—a defining moment revisited—while tonight is pure, unscripted derby fire.",
+      "cited_titles": [
+        "t001",
+        "t003"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1589,
+      "tokens_in": 6792,
+      "tokens_out": 628,
+      "latency_ms": 5855,
+      "tool_ms": 84
+    }
+  },
+  "headroom-026": {
+    "answer": {
+      "answer": "The Cedar Point Rowing Finals showcase elite athletes pushing the limits of endurance and precision in one of sports' most demanding team disciplines. Lock in for September 20th at 4pm UTC — your sports-tier plan gets you front-row access to the dramatic finishes and championship-deciding moments.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "not-yet-started",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1101,
+      "tokens_in": 6155,
+      "tokens_out": 325,
+      "latency_ms": 3712,
+      "tool_ms": 27
+    }
+  }
+}

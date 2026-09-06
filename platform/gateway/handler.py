@@ -311,10 +311,13 @@ def _inspect():
     that will be read as an instruction — the viewer's turn, a tool result — and
     it is the source `PROMPT_ATTACK` fires on, which is input-only by the
     service's design. `OUTPUT` is for the model's own utterance, which is what
-    `converse` assessed the model's output as. **Stage 1 assesses `tool_request`
-    exactly as `converse` did: main guardrail, `OUTPUT`.** Stage 2 (PR 5) moves
-    that one arm to the tool-output policy at `INPUT`, under ADR-070 decision
-    4's rule, and touches nothing else.
+    `converse` assessed the model's output as. **Stage 1 assessed `tool_request`
+    exactly as `converse` did: main guardrail, `OUTPUT`, and measured 51 of 51
+    refusals there (ADR-070 amendment 5). Stage 2 (PR 5) moves that one arm to
+    the tool-output policy at `INPUT`**, under ADR-070 decision 4's rule, and
+    touches nothing else: a tool request is consumed by the plane and by the
+    model, never by the viewer, and the hazard in it is an instruction or an
+    argument, which `PROMPT_ATTACK` at `INPUT` is the instrument for.
 
     **Selected by explicit channel comparisons, never a mapping (ADR-063).** A
     dict keyed on channel names would route a channel added later to whichever
@@ -356,20 +359,23 @@ def _inspect():
             return guardrail.interpret_apply(
                 response, channel=channel,
                 guardrail_id=_TOOL_OUTPUT_GUARDRAIL_ID, version=_TOOL_OUTPUT_GUARDRAIL_VERSION)
-        if channel == guardrail.CHANNEL_TOOL_REQUEST:
-            # **Stage 1: identical coverage (ADR-070 decision 4).** The model's
-            # output on a round ending in `tool_use`, under the policy and source
-            # `converse` applied to it. This is the arm PR 5 moves, and the only
-            # one.
+        if channel == guardrail.CHANNEL_TOOL_REQUEST and _TOOL_OUTPUT_GUARDRAIL_ID:
+            # **Stage 2 (ADR-070 decision 4, M07 PR 5).** The model's output on
+            # a round ending in `tool_use` -- its text blocks and each `toolUse`
+            # as name and input -- under the policy with no topics, at the
+            # source an instruction is assessed at. The same conjunct as the
+            # `tool_output` arm, for the same reason: with no tool-output pair
+            # configured this falls through to the main guardrail, the stricter
+            # policy, rather than to nothing. This is the one arm PR 5 moved.
             response = _bedrock.apply_guardrail(
-                guardrailIdentifier=GUARDRAIL_ID,
-                guardrailVersion=GUARDRAIL_VERSION,
-                source="OUTPUT",
+                guardrailIdentifier=_TOOL_OUTPUT_GUARDRAIL_ID,
+                guardrailVersion=_TOOL_OUTPUT_GUARDRAIL_VERSION,
+                source="INPUT",
                 content=[{"text": {"text": text}}],
             )
             return guardrail.interpret_apply(
                 response, channel=channel,
-                guardrail_id=GUARDRAIL_ID, version=GUARDRAIL_VERSION)
+                guardrail_id=_TOOL_OUTPUT_GUARDRAIL_ID, version=_TOOL_OUTPUT_GUARDRAIL_VERSION)
         if channel == guardrail.CHANNEL_ANSWER:
             # The model's output on the final round: what the viewer will be
             # shown, under the policy `converse` showed it to.
