@@ -424,3 +424,70 @@ diagnosing one. That is how M06b started.
 Rules 1–4 are in SPEC/07's *Pre-registered*, *Implementation constraints*,
 *Bounded*, *Demo artifact* and *Definition of done*; the stage-1 paths and the
 constraint-3 pin are in *What it builds*.
+
+## Amendment 2 — what a turn record names when two guardrails assessed it
+
+**Written 2026-09-05, in PR 2, before the `tool_request` arm was written.
+Zero model calls.** Amendment 1's fifth finding: the audit record carries one
+`guardrail{id, version}` object, and a stage-2 turn spans two guardrails —
+`tool_request` on the tool-output policy, `answer` on the main — so *"every
+record names the deployed version"* is ambiguous on such a record. Decided here,
+after reading `audit.schema.json`, not blind.
+
+### What the schema says, and what the handler did
+
+`guardrail` is a single object, `id` and `version` required,
+`additionalProperties: false`, "present whenever a guardrail was consulted".
+`channels` is an array because both sides of a Converse turn could fire at
+once. The handler built every fragment with `GUARDRAIL_ID, GUARDRAIL_VERSION`
+— the main pair — on every path, including a `tool_output` block that the
+tool-output guardrail assessed. ADR-063 said the second version would be
+*"recorded in the audit record beside the existing one, so a run is
+attributable to both"*; it was not built, and no committed record shows the
+misnaming only because the deployed tool-output policy blocked nothing after
+ADR-063 (8 → 0).
+
+### The decision
+
+**`guardrail.id` and `guardrail.version` name the guardrail whose assessment
+the record reports.** On `decision: blocked`, that is the guardrail that
+blocked, on the one channel `channels` names. On `decision: allowed`, it is the
+guardrail that assessed the channel the turn ended on — `answer`, the main
+guardrail. On `mechanism: loop`, it is the guardrail that assessed the round
+the bound refused — `tool_request`. The record does not gain a per-channel
+entry.
+
+Why not a per-channel table in the record: the channel → policy table is the
+deployed function's configuration, and PR 4's pre-flight prints it and the
+sidecar header carries it (amendment 1, pressure point 4). A copy of that
+table written into every record is a second source that can disagree with the
+wiring while every record still validates, which is the shape ADR-035 found
+once already. One record names one assessment; the run names the table.
+
+How the pair reaches the record, so it cannot be a second decision: each arm of
+`handler._inspect` hands its own pinned pair to `interpret_apply(...,
+guardrail_id=, version=)` at the same call site that hands it to
+`apply_guardrail`, the outcome carries it, and the handler builds the fragment
+from the outcome's own pair. `as_record_fragment` refuses a missing id or
+version rather than writing a record that names nothing.
+`tests/test_handler_wiring.py` asserts, per arm, that the two call sites pin
+the same pair, and that the fragment is built from the outcome and not from the
+module constants.
+
+### Consequences, stated so they are not discoveries later
+
+- A `tool_output` block now names `beaconpave-tool-output` and its version.
+  This is the record ADR-063 promised. No committed evidence carries such a
+  record; nothing is re-read.
+- An allowed stage-2 record names the main guardrail only. That the
+  tool-output guardrail assessed the requests and passed them is not in the
+  record — exactly as a passed `tool_output` result is not in the record today.
+- `run_with_tools.py`'s sidecar collects `_guardrail_versions` from records,
+  and after stage 2 a `tool_request` block legitimately names the second
+  version. That is PR 4's pre-flight and header to accommodate (Definition of
+  done); it is not a defect in the record.
+- `withheld` keeps its three fields and `additionalProperties: false`. Its
+  digest is now of the text the loop refused to return — the model's output on
+  `tool_request` and `answer`, the serialised payload on `tool_output`, the
+  viewer's turn on `question` — rather than of Bedrock's placeholder, which
+  under option B is never produced.
