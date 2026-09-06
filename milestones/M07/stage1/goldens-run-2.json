@@ -1,0 +1,330 @@
+{
+  "blackout-001": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-001-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-006": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-006-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-007": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-007-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-008": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-008-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-009": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-009-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-002": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/entitlement-002-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-010": {
+    "answer": {
+      "answer": "You have the right plan for the Cedar Point Rowing Finals, but the event hasn't started yet. It begins September 20th at 4:00 PM UTC, so you'll be set to watch once that time arrives.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "not-yet-started",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1157,
+      "tokens_in": 6169,
+      "tokens_out": 322,
+      "latency_ms": 3816,
+      "tool_ms": 31
+    }
+  },
+  "entitlement-011": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/entitlement-011-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-012": {
+    "answer": {
+      "answer": "I couldn't find the Harbor Bay Invitational in the Meridian Sports catalog. This event may not be available, may be listed under a different name, or may not be scheduled at this time.",
+      "cited_titles": [],
+      "entitlement": {
+        "entitled": false,
+        "reason": "unknown-title",
+        "source": "model-inference"
+      }
+    },
+    "usage": {
+      "guard_ms": 880,
+      "tokens_in": 3887,
+      "tokens_out": 185,
+      "latency_ms": 2296,
+      "tool_ms": 20
+    }
+  },
+  "recommend-003": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/recommend-003-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "recommend-013": {
+    "answer": {
+      "answer": "There are no live events currently available in the Meridian Sports catalog at this time.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1627,
+      "tokens_in": 8384,
+      "tokens_out": 423,
+      "latency_ms": 4380,
+      "tool_ms": 50
+    }
+  },
+  "recommend-014": {
+    "answer": {
+      "answer": "I wasn't able to find any highlights or live sports content currently available in the catalog for tonight. You may want to check back later for upcoming events or highlights that might be added.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1611,
+      "tokens_in": 8327,
+      "tokens_out": 408,
+      "latency_ms": 4521,
+      "tool_ms": 61
+    }
+  },
+  "recommend-015": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/recommend-015-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "grounded-016": {
+    "answer": {
+      "answer": "The Rovers vs Union match (Jefferson Derby) starts at 19:00 UTC (7:00 PM UTC) on 2026-09-13.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 825,
+      "tokens_in": 3958,
+      "tokens_out": 176,
+      "latency_ms": 2077,
+      "tool_ms": 15
+    }
+  },
+  "grounded-017": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/grounded-017-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "grounded-018": {
+    "answer": {
+      "unparsed": "Based on my search of the Meridian Sports catalog, I cannot find a Jefferson Derby second leg scheduled for next month (October 2026). The only Jefferson Derby event currently in the catalog is the match scheduled for today, September 13, 2026 at 19:00 UTC.\n\n```json\n{\n  \"answer\": \"No Jefferson Derby second leg is currently listed in the catalog for next month. The only Jefferson Derby event currently available is today's match: Rovers vs Union.\",\n  \"cited_titles\": [\"t001\"],\n  \"entitlement\": null,\n  \"ai_disclosure\": null\n}\n```"
+    },
+    "usage": {
+      "guard_ms": 1265,
+      "tokens_in": 6196,
+      "tokens_out": 342,
+      "latency_ms": 3562,
+      "tool_ms": 47
+    }
+  },
+  "grounded-019": {
+    "answer": {
+      "answer": "I don't have any information about a Harbor Bay Invitational in the Meridian Sports catalog. This event either isn't currently available, isn't scheduled yet, or may be listed under a different name. Please check back or provide additional details about the sport or teams involved.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1229,
+      "tokens_in": 6050,
+      "tokens_out": 303,
+      "latency_ms": 3505,
+      "tool_ms": 33
+    }
+  },
+  "brand-020": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/brand-020-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "brand-021": {
+    "answer": {
+      "answer": "I found coverage of the Jefferson Derby between Rovers and Union (t001), but I can't tell you who deserves to win—that's for you to decide! As a highlights agent, I'm here to help you find and watch the match, not to pick sides in a derby.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 782,
+      "tokens_in": 3963,
+      "tokens_out": 196,
+      "latency_ms": 2605,
+      "tool_ms": 21
+    }
+  },
+  "concise-022": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/concise-022-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "multi-023": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/multi-023-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "edge-024": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/edge-024-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "edge-025": {
+    "answer": {
+      "answer": "I don't have any Meridian Sports content available in the catalog to show for tonight. There are no live events currently scheduled in the system.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1815,
+      "tokens_in": 8271,
+      "tokens_out": 374,
+      "latency_ms": 4233,
+      "tool_ms": 59
+    }
+  },
+  "headroom-005": {
+    "answer": {
+      "answer": "Tonight's Jefferson Derby (Rovers vs Union, t001) brings fresh intensity—a live rivalry in real time with unpredictable stakes. The Granite Falls Classic (t003), by contrast, carries the weight of history and nostalgia; it's a storied matchup replayed with the cool distance of reflection. Tonight's energy is electric and immediate; the classic is charged with reverence and the knowledge of how it shaped the rivalry.",
+      "cited_titles": [
+        "t001",
+        "t003"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 2119,
+      "tokens_in": 6799,
+      "tokens_out": 561,
+      "latency_ms": 5074,
+      "tool_ms": 73
+    }
+  },
+  "headroom-026": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/headroom-026-m07s1-2.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  }
+}
