@@ -208,7 +208,13 @@ def _load(path: pathlib.Path):
 
 
 def _sha256(path: pathlib.Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """The input's digest with line endings normalised to LF.
+
+    Every input is text, and a Windows checkout with `core.autocrlf` hands the
+    reader CRLF bytes for a file git stores with LF; the first committed record
+    carried CRLF digests for the seven `milestones/M02/` inputs and CI, on an LF
+    checkout, refused it (PR #122's first gate run). The digest names the committed text, not the checkout."""
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def mandated_calls(case: dict) -> int:
