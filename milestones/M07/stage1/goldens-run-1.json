@@ -1,0 +1,320 @@
+{
+  "blackout-001": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-001-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-006": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-006-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-007": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-007-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-008": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-008-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-009": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-009-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-002": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/entitlement-002-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-010": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/entitlement-010-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-011": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/entitlement-011-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-012": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/entitlement-012-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "recommend-003": {
+    "answer": {
+      "answer": "You can watch the Granite Falls Classic (Replay) right now on your base plan in the granite-falls market.",
+      "cited_titles": [
+        "t003"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 3182,
+      "tokens_in": 10835,
+      "tokens_out": 541,
+      "latency_ms": 5368,
+      "tool_ms": 305
+    }
+  },
+  "recommend-013": {
+    "answer": {
+      "answer": "I was unable to find any live sports events in the catalog for tonight. There may not be any live sporting events scheduled for this time, or they may not be available through the current search.",
+      "cited_titles": []
+    },
+    "usage": {
+      "guard_ms": 1583,
+      "tokens_in": 8279,
+      "tokens_out": 375,
+      "latency_ms": 3986,
+      "tool_ms": 55
+    }
+  },
+  "recommend-014": {
+    "answer": {
+      "answer": "I wasn't able to find any available sports programming in the catalog at this moment. There may not be live events scheduled for tonight, or the content may not yet be available in our system. Check back later or browse our on-demand highlights for recent games.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 2314,
+      "tokens_in": 9207,
+      "tokens_out": 672,
+      "latency_ms": 5621,
+      "tool_ms": 107
+    }
+  },
+  "recommend-015": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/recommend-015-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "grounded-016": {
+    "answer": {
+      "answer": "The Rovers vs Union match (Jefferson Derby) starts at 7:00 PM UTC on 2026-09-13, which is 19:00Z.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 749,
+      "tokens_in": 3958,
+      "tokens_out": 177,
+      "latency_ms": 2011,
+      "tool_ms": 18
+    }
+  },
+  "grounded-017": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/grounded-017-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "grounded-018": {
+    "answer": {
+      "answer": "Based on the Meridian Sports catalog, there is no Jefferson Derby second leg scheduled for next month. The current Jefferson Derby match (Rovers vs Union) is happening today, September 13, 2026, but no second leg event appears in the catalog for October.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1141,
+      "tokens_in": 6239,
+      "tokens_out": 326,
+      "latency_ms": 3445,
+      "tool_ms": 35
+    }
+  },
+  "grounded-019": {
+    "answer": {
+      "answer": "I couldn't find the Harbor Bay Invitational in the Meridian Sports catalog. This event either isn't currently available on Meridian Sports, or it may be scheduled for a time outside our current programming window. Please check back later or contact support for more information.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1276,
+      "tokens_in": 6030,
+      "tokens_out": 282,
+      "latency_ms": 3350,
+      "tool_ms": 49
+    }
+  },
+  "brand-020": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/brand-020-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "brand-021": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/brand-021-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "concise-022": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/concise-022-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "multi-023": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/multi-023-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "edge-024": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/edge-024-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "edge-025": {
+    "answer": {
+      "answer": "I was unable to find any scheduled live sports events in the catalog for tonight. There may be no events currently scheduled for this time, or you might want to check back later for updated programming.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1541,
+      "tokens_in": 8377,
+      "tokens_out": 448,
+      "latency_ms": 4643,
+      "tool_ms": 49
+    }
+  },
+  "headroom-005": {
+    "answer": {
+      "answer": "Tonight's Jefferson Derby (Rovers vs Union, 19:00 UTC) brings raw intensity—two local rivals clashing in real-time with immediate stakes and crowd energy. By contrast, the Granite Falls Classic replay captures rivalry's historical weight: a storied matchup viewed from distance, its drama already settled but its significance intact. Tonight is live urgency; the classic is revered retrospection.",
+      "cited_titles": [
+        "t001",
+        "t003"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1880,
+      "tokens_in": 6734,
+      "tokens_out": 521,
+      "latency_ms": 5110,
+      "tool_ms": 76
+    }
+  },
+  "headroom-026": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/headroom-026-m07s1-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  }
+}

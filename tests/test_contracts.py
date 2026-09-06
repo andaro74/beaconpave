@@ -747,7 +747,18 @@ def test_no_committed_observation_gains_a_channel_and_the_exempt_set_is_closed()
     This pins it. If a new arm is recorded whose blocks carry no channel, the
     exemption has started growing and this fails — which is what ADR-038 amendment
     1 had no equivalent of, and why an absent key silently became the escape
-    hatch for the live shape."""
+    hatch for the live shape.
+
+    **Over BLOCKS, as the sentence above says, and not over every observation
+    (M07 PR 4).** An observation the guardrail did not intervene on — allowed,
+    or denied by classification or by Cedar — carries no `channels` key by
+    ADR-040 d1, and `test_gateway_core` pins that omission on the apply path.
+    The first version of this walk classified every node carrying
+    `guardrail_blocked`, so the first post-ADR-040 probe run committed under
+    this name (`milestones/M07/stage1/probes-run.json`, whose every block names
+    `question`) went red on its allowed observations. Until then the walk had
+    met only the three pre-ADR-040 files it exempts: M06b's arm is
+    `tool-probes-run.json`, outside this glob."""
     import json
 
     exempt, carried = [], []
@@ -757,7 +768,8 @@ def test_no_committed_observation_gains_a_channel_and_the_exempt_set_is_closed()
         def walk(node, where=path):
             if isinstance(node, dict):
                 if "guardrail_blocked" in node:
-                    (carried if "channels" in node else exempt).append(where.parent.name)
+                    if node["guardrail_blocked"]:
+                        (carried if "channels" in node else exempt).append(where.parent.name)
                     return
                 for v in node.values():
                     walk(v, where)

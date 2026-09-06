@@ -1,0 +1,1128 @@
+{
+  "_what_this_is": "Per-case, per-sample refusal detail for this arm, taken from the audit records fetched back out of the lake rather than from the gateway's response. The answer files carry what was answered; this carries WHY the rest was not, which `evals/run_evals.py` cannot express - it scores a refused case as a plain FAIL, indistinguishable from one that answered badly. `channel` says whether a guardrail block was a refusal of the viewer's question or of content the platform was about to put in the model's context (ADR-035).",
+  "_k": 3,
+  "samples": [
+    1,
+    2,
+    3
+  ],
+  "_preflight": {
+    "gateway_function": "BeaconpaveGateway-GatewayFn1123A784-2LHF1oy9C98J",
+    "function_last_modified": "2026-09-06T15:59:35.000+0000",
+    "guardrail": {
+      "id": "abayh4ye7f8o",
+      "version": "4"
+    },
+    "tool_output_guardrail": {
+      "id": "ggla7vqlfu7d",
+      "version": "1"
+    },
+    "withheld_store_bucket": "beaconpavegateway-withheldstore40f96f34-nyxllxnfiear",
+    "inspection_text": {
+      "path": "platform/gateway/core/toolloop.py",
+      "sha256": "c9ecc03b9351d84fe201cbce28d47a8bef3205e9840695e2135d54acfb2a5fc3"
+    },
+    "deployed_bundle": {
+      "code_sha256": "llYzy7vwo2fisdBnLbRzvsjw/YiU6+q4FV3EVjqRrLI=",
+      "handler.py": "1c384b594b16fb55023c9fa324cda8f51905b21adf299f5c81f4ae9af3d98856",
+      "core/toolloop.py": "c9ecc03b9351d84fe201cbce28d47a8bef3205e9840695e2135d54acfb2a5fc3"
+    },
+    "probe_comparison_baseline": "milestones/ADR-041/probes-and-controls-v4.json",
+    "tag": "m07s1"
+  },
+  "_guardrail_versions": [
+    "4"
+  ],
+  "_guardrails_observed": {
+    "abayh4ye7f8o": [
+      "4"
+    ]
+  },
+  "census": {
+    "k": 3,
+    "n_cases": 25,
+    "refused_at_least_once": 19,
+    "refused_by_majority": 18,
+    "refused_unanimously": 14,
+    "cases_at_least_once": [
+      "blackout-001",
+      "blackout-006",
+      "blackout-007",
+      "blackout-008",
+      "blackout-009",
+      "brand-020",
+      "brand-021",
+      "concise-022",
+      "edge-024",
+      "entitlement-002",
+      "entitlement-010",
+      "entitlement-011",
+      "entitlement-012",
+      "grounded-017",
+      "headroom-005",
+      "headroom-026",
+      "multi-023",
+      "recommend-003",
+      "recommend-015"
+    ],
+    "cases_by_majority": [
+      "blackout-001",
+      "blackout-006",
+      "blackout-007",
+      "blackout-008",
+      "blackout-009",
+      "brand-020",
+      "brand-021",
+      "concise-022",
+      "edge-024",
+      "entitlement-002",
+      "entitlement-010",
+      "entitlement-011",
+      "entitlement-012",
+      "grounded-017",
+      "headroom-026",
+      "multi-023",
+      "recommend-003",
+      "recommend-015"
+    ],
+    "cases_separating_the_estimators": [
+      "headroom-005"
+    ],
+    "cases_with_missing_samples": [],
+    "estimator_for_adr_035": "refused_at_least_once"
+  },
+  "refusals": {
+    "blackout-001": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-001-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-001-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-001-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "blackout-006": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-006-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-006-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-006-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "blackout-007": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-007-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-007-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-007-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "blackout-008": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-008-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-008-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-008-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "blackout-009": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-009-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-009-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/blackout-009-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "entitlement-002": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/entitlement-002-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/entitlement-002-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/entitlement-002-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "entitlement-010": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/entitlement-010-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/entitlement-010-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "entitlement-011": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/entitlement-011-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/entitlement-011-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/entitlement-011-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "entitlement-012": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/entitlement-012-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/entitlement-012-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "recommend-015": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/recommend-015-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/recommend-015-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/recommend-015-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "grounded-017": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/grounded-017-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/grounded-017-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/grounded-017-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "brand-020": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/brand-020-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/brand-020-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/brand-020-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "brand-021": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/brand-021-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/brand-021-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "concise-022": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/concise-022-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/concise-022-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/concise-022-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "multi-023": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/multi-023-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/multi-023-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/multi-023-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "edge-024": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/edge-024-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/edge-024-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/edge-024-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "headroom-026": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/headroom-026-m07s1-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/headroom-026-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/headroom-026-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "recommend-003": {
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/recommend-003-m07s1-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/recommend-003-m07s1-3.json",
+        "record_resolved": true
+      }
+    },
+    "headroom-005": {
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "tool_request"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-06/highlights-agent/headroom-005-m07s1-3.json",
+        "record_resolved": true
+      }
+    }
+  },
+  "per_sample_refused": {
+    "blackout-001": [
+      true,
+      true,
+      true
+    ],
+    "blackout-006": [
+      true,
+      true,
+      true
+    ],
+    "blackout-007": [
+      true,
+      true,
+      true
+    ],
+    "blackout-008": [
+      true,
+      true,
+      true
+    ],
+    "blackout-009": [
+      true,
+      true,
+      true
+    ],
+    "entitlement-002": [
+      true,
+      true,
+      true
+    ],
+    "entitlement-010": [
+      true,
+      false,
+      true
+    ],
+    "entitlement-011": [
+      true,
+      true,
+      true
+    ],
+    "entitlement-012": [
+      true,
+      false,
+      true
+    ],
+    "recommend-003": [
+      false,
+      true,
+      true
+    ],
+    "recommend-013": [
+      false,
+      false,
+      false
+    ],
+    "recommend-014": [
+      false,
+      false,
+      false
+    ],
+    "recommend-015": [
+      true,
+      true,
+      true
+    ],
+    "grounded-016": [
+      false,
+      false,
+      false
+    ],
+    "grounded-017": [
+      true,
+      true,
+      true
+    ],
+    "grounded-018": [
+      false,
+      false,
+      false
+    ],
+    "grounded-019": [
+      false,
+      false,
+      false
+    ],
+    "brand-020": [
+      true,
+      true,
+      true
+    ],
+    "brand-021": [
+      true,
+      false,
+      true
+    ],
+    "concise-022": [
+      true,
+      true,
+      true
+    ],
+    "multi-023": [
+      true,
+      true,
+      true
+    ],
+    "edge-024": [
+      true,
+      true,
+      true
+    ],
+    "edge-025": [
+      false,
+      false,
+      false
+    ],
+    "headroom-005": [
+      false,
+      false,
+      true
+    ],
+    "headroom-026": [
+      true,
+      true,
+      true
+    ]
+  }
+}

@@ -119,8 +119,129 @@ def render(rows: list[dict] | None = None) -> str:
     return "\n".join(lines)
 
 
+#: The four channels a refusal can be attributed to (`core/guardrail.py::CHANNELS`,
+#: pinned literally by `tests/test_contracts.py`), in the order SPEC/07's demo
+#: artifact prints them. Restated here rather than imported: this module reads
+#: committed evidence on a fresh clone and reaches nothing under `platform/`.
+CHANNELS_IN_PRINT_ORDER = ("tool_request", "answer", "question", "tool_output")
+UNATTRIBUTED = "<unattributed>"
+
+
+def sidecar_summary(sidecar: dict) -> dict:
+    """Channel × assessed counts over every refused SAMPLE in one run's sidecar,
+    and nothing that scores (SPEC/07 constraint 6).
+
+    **Written so ADR-070 decision 4 is applied from a printout, not a
+    hand-count.** The rule is stated over refused samples — *"at least half of
+    PR 4's refused samples attribute to `tool_request`"* — so the unit here is
+    the `(case, sample)` entry under `refusals`, not the case. A sample whose
+    record names two channels is counted under the joined name and never split,
+    because the scorer refuses an empty `channels` and a record naming two is a
+    finding of its own (ADR-040).
+
+    The majority count decision 4 reads against 14–20 is the run's own
+    `census.refused_by_majority`, carried through as written by the run; this
+    function computes no second census. The band judgement is the reader's and
+    goes in the ADR amendment; this prints counts."""
+    refusals = sidecar.get("refusals") or {}
+    by_channel: collections.Counter = collections.Counter()
+    by_channel_assessed: collections.Counter = collections.Counter()
+    by_channel_guardrail: collections.Counter = collections.Counter()
+    samples = 0
+    for per_sample in refusals.values():
+        for detail in (per_sample or {}).values():
+            if not isinstance(detail, dict):
+                continue
+            samples += 1
+            channel = ",".join(detail.get("channels") or ()) or UNATTRIBUTED
+            assessed = ",".join(detail.get("assessed") or ()) or UNATTRIBUTED
+            guard = detail.get("guardrail") or {}
+            pair = f"{guard.get('id')}/{guard.get('version')}" if guard else UNATTRIBUTED
+            by_channel[channel] += 1
+            by_channel_assessed[(channel, assessed)] += 1
+            by_channel_guardrail[(channel, pair)] += 1
+    tool_request = by_channel.get("tool_request", 0)
+    return {
+        "refused_samples": samples,
+        "by_channel": dict(sorted(by_channel.items())),
+        "by_channel_assessed": {f"{c} {a}": n for (c, a), n in sorted(by_channel_assessed.items())},
+        "by_channel_guardrail": {f"{c} {g}": n for (c, g), n in sorted(by_channel_guardrail.items())},
+        "tool_request_samples": tool_request,
+        "tool_request_share": (tool_request / samples) if samples else None,
+        "census": sidecar.get("census") or {},
+        "preflight": sidecar.get("_preflight"),
+        "guardrail_versions": sidecar.get("_guardrail_versions"),
+        "guardrails_observed": sidecar.get("_guardrails_observed"),
+    }
+
+
+def render_sidecar(sidecar: dict, path: str = "") -> str:
+    """The sidecar as a person reads it for decision 4. Called by nothing that
+    scores anything, and it says so."""
+    s = sidecar_summary(sidecar)
+    lines = [f"refusals sidecar{': ' + path if path else ''}  (reporting only; scores nothing)"]
+    pre = s["preflight"]
+    if pre:
+        main, tool = pre.get("guardrail") or {}, pre.get("tool_output_guardrail") or {}
+        lines.append(f"  gateway:               {pre.get('gateway_function')}")
+        lines.append(f"  guardrail:             {main.get('id')} v{main.get('version')}"
+                     f"   tool-output guardrail: {tool.get('id')} v{tool.get('version')}")
+        lines.append(f"  store:                 {pre.get('withheld_store_bucket')}")
+        text = pre.get("inspection_text") or {}
+        lines.append(f"  _inspection_text:      {text.get('path')}  sha256 {text.get('sha256')}")
+        lines.append(f"  probe comparison base: {pre.get('probe_comparison_baseline')}")
+        lines.append(f"  tag: {pre.get('tag')}")
+    else:
+        lines.append("  (no _preflight header: this sidecar predates ADR-070 PR 4)")
+    lines.append(f"  guardrail versions observed: {s['guardrails_observed'] or s['guardrail_versions']}")
+    census = s["census"]
+    if census:
+        lines.append(f"  refused by majority: {census.get('refused_by_majority')}/{census.get('n_cases')}"
+                     f"   at least once: {census.get('refused_at_least_once')}/{census.get('n_cases')}"
+                     f"   unanimously: {census.get('refused_unanimously')}/{census.get('n_cases')}"
+                     f"   (k={census.get('k')}, as written by the run)")
+        if census.get("cases_with_missing_samples"):
+            lines.append(f"  cases with missing samples: {census['cases_with_missing_samples']}")
+    lines.append(f"  channel × assessed over {s['refused_samples']} refused sample(s):")
+    for key, n in s["by_channel_assessed"].items():
+        lines.append(f"    {key:60s} {n:3d}")
+    lines.append("  channel × guardrail:")
+    for key, n in s["by_channel_guardrail"].items():
+        lines.append(f"    {key:60s} {n:3d}")
+    seen = dict(s["by_channel"])
+    parts = [f"{c} {seen.pop(c, 0)}" for c in CHANNELS_IN_PRINT_ORDER]
+    parts += [f"{c} {n}" for c, n in sorted(seen.items())]
+    lines.append("channels: " + " · ".join(parts))
+    share = s["tool_request_share"]
+    lines.append(f"tool_request share of refused samples: {s['tool_request_samples']}/"
+                 f"{s['refused_samples']}" + (f" = {share:.3f}" if share is not None else ""))
+    lines.append("This scores nothing. The band and decision 4's rule are read by a person "
+                 "and recorded in the ADR.")
+    return "\n".join(lines)
+
+
+def _main(argv=None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="SPEC/01's refusal band, and a sidecar's "
+                                                 "channel × assessed counts (reporting only)")
+    parser.add_argument("--sidecar", action="append",
+                        help="a `goldens-run-refusals.json` written by run_with_tools.py; "
+                             "prints channel × assessed counts over its refused samples "
+                             "(SPEC/07 constraint 6, ADR-070 decision 4). Repeatable.")
+    args = parser.parse_args(argv)
+    if not args.sidecar:
+        print(render())
+        return 0
+    for path in args.sidecar:
+        sidecar = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+        print(render_sidecar(sidecar, path))
+        print()
+    return 0
+
+
 if __name__ == "__main__":
-    print(render())
+    raise SystemExit(_main())
 
 
 #: Which estimator ADR-035 rows 7 and 8 are judged against, fixed in an amendment

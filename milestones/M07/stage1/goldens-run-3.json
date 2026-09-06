@@ -1,0 +1,300 @@
+{
+  "blackout-001": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-001-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-006": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-006-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-007": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-007-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-008": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-008-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "blackout-009": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/blackout-009-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-002": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/entitlement-002-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-010": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/entitlement-010-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-011": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/entitlement-011-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "entitlement-012": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/entitlement-012-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "recommend-003": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/recommend-003-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "recommend-013": {
+    "answer": {
+      "answer": "I was unable to find any live sports currently scheduled in the Meridian Sports catalog for tonight. Please check back later or browse our schedule for upcoming events.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1533,
+      "tokens_in": 8327,
+      "tokens_out": 404,
+      "latency_ms": 4263,
+      "tool_ms": 52
+    }
+  },
+  "recommend-014": {
+    "answer": {
+      "answer": "I wasn't able to find any highlights content currently available on Meridian Sports. The catalog doesn't show any titles matching live sports or highlights programming at this time. Please check back later or browse other categories for available content.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1552,
+      "tokens_in": 8303,
+      "tokens_out": 396,
+      "latency_ms": 4322,
+      "tool_ms": 45
+    }
+  },
+  "recommend-015": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/recommend-015-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "grounded-016": {
+    "answer": {
+      "answer": "The Rovers vs Union match (Jefferson Derby) starts at 19:00 UTC (7:00 PM UTC) on 2026-09-13.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 769,
+      "tokens_in": 3971,
+      "tokens_out": 189,
+      "latency_ms": 2124,
+      "tool_ms": 18
+    }
+  },
+  "grounded-017": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/grounded-017-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "grounded-018": {
+    "answer": {
+      "unparsed": "The catalog search is not returning any Jefferson Derby content scheduled for October 2026. Based on the available catalog data, there is no Jefferson Derby second leg found for next month.\n\n```json\n{\n  \"answer\": \"Based on the current catalog, there is no Jefferson Derby second leg scheduled for next month (October 2026). The most recent Jefferson Derby match in the catalog is scheduled for today.\",\n  \"cited_titles\": [],\n  \"entitlement\": null,\n  \"ai_disclosure\": null\n}\n```"
+    },
+    "usage": {
+      "guard_ms": 1218,
+      "tokens_in": 6201,
+      "tokens_out": 321,
+      "latency_ms": 3675,
+      "tool_ms": 43
+    }
+  },
+  "grounded-019": {
+    "answer": {
+      "answer": "I couldn't find any titles in the Meridian Sports catalog matching the Harbor Bay Invitational. This event may not be currently available, or it might be listed under a different name. Please try searching for the event with alternative terms or check back later for availability.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 864,
+      "tokens_in": 3899,
+      "tokens_out": 177,
+      "latency_ms": 2198,
+      "tool_ms": 21
+    }
+  },
+  "brand-020": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/brand-020-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "brand-021": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/brand-021-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "concise-022": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/concise-022-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "multi-023": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/multi-023-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "edge-024": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/edge-024-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "edge-025": {
+    "answer": {
+      "answer": "I don't have any live sports events or live programming available in the catalog for tonight.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 2174,
+      "tokens_in": 6538,
+      "tokens_out": 502,
+      "latency_ms": 4177,
+      "tool_ms": 76
+    }
+  },
+  "headroom-005": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/headroom-005-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "headroom-026": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-06/highlights-agent/headroom-026-m07s1-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  }
+}
