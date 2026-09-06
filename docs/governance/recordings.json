@@ -39,29 +39,29 @@
     {
       "act": 3,
       "title": "The seat disposes",
-      "owner_milestone": "M08",
+      "owner_milestone": "M09",
       "recorded": null,
-      "owed_by": "M08",
+      "owed_by": "M09",
       "deferred_from": [],
-      "why": "Not yet buildable; M08 drives the rules loop. Owned by M07 until ADR-070 made M07 the guardrail milestone and renumbered claim 6 to M08; a renumbering, not a deferral -- no milestone closed with this act owed to it."
+      "why": "Not yet buildable; M09 drives the rules loop. Owned by M07 until ADR-070 made M07 the guardrail milestone and renumbered claim 6 to M08, and by M08 until ADR-073 made M08 the budget milestone and renumbered it to M09; renumberings, not deferrals -- no milestone closed with this act owed to it."
     },
     {
       "act": 4,
       "title": "The audience isn't in the room",
-      "owner_milestone": "M10",
-      "recorded": null,
-      "owed_by": "M10",
-      "deferred_from": [],
-      "why": "Not yet buildable; M10 builds the drill (M09 until ADR-070 shifted the roadmap by one)."
-    },
-    {
-      "act": 5,
-      "title": "AI proposes, humans dispose",
       "owner_milestone": "M11",
       "recorded": null,
       "owed_by": "M11",
       "deferred_from": [],
-      "why": "Not yet buildable; M11 builds self-heal (M10 until ADR-070 shifted the roadmap by one)."
+      "why": "Not yet buildable; M11 builds the drill (M09 until ADR-070 shifted the roadmap by one, M10 until ADR-073 shifted it again)."
+    },
+    {
+      "act": 5,
+      "title": "AI proposes, humans dispose",
+      "owner_milestone": "M12",
+      "recorded": null,
+      "owed_by": "M12",
+      "deferred_from": [],
+      "why": "Not yet buildable; M12 builds self-heal (M10 until ADR-070 shifted the roadmap by one, M11 until ADR-073 shifted it again)."
     }
   ]
 }

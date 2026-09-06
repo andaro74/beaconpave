@@ -11,6 +11,7 @@ milestone branch is cut, so the definition of done exists before the work does.
 | `06c-instrument-repair.md` | The suite cannot score; repair it before measuring anything on it |
 | `06d-instrument-readable.md` | The suite scores but cannot say what it measured; separate a refusal from a wrong answer |
 | `07-guardrail-per-channel.md` | The gateway applies the guardrail per channel, so platform-internal content is not judged as a viewer's intent; claim 6 moves to M08 (ADR-070) |
+| `08-budget-context-or-ceiling.md` | The tools arm's `tokens_in` budget: a census of the committed trajectories decides whether the context or the ceiling is the thing to change; claim 6 moves to M09 (ADR-073) |
 
 A spec answers four things: what this milestone builds, what it deliberately
 does not build, the definition of done as a checklist, and the demo artifact it
