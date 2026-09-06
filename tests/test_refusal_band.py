@@ -146,6 +146,55 @@ def test_render_names_every_run_and_says_it_reports_only():
     assert "5 of 7 governed runs breach the band" in text
 
 
+M06B_SIDECAR = ROOT / "milestones" / "M06b" / "goldens-run-refusals.json"
+
+
+def test_the_sidecar_summary_counts_refused_samples_by_channel():
+    """SPEC/07 constraint 6: `--sidecar` prints channel × assessed counts and
+    nothing else. Checked on M06b's committed sidecar, where the answer is known
+    and cannot move: 50 refused samples, every one the entitlement topic, **42
+    on `answer` and 8 on `tool_output`** — the eight ADR-063 measured 8 → 0 on
+    the deployed gateway after this file was written — and none on
+    `tool_request`, the channel that did not exist when it was written.
+
+    ADR-070 decision 2 summarises this file as `all channels=["answer"]`. The
+    file says otherwise, and the file is the record; the summary is corrected
+    in ADR-070 amendment 5, not here."""
+    import json
+    sidecar = json.loads(M06B_SIDECAR.read_text(encoding="utf-8"))
+    summary = refusals.sidecar_summary(sidecar)
+    assert summary["refused_samples"] == 50
+    assert summary["by_channel"] == {"answer": 42, "tool_output": 8}
+    assert summary["by_channel_assessed"] == {"answer TOPIC:entitlement-circumvention": 42,
+                                              "tool_output TOPIC:entitlement-circumvention": 8}
+    assert summary["tool_request_samples"] == 0
+    assert summary["tool_request_share"] == 0.0
+    assert summary["census"]["refused_by_majority"] == 17, "carried through, not recomputed"
+    assert summary["preflight"] is None, "M06b predates the PR 4 header"
+
+    text = refusals.render_sidecar(sidecar, "m06b")
+    assert "channels: tool_request 0 · answer 42 · question 0 · tool_output 8" in text
+    assert "tool_request share of refused samples: 0/50 = 0.000" in text
+    assert "scores nothing" in text
+    assert "refused by majority: 17/25" in text
+
+
+def test_the_sidecar_summary_counts_a_sample_naming_two_channels_once():
+    """A record naming two channels is one refused sample under the joined name,
+    never split into two — splitting would let one sample count toward the
+    `tool_request` half of decision 4's rule twice over."""
+    sidecar = {"refusals": {"c": {
+        "s1": {"channels": ["tool_request"], "assessed": ["TOPIC:x"]},
+        "s2": {"channels": ["answer", "tool_request"], "assessed": ["TOPIC:x"]},
+        "s3": {"channels": [], "assessed": []},
+    }}}
+    summary = refusals.sidecar_summary(sidecar)
+    assert summary["refused_samples"] == 3
+    assert summary["by_channel"] == {"<unattributed>": 1, "answer,tool_request": 1, "tool_request": 1}
+    assert summary["tool_request_samples"] == 1
+    assert "<unattributed> <unattributed>" in summary["by_channel_assessed"]
+
+
 @pytest.mark.parametrize("total,expected", [(0, False), (2, False), (3, True), (8, True)])
 def test_the_band_boundary_is_inclusive_at_two(total, expected):
     """0–2 expected, ≥3 a finding. An off-by-one here would move the count of

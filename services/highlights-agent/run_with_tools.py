@@ -47,15 +47,36 @@ in full, and both the discarded and the replacement run are committed. A run tha
 spans two guardrail versions now exits 2 rather than being committed as one
 measurement (ADR-018).
 
+**The pre-flight, M07 PR 4 (ADR-070 amendment 1, pressure point 4).** M06b's
+wrong measurement was three lines from the real path, so before the first call
+this file now prints what the run is about to measure and refuses to run if any
+of it disagrees: the deployed gateway function; `GUARDRAIL_VERSION`,
+`TOOL_OUTPUT_GUARDRAIL_VERSION` and the store bucket read from that FUNCTION'S
+configuration and checked against the stack's pinned outputs (the stack is a
+statement of intent, the function is what runs); the deployed bundle's
+`handler.py` and `core/toolloop.py` digested against this tree; and the source
+path of `_inspection_text`, checked by parsing rather than typed. The sidecar
+header carries all of it, and a run whose records name any `(guardrail, version)`
+pair the pre-flight did not print exits 2 after writing — it is not a reading.
+`--preflight-only` prints and stops, so an operator confirms before the spend;
+`--tag` keeps the default `request_id` byte-identical and lets a same-day re-run
+write records the discarded run's keys cannot collide with.
+
 Outside the hermetic surface. Owning seat: Service Team.
 """
 from __future__ import annotations
 
 import argparse
+import ast
+import hashlib
+import io
 import json
 import pathlib
 import sys
+import urllib.request
+import zipfile
 
+import boto3
 import yaml
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -67,6 +88,124 @@ from evals.refusals import census_from_samples  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CASES = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
+GATEWAY_DIR = ROOT / "platform" / "gateway"
+#: The two files of the deployed bundle the pre-flight digests against this tree:
+#: the channel → policy table lives in `handler.py` and the one serialisation per
+#: channel in `core/toolloop.py` (SPEC/07 constraints 2 and 3).
+BUNDLE_FILES = ("handler.py", "core/toolloop.py")
+#: The nearest v4 run of the eleven-probe corpus, which PR 4's probe run is
+#: compared against per probe (ADR-070 amendment 1, finding 4). Named in the
+#: sidecar header so the comparison's reference travels with the evidence.
+PROBE_COMPARISON_BASELINE = "milestones/ADR-041/probes-and-controls-v4.json"
+#: The default `request_id` infix, unchanged since M02 so every committed
+#: workflow writes the record keys it wrote before.
+DEFAULT_TAG = "m02-tools"
+
+#: Function environment variable -> the stack output that pins it. Every pair is
+#: required: a function missing one, or naming a value the stack does not, is a
+#: deployment this run must not measure.
+ENV_PINNED_BY_OUTPUT = {
+    "GUARDRAIL_ID": "PinnedGuardrailId",
+    "GUARDRAIL_VERSION": "PinnedGuardrailVersion",
+    "TOOL_OUTPUT_GUARDRAIL_ID": "ToolOutputGuardrailId",
+    "TOOL_OUTPUT_GUARDRAIL_VERSION": "PinnedToolOutputGuardrailVersion",
+    "WITHHELD_STORE_BUCKET": "WithheldStoreBucket",
+}
+
+
+def _sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _inspection_text_source() -> tuple[str, str]:
+    """Where `_inspection_text` is defined in this tree, and that the request
+    serialisation reaches it — read out of the source, never typed. A path
+    printed from a string would go on printing after the function moved."""
+    path = GATEWAY_DIR / "core" / "toolloop.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    if "_inspection_text" not in functions:
+        sys.exit(f"error: {path} does not define _inspection_text; this tree is not the one "
+                 "SPEC/07 constraint 3 describes and this run would measure something else.")
+    request = functions.get("_request_text")
+    called = {c.func.id for c in ast.walk(request) if request is not None
+              and isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+    if "_inspection_text" not in called:
+        sys.exit("error: _request_text does not call _inspection_text, so a tool request "
+                 "would not be serialised the way ADR-070 decision 3 pre-registered.")
+    return path.relative_to(ROOT).as_posix(), _sha256(path.read_bytes())
+
+
+def preflight(outputs: dict, tag: str, sample: int, k: int) -> dict:
+    """Print what this run is about to measure, and refuse to measure anything
+    else. Zero model calls. Returns the sidecar header.
+
+    Every line is read from the DEPLOYED function — its configuration and its
+    code bundle — and compared to the stack's outputs and this tree. The stack
+    says what was intended; the function says what enforced the calls; the tree
+    says what the seats reviewed. A run is a reading only when all three agree,
+    and the header records that they did."""
+    function_name = outputs["GatewayFunctionName"]
+    lam = boto3.client("lambda")
+    config = lam.get_function_configuration(FunctionName=function_name)
+    env = (config.get("Environment") or {}).get("Variables") or {}
+
+    problems = []
+    for key, output in ENV_PINNED_BY_OUTPUT.items():
+        if not env.get(key):
+            problems.append(f"{key} is not set on the function (a deploy that predates the "
+                            f"ADR that introduced it)")
+        elif output not in outputs:
+            problems.append(f"the stack has no {output} output to pin {key} against")
+        elif env[key] != outputs[output]:
+            problems.append(f"{key}: the function runs {env[key]!r}, the stack pins "
+                            f"{outputs[output]!r}")
+
+    function = lam.get_function(FunctionName=function_name)
+    code_sha256 = function["Configuration"]["CodeSha256"]
+    with urllib.request.urlopen(function["Code"]["Location"]) as response:
+        bundle = response.read()
+    with zipfile.ZipFile(io.BytesIO(bundle)) as archive:
+        deployed = {name: _sha256(archive.read(name)) for name in BUNDLE_FILES}
+    tree = {name: _sha256((GATEWAY_DIR / name).read_bytes()) for name in BUNDLE_FILES}
+    for name in BUNDLE_FILES:
+        if deployed[name] != tree[name]:
+            problems.append(f"deployed {name} ({deployed[name][:12]}) is not this tree's "
+                            f"({tree[name][:12]}): the seats reviewed one file and the "
+                            f"gateway runs another")
+    source_path, source_sha256 = _inspection_text_source()
+
+    print(f"gateway:  {function_name}   (last modified {config.get('LastModified')})")
+    print(f"lake:     {outputs.get('AuditLakeBucket')}")
+    print(f"store:    {outputs.get('WithheldStoreBucket', '<no WithheldStoreBucket output>')}")
+    print("function configuration (lambda.get_function_configuration), against the stack's outputs:")
+    for key, output in ENV_PINNED_BY_OUTPUT.items():
+        print(f"  {key:32s} {env.get(key)!s:36s} stack {output}={outputs.get(output)}")
+    print(f"deployed bundle: CodeSha256 {code_sha256}")
+    for name in BUNDLE_FILES:
+        state = "== tree" if deployed[name] == tree[name] else "!= tree"
+        print(f"  {name:20s} {deployed[name]}  {state}")
+    print(f"_inspection_text source: {source_path}  sha256 {source_sha256}")
+    print(f"probe comparison baseline: {PROBE_COMPARISON_BASELINE}")
+    print(f"tag: {tag}   sample: {sample}   k: {k}\n")
+    if problems:
+        sys.exit("error: pre-flight refused, nothing called, nothing written:\n  - "
+                 + "\n  - ".join(problems)
+                 + "\nA run whose records name any other version is not a stage reading "
+                   "(SPEC/07, Definition of done).")
+    return {
+        "gateway_function": function_name,
+        "function_last_modified": config.get("LastModified"),
+        "guardrail": {"id": env["GUARDRAIL_ID"], "version": env["GUARDRAIL_VERSION"]},
+        "tool_output_guardrail": {"id": env["TOOL_OUTPUT_GUARDRAIL_ID"],
+                                  "version": env["TOOL_OUTPUT_GUARDRAIL_VERSION"]},
+        "withheld_store_bucket": env["WITHHELD_STORE_BUCKET"],
+        "inspection_text": {"path": source_path, "sha256": source_sha256},
+        "deployed_bundle": {"code_sha256": code_sha256,
+                            **{name: deployed[name] for name in BUNDLE_FILES}},
+        "probe_comparison_baseline": PROBE_COMPARISON_BASELINE,
+        "tag": tag,
+    }
 
 
 def _refusal(response: dict, record: dict | None) -> dict:
@@ -89,6 +228,11 @@ def _refusal(response: dict, record: dict | None) -> dict:
         "mechanism": (record or {}).get("mechanism", response.get("mechanism")),
         "assessed": guard.get("assessed") or response.get("assessed") or [],
         "channels": guard.get("channels"),
+        # The guardrail that blocked, as the record names it (ADR-070 amendment
+        # 2): a `tool_output` block names the tool-output pair, everything else
+        # the main pair. Read beside `channels` so the sidecar can show the two
+        # columns together.
+        "guardrail": {"id": guard.get("id"), "version": guard.get("version")} if guard else None,
         "reasons": response.get("reasons") or [],
         "record_id": response.get("record_id"),
         "record_resolved": record is not None,
@@ -109,6 +253,16 @@ def main(argv=None) -> int:
                         help="how many samples to take, numbered from --sample and written "
                              "as one answer file each. Defaults to 1, so the three-file "
                              "M02 workflow runs exactly as it did")
+    parser.add_argument("--tag", default=DEFAULT_TAG,
+                        help="the request_id infix, `<case>-<tag>-<sample>`. Defaults to "
+                             "the M02 value so committed workflows write the keys they "
+                             "wrote; a stage run names its own so a same-day re-run cannot "
+                             "overwrite a discarded run's records (M07 PR 4)")
+    parser.add_argument("--preflight-only", dest="preflight_only", action="store_true",
+                        help="print the deployed function, both guardrail versions read "
+                             "from its configuration, the bundle digests and the source "
+                             "path of _inspection_text, then stop. Zero calls, nothing "
+                             "written (ADR-070 amendment 1, pressure point 4)")
     args = parser.parse_args(argv)
     if args.k < 1:
         parser.error(f"k={args.k}; a case needs at least one sample")
@@ -122,8 +276,10 @@ def main(argv=None) -> int:
     deployed = gw.resources()
     function_name = deployed["GatewayFunctionName"]
     bucket = deployed["AuditLakeBucket"]
-    print(f"gateway: {function_name}\nlake:    {bucket}\nsample:  {args.sample}"
-          f"\nk:       {args.k}\n")
+    header = preflight(deployed, args.tag, args.sample, args.k)
+    if args.preflight_only:
+        print("pre-flight only: nothing was called and nothing was written.")
+        return 0
 
     system = gw.build_tool_prompt()
     samples = range(args.sample, args.sample + args.k)
@@ -131,6 +287,10 @@ def main(argv=None) -> int:
     refusal_detail: dict = {}
     per_sample: dict = {c["id"]: [] for c in cases}
     versions: set = set()
+    #: guardrail id -> the versions the records named under it. Two guardrails
+    #: legitimately appear in one run (ADR-070 amendment 2), so the ADR-018
+    #: check is per id, and every pair must be one the pre-flight printed.
+    observed: dict[str, set] = {}
 
     for sample in samples:
         # At k=1 the file keeps the name it was given, so the committed M02
@@ -150,7 +310,7 @@ def main(argv=None) -> int:
                     "text": text,
                     "system": system,
                     "tools": True,
-                    "request_id": f"{case['id']}-m02-tools-{sample}",
+                    "request_id": f"{case['id']}-{args.tag}-{sample}",
                     "service": "highlights-agent",
                     "classification": "internal",
                 })
@@ -185,6 +345,8 @@ def main(argv=None) -> int:
                 # stack: a stack output is a statement of intent, and only the
                 # record says what enforced this answer (ADR-018).
                 versions.add(record["guardrail"]["version"])
+                observed.setdefault(str(record["guardrail"].get("id")), set()).add(
+                    record["guardrail"]["version"])
 
             decision = response.get("decision")
             if decision != "allowed":
@@ -250,10 +412,14 @@ def main(argv=None) -> int:
                 "told apart from a real one afterwards."
             )
 
-        out.write_text(json.dumps(answers, indent=2, ensure_ascii=False), encoding="utf-8")
+        # `newline=""`: the default translates each line feed to the platform's
+        # line ending, and these files are committed and digested. The defect
+        # `topic_baseline.py` recorded as still standing here.
+        out.write_text(json.dumps(answers, indent=2, ensure_ascii=False), encoding="utf-8",
+                       newline="")
         trace_out = out.with_name(out.stem + "-trajectory.json")
         trace_out.write_text(json.dumps(trajectories, indent=2, ensure_ascii=False),
-                             encoding="utf-8")
+                             encoding="utf-8", newline="")
 
         totals = (sum(a["usage"]["tokens_in"] for a in answers.values()),
                   sum(a["usage"]["tokens_out"] for a in answers.values()))
@@ -298,23 +464,39 @@ def main(argv=None) -> int:
             "platform was about to put in the model's context (ADR-035)."),
         "_k": args.k,
         "samples": list(samples),
+        # What the pre-flight printed before the first call: the function, both
+        # pairs from its configuration, the bundle digests, the serialiser's
+        # source path, and the probe comparison's reference (SPEC/07, Definition
+        # of done). The run names the channel → policy table; a record names
+        # one assessment (ADR-070 amendment 2).
+        "_preflight": header,
         "_guardrail_versions": sorted(versions),
+        "_guardrails_observed": {gid: sorted(vs) for gid, vs in sorted(observed.items())},
         "census": census_from_samples(per_sample, args.k),
         "refusals": refusal_detail,
         "per_sample_refused": per_sample,
-    }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="")
     print(f"wrote {sidecar}")
 
     census = census_from_samples(per_sample, args.k)
     print(f"refused at least once: {census['refused_at_least_once']}/{census['n_cases']}"
           f"   by majority: {census['refused_by_majority']}/{census['n_cases']}")
 
-    if len(versions) > 1:
-        # A corpus scored across a policy change is not one measurement (ADR-018).
-        # The probe harness exits here and so does `run_phrasings.py`; both golden
-        # arms could not, because neither recorded a version at all.
-        print(f"\nERROR: this run spans guardrail versions {sorted(versions)}. Every file "
-              "above is written and none of it is one measurement.", file=sys.stderr)
+    # A corpus scored across a policy change is not one measurement (ADR-018).
+    # Per guardrail id, because a `tool_output` block names the tool-output pair
+    # and an `answer` block the main pair in one honest run (ADR-070 amendment
+    # 2) -- and every pair a record names must be one the pre-flight printed,
+    # or the records describe a gateway this run did not pre-flight.
+    printed = {(header["guardrail"]["id"], header["guardrail"]["version"]),
+               (header["tool_output_guardrail"]["id"], header["tool_output_guardrail"]["version"])}
+    split = {gid: sorted(vs) for gid, vs in observed.items() if len(vs) > 1}
+    foreign = sorted((gid, v) for gid, vs in observed.items() for v in vs
+                     if (gid, v) not in printed)
+    if split or foreign:
+        print(f"\nERROR: the records name guardrail pairs this run did not pre-flight -- "
+              f"spanning {split or 'nothing'}, foreign {foreign or 'nothing'}, pre-flight "
+              f"{sorted(printed)}. Every file above is written and none of it is one "
+              "measurement (ADR-018; SPEC/07 Definition of done).", file=sys.stderr)
         return 2
     if not versions:
         print("\nWARNING: no guardrail version was observed in any record. The run is not "
