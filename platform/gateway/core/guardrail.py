@@ -56,10 +56,28 @@ class GuardrailOutcome:
     #: written here in the form that is true rather than the form that is
     #: flattering.
     channels: tuple[str, ...] = ()
+    #: Which guardrail produced this assessment (ADR-070 amendment 2). Stamped
+    #: by `interpret_apply` from the pair the gateway pinned at the call site, so
+    #: the audit record can name the guardrail whose assessment it reports rather
+    #: than whichever pair the handler happened to reach for. `None` only on an
+    #: outcome nothing assessed; `as_record_fragment` refuses to write one.
+    guardrail_id: str | None = None
+    version: str | None = None
 
     def as_record_fragment(self, guardrail_id: str, version: str) -> dict:
         """The `guardrail` object in an audit record. `version` is required and
-        must be a published version — see ADR-018."""
+        must be a published version — see ADR-018.
+
+        **Refuses a missing id or version.** Under option B (ADR-070) the handler
+        passes the pair the outcome carries, and an outcome that carries none is
+        one no inspection stamped. Writing `"version": null` would validate
+        nowhere and, worse, would land in the lake as a record that names no
+        instrument — the ADR-018 hazard as a null."""
+        if not guardrail_id or not version:
+            raise ValueError(
+                f"a guardrail fragment must name a published guardrail; got "
+                f"id={guardrail_id!r} version={version!r}. The outcome this was built "
+                "from was not stamped by `interpret_apply` (ADR-070 amendment 2).")
         fragment = {
             "id": guardrail_id,
             "version": version,
@@ -202,10 +220,20 @@ CHANNEL_TOOL_OUTPUT = "tool_output"
 #: this set literally for that reason.
 CHANNEL_QUESTION = "question"
 CHANNEL_ANSWER = "answer"
-CHANNELS = frozenset({CHANNEL_SYSTEM, CHANNEL_TOOL_OUTPUT, CHANNEL_QUESTION, CHANNEL_ANSWER})
+#: The model's output on a round that ends in `tool_use` (ADR-070). Text the
+#: viewer never sees, addressed to the platform, carrying a JSON `input` the
+#: plane validates. Under `converse`'s own guardrail it was assessed as output
+#: and labelled `answer`, because Bedrock cannot tell which of the model's
+#: outputs the viewer will be shown; only the loop can, and it labels this one.
+#: No probe declares it, so under ADR-040's subset rule a block on it credits
+#: nothing — correct, because the model arm sends no tools.
+CHANNEL_TOOL_REQUEST = "tool_request"
+CHANNELS = frozenset({CHANNEL_SYSTEM, CHANNEL_TOOL_OUTPUT, CHANNEL_QUESTION, CHANNEL_ANSWER,
+                      CHANNEL_TOOL_REQUEST})
 
 
-def interpret_apply(response: dict, *, channel: str) -> GuardrailOutcome:
+def interpret_apply(response: dict, *, channel: str, guardrail_id: str | None = None,
+                    version: str | None = None) -> GuardrailOutcome:
     """Read an `ApplyGuardrail` response into the same outcome `interpret` returns.
 
     **A separate function rather than a widened `interpret`.** `interpret` decides
@@ -221,7 +249,11 @@ def interpret_apply(response: dict, *, channel: str) -> GuardrailOutcome:
     list rather than nested under input and per-guardrail output maps. The policy
     blocks inside them are identical, which is why `_blocked_names` is shared:
     two readers of the same assessment that could disagree is a worse defect than
-    the duplication it would avoid."""
+    the duplication it would avoid.
+
+    `guardrail_id` and `version` are the pair the caller pinned at the call site
+    that produced `response`, carried onto the outcome so the audit record names
+    the guardrail that actually assessed the content (ADR-070 amendment 2)."""
     if channel not in CHANNELS:
         raise ValueError(f"unknown channel {channel!r}; expected one of {sorted(CHANNELS)}")
 
@@ -233,7 +265,8 @@ def interpret_apply(response: dict, *, channel: str) -> GuardrailOutcome:
     # Trusting `action` alone would under-report, and under-reporting a block is
     # how a probe silently stops passing after a service update.
     intervened = response.get("action") == APPLY_ACTION_INTERVENED or bool(names)
-    return GuardrailOutcome(intervened, tuple(sorted(set(names))), (channel,))
+    return GuardrailOutcome(intervened, tuple(sorted(set(names))), (channel,),
+                            guardrail_id, version)
 
 
 #: The audit key the withheld-output fingerprint travels under.
@@ -247,8 +280,32 @@ def interpret_apply(response: dict, *, channel: str) -> GuardrailOutcome:
 WITHHELD_KEY = "withheld"
 
 
+def fingerprint_text(text: str | None) -> dict:
+    """Describe a piece of text without quoting it: present, length, one-way digest.
+
+    **This is what `withheld` carries under option B (ADR-070).** The gateway no
+    longer receives Bedrock's placeholder on a block; it receives the model's own
+    output, assesses it, and refuses to return it. The text the loop refused
+    travels under `TurnOutcome.refused`, and the record describes that text with
+    exactly the three fields ADR-066 step 0 fixed — the same closed set, the same
+    G4 argument: a length cannot be graded for politeness and a digest cannot be
+    graded at all. `None` is "nothing was held", which is the shape a block that
+    produced no text leaves."""
+    text = text if isinstance(text, str) else ""
+    return {
+        "present": bool(text),
+        "chars": len(text),
+        "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+    }
+
+
 def withheld_fingerprint(response: dict) -> dict | None:
     """What `converse` handed back on a blocked turn, described without quoting it.
+
+    Kept for the reader of records written before ADR-070 and for the offline
+    comparison ADR-066 step 0 made; the gateway itself fingerprints
+    `TurnOutcome.refused` through `fingerprint_text` now, because under option B
+    `converse` hands back nothing a guardrail stopped.
 
     **The question this exists to answer.** The gateway has held the blocked
     response on every one of M06b's 16 answer-channel refusals and never opened
@@ -276,8 +333,4 @@ def withheld_fingerprint(response: dict) -> dict | None:
         blocks = ()
     text = "".join(block.get("text") or "" for block in blocks
                    if isinstance(block, dict) and isinstance(block.get("text"), str))
-    return {
-        "present": bool(text),
-        "chars": len(text),
-        "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
-    }
+    return fingerprint_text(text)

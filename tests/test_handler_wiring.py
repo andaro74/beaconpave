@@ -52,6 +52,16 @@ own docstring it exists to catch. An AST test cannot see a binding, so this file
 now also reads the committed CDK snapshot. Both halves are the wiring; only one
 of them was ever asserted.
 
+**What ADR-070 changed here.** `converse` carries no guardrail; `_inspect` is
+the whole of it, four arms selected by explicit channel comparison, each pinning
+its pair and its `source` at the call site. The converse/inspection pin became
+two: the model call names NO guardrail, and every arm pins a published version
+of the guardrail its channel names, at the source its channel names — read as a
+table, so PR 5's stage-2 move is a one-row diff to that table. Constraint 3
+("the handler serialises nothing") and amendment 2 ("the record names the
+guardrail that assessed it") are pinned on the source below, because the
+handler is the one place where either could quietly stop being true.
+
 Hermetic (G8): reads source and a committed JSON fixture, imports nothing under
 test.
 Owning seat: Platform Engineering (the adapter) · Security (what it must not
@@ -235,17 +245,145 @@ def test_the_untrusted_declaration_is_still_wired_through(tree):
 
 # --- and wired up correctly ---------------------------------------------------
 
-def test_the_inspection_assesses_content_as_input(tree):
-    """`PROMPT_ATTACK` is input-only by the service's design and is one of the two
-    policies that fired on M04's user-turn arm. Assessing platform-supplied
-    content as OUTPUT drops exactly the filter this channel most needs, and the
-    docstring arguing so was the only thing defending it."""
-    applies = calls_named(tree, "apply_guardrail")
-    assert applies, "the handler no longer calls apply_guardrail"
-    for call in applies:
-        source_kw = keyword(call, "source")
-        assert isinstance(source_kw, ast.Constant) and source_kw.value == "INPUT", (
-            "apply_guardrail must assess this content as INPUT")
+#: The stage-1 channel table (ADR-070 decisions 3 and 4): for each arm of
+#: `_inspect`, keyed by the `guardrail.CHANNEL_*` constant its comparison names
+#: (`None` is the fall-through arm), the identifier name, the version name and
+#: the `source` its `apply_guardrail` call must carry.
+#:
+#: **This is the table PR 5 edits, and nothing else.** Stage 2 moves
+#: `CHANNEL_TOOL_REQUEST` to the tool-output pair at `INPUT`; the other three
+#: rows do not move. `INPUT` is where `PROMPT_ATTACK` fires — input-only by the
+#: service's design, one of the two policies that fired on M04's user-turn arm —
+#: so it is the source for content read as an instruction: the viewer's turn, a
+#: tool result. `OUTPUT` is what `converse` assessed the model's own output as,
+#: and stage 1 keeps identical coverage.
+STAGE_1_ARMS = {
+    "CHANNEL_TOOL_OUTPUT": ("_TOOL_OUTPUT_GUARDRAIL_ID", "_TOOL_OUTPUT_GUARDRAIL_VERSION", "INPUT"),
+    "CHANNEL_TOOL_REQUEST": ("GUARDRAIL_ID", "GUARDRAIL_VERSION", "OUTPUT"),
+    "CHANNEL_ANSWER": ("GUARDRAIL_ID", "GUARDRAIL_VERSION", "OUTPUT"),
+    None: ("GUARDRAIL_ID", "GUARDRAIL_VERSION", "INPUT"),
+}
+
+
+def _inspect_body(tree) -> list:
+    outer = next(n for n in ast.walk(tree)
+                 if isinstance(n, ast.FunctionDef) and n.name == "_inspect")
+    inner = next(n for n in ast.walk(outer)
+                 if isinstance(n, ast.FunctionDef) and n.name == "inspect")
+    return inner.body
+
+
+def _channel_named(test) -> str | None:
+    """The `guardrail.CHANNEL_*` constant a branch condition compares `channel` to."""
+    for node in ast.walk(test):
+        if (isinstance(node, ast.Compare) and isinstance(node.left, ast.Name)
+                and node.left.id == "channel"):
+            for c in node.comparators:
+                if isinstance(c, ast.Attribute) and c.attr.startswith("CHANNEL_"):
+                    return c.attr
+    return None
+
+
+def _arm(body: list) -> dict:
+    """What one arm pins: the `apply_guardrail` pair and source, and the pair it
+    hands `interpret_apply`. Exactly one of each, or the arm is not readable.
+
+    **And nothing else (Security round 2, SR-A).** `channel = ROUTE.get(channel,
+    channel)` prepended to the closure was swept into the fall-through arm and
+    read as inert while it re-routed `tool_request` to the topic-free policy
+    under a relabelled channel. An arm is exactly two statements: the
+    `apply_guardrail` assignment and the `interpret_apply` return."""
+    shape = [type(stmt).__name__ for stmt in body]
+    assert shape == ["Assign", "Return"], (
+        f"an arm of _inspect is {shape}; it must be exactly `response = "
+        "_bedrock.apply_guardrail(...)` and `return guardrail.interpret_apply(...)`. Any "
+        "other statement can rebind the channel or the text before the pinned call")
+    module = ast.Module(body=body, type_ignores=[])
+    applies = calls_named(module, "apply_guardrail")
+    interprets = calls_named(module, "interpret_apply")
+    assert len(applies) == 1 and len(interprets) == 1, (
+        f"an arm of _inspect carries {len(applies)} apply_guardrail and "
+        f"{len(interprets)} interpret_apply calls; one of each, at the call site, is what "
+        "this file can read")
+    apply, interpret = applies[0], interprets[0]
+    # Platform-eng round 2, P5: `calls_named` matches the callee's NAME, so a local
+    # `_reader.interpret_apply` shim forcing `channel=CHANNEL_ANSWER` satisfied
+    # every arm pin. The callee is the real one, by its full dotted name.
+    assert ast.unparse(apply.func) == "_bedrock.apply_guardrail", (
+        f"an arm calls {ast.unparse(apply.func)}; it must call _bedrock.apply_guardrail")
+    assert ast.unparse(interpret.func) == "guardrail.interpret_apply", (
+        f"an arm reads its verdict through {ast.unparse(interpret.func)}; it must be "
+        "guardrail.interpret_apply")
+    return {
+        "apply": (getattr(keyword(apply, "guardrailIdentifier"), "id", None),
+                  getattr(keyword(apply, "guardrailVersion"), "id", None),
+                  getattr(keyword(apply, "source"), "value", None)),
+        "interpret": (getattr(keyword(interpret, "guardrail_id"), "id", None),
+                      getattr(keyword(interpret, "version"), "id", None)),
+        "reported_on": ast.unparse(keyword(interpret, "channel"))
+        if keyword(interpret, "channel") is not None else None,
+    }
+
+
+#: Each arm's condition, unparsed, literally. **AI Quality Q1 and Tool Owner TO-1,
+#: the same plant from two seats:** `_channel_named` found the channel constant in
+#: a condition and ignored every other conjunct, so `and False` on the
+#: `tool_request` arm (stage 1 silently at INPUT) and `and not
+#: _TOOL_OUTPUT_GUARDRAIL_ID` on the tool-output arm (ADR-063 silently reverted)
+#: both passed the whole suite. The one conjunct the design has — the tool-output
+#: pair may be unconfigured — is the only one this admits.
+ARM_CONDITIONS = {
+    "CHANNEL_TOOL_OUTPUT": "channel == guardrail.CHANNEL_TOOL_OUTPUT and _TOOL_OUTPUT_GUARDRAIL_ID",
+    "CHANNEL_TOOL_REQUEST": "channel == guardrail.CHANNEL_TOOL_REQUEST",
+    "CHANNEL_ANSWER": "channel == guardrail.CHANNEL_ANSWER",
+}
+
+
+def arms(tree) -> dict:
+    """`_inspect`'s arms, keyed by the channel constant each compares against.
+
+    Read from the shape ADR-063 chose and ADR-070 kept: a sequence of `if
+    channel == guardrail.CHANNEL_X:` branches that each return, and a
+    fall-through arm after them keyed `None`. An `elif` chain is read the same
+    way. A branch that names no channel is refused, because then this file
+    cannot say which policy which content gets."""
+    found: dict = {}
+
+    def read(statements: list):
+        rest = []
+        for stmt in statements:
+            assert not (rest and isinstance(stmt, ast.If)), (
+                "a statement precedes an `if channel == ...` arm in _inspect; the arm chain "
+                "must be the whole body, or the statement can rebind what the arms see")
+            if isinstance(stmt, ast.If):
+                channel = _channel_named(stmt.test)
+                assert channel is not None, (
+                    f"an `if` in _inspect does not compare `channel` to a "
+                    f"guardrail.CHANNEL_* constant: {ast.unparse(stmt.test)}")
+                assert channel not in found, f"{channel} is selected by two arms"
+                found[channel] = dict(_arm(stmt.body), condition=ast.unparse(stmt.test))
+                if stmt.orelse:
+                    read(stmt.orelse)
+            else:
+                rest.append(stmt)
+        if rest:
+            assert None not in found, "two fall-through arms"
+            found[None] = _arm(rest)
+
+    read(_inspect_body(tree))
+    return found
+
+
+def test_each_arm_pins_the_pair_and_source_its_channel_names(tree):
+    """**The stage-1 table, read off the source (ADR-070 decisions 3 and 4).**
+
+    This replaces the test that required `source="INPUT"` on every call — true
+    when the only inspected content was platform-supplied, and false the moment
+    the loop began assessing the model's own output, which `converse` assessed
+    as OUTPUT. The property is now per channel, and it is the whole table rather
+    than one property of it: an arm at the wrong source, or a channel routed to
+    the wrong pair, or a missing arm, each reads as a different row."""
+    assert {k: v["apply"] for k, v in arms(tree).items()} == STAGE_1_ARMS
 
 
 #: The module-level constants `handler.py` may pin a guardrail with.
@@ -288,53 +426,177 @@ def test_the_inspection_uses_the_same_pinned_version_as_the_turn(tree):
             f"{sorted(PINNED_IDENTIFIERS)}")
 
 
-def test_the_converse_path_and_the_inspection_path_pin_the_same_thing(tree):
-    """"Equivalently" is meant literally. If the two paths could name different
-    versions, a probe result would be attributable to neither.
+def test_the_model_call_carries_no_guardrail(tree):
+    """**ADR-070: `converse` carries no `guardrailConfig`.** The gateway applies
+    the guardrail itself, per channel, and a guardrail on the model call would
+    assess the transcript a second time under a policy the loop did not choose
+    and label the result `answer` — the exact ambiguity option B exists to end.
 
-    **ADR-063 narrows what "the same thing" means, and does not drop it.** The
-    tool-output channel now has its own pinned pair, so `apply_guardrail` may name
-    either — but `converse` may name ONLY the main one. A tool-output version
-    reaching the model call would mean the turn transited a guardrail with no
-    topic policy, which is the wiring mistake with the worst blast radius
-    available here, and it is the one this test now exists to catch."""
-    inspection: set = set()
-    for call in calls_named(tree, "apply_guardrail"):
-        inspection.add(getattr(keyword(call, "guardrailVersion"), "id", None))
-
-    # **This half found NOTHING before ADR-063, and the test passed anyway.**
-    # It looked for `guardrailConfig` as a direct keyword of a `converse(...)`
-    # call. `handler.py` builds `kwargs = dict(..., guardrailConfig={...})` and
-    # calls `_bedrock.converse(**kwargs)`, so the keyword was never there, the
-    # set stayed empty, and the assertion was satisfied entirely by the
-    # inspection path. A test named for comparing two paths compared one.
-    #
-    # Found while ADR-063 split the inspection path in two, which is the only
-    # reason the empty half became visible. It is fixed here rather than left,
-    # because the fix is four lines and the alternative is a test whose name is
-    # a claim it does not keep.
-    #
-    # Located by SHAPE now — any dict literal carrying `guardrailIdentifier` and
-    # `guardrailVersion` together — so the same collection survives the config
-    # moving into a variable, a helper, or a call's keyword.
-    converse_versions: set = set()
+    This is the converse half of the test ADR-063 fixed. That version located a
+    `guardrailConfig` dict by shape — any dict literal carrying
+    `guardrailIdentifier` and `guardrailVersion` together — because the keyword
+    was never a direct argument of `converse(...)`. The same location is kept,
+    inverted: there must be no such dict anywhere, and no `guardrailConfig`
+    keyword or string anywhere, however the config might be assembled."""
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Dict):
+        if isinstance(node, ast.Dict):
+            keys = {k.value for k in node.keys if isinstance(k, ast.Constant)}
+            assert not {"guardrailIdentifier", "guardrailVersion"} <= keys, (
+                "a dict literal carries guardrailIdentifier and guardrailVersion together. "
+                "That is a converse guardrailConfig, and ADR-070 removed it: the loop "
+                "applies the guardrail per channel through _inspect.")
+        if isinstance(node, ast.Constant) and node.value == "guardrailConfig":
+            raise AssertionError("the string 'guardrailConfig' appears in handler.py")
+        if isinstance(node, ast.keyword) and node.arg == "guardrailConfig":
+            raise AssertionError("a call in handler.py passes guardrailConfig=")
+    # Security round 3, SR3-D: `kwargs["guardrail" + "Config"] = dict(guardrailIdentifier=...)`
+    # defeated the three shapes above. The two guardrail keywords may appear only
+    # on an apply_guardrail call, and no string constant may be a fragment of the
+    # forbidden key.
+    applies = {id(kw) for call in calls_named(tree, "apply_guardrail") for kw in call.keywords}
+    docstrings = {id(n.value) for n in ast.walk(tree)
+                  if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)}
+    for node in ast.walk(tree):
+        if id(node) in docstrings:
             continue
-        keys = {k.value for k in node.keys if isinstance(k, ast.Constant)}
-        if not {"guardrailIdentifier", "guardrailVersion"} <= keys:
-            continue
-        for key, value in zip(node.keys, node.values, strict=True):
-            if isinstance(key, ast.Constant) and key.value == "guardrailVersion":
-                converse_versions.add(getattr(value, "id", None))
+        if isinstance(node, ast.keyword) and node.arg in {"guardrailIdentifier", "guardrailVersion"}:
+            assert id(node) in applies, (
+                f"{node.arg}= appears outside an apply_guardrail call: a guardrail config "
+                "assembled for the model call")
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            assert node.value not in {"Config", "guardrailC", "onfig", "rail" + "Config"} and \
+                "guardrailconfig" not in node.value.replace(" ", "").lower(), (
+                    f"the string {node.value!r} is a fragment of 'guardrailConfig'")
 
-    assert converse_versions == {"GUARDRAIL_VERSION"}, (
-        f"the model call pins {converse_versions}, not the main guardrail's version. "
-        "ADR-063 gives the TOOL-OUTPUT channel its own policy; the turn itself still "
-        "transits the guardrail with the topic policy on it.")
+
+def test_every_inspection_site_pins_a_published_version_of_the_guardrail_its_channel_names(tree):
+    """The inspection half, per arm. Every `apply_guardrail` names a version from
+    the closed set of pinned constants — never a literal, never DRAFT — and, arm
+    by arm, the pair it names is the pair the stage-1 table gives that channel.
+    `test_each_arm_pins_the_pair_and_source_its_channel_names` reads the table
+    whole; this one is the ADR-018 property on its own, so a DRAFT literal fails
+    here with the message about pinning rather than as a table mismatch."""
+    inspection = {getattr(keyword(call, "guardrailVersion"), "id", None)
+                  for call in calls_named(tree, "apply_guardrail")}
     assert inspection and inspection <= PINNED_VERSIONS, (
         f"the inspection path pins {sorted(inspection)}; permitted: "
         f"{sorted(PINNED_VERSIONS)}. Never a literal, never DRAFT.")
+    for channel, arm in arms(tree).items():
+        assert arm["apply"][1] == STAGE_1_ARMS[channel][1], (
+            f"the {channel or 'fall-through'} arm pins {arm['apply'][1]!r}, and the stage-1 "
+            f"table says {STAGE_1_ARMS[channel][1]!r}")
+
+
+def test_each_arm_hands_interpret_apply_the_pair_it_applied(tree):
+    """**ADR-070 amendment 2: the record names the guardrail that assessed it.**
+    The pair travels from the `apply_guardrail` call site onto the outcome
+    through `interpret_apply(..., guardrail_id=, version=)`, so the handler never
+    has to decide which guardrail a channel used. That is only true if the two
+    call sites in each arm name the same constants — which this asserts, arm by
+    arm, so a copy-paste that applies one guardrail and records the other is a
+    red check rather than a lake full of misattributed records."""
+    for channel, arm in arms(tree).items():
+        assert arm["interpret"] == arm["apply"][:2], (
+            f"the {channel or 'fall-through'} arm applies {arm['apply'][:2]} and tells "
+            f"interpret_apply {arm['interpret']}. The record would name a guardrail that "
+            "did not assess the content.")
+
+
+def test_each_arm_is_reachable_by_its_channel_comparison_alone(tree):
+    """The conditions, whole. A pinned arm that never executes is the
+    stated-and-absent shape: `STAGE_1_ARMS` would describe an arm the content
+    never reaches, and PR 4's stage-1 band would measure a mechanism the ADR
+    did not price. See `ARM_CONDITIONS`."""
+    conditions = {k: v["condition"] for k, v in arms(tree).items() if k is not None}
+    assert conditions == ARM_CONDITIONS, (
+        f"_inspect's arm conditions are {conditions}; an extra conjunct can disarm a "
+        "pinned arm while every pin stays green")
+
+
+def test_each_arm_reports_its_verdict_on_the_channel_it_was_asked_about(tree):
+    """**Platform Engineering seat, PR 2 plant P11 (survived).** The
+    `tool_request` arm handed `interpret_apply` `channel=guardrail.CHANNEL_ANSWER`
+    and 248 tests passed: `_arm` read the pair and never the channel, so every
+    `tool_request` block would have recorded `channels: ["answer"]` — the exact
+    field ADR-070 decision 4 reads to decide whether stage 2 is built. Each arm
+    reports on the bare `channel` parameter it was called with, never a constant
+    of its own choosing."""
+    for name, arm in arms(tree).items():
+        assert arm["reported_on"] == "channel", (
+            f"the {name or 'fall-through'} arm calls interpret_apply with "
+            f"channel={arm['reported_on']!r}; it must pass the `channel` it was asked "
+            "about, or the record attributes the block to the wrong side")
+
+
+def test_inspect_returns_the_pinned_closure_and_nothing_wraps_it(tree):
+    """**Platform Engineering seat, PR 2 plant P2 (survived).** A `dispatch`
+    closure defined inside `_inspect`, wrapping the pinned `inspect` and
+    re-routing `tool_request` to the tool-output policy under a relabelled
+    channel, passed 248 tests: the table reads the inner `inspect` and nothing
+    pinned what `_inspect` returns. That plant IS PR 5's stage-2 move, in a diff
+    that reads as inert. So `_inspect`'s body is exactly one nested function
+    named `inspect` and `return inspect`, and `run_turn` is handed `_inspect()`
+    bare — no wrapper on either side of the closure."""
+    outer = next(n for n in ast.walk(tree)
+                 if isinstance(n, ast.FunctionDef) and n.name == "_inspect")
+    body = [stmt for stmt in outer.body
+            if not (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant))]
+    shape = [type(stmt).__name__ for stmt in body]
+    assert shape == ["FunctionDef", "Return"], (
+        f"_inspect's body is {shape}; it must be exactly `def inspect` and `return inspect`")
+    assert body[0].name == "inspect"
+    # Security round 2, SR-B: a `@_staged` decorator on `def inspect` wrapped the
+    # pinned closure with the body shape, the nesting and the bare `_inspect()`
+    # all intact. Neither function may carry a decorator.
+    assert outer.decorator_list == [] and body[0].decorator_list == [], (
+        "_inspect or inspect carries a decorator; a decorator is a wrapper the shape "
+        "checks cannot see")
+    stores = sorted({n.id for n in ast.walk(outer)
+                     if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)})
+    assert stores == ["response"], (
+        f"_inspect assigns to {stores}; only `response` may be bound inside it — a "
+        "rebinding of `channel` or `text` changes what the pinned call sites see")
+    returned = body[1].value
+    assert isinstance(returned, ast.Name) and returned.id == "inspect", (
+        f"_inspect returns `{ast.unparse(returned)}`, not the pinned closure")
+    nested = [n.name for n in ast.walk(outer) if isinstance(n, ast.FunctionDef)
+              and n is not outer]
+    assert nested == ["inspect"], f"_inspect defines {nested}; only `inspect` may be defined"
+
+    for call in calls_named(tree, "run_turn"):
+        handed = keyword(call, "inspect")
+        assert (isinstance(handed, ast.Call) and isinstance(handed.func, ast.Name)
+                and handed.func.id == "_inspect" and not handed.args and not handed.keywords), (
+            f"run_turn is handed inspect={ast.unparse(handed)}; it must be `_inspect()` bare")
+
+
+def test_the_outcome_the_fragment_is_built_from_is_the_loops_and_not_a_fallback(tree):
+    """**Platform Engineering seat, PR 2 plant P8 (survived).**
+    `applied = outcome.guardrail or GuardrailOutcome(..., GUARDRAIL_ID,
+    GUARDRAIL_VERSION)` passed every test: the fragment test pins the two
+    arguments of `as_record_fragment` and not what `applied` is bound to, so
+    `as_record_fragment`'s refusal of a missing pair became unreachable and an
+    unstamped outcome would be written as the main guardrail. The single
+    assignment to `applied` in `handler()` is `outcome.guardrail`, bare."""
+    handler = next(n for n in ast.walk(tree)
+                   if isinstance(n, ast.FunctionDef) and n.name == "handler")
+    # Platform-eng round 2, P2: `applied, _ = (applied or <fallback>), None` rebinds
+    # through a tuple target, which a count of bare-Name Assign targets missed.
+    # Every Store-context binding of the name counts, whatever statement binds it.
+    bindings = [n for n in ast.walk(handler)
+                if isinstance(n, ast.Name) and n.id == "applied" and isinstance(n.ctx, ast.Store)]
+    assert len(bindings) == 1, (
+        f"`applied` is bound {len(bindings)} times in handler(); once, from the outcome")
+    assignments = [n for n in ast.walk(handler) if isinstance(n, ast.Assign)
+                   and any(isinstance(t, ast.Name) and t.id == "applied" for t in n.targets)]
+    assert len(assignments) == 1, f"expected one assignment to `applied`, found {len(assignments)}"
+    assert ast.unparse(assignments[0].value) == "outcome.guardrail", (
+        f"`applied = {ast.unparse(assignments[0].value)}` — the fragment must be built from "
+        "the outcome the loop returned, with no fallback that names a guardrail nothing "
+        "consulted")
+    builds = calls_named(handler, "as_record_fragment")
+    assert all(ast.unparse(a.value) == "applied" for a in builds[0].args), (
+        "the fragment's arguments are not read off `applied`")
 
 
 def test_the_inspected_text_is_not_sliced(tree):
@@ -534,25 +796,368 @@ def test_no_call_site_pairs_one_guardrails_id_with_the_others_version(tree):
             "Bedrock for a version that does not exist on that id.")
 
 
-def test_the_tool_output_policy_is_selected_by_equality_not_by_its_negation(tree):
+def test_every_policy_is_selected_by_equality_not_by_its_negation(tree):
     """`==` flipped to `!=` at the channel comparison left the suite green.
 
     Every inspected channel except tool output would then run against the
     topic-free guardrail — the same blast radius as the binding swap, reached
     from the runtime side instead of the infra side. Located by what it compares,
-    so moving or renaming the `if` does not evade it."""
+    so moving or renaming the `if` does not evade it. **Every channel comparison
+    (ADR-070)**, not only the tool-output one: a negated `CHANNEL_ANSWER` sends
+    the viewer's turn to the OUTPUT source, where `PROMPT_ATTACK` does not fire."""
     comparisons = [node for node in ast.walk(tree)
                    if isinstance(node, ast.Compare)
                    and isinstance(node.left, ast.Name) and node.left.id == "channel"
-                   and any(isinstance(c, ast.Attribute) and c.attr == "CHANNEL_TOOL_OUTPUT"
+                   and any(isinstance(c, ast.Attribute) and c.attr.startswith("CHANNEL_")
                            for c in node.comparators)]
-    assert comparisons, (
-        "no comparison of `channel` against `guardrail.CHANNEL_TOOL_OUTPUT` remains. "
-        "ADR-063 routes by an explicit channel comparison rather than a mapping, "
-        "deliberately: a dict would send a channel added later to whichever policy the "
-        "default named, and the direction of that mistake is not knowable in advance.")
+    assert {c.attr for node in comparisons for c in node.comparators
+            if isinstance(c, ast.Attribute)} >= {"CHANNEL_TOOL_OUTPUT", "CHANNEL_TOOL_REQUEST",
+                                                 "CHANNEL_ANSWER"}, (
+        "a channel comparison is missing from _inspect. ADR-063 and ADR-070 route by "
+        "explicit channel comparison rather than a mapping, deliberately: a dict would "
+        "send a channel added later to whichever policy the default named, and the "
+        "direction of that mistake is not knowable in advance.")
     for node in comparisons:
         assert all(isinstance(op, ast.Eq) for op in node.ops), (
-            "the tool-output channel is selected by something other than `==`. Negating "
-            "it routes every OTHER inspected channel to the guardrail with no topic "
-            "policy, which is the control silently getting weaker.")
+            f"`{ast.unparse(node)}` selects a policy by something other than `==`. "
+            "Negating it routes every OTHER channel to that policy, which is the control "
+            "silently getting weaker.")
+
+
+# --- constraint 3 and amendment 2, on the source --------------------------------
+
+#: Keys a handler that opened a converse response would read. `_call_tool` is
+#: exempt from the last two: it reads an MCP result's `content` to lift the
+#: tool's own error text, which is transport, not serialisation.
+RESPONSE_KEYS = {"output", "message", "content"}
+
+
+def _reads_key(node) -> str | None:
+    """The string key a `x["k"]` subscript or `x.get("k")` call reads, if any."""
+    if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant):
+        return node.slice.value if isinstance(node.slice.value, str) else None
+    if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "get" and node.args
+            and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)):
+        return node.args[0].value
+    return None
+
+
+def test_the_handler_serialises_nothing(tree):
+    """**ADR-070 constraint 3.** One serialisation per channel, all in `core/`:
+    the viewer's turn verbatim, tool results and each `toolUse.input` through
+    `_inspection_text`, text blocks joined. The handler hands text over and
+    reads a verdict back. Amendment 1 found this constraint had no test named
+    anywhere in the plan; this is it, asserted on the source because the handler
+    imports boto3 and no hermetic test can run it.
+
+    Three shapes a serialisation in the handler would take, each refused: a
+    reference to `_inspection_text`; a read of a converse response's `output`,
+    `message` or `content` keys; a `.join` over anything but a refusal's
+    `reasons`; a `json.dumps` outside the two transports (`_write` to the lake,
+    `_call_tool`'s JSON-RPC request)."""
+    for node in ast.walk(tree):
+        name = node.id if isinstance(node, ast.Name) else getattr(node, "attr", None)
+        assert name != "_inspection_text", (
+            "handler.py references _inspection_text. The serialisation lives in "
+            "core/toolloop.py and the handler serialises nothing (ADR-070 constraint 3).")
+
+    for fn in [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]:
+        exempt = {"content", "message"} if fn.name == "_call_tool" else set()
+        for node in ast.walk(fn):
+            key = _reads_key(node)
+            assert key not in (RESPONSE_KEYS - exempt), (
+                f"{fn.name} reads {key!r} — it is opening a converse response. The loop "
+                "labels and serialises each round's output; the handler must not.")
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "join"):
+                assert len(node.args) == 1 and isinstance(node.args[0], ast.Attribute) \
+                    and node.args[0].attr == "reasons", (
+                        f"{fn.name} joins `{ast.unparse(node.args[0]) if node.args else ''}`. "
+                        "The only join the handler may make is of a refusal's reasons; "
+                        "joining content blocks is a serialisation.")
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "dumps"):
+                assert fn.name in {"_write", "_call_tool"}, (
+                    f"{fn.name} calls json.dumps. Only the two transports may.")
+
+
+def _blocked_branch(tree) -> ast.If:
+    handler = next(n for n in ast.walk(tree)
+                   if isinstance(n, ast.FunctionDef) and n.name == "handler")
+    for node in ast.walk(handler):
+        if (isinstance(node, ast.If) and isinstance(node.test, ast.Compare)
+                and "BLOCKED" in ast.unparse(node.test)):
+            return node
+    raise AssertionError("no `if outcome.status == toolloop.BLOCKED` branch in handler()")
+
+
+def test_the_blocked_branch_is_composed_from_the_dataclass_and_record_id(tree):
+    """**ADR-070 falsifier 4, the handler's half.** The loop returns no response
+    on a block and puts the refused text on `outcome.refused`; the handler's
+    blocked branch must not be the place it leaks. Its return dict is pinned:
+    four literal keys, the spread of `as_response_fields()` (whose key set the
+    loop tests pin), and the spread of `common_out` — nothing else, and no key
+    that could carry text. `refused` is read in that branch only as the argument
+    of `fingerprint_text`, which is how `withheld` is built."""
+    branch = _blocked_branch(tree)
+    returns = [n for n in ast.walk(branch) if isinstance(n, ast.Return)]
+    assert len(returns) == 1 and isinstance(returns[0].value, ast.Dict)
+    literal, spread = set(), []
+    for key, value in zip(returns[0].value.keys, returns[0].value.values, strict=True):
+        if key is None:
+            spread.append(ast.unparse(value))
+        else:
+            assert isinstance(key, ast.Constant)
+            literal.add(key.value)
+    assert literal == {"decision", "mechanism", "record_id", "usage"}, (
+        f"the blocked branch returns {sorted(literal)}; a key beyond these four is a "
+        "place model text could travel")
+    assert spread == ["outcome.guardrail.as_response_fields()", "common_out"], (
+        f"the blocked branch spreads {spread}; it must spread exactly the dataclass's "
+        "response fields and the common tail")
+
+    fingerprinted = {id(call.args[0]) for call in calls_named(branch, "fingerprint_text")
+                     if call.args}
+    for node in ast.walk(branch):
+        if isinstance(node, ast.Attribute) and node.attr == "refused":
+            assert id(node) in fingerprinted, (
+                "the blocked branch reads `outcome.refused` somewhere other than as the "
+                "argument of guardrail.fingerprint_text — that is the refused text going "
+                "somewhere the record or the response could carry it")
+
+
+def test_the_loop_bound_branch_returns_no_answer(tree):
+    """**AI Quality seat, PR 2 plant 5 (survived):** `"answer": outcome.answer`
+    added to the `LOOP_BOUND` return passed 316 tests. The loop now returns no
+    response on the bound, so `answer` is empty; this pins the branch as well,
+    because a handler that reached for the text would be one line."""
+    handler = next(n for n in ast.walk(tree)
+                   if isinstance(n, ast.FunctionDef) and n.name == "handler")
+    branch = next(n for n in ast.walk(handler)
+                  if isinstance(n, ast.If) and "LOOP_BOUND" in ast.unparse(n.test))
+    returns = [n for n in ast.walk(branch) if isinstance(n, ast.Return)]
+    assert len(returns) == 1 and isinstance(returns[0].value, ast.Dict)
+    literal = {k.value for k in returns[0].value.keys if isinstance(k, ast.Constant)}
+    assert literal == {"decision", "mechanism", "record_id", "reasons", "usage"}, (
+        f"the loop-bound branch returns {sorted(literal)}; the refused round was assessed "
+        "as a tool request and its text is not the viewer's to see")
+    spread = [ast.unparse(v) for k, v in zip(returns[0].value.keys, returns[0].value.values,
+                                             strict=True) if k is None]
+    assert spread == ["common_out"]
+
+
+#: Every function `handler.py` defines at module level. **Platform-eng round 2,
+#: P3:** a second entrypoint that reached `run_turn`, wrote records naming the
+#: module constants and returned the refused text passed every pin, because every
+#: pin resolves `def handler`. A closed list: adding a function is a diff somebody
+#: has to defend, and `run_turn` is called from exactly one of them.
+MODULE_FUNCTIONS = frozenset({
+    "_now", "_write", "tool_config", "_call_tool", "_converse", "_inspect",
+    "_tool_records", "handler", "_tool_probe",
+})
+
+
+def test_the_module_defines_exactly_these_functions_and_only_handler_runs_a_turn(tree):
+    defined = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)}
+    assert defined == MODULE_FUNCTIONS, (
+        f"handler.py defines {sorted(defined ^ MODULE_FUNCTIONS)} beyond or short of the "
+        "pinned set. A second entrypoint is a second path to the model and to the refused "
+        "text, and every pin in this file resolves `handler`")
+    for fn in tree.body:
+        if isinstance(fn, ast.FunctionDef) and fn.name != "handler":
+            assert not calls_named(fn, "run_turn"), f"{fn.name} runs a turn; only handler may"
+    assert len(calls_named(tree, "run_turn")) == 1
+
+
+#: Every name `handler.py` binds at module level, literally. **Platform-eng round
+#: 3:** `handler = _Staged(handler)` and `_inspect = lambda ...` appended at module
+#: level defeated every pin, because every pin resolves a `def` and nothing pinned
+#: what the NAME was bound to afterwards. Bindings are the closed set here; a
+#: module-level statement is one of six kinds; no class is defined; and no
+#: pinned function name is ever a Store target anywhere in the file.
+MODULE_NAMES = frozenset({
+    "MODEL_ID", "AUDIT_LAKE", "GUARDRAIL_ID", "GUARDRAIL_VERSION",
+    "_TOOL_OUTPUT_GUARDRAIL_ID", "_TOOL_OUTPUT_GUARDRAIL_VERSION", "SERVICE_PRINCIPAL",
+    "TOOL_FUNCTIONS", "POLICY_DIR", "POLICIES", "CONTRACTS", "_unknown", "PLANE",
+    "_bedrock", "_lambda", "_s3",
+})
+MODULE_STATEMENTS = frozenset({"Expr", "Import", "ImportFrom", "Assign", "If", "FunctionDef"})
+
+
+def test_the_module_binds_exactly_these_names_and_never_rebinds_a_function(tree):
+    kinds = {type(stmt).__name__ for stmt in tree.body}
+    assert kinds <= MODULE_STATEMENTS, (
+        f"handler.py has module-level {sorted(kinds - MODULE_STATEMENTS)} statements; a "
+        "class or anything else at module level is a place a function can be wrapped")
+    bound = {n.id for stmt in tree.body if not isinstance(stmt, ast.FunctionDef)
+             for n in ast.walk(stmt) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
+    assert bound == MODULE_NAMES, (
+        f"module-level bindings differ from the pin by {sorted(bound ^ MODULE_NAMES)}")
+    rebound = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)
+               and isinstance(n.ctx, ast.Store) and n.id in MODULE_FUNCTIONS}
+    assert not rebound, f"{sorted(rebound)} rebound as a name; a wrapper by assignment"
+    for stmt in tree.body:
+        if isinstance(stmt, ast.Expr):
+            assert isinstance(stmt.value, ast.Constant), (
+                f"a module-level expression statement: {ast.unparse(stmt)}")
+
+
+def test_the_outcome_is_bound_once_from_run_turn(tree):
+    """**Platform-eng round 3, P3.** `outcome = TurnOutcome(..., GuardrailOutcome(...,
+    GUARDRAIL_ID, GUARDRAIL_VERSION), ...)` before `applied = outcome.guardrail`
+    reinstated the fallback the `applied` pin closed, one name upstream."""
+    handler = next(n for n in ast.walk(tree)
+                   if isinstance(n, ast.FunctionDef) and n.name == "handler")
+    stores = [n for n in ast.walk(handler)
+              if isinstance(n, ast.Name) and n.id == "outcome" and isinstance(n.ctx, ast.Store)]
+    assert len(stores) == 1, f"`outcome` is bound {len(stores)} times in handler()"
+    assigns = [n for n in ast.walk(handler) if isinstance(n, ast.Assign)
+               and any(isinstance(t, ast.Name) and t.id == "outcome" for t in n.targets)]
+    assert len(assigns) == 1 and isinstance(assigns[0].value, ast.Call) \
+        and ast.unparse(assigns[0].value.func) == "toolloop.run_turn", (
+            "`outcome` must be bound exactly once, to the value of toolloop.run_turn(...)")
+
+
+def test_the_model_call_is_assembled_from_a_literal_and_no_environment(tree):
+    """**Platform-eng round 3, P4.** `kwargs.update(json.loads(os.environ[...]))`
+    in `_converse` carried a guardrailConfig no literal scan could see. `kwargs` is
+    bound once, from a `dict(...)` call with keyword arguments only; the only other
+    stores into it are the two subscripts; no function reads the environment."""
+    converse = next(n for n in ast.walk(tree)
+                    if isinstance(n, ast.FunctionDef) and n.name == "_converse")
+    assigns = [n for n in ast.walk(converse) if isinstance(n, ast.Assign)
+               and any(isinstance(t, ast.Name) and t.id == "kwargs" for t in n.targets)]
+    assert len(assigns) == 1, f"`kwargs` is bound {len(assigns)} times in _converse"
+    value = assigns[0].value
+    assert isinstance(value, ast.Call) and ast.unparse(value.func) == "dict" \
+        and not value.args and all(kw.arg is not None for kw in value.keywords), (
+            f"kwargs = {ast.unparse(value)}; it must be a dict(...) of keyword arguments, "
+            "with no positional and no ** merge")
+    stores = [n for n in ast.walk(converse)
+              if isinstance(n, ast.Subscript) and isinstance(n.ctx, ast.Store)
+              and isinstance(n.value, ast.Name) and n.value.id == "kwargs"]
+    assert all(isinstance(n.slice, ast.Constant) for n in stores), (
+        "a kwargs store uses a computed key; every key into the model call is a literal")
+    assert sorted(n.slice.value for n in stores) == ["system", "toolConfig"], (
+        f"kwargs stores: {sorted(ast.unparse(n.slice) for n in stores)}")
+    for node in ast.walk(converse):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            assert not (node.func.attr == "update" and ast.unparse(node.func.value) == "kwargs"), (
+                "kwargs.update(...) merges something the literal scan cannot see")
+    for fn in [n for n in tree.body if isinstance(n, ast.FunctionDef)]:
+        for node in ast.walk(fn):
+            assert not (isinstance(node, ast.Attribute) and node.attr == "environ"), (
+                f"{fn.name} reads os.environ; configuration is read once, at module level")
+
+
+def _function(tree, name):
+    return next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == name)
+
+
+def test_write_persists_the_record_it_was_handed_and_nothing_else(tree):
+    """**Security round 3, SR3-A.** `_write` rewriting `record["guardrail"]` to the
+    module constants sat downstream of every pin. Its body is the put and the
+    return of the key; it stores nothing into the record."""
+    body = [s for s in _function(tree, "_write").body
+            if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant))]
+    assert [type(s).__name__ for s in body] == ["Expr", "Return"], (
+        f"_write's body is {[type(s).__name__ for s in body]}; it must be the put and the return")
+    assert ast.unparse(body[0].value.func) == "_s3.put_object"
+    assert ast.unparse(body[1].value) == "record['record_id']"
+    for node in ast.walk(_function(tree, "_write")):
+        assert not (isinstance(node, ast.Subscript) and isinstance(node.ctx, ast.Store)), (
+            "_write stores into the record it was handed")
+
+
+def test_a_failed_turn_is_iam_or_infra_and_never_a_block(tree):
+    """**Security round 3, SR3-B.** The `except TurnFailed` path matched no pin,
+    so a throttle could be written as `decision="blocked", mechanism="guardrail"`
+    with a real record id and score every probe PASS on infrastructure noise.
+    The path writes exactly one record — the IAM denial — and otherwise raises."""
+    handler = _function(tree, "handler")
+    handlers = [h for n in ast.walk(handler) if isinstance(n, ast.Try) for h in n.handlers
+                if ast.unparse(h.type) == "toolloop.TurnFailed"]
+    assert len(handlers) == 1, "expected exactly one `except toolloop.TurnFailed`"
+    body = handlers[0].body
+    assert isinstance(body[-1], ast.Raise), "the TurnFailed path must end in a raise"
+    builds = calls_named(handlers[0], "build_record")
+    assert len(builds) == 1
+    assert ast.unparse(keyword(builds[0], "decision")) == "'denied'"
+    assert ast.unparse(keyword(builds[0], "mechanism")) == "'iam'"
+    returns = [n for n in ast.walk(handlers[0]) if isinstance(n, ast.Return)]
+    assert len(returns) == 1, "the TurnFailed path returns only the IAM denial"
+    ifs = [n for n in ast.walk(handlers[0]) if isinstance(n, ast.If)]
+    assert len(ifs) == 1 and "AccessDeniedException" in ast.unparse(ifs[0].test)
+    assert returns[0] in ast.walk(ifs[0]), "the return is not inside the AccessDenied branch"
+
+
+@pytest.mark.parametrize("fn", ["_tool_records", "_tool_probe"])
+def test_a_tool_record_names_the_planes_mechanism_bare(tree, fn):
+    """**Security round 3, SR3-C.** `mechanism="policy"` for every refused tool
+    call satisfied every probe naming Cedar with a routing or schema failure, and
+    only the loop's own test asserted the rule. Both record writers hand
+    `build_record` the plane's decision, bare, and `'none'` only when allowed."""
+    builds = calls_named(_function(tree, fn), "build_record")
+    assert len(builds) == 1
+    assert ast.unparse(keyword(builds[0], "mechanism")) == \
+        "'none' if decision.allowed else decision.mechanism", (
+            f"{fn} writes mechanism={ast.unparse(keyword(builds[0], 'mechanism'))}")
+    assert ast.unparse(keyword(builds[0], "decision")) == \
+        "'allowed' if decision.allowed else 'denied'"
+
+
+def test_the_bedrock_client_and_the_guardrail_module_are_the_real_ones(tree):
+    """The arm pins name `_bedrock.apply_guardrail` and `guardrail.interpret_apply`
+    by dotted name; this is what those two names are bound to. `_bedrock` is the
+    boto3 runtime client, assigned once at module level; `guardrail` arrives from
+    `core` and is never rebound."""
+    binds = [n for n in tree.body if isinstance(n, ast.Assign)
+             and any(isinstance(t, ast.Name) and t.id == "_bedrock" for t in n.targets)]
+    assert len(binds) == 1 and ast.unparse(binds[0].value) == 'boto3.client(\'bedrock-runtime\')', (
+        f"_bedrock is bound to {[ast.unparse(b.value) for b in binds]}")
+    imported = any(isinstance(n, ast.ImportFrom) and n.module == "core"
+                   and any(a.name == "guardrail" and a.asname is None for a in n.names)
+                   for n in tree.body)
+    assert imported, "`guardrail` is not imported from core"
+    rebound = [n for n in ast.walk(tree) if isinstance(n, ast.Name) and n.id in {"guardrail", "_bedrock"}
+               and isinstance(n.ctx, ast.Store) and n is not binds[0].targets[0]]
+    assert not rebound, "`guardrail` or `_bedrock` is rebound somewhere in handler.py"
+
+
+def test_the_withheld_fragment_describes_the_refused_text(tree):
+    """`withheld` is a digest of the text the loop refused — the model's own words
+    now, not Bedrock's placeholder (ADR-070 amendment 2). Built from
+    `outcome.refused` through the total, content-free `fingerprint_text`."""
+    branch = _blocked_branch(tree)
+    builds = calls_named(branch, "build_record")
+    assert len(builds) == 1
+    withheld = keyword(builds[0], "withheld")
+    assert withheld is not None and ast.unparse(withheld) == \
+        "guardrail.fingerprint_text(outcome.refused)", (
+            f"withheld is built as `{ast.unparse(withheld) if withheld else None}`; it "
+            "must be guardrail.fingerprint_text(outcome.refused)")
+
+
+def test_the_record_names_the_guardrail_the_outcome_carries(tree):
+    """**ADR-070 amendment 2.** The fragment is built from the pair the outcome
+    carries — stamped by `_inspect` at the call site — and never from the module
+    constants the handler could reach for. One fragment for the turn, and its two
+    arguments are `<outcome>.guardrail_id` and `<outcome>.version` on the same
+    name; a `GUARDRAIL_ID` here would make every tool-output and (at stage 2)
+    tool-request block name the wrong guardrail while validating perfectly."""
+    handler = next(n for n in ast.walk(tree)
+                   if isinstance(n, ast.FunctionDef) and n.name == "handler")
+    builds = calls_named(handler, "as_record_fragment")
+    assert len(builds) == 1, f"expected one turn fragment in handler(), found {len(builds)}"
+    args = builds[0].args
+    assert len(args) == 2 and all(isinstance(a, ast.Attribute) for a in args), (
+        f"as_record_fragment({', '.join(ast.unparse(a) for a in args)}) — both arguments "
+        "must be attribute reads off the outcome, never module constants")
+    assert (args[0].attr, args[1].attr) == ("guardrail_id", "version")
+    assert ast.unparse(args[0].value) == ast.unparse(args[1].value), (
+        "the id and the version come from different objects")
+    for node in ast.walk(builds[0]):
+        assert not (isinstance(node, ast.Name) and node.id in PINNED_IDENTIFIERS | PINNED_VERSIONS), (
+            f"the turn fragment names {node.id}; the record must name the guardrail that "
+            "assessed the content, which only the outcome knows")

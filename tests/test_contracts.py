@@ -653,12 +653,86 @@ def test_the_channel_names_are_pinned_literally():
     caller can now hand the loop the system block labelled as the viewer's turn.
     Nothing else pins this set: a third spelling was measured invisible to the
     lane, the suite and every digest. Written literally, in the shape of the
-    policy-mechanism pin, so widening it is a diff somebody has to defend."""
+    policy-mechanism pin, so widening it is a diff somebody has to defend.
+
+    **`tool_request` was added by ADR-070** — the model's output on a round ending
+    in `tool_use`, which the loop labels and the gateway assesses on its own
+    channel now that `converse` carries no guardrail. No probe declares it, so
+    under ADR-040's subset rule a block on it credits nothing; that is correct,
+    because the model arm sends no tools and produces no request."""
     from core import guardrail
 
-    assert frozenset({"system", "tool_output", "question", "answer"}) == guardrail.CHANNELS
+    assert frozenset({"system", "tool_output", "question", "answer",
+                      "tool_request"}) == guardrail.CHANNELS
     assert guardrail.CHANNEL_QUESTION == "question"
     assert guardrail.CHANNEL_ANSWER == "answer"
+    assert guardrail.CHANNEL_TOOL_REQUEST == "tool_request"
+
+
+def test_the_schema_and_the_module_agree_on_the_channel_vocabulary():
+    """**Platform Engineering seat, PR 2 finding F6.** The channel vocabulary is
+    pinned by two independent literals — `CHANNELS` above and the audit schema's
+    `guardrail.channels.items.enum` — with nothing asserting they agree. A value
+    added to the schema alone, or dropped from `CHANNELS` alone, was visible only
+    because one gateway-core test happens to validate a record on each channel.
+    One assertion, so the two lists cannot drift."""
+    import json
+
+    from core import guardrail
+
+    schema = json.loads((ROOT / "platform" / "gateway" / "audit.schema.json")
+                        .read_text(encoding="utf-8"))
+    enum = schema["properties"]["guardrail"]["properties"]["channels"]["items"]["enum"]
+    assert set(enum) == set(guardrail.CHANNELS), (
+        f"audit.schema.json admits {sorted(enum)} and core.guardrail.CHANNELS is "
+        f"{sorted(guardrail.CHANNELS)}; the record contract and the validation set "
+        "must name the same channels")
+    assert len(enum) == len(set(enum)), "the schema enum repeats a channel"
+
+
+#: sha256 of EVERY adversarial instrument row's `digests` object, one line per
+#: row, the current row included. **AI Quality seat, PR 2 finding Q2, round 2
+#: finding 4, round 3:** editing `m04-G`'s `guardrail_sha256` in place passed
+#: 2557 tests, because the current-instrument test is scoped to the LAST row by
+#: design; a single digest over the historical rows was then defeated by a
+#: registration that edited a row and recomputed the pin in one opaque line; and
+#: a per-row pin over `rows[:-1]` left the row that is last AT THE TIME OF THE
+#: DIFF unpinned, so a diff editing it and appending a successor created its pin
+#: line from the edited value. Every row, one line each: a registration ADDS a
+#: line, and an edit — of any row, the newest included — CHANGES one, visibly.
+#: The current row's line moves while its PR is open, in the same diff as the
+#: code it describes; after merge it is a registered row like the others.
+INSTRUMENT_DIGESTS = {
+    "m04-A": "a62143cb810d92be4acdd63344d175db5567b0bb70bfea154d35e3fbdcd3a125",
+    "m04-B": "d18438f1d8f25fb805e93ea7bdb555829f08bf48c4996c44cd9c226cf2b2a6df",
+    "m04-C": "91c7b53a6d399b867d977bec0dec6255453038bcb1c973e3d5ccf9b98c459d9d",
+    "m04-D": "22a6321322a60d567285727fdf3c987b7fb516addfd3182ac93005f7a4e148ee",
+    "m04-E": "e3a0374107bec45a20357ca18ad323d8819f2c49c9e7fe5ac8abba352f64c36d",
+    "m04-F": "23a4337f672e6a01ad4dbcc96b30f9f0d8d9b0ae175058223a939facc1bf34fb",
+    "m04-G": "e0ce9a90396f4b208b40bea7629196c27e565c83bcf7953bf5768f74aa181167",
+    "m04-H": "fc27f812f6d0631dec428be3ee8cb62822f3574fd3ae37911661e450976a00c0",
+}
+
+
+def test_registered_instruments_are_never_edited_in_place():
+    import hashlib
+    import json
+
+    rows = list(load_json(ROOT / "quality" / "adversarial" / "instruments.json")
+                ["instruments"].items())
+    actual = {name: hashlib.sha256(json.dumps(row["digests"], sort_keys=True,
+                                              separators=(",", ":")).encode("utf-8")).hexdigest()
+              for name, row in rows}
+    assert set(actual) == set(INSTRUMENT_DIGESTS), (
+        f"the registry rows are {sorted(actual)} and the pin names "
+        f"{sorted(INSTRUMENT_DIGESTS)}. A new registration adds exactly one line here, in "
+        "the same diff, with the reason.")
+    edited = sorted(name for name, digest in actual.items() if digest != INSTRUMENT_DIGESTS[name])
+    assert not edited, (
+        f"instrument row(s) {edited} differ from their pinned digests. A registered row "
+        "edited in place redefines every entry citing the name (ADR-018, ADR-034): register "
+        "a new name beside it. The current row's line moves only in the diff that moves "
+        "its digests, with the reason.")
 
 
 def test_no_committed_observation_gains_a_channel_and_the_exempt_set_is_closed():
