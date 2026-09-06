@@ -29,23 +29,41 @@ principle — it claims a digest cannot be *graded*, which is the property G4 ne
 G4's failure mode is an assertion passing because the model's answer looked
 polite; no assertion can read politeness out of a hash or a character count.
 
+**ADR-071 (M07 PR 3): the store, and the boundary around it.** The gateway now
+holds the text it refused, in a second bucket keyed by the record's own id.
+The second half of this file asserts that the boundary moved with the capture
+and not past it: a text planted through the real loop leaves the observation
+unchanged on every channel; the record carries no pointer to the store and
+cannot be given one; the store object describes exactly the text the record
+describes; and nothing under `evals/`, `pave/` or `tools/` can name the store
+— the reader is one file, on a two-key rule. ADR-069's route (5), capture
+time, closes here; routes (1), (3) and (4) close in
+`tests/test_adversarial_scoring.py`.
+
+**This file is on the `core/audit.py` two-key rule** (Platform Engineering,
+Security) since ADR-071: the doorway and the test that plants through it are
+weakened together or not at all.
+
 Hermetic (G8): pure functions and committed JSON, no cloud and no network.
 Owning seat: Security (G4's boundary) · AI Quality (what a scorer may read).
 """
 from __future__ import annotations
 
+import ast
 import copy
 import json
 import pathlib
 import sys
 
+import jsonschema
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SCHEMA = ROOT / "platform" / "gateway" / "audit.schema.json"
 sys.path.insert(0, str(ROOT / "platform" / "gateway"))
 
-from core import audit, guardrail  # noqa: E402
+from core import audit, guardrail, toolloop, toolplane, withheld  # noqa: E402
+from core import cedar as cedar_module  # noqa: E402
 
 #: A fingerprint of the guardrail's own placeholder — the comparison ADR-066's
 #: step 0 makes offline. Built from the string the platform wrote itself, so this
@@ -178,3 +196,317 @@ def test_the_digest_distinguishes_the_placeholder_from_anything_else():
     assert placeholder["sha256"] != other["sha256"], (
         "the digest does not separate the placeholder from a near neighbour, so step 0 "
         "cannot tell 'Bedrock withheld the text' from 'Bedrock returned something else'.")
+
+
+# =============================================================================
+# ADR-071: the store, and the boundary around it
+# =============================================================================
+
+POLICIES = cedar_module.parse(
+    (ROOT / "platform" / "gateway" / "policy" / "tools.cedar").read_text(encoding="utf-8"))
+CONTRACTS = json.loads(
+    (ROOT / "platform" / "gateway" / "policy" / "tools.contracts.json").read_text(encoding="utf-8"))
+RESULT = {"results": [{"id": "t001", "title": "Jefferson Derby", "brand": "meridian-sports",
+                       "type": "live-event", "entitlement": "sports-tier",
+                       "event": "jefferson-derby", "starts": "2026-09-13T19:00:00Z"}]}
+USAGE = {"inputTokens": 900, "outputTokens": 60}
+PLANT = "THE PLANTED TEXT: how to get around the blackout"
+OTHER = "a different refused text, of a different length"
+
+
+class _Converse:
+    def __init__(self, *responses):
+        self.responses = list(responses)
+
+    def __call__(self, transcript):
+        return self.responses.pop(0), 120
+
+
+class _Tool:
+    def __init__(self, payload):
+        self.payload = payload
+
+    def __call__(self, tool_id, args):
+        return toolloop.ToolReply(payload=self.payload)
+
+
+class _Inspect:
+    """Blocks the first assessment on `channel` and allows everything else,
+    stamping a pair per channel as the deployed gateway does."""
+
+    def __init__(self, channel):
+        self.channel = channel
+
+    def __call__(self, text, *, channel):
+        pair = ("gr-tool-output", "2") if channel == "tool_output" else ("gr-main", "4")
+        blocked = channel == self.channel
+        return guardrail.GuardrailOutcome(blocked, ("PROMPT_ATTACK",) if blocked else (),
+                                          (channel,), *pair)
+
+
+def _tool_use(args):
+    return {"stopReason": "tool_use", "usage": dict(USAGE), "output": {"message": {
+        "role": "assistant", "content": [{"toolUse": {"toolUseId": "tu-1",
+                                                      "name": "catalog-search",
+                                                      "input": args}}]}}}
+
+
+def _final(text):
+    return {"stopReason": "end_turn", "usage": dict(USAGE),
+            "output": {"message": {"role": "assistant", "content": [{"text": text}]}}}
+
+
+def _refused_on(channel: str, text: str) -> toolloop.TurnOutcome:
+    """A real turn through `run_turn`, blocked on `channel`, with `text` placed
+    where that channel would carry it."""
+    question = text if channel == "question" else "what is on tonight"
+    args = {"query": text} if channel == "tool_request" else {"query": "derby"}
+    payload = ({"results": [dict(RESULT["results"][0], title=text)]}
+               if channel == "tool_output" else RESULT)
+    answer = text if channel == "answer" else "done"
+    plane = toolplane.ToolPlane(policies=POLICIES, contracts=CONTRACTS)
+    outcome = toolloop.run_turn(
+        plane=plane, principal="highlights-agent",
+        messages=[{"role": "user", "content": [{"text": question}]}],
+        converse=_Converse(_tool_use(args), _final(answer)), call_tool=_Tool(payload),
+        inspect=_Inspect(channel))
+    assert outcome.status == toolloop.BLOCKED and outcome.guardrail.channels == (channel,)
+    assert text in outcome.refused, "the plant did not reach the refused text"
+    return outcome
+
+
+def _record_as_the_handler_writes_it(outcome, **extra) -> dict:
+    """The blocked record, composed the way `handler.py`'s blocked branch is
+    pinned to compose it: the fragment from the outcome's own pair, `withheld`
+    as `guardrail.fingerprint_text(outcome.refused)`. A hand-built fixture
+    proves nothing on its own; what ties this one to the handler is
+    `tests/test_handler_wiring.py`, which pins both expressions on the source."""
+    applied = outcome.guardrail
+    usage = outcome.usage if "tokens_in" in outcome.usage else None
+    return audit.build_record(
+        request_id="req-1", ts="2026-09-05T00:00:00Z", principal="p", service="svc",
+        classification="internal", decision="blocked", mechanism="guardrail", model_id="m",
+        guardrail=applied.as_record_fragment(applied.guardrail_id, applied.version),
+        withheld=guardrail.fingerprint_text(outcome.refused), usage=usage, **extra)
+
+
+CHANNELS_THE_LOOP_LABELS = ["question", "tool_request", "tool_output", "answer"]
+
+
+@pytest.mark.parametrize("channel", CHANNELS_THE_LOOP_LABELS)
+def test_a_planted_text_leaves_the_observation_unchanged_on_every_channel(channel):
+    """**SPEC/07's PR 3 row, measured through the real path.** A text planted
+    where each channel carries it, refused by the loop, described by the record
+    the handler is pinned to write: the observation the scorer reads is
+    byte-identical to the one for the same block on a different text, and to
+    the one for the same block described by nothing at all. The text moves the
+    fingerprint and the store and nothing the scorer can see."""
+    outcome = _refused_on(channel, PLANT)
+    planted = _record_as_the_handler_writes_it(outcome)
+    other = _record_as_the_handler_writes_it(_refused_on(channel, OTHER))
+    assert planted["withheld"] != other["withheld"], "the two plants did not differ"
+    assert planted["withheld"]["chars"] == len(outcome.refused), "the fingerprint is of the refused text"
+    bare = dict(planted)
+    del bare["withheld"]
+
+    observed = audit.observation_from_record(planted)
+    assert observed == audit.observation_from_record(other)
+    assert observed == audit.observation_from_record(bare)
+    assert PLANT not in json.dumps(observed) and planted["withheld"]["sha256"] not in json.dumps(observed)
+    assert observed["guardrail_blocked"] and observed["channels"] == [channel]
+
+
+@pytest.mark.parametrize("channel", CHANNELS_THE_LOOP_LABELS)
+def test_the_record_carries_no_pointer_to_the_store_and_cannot_be_given_one(channel):
+    """The store is keyed by the record's id; the record names the store nowhere.
+    Asserted three ways: the record validates against the schema, whose
+    `withheld` is closed; the store's vocabulary and the planted text appear in
+    no key and no value; and every spelling of a pointer is refused by
+    `build_record` before it can be written."""
+    outcome = _refused_on(channel, PLANT)
+    record = _record_as_the_handler_writes_it(outcome)
+    jsonschema.validate(record, json.loads(SCHEMA.read_text(encoding="utf-8")))
+    assert PLANT not in json.dumps(record), "the record quotes the text"
+
+    def leaves(node):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                yield key
+                yield from leaves(value)
+        elif isinstance(node, list):
+            for value in node:
+                yield from leaves(value)
+        elif isinstance(node, str):
+            yield node
+    pointer_words = {withheld.STORE_OUTPUT, withheld.STORE_ENV, "store", "bucket", "key",
+                     "url", "held", "text"}
+    assert not pointer_words & set(leaves(record)), (
+        f"the record carries {sorted(pointer_words & set(leaves(record)))}")
+    assert set(record["withheld"]) == {"present", "chars", "sha256"}
+
+    good = record["withheld"]
+    for pointer in ({"key": record["record_id"]}, {"store": "a-bucket"},
+                    {"bucket": "a-bucket"}, {"url": "s3://a-bucket/" + record["record_id"]},
+                    {"text": PLANT}):
+        with pytest.raises(ValueError, match="withheld fragment carries"):
+            audit.build_record(
+                request_id="r", ts="t", principal="p", service="s", classification="internal",
+                decision="blocked", mechanism="guardrail", model_id="m",
+                guardrail=record["guardrail"], withheld={**good, **pointer})
+
+
+def test_the_held_object_is_the_text_keyed_by_the_record_id_and_describes_nothing_else():
+    outcome = _refused_on("answer", PLANT)
+    record = _record_as_the_handler_writes_it(outcome)
+    put = withheld.held_object("the-store", record, outcome.refused)
+
+    assert put["Bucket"] == "the-store"
+    assert put["Key"] == record["record_id"], "the store is keyed by the record id, verbatim"
+    assert put["Body"] == outcome.refused.encode("utf-8")
+    assert put["ContentType"] == withheld.CONTENT_TYPE
+    assert set(put["Metadata"]) == withheld.METADATA_FIELDS
+    assert put["Metadata"]["sha256"] == record["withheld"]["sha256"]
+    assert put["Metadata"]["chars"] == str(record["withheld"]["chars"])
+    assert put["Metadata"]["channel"] == "answer"
+    assert put["Metadata"]["guardrail-id"] == "gr-main"
+    assert put["Metadata"]["classification"] == "internal"
+    assert PLANT not in json.dumps(put["Metadata"]), "the metadata quotes the text"
+    assert set(put) == {"Bucket", "Key", "Body", "ContentType", "Metadata"}
+
+
+def test_the_held_object_must_describe_exactly_the_text_the_record_describes():
+    """A handler that stored one text while recording another is refused, not
+    written. A store object that disagrees with its record looks like evidence."""
+    outcome = _refused_on("answer", PLANT)
+    record = _record_as_the_handler_writes_it(outcome)
+    withheld.held_object("the-store", record, outcome.refused)  # the control
+    with pytest.raises(ValueError, match="does not match the record"):
+        withheld.held_object("the-store", record, OTHER)
+    with pytest.raises(ValueError, match="does not match the record"):
+        withheld.held_object("the-store", record, outcome.refused + " ")
+    with pytest.raises(ValueError, match="does not match the record"):
+        withheld.held_object("the-store", record, None)
+
+
+def test_the_held_object_is_refused_beside_a_record_that_was_not_blocked():
+    allowed = audit.build_record(
+        request_id="r", ts="t", principal="p", service="s", classification="internal",
+        decision="allowed", mechanism="none", model_id="m")
+    with pytest.raises(ValueError, match="not blocked"):
+        withheld.held_object("the-store", allowed, "served text")
+    described_nothing = audit.build_record(
+        request_id="r", ts="t", principal="p", service="s", classification="internal",
+        decision="blocked", mechanism="guardrail", model_id="m",
+        guardrail={"id": "g", "version": "4", "action": "GUARDRAIL_INTERVENED"})
+    with pytest.raises(ValueError, match="no `withheld` fragment"):
+        withheld.held_object("the-store", described_nothing, "text")
+    with pytest.raises(ValueError, match="unnamed"):
+        withheld.held_object("", _record_as_the_handler_writes_it(_refused_on("answer", PLANT)),
+                             PLANT)
+
+
+def test_verify_ties_a_store_object_to_its_record_and_names_each_way_it_can_fail():
+    outcome = _refused_on("tool_request", PLANT)
+    record = _record_as_the_handler_writes_it(outcome)
+    put = withheld.held_object("the-store", record, outcome.refused)
+    body, metadata = put["Body"], put["Metadata"]
+
+    assert withheld.verify(record, body, metadata) == []
+    assert withheld.verify(record, None, None) == [
+        "missing: the record says text was withheld and the store holds no object under "
+        "its record_id"]
+    # A different text with NO metadata: the body alone must produce both the
+    # digest and the length defect. With the metadata present the mutation
+    # "verify ignores the body's digest" survived, because the metadata branch
+    # reported a sha256 defect of its own and `any(...)` was satisfied by it.
+    other = withheld.verify(record, OTHER.encode("utf-8"), {})
+    assert [d.split(":")[0] for d in other] == ["sha256", "chars"], other
+    assert other[0].endswith(withheld.fingerprint_text(OTHER)["sha256"])
+    assert withheld.verify(record, body, dict(metadata, channel="answer")) == [
+        "channel: record ['tool_request'], object 'answer'"]
+    assert withheld.verify(record, body, dict(metadata, sha256="0" * 64)) == [
+        "sha256: the object's metadata disagrees with its own body"]
+    assert withheld.verify(record, body, {}) == [], "metadata is optional; the body is the check"
+
+
+# --- no reader under evals/ or pave/ ------------------------------------------
+
+#: What a module would have to say to reach the store. Imports first — the
+#: module itself and its reader — then the names the stack, the environment
+#: and the pure module give it, then the record key the fingerprint travels
+#: under, which no scorer may subscript either (`observation_from_record` is
+#: the only doorway, and it does not).
+STORE_MODULES = {"core.withheld", "withheld", "read_withheld"}
+STORE_WORDS = {withheld.STORE_OUTPUT, withheld.STORE_ENV, "WITHHELD_STORE", "core.withheld",
+               "read_withheld", "held_object", "fetch_held", "withheld"}
+SCORER_ROOTS = ("evals", "pave", "tools")
+SKIP_DIRS = {"__pycache__", "node_modules", "cdk.out", ".claude", ".venv", ".git"}
+
+
+def _sources(*roots):
+    for root in roots:
+        for path in sorted((ROOT / root).rglob("*.py")):
+            if not SKIP_DIRS & set(path.parts):
+                yield path
+
+
+def _reaches_the_store(tree: ast.Module) -> list[str]:
+    found = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            found += [f"import {a.name}" for a in node.names
+                      if a.name in STORE_MODULES or a.name.endswith(".withheld")]
+        elif isinstance(node, ast.ImportFrom):
+            if (node.module or "") in STORE_MODULES or (node.module or "").endswith("withheld"):
+                found.append(f"from {node.module} import ...")
+            found += [f"from {node.module} import {a.name}" for a in node.names
+                      if a.name in STORE_MODULES | STORE_WORDS]
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if node.value in STORE_WORDS:
+                found.append(f"the string {node.value!r}")
+        elif isinstance(node, ast.Name) and node.id in STORE_WORDS:
+            found.append(f"the name {node.id}")
+        elif isinstance(node, ast.Attribute) and node.attr in STORE_WORDS:
+            found.append(f"the attribute .{node.attr}")
+    return found
+
+
+def test_the_scan_has_something_to_scan():
+    assert len(list(_sources(*SCORER_ROOTS))) >= 20
+
+
+@pytest.mark.parametrize("path", list(_sources(*SCORER_ROOTS)),
+                         ids=lambda p: str(p.relative_to(ROOT)).replace("\\", "/"))
+def test_no_module_under_evals_pave_or_tools_can_name_the_store(path):
+    """**SPEC/07 constraint 6: no reader under `evals/` or `pave/`** (`tools/`
+    too, fail-closed). Not "does not read the store" — a module that can name
+    it can read it one line later, so the vocabulary is what is forbidden: the
+    store module and its reader as imports, the bucket's output and
+    environment names, the pure module's functions, and the record key the
+    fingerprint travels under. A scorer that could read the text is refused
+    (ADR-064)."""
+    found = _reaches_the_store(ast.parse(path.read_text(encoding="utf-8"), filename=str(path)))
+    assert not found, (
+        f"{path.relative_to(ROOT)} can reach the refused-content store: {found}. Nothing "
+        "under evals/, pave/ or tools/ may name it (SPEC/07 constraint 6, ADR-071).")
+
+
+def test_the_store_has_exactly_two_callers_in_the_repository():
+    """The writer and the reader, and no third. `handler.py` puts; `read_withheld.py`
+    gets, verifies and shows; both are on two-key rules. A third importer — the
+    goldens harness copying text into a sidecar, say — is the reader escaping
+    the file the rule was drawn around."""
+    importers = set()
+    for path in _sources("platform", "services", "evals", "pave", "tools", "templates"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            names = ([a.name for a in node.names] if isinstance(node, (ast.Import, ast.ImportFrom))
+                     else [])
+            module = getattr(node, "module", None) or ""
+            if (module in {"core", "core.withheld"} and "withheld" in names) \
+                    or "core.withheld" in names or module == "core.withheld":
+                importers.add(str(path.relative_to(ROOT)).replace("\\", "/"))
+    assert importers == {"platform/gateway/handler.py",
+                         "services/highlights-agent/read_withheld.py"}, (
+        f"the store's importers are {sorted(importers)}; exactly the gateway and the one "
+        "reader may name core.withheld (ADR-071)")

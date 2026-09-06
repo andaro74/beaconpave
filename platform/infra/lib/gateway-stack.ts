@@ -116,6 +116,27 @@ export class GatewayStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
+    // --- the refused-content store (ADR-071) --------------------------------
+    // Where the text a guardrail refused goes, now that the gateway applies the
+    // guardrail itself and holds that text (ADR-070). A SECOND bucket, behind
+    // its own grant, that the audit lake never references: the record describes
+    // the text (`withheld`: present, chars, sha256) and carries no pointer here;
+    // the object is keyed by the record's own id, so the store points at the
+    // record and nothing points at the store. The gateway may PUT and nothing
+    // else -- it cannot read back what it refused to return. Versioned and
+    // RETAIN for the lake's reason: this is the evidence M07's refusals are
+    // read from, and evidence that can be overwritten in place is not evidence.
+    // G1 is untouched: `s3:PutObject` is not a model action, and
+    // `tests/test_handler_wiring.py` asserts against the snapshot that this
+    // bucket is not the lake and that the gateway holds no read on it.
+    const withheldStore = new s3.Bucket(this, 'WithheldStore', {
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      enforceSSL: true,
+      versioned: true,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+
     // --- the guardrail -----------------------------------------------------
     // Defined here rather than adopted from the console. A hand-made guardrail
     // is untracked state that every recorded probe result depends on; a stranger
@@ -527,6 +548,10 @@ export class GatewayStack extends cdk.Stack {
         // than losing one it does.
         TOOL_OUTPUT_GUARDRAIL_ID: toolOutputGuardrail.attrGuardrailId,
         TOOL_OUTPUT_GUARDRAIL_VERSION: toolOutputGuardrailVersion.attrVersion,
+        // ADR-071. Read WITHOUT a default in the handler: a gateway that could
+        // not name its store would refuse to start, never block silently and
+        // hold nothing.
+        WITHHELD_STORE_BUCKET: withheldStore.bucketName,
         MODEL_ID,
       },
     });
@@ -553,6 +578,10 @@ export class GatewayStack extends cdk.Stack {
       }),
     );
     auditLake.grantPut(gatewayFn);
+    // Put only. The gateway writes what it refused to return and cannot read
+    // it back; the only reader is a person with the account, through
+    // `read_withheld.py` (ADR-071).
+    withheldStore.grantPut(gatewayFn);
 
     // --- the governed service's role ---------------------------------------
     // Held by the agent from M02 and by the direct-call probe now. The explicit
@@ -679,6 +708,7 @@ export class GatewayStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'AuditLakeBucket', { value: auditLake.bucketName });
+    new cdk.CfnOutput(this, 'WithheldStoreBucket', { value: withheldStore.bucketName });
     new cdk.CfnOutput(this, 'GatewayFunctionName', { value: gatewayFn.functionName });
     new cdk.CfnOutput(this, 'DirectCallProbeFunctionName', { value: probeFn.functionName });
     // Published so a harness can *attempt* the direct tool invocation the plane

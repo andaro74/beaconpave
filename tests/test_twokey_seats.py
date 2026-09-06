@@ -160,6 +160,8 @@ ADR043_SEATS = {
     "rules/schema.json": {"legal-sp", "security"},
     "pave/gate.py": {"platform-eng", "security"},
     "pave/verdict.py": {"platform-eng", "security"},
+    # ADR-072: the instrument registry, Security's corpus key plus AI Quality's.
+    "quality/adversarial/instruments.json": {"security", "ai-quality"},
 }
 
 
@@ -215,10 +217,12 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           "the gate's own process",
                                           # ADR-053
                                           "judge rubric, calibration set",
-                                          "the rule registry"))]
-    assert len(added) == 17, (
+                                          "the rule registry",
+                                          # ADR-072
+                                          "the instrument registry"))]
+    assert len(added) == 18, (
         f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one, "
-        f"ADR-049's three and ADR-052's two, found "
+        f"ADR-049's three, ADR-052's two, ADR-053's two and ADR-072's one, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -287,6 +291,9 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                              "tests/test_demo_recordings.py"],
         "the developer entrypoints": ["Makefile"],
         "the budget derivation pin": ["tests/test_budget_derivation.py"],
+        # ADR-072. One file, and the pin is what stops the rule being deleted
+        # in the diff that edits a registered row.
+        "the instrument registry": ["quality/adversarial/instruments.json"],
         # ADR-052. Enumerated here because the audit measured both narrowings
         # silent otherwise: deleting the three pin entries below left 173 passed,
         # and dropping `pave/tests/test_twokey.py` from the alternation was caught
@@ -329,9 +336,10 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # passed -- unlike `len(added) == 15` and `len(ADR043_SEATS) >= 8`, these path
     # lists had no pin of their own.
     total = sum(len(v) for v in required.values())
-    assert total == 57, (
+    # 57 -> 58 at ADR-072: the instrument registry's one path.
+    assert total == 58, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "57. Deleting a required path in the same diff that "
+        "58. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -1455,6 +1463,73 @@ def test_the_rules_m06b_added_cannot_be_reverted_silently():
             "2587 passed — a widened alternation with no pin is a rule that un-keys a file "
             "for free. If a seat legitimately moved, move it here in the same diff and say "
             "why.")
+
+
+#: Every path M07 PR 3 put on a rule or widened a rule to reach, and the seats
+#: each must keep (ADR-071, ADR-072, ADR-070 amendment 4).
+#:
+#: The goldens paths are SPEC/07's exact stage-1 and stage-2 names, pinned as
+#: paths before the files exist: the widening landed in PR 3 so that PR 4's
+#: evidence lands on a rule that is already red to revert, and a rule written
+#: before its files is only as good as the pin that says which names it must
+#: catch. `probes.yaml` is pinned at Security alone to show the registry rule
+#: is narrow -- one file gained AI Quality, not the corpus.
+M07_SEATS = {
+    # ADR-072: the instrument registry, and only it.
+    "quality/adversarial/instruments.json": {"security", "ai-quality"},
+    "quality/adversarial/probes.yaml": {"security"},
+    # ADR-071: the store's pure module, on the gateway decision path.
+    "platform/gateway/core/withheld.py": {"platform-eng", "security"},
+    # ADR-071: the doorway's boundary test, on the doorway's rule.
+    "tests/test_g4_capture_boundary.py": {"platform-eng", "security"},
+    "platform/gateway/core/audit.py": {"platform-eng", "security"},
+    # ADR-070 amendment 4: the goldens evidence rule, widened to the `-N` naming,
+    # the sidecar, the trajectories and an `-infra` sample, at any depth.
+    "milestones/M06b/goldens-run-1.json": {"ai-quality", "platform-eng"},
+    "milestones/M06b/goldens-run-refusals.json": {"ai-quality", "platform-eng"},
+    "milestones/M06b/goldens-run-1-trajectory.json": {"ai-quality", "platform-eng"},
+    "milestones/M07/stage1/goldens-run-1.json": {"ai-quality", "platform-eng"},
+    "milestones/M07/stage1/goldens-run-3.json": {"ai-quality", "platform-eng"},
+    "milestones/M07/stage1/goldens-run-refusals.json": {"ai-quality", "platform-eng"},
+    "milestones/M07/stage1/goldens-run-2-infra.json": {"ai-quality", "platform-eng"},
+    "milestones/M07/stage1/goldens-run-1-trajectory.json": {"ai-quality", "platform-eng"},
+    "milestones/M07/goldens-run-1.json": {"ai-quality", "platform-eng"},
+    "milestones/M07/goldens-run-refusals.json": {"ai-quality", "platform-eng"},
+    "milestones/M05/goldens-run.json": {"ai-quality", "platform-eng"},
+    "milestones/M02/runs/m02-tools-1.json": {"ai-quality", "platform-eng"},
+}
+
+
+def test_the_rules_m07_pr3_added_cannot_be_reverted_silently():
+    for path, seats in sorted(M07_SEATS.items()):
+        assert _seats_for(path) == seats, (
+            f"{path} is no longer on the rule M07 PR 3 put it on, or its seats changed "
+            f"(seats {sorted(_seats_for(path))}, pinned {sorted(seats)}). If a seat "
+            "legitimately moved, move it here in the same diff and say why.")
+
+
+def test_the_m07_pin_cannot_be_thinned_to_nothing():
+    assert len(M07_SEATS) == 17, (
+        f"M07_SEATS holds {len(M07_SEATS)} paths, expected 17. Deleting an entry in the same "
+        "diff that narrows its rule is the one-edit bypass this constant makes two.")
+
+
+def test_the_stage1_evidence_names_spec07_fixes_are_all_on_the_goldens_rule():
+    """The names SPEC/07 fixes for PR 4, every one, through the widened pattern.
+    A stage-1 file that escaped it would be evidence editable on one key while
+    the file beside it took two, which is the M06b finding that widened the
+    probes rule (`tool-probes-run.json`)."""
+    for name in ("goldens-run-1.json", "goldens-run-2.json", "goldens-run-3.json",
+                 "goldens-run-refusals.json", "goldens-run-1-trajectory.json",
+                 "goldens-run-2-trajectory.json", "goldens-run-3-trajectory.json",
+                 "goldens-run-1-infra.json", "goldens-run-2-infra.json",
+                 "goldens-run-3-infra.json", "goldens-run-1-infra-trajectory.json"):
+        for prefix in ("milestones/M07/stage1/", "milestones/M07/"):
+            assert _seats_for(prefix + name) == {"ai-quality", "platform-eng"}, (
+                f"{prefix + name} is not on the goldens evidence rule")
+    # the rule stays narrow: the probe run is the adversarial rule's, not this one's
+    assert _seats_for("milestones/M07/stage1/probes-run.json") == {"security", "ai-quality"}
+    assert _seats_for("milestones/M07/stage1/topic-baseline.json") == set()
 
 
 def test_the_m06b_pin_cannot_be_thinned_to_nothing():
