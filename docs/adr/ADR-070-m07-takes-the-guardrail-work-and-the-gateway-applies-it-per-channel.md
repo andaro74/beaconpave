@@ -424,3 +424,277 @@ diagnosing one. That is how M06b started.
 Rules 1–4 are in SPEC/07's *Pre-registered*, *Implementation constraints*,
 *Bounded*, *Demo artifact* and *Definition of done*; the stage-1 paths and the
 constraint-3 pin are in *What it builds*.
+
+## Amendment 2 — what a turn record names when two guardrails assessed it
+
+**Written 2026-09-05, in PR 2, before the `tool_request` arm was written.
+Zero model calls.** Amendment 1's fifth finding: the audit record carries one
+`guardrail{id, version}` object, and a stage-2 turn spans two guardrails —
+`tool_request` on the tool-output policy, `answer` on the main — so *"every
+record names the deployed version"* is ambiguous on such a record. Decided here,
+after reading `audit.schema.json`, not blind.
+
+### What the schema says, and what the handler did
+
+`guardrail` is a single object, `id` and `version` required,
+`additionalProperties: false`, "present whenever a guardrail was consulted".
+`channels` is an array because both sides of a Converse turn could fire at
+once. The handler built every fragment with `GUARDRAIL_ID, GUARDRAIL_VERSION`
+— the main pair — on every path, including a `tool_output` block that the
+tool-output guardrail assessed. ADR-063 said the second version would be
+*"recorded in the audit record beside the existing one, so a run is
+attributable to both"*; it was not built, and no committed record shows the
+misnaming only because the deployed tool-output policy blocked nothing after
+ADR-063 (8 → 0).
+
+### The decision
+
+**`guardrail.id` and `guardrail.version` name the guardrail whose assessment
+the record reports.** On `decision: blocked`, that is the guardrail that
+blocked, on the one channel `channels` names. On `decision: allowed`, it is the
+guardrail that assessed the channel the turn ended on — `answer`, the main
+guardrail. On `mechanism: loop`, it is the guardrail that assessed the round
+the bound refused — `tool_request`. The record does not gain a per-channel
+entry.
+
+Why not a per-channel table in the record: the channel → policy table is the
+deployed function's configuration, and PR 4's pre-flight prints it and the
+sidecar header carries it (amendment 1, pressure point 4). A copy of that
+table written into every record is a second source that can disagree with the
+wiring while every record still validates, which is the shape ADR-035 found
+once already. One record names one assessment; the run names the table.
+
+How the pair reaches the record, so it cannot be a second decision: each arm of
+`handler._inspect` hands its own pinned pair to `interpret_apply(...,
+guardrail_id=, version=)` at the same call site that hands it to
+`apply_guardrail`, the outcome carries it, and the handler builds the fragment
+from the outcome's own pair. `as_record_fragment` refuses a missing id or
+version rather than writing a record that names nothing.
+`tests/test_handler_wiring.py` asserts, per arm, that the two call sites pin
+the same pair, and that the fragment is built from the outcome and not from the
+module constants.
+
+### Consequences, stated so they are not discoveries later
+
+- A `tool_output` block now names `beaconpave-tool-output` and its version.
+  This is the record ADR-063 promised. No committed evidence carries such a
+  record; nothing is re-read.
+- An allowed stage-2 record names the main guardrail only. That the
+  tool-output guardrail assessed the requests and passed them is not in the
+  record — exactly as a passed `tool_output` result is not in the record today.
+- `run_with_tools.py`'s sidecar collects `_guardrail_versions` from records,
+  and after stage 2 a `tool_request` block legitimately names the second
+  version. That is PR 4's pre-flight and header to accommodate (Definition of
+  done); it is not a defect in the record.
+- `withheld` keeps its three fields and `additionalProperties: false`. Its
+  digest is now of the text the loop refused to return — the model's output on
+  `tool_request` and `answer`, the serialised payload on `tool_output`, the
+  viewer's turn on `question` — rather than of Bedrock's placeholder, which
+  under option B is never produced.
+
+## Amendment 3 — what PR 2 built, where it differs from what was pre-registered
+
+**Written 2026-09-05, after the seats reviewed the diff. Zero model calls.**
+Two rows below were changed BY the seat round (the tool name in the request
+serialisation; `LOOP_BOUND` returning no response); the round itself is the
+last section.
+Decision 3's table and SPEC/07's constraints were the pre-registration; this
+is the record of the build against them. Each row is a difference or a
+decision the pre-registration was silent on, with the test that pins it.
+
+| pre-registered | built | why, and the pin |
+|---|---|---|
+| "a `tool_use` round is a `tool_request`, the last round is the `answer`" — the channel by `stopReason` | the channel by what the message **carries**: `tool_request` only when the stop reason is `tool_use` AND a `toolUse` block is present; everything else is `answer` | a `tool_use` stop with no `toolUse` block is returned to the caller as the answer (pre-existing behaviour), so under stage 2 it would have been viewer-facing text assessed under the topic-free policy. `test_a_tool_use_stop_with_no_tool_use_block_is_assessed_as_the_answer`; mutation M5 red. |
+| the loop reads `interpret(response)` and returns `BLOCKED` on a converse-side intervention (as before) | the loop reads no converse-side verdict. A `guardrail_intervened` stop reason with no guardrail configured raises `TurnFailed` — INFRA, with the calls attached | a verdict the gateway did not request cannot be attributed (`channels` would be empty, which the scorer refuses) and cannot be returned (the text would be Bedrock's placeholder). `interpret` stays in `core/guardrail.py` for the harness and the historical readers; the gateway does not call it. `test_a_stop_reason_claiming_a_guardrail_the_gateway_did_not_configure_is_infra`; M12 red. |
+| `withheld` is "a digest of the **model's** text" | `withheld` is a digest of the text the assessment refused, on whichever channel: the model's output on `tool_request`/`answer`, the serialised payload on `tool_output`, the viewer's turn on `question` | one rule for the fragment rather than one per channel; the fragment keeps its three fields and `additionalProperties: false`. A `tool_output` block used to digest the *previous* model response (the request that led to the call), which described nothing that was withheld. `test_the_withheld_digest_is_of_the_models_text`; `test_the_withheld_fragment_describes_the_refused_text`; M16, M32 red. |
+| "the refused text travels under its own attribute of `TurnOutcome`" | `TurnOutcome.refused`, and `response=None` on every `BLOCKED` return, so `answer` is `""` and nothing derived from the response can quote the text | the pre-registration did not say what `response` carries on a block. Carrying it minus the content would have been a second place to get wrong. `test_a_blocked_turn_hands_the_caller_no_text_on_any_channel` (five channels); M6, M13 red. |
+| "text blocks and each `toolUse.input` through `_inspection_text`" | text blocks, and each `toolUse` as `{"name", "input"}` through `_inspection_text`, joined with newlines; `toolUseId` omitted | the name is the model's text (Security S-2, below); `toolUseId` is generated by the service, and ADR-063 measured this guardrail flipping on an unrelated field. `test_the_request_serialisation_carries_text_and_each_input_and_not_the_use_id`; M8, M9, SR2 red. |
+| "the viewer's turn verbatim" | the text of the last `user` message; one block byte-identical, several joined with a newline; **assessed even when empty** | a skip for an empty turn is a default that runs a turn uninspected. `test_the_viewers_turn_is_handed_over_verbatim`; P1, M11 red. |
+| silent | the round the loop bound refuses is assessed first, as `converse`'s guardrail assessed it before the bound was checked; the `loop` record carries that assessment and names its guardrail; **the outcome carries no response** (AI Quality Q3) | identical coverage on the bound path, and no text the viewer may not see. `test_the_loop_bound_carries_the_assessment_of_the_round_it_refused`; `test_a_loop_bound_turn_hands_the_caller_no_text`; M31, SR10 red. |
+| "`as_response_fields` … pinned to a fixed key set" | `{assessed, channels}` on a block, `{assessed}` otherwise, pinned literally | `test_the_response_fields_key_set_is_pinned`; M7 red. |
+| "the handler's blocked branch is composed from that function and `record_id` and nothing else" | four literal keys (`decision`, `mechanism`, `record_id`, `usage`) plus the spread of `as_response_fields()` and of `common_out` (`tool_records`, `trajectory`) — the pre-existing shape, pinned as it is | `usage` and the trajectory were always returned; the trajectory on a block carries only rounds that passed. `test_the_blocked_branch_is_composed_from_the_dataclass_and_record_id`; M30 red. |
+| "every inspection site pins a published version of the guardrail its channel names" | the arms read off the source as a table, `STAGE_1_ARMS`, keyed by channel constant, with pair AND source; the fall-through arm is a row | so PR 5 is a one-row diff to that table. `test_each_arm_pins_the_pair_and_source_its_channel_names`; M25, M26, M27 red. |
+| "`m04-H` registered in PR 2, before the change" | the first commit on the branch, carrying the digests of the tree the PR delivers; that commit alone reads red on `test_the_current_instrument_still_describes_this_tree` until the code commit behind it | the alternative — a row registered with `m04-G`'s digests and edited in the next commit — is an edited registration, which the registry's own `_how_to_add_one` forbids. Only `guardrail_sha256` moves; `m04-F` and `m04-G` untouched. |
+| "one `ApplyGuardrail` per round, plus one for the viewer's turn" | as priced: every turn makes at least two inspections, so `guard_ms` is present on every turn the loop runs | the schema's "absent on a turn that inspected nothing" stays true of the paths that do not run the loop (classification, the tool probe). `test_every_turn_reports_guard_time_because_every_turn_is_inspected` replaces the test that asserted the opposite. |
+
+**Tests edited, not only added.** Three loop tests were built on a scripted
+converse response carrying `stopReason: guardrail_intervened`; under option B
+that shape cannot come from `converse`, so they now block through the loop's
+own assessment on the `answer` channel, and one became the INFRA test above.
+The `Inspect` double dispatches verdicts by channel instead of popping them in
+order, because every turn is now inspected at least twice and a verdict "for
+the next call" would land on the question. Two timing tests gained the new
+stanzas; two `saw == []` assertions became "no `system` entry". No pinning test
+was edited to fit: `test_contracts.py`'s `CHANNELS` pin widened by the one
+value ADR-070 adds, and the wiring pins were rewritten as SPEC/07 said they
+would be.
+
+**What did not move.** `core/audit.py`, `observation_from_record`,
+`evals/`, `pave/`, every corpus, every golden case, every evidence file, the
+synth snapshot and the IAM assertions. `capture_sha256` and the five
+scorer-side digests are byte-identical to `m04-G`'s.
+
+### The seat round, and what it changed
+
+Four seats reviewed the diff by planting, each in its own worktree: Security,
+Platform Engineering, AI Quality and Tool Owner. Forty-two plants between them,
+of which **fourteen survived** every test in the diff, and 24 findings. Each
+finding's disposition, and the pin it became:
+
+| finding | disposition | what changed |
+|---|---|---|
+| **Security S-2 (blocking).** A `toolUse` whose `name` carried an injection was outside the request serialisation: the plane refused it as unregistered, quoted the name back to the model in the refusal reason, and the transcript carried it with no assessment on any channel. Measured on the loop, not reasoned. | **accepted; the design changed.** The pre-registration said "each `toolUse.input`"; the name is the model's text and is now serialised with it: `_inspection_text({"name": …, "input": …})` per `toolUse`. `toolUseId` stays out — the service generates it, the model does not. | `test_an_injection_in_a_tool_name_reaches_the_request_assessment`; SR2, SR15 red |
+| Security S-1 / Platform-eng F5. `if text:` around the question assessment survived; the handler reads `text` with a default of `""`. | accepted | `test_an_empty_viewers_turn_is_still_assessed`; SR1 red |
+| Security S-3. D3's coverage table does not list the tool name as a piece. | accepted, here: the pieces the loop assesses are the viewer's turn, each `toolUse` (name and input) and text block of a request, each tool result, the answer. The platform's own tool-result block (`_tool_result_block`) is platform-authored text, not assessed for the reason the system block is not (ADR-035 amendment 1), and after S-2 it quotes only text that was assessed. | — |
+| Security, a probe `tool-name-echo` under `quality/adversarial/`. | **not this PR** (constraint 8; the corpus is Security's own rule). Recorded as owed to Security, dated to PR 3 at the latest. | — |
+| **Platform-eng F1 (blocking).** A `dispatch` closure wrapping the pinned `inspect` inside `_inspect`, re-routing `tool_request` to the tool-output policy, passed every test — PR 5's stage-2 move in a diff that reads as inert. | accepted | `test_inspect_returns_the_pinned_closure_and_nothing_wraps_it` (the body is `def inspect` and `return inspect`; `run_turn` is handed `_inspect()` bare); SR3, SR4 red |
+| **Platform-eng F2 (blocking).** The `tool_request` arm handing `interpret_apply` `channel=CHANNEL_ANSWER` survived; that field is what D4's stage-2 rule reads. | accepted | `test_each_arm_reports_its_verdict_on_the_channel_it_was_asked_about`; SR5 red |
+| Platform-eng F3 / AI Quality Q4. `applied = outcome.guardrail or GuardrailOutcome(…, GUARDRAIL_ID, …)` survived; amendment 2's refusal was unreachable. | accepted | `test_the_outcome_the_fragment_is_built_from_is_the_loops_and_not_a_fallback`; SR6 red |
+| Platform-eng F4. Add `handler.py` to `guardrail_sha256`, because the channel → policy binding now lives there and no digest sees it. | **declined.** The instrument names *the code that read the run*; the registry's own `_what_a_name_identifies` puts what *produced* the observations in the entry, per run — and amendment 2 puts it in every record. Editing `evals/adversarial.py` also moves `scorer_sha256`, which decision 3 pre-registered as not moving, on a rule this PR does not carry. The binding is guarded by the wiring pins instead, on the same two keys as the code; that was ADR-063's arrangement and it stands. | — |
+| Platform-eng F6. Schema enum and `CHANNELS` pinned by two literals with no agreement check. | accepted | `test_the_schema_and_the_module_agree_on_the_channel_vocabulary`; SR7 red |
+| **AI Quality Q1 / Tool Owner TO-1 (blocking, found twice).** `and False` on the `tool_request` arm's condition, and `and not _TOOL_OUTPUT_GUARDRAIL_ID` on the tool-output arm's, both survived: the table read the pins and never whether the arm holding them was reachable. | accepted | `ARM_CONDITIONS`, the conditions pinned literally, and `test_each_arm_is_reachable_by_its_channel_comparison_alone`; SR8, SR9 red |
+| **AI Quality Q2 (blocking).** A historical registry row's digest edited in place passed 2557 tests; the current-instrument test is scoped to the last row by design. | accepted for the pin; **the second key is not this PR's.** `HISTORICAL_INSTRUMENTS_SHA256` in `test_contracts.py` digests every row but the last; registering a row moves it in the same diff. Whether AI Quality holds a key on `quality/adversarial/instruments.json` is a `pave/twokey.py` change (five seats) and is recorded as owed to the operator. | `test_registered_instruments_are_never_edited_in_place`; SR16 red |
+| AI Quality Q3 (should-fix, blocking at PR 5). `LOOP_BOUND` carried the response, so `answer` produced prose assessed only as a `tool_request`; the handler did not return it and nothing pinned that. | accepted; the design changed: `LOOP_BOUND` returns `response=None` like a block. | `test_a_loop_bound_turn_hands_the_caller_no_text`; `test_the_loop_bound_branch_returns_no_answer`; SR10, SR11 red |
+| AI Quality Q5. Every request fixture was a bare `toolUse`; a mislabel that fired only on a mixed round was caught by one serialiser assertion. | accepted | `tool_use(prose=)`; mixed rounds in the every-rounds test and the text-free scenario; SR17 red |
+| AI Quality Q6. The `is_request` predicate is scoring-relevant: measured, one block labelled `answer` credits 10/11 probes and labelled `tool_request` 0/11. | accepted, recorded here as decision 3's cost restated with the number: **the channel label is worth ten probes**, and the predicate is inside `guardrail_sha256` and the gateway two-key rule. | — |
+| AI Quality Q7. `withheld` digesting the viewer's own question. | no change; argued from the tests as not a G4 concern (three fields, ungradeable, not copied). Carried to ADR-071 so it is not rediscovered as a leak. | — |
+| AI Quality Q8. The registration commit is red in isolation. | as designed (the row above); do not cherry-pick it. | — |
+| Tool Owner TO-2. A non-dict `input` serialised as `""` survived. | accepted | the non-dict case in the serialisation test; SR12 red |
+| Tool Owner TO-3. `sort_keys` deletable: every expectation was computed by the function under test. | accepted | one literal, `_inspection_text({"b": 1, "a": 2}) == '{"a": 2, "b": 1}'`; SR13 red |
+| Tool Owner TO-4. A bound-refused round left a `loop` record when the check was deferred. | accepted | `len(outcome.calls) == 3` in the bound test; SR14 red |
+| Tool Owner TO-5. `tool_id` reaching the plane verbatim was unpinned. | accepted; the record's `tool.id` carrying model text is carried to ADR-071 as a question for PR 3. | the verbatim assertion in the injection-in-name test; SR15 red |
+| Tool Owner TO-6. `tool.args` on the answered path is written verbatim; on the blocked path only a digest. | accepted as a statement: constraint 5 ("no text in the audit record") is about *refused* text. An allowed call's arguments were always in the record (SPEC/06b), and they were assessed on `tool_request` before the call was made. | — |
+
+Two things this round did not find, and were checked: G1 (a planted `Allow` on
+a tool role's `bedrock:InvokeModel` went red on three assertions; the PR adds
+no model action) and the scorer's reach (the refused text folded into
+`assessed` went red on all five channels; `observation_from_record` copies no
+`withheld`).
+
+### Round 2, on the fixed head
+
+Three seats replanted against the round-1 fixes and the new pins, at most five
+plants each.
+
+**Security — four of five survived, all accepted:**
+
+| finding | what changed |
+|---|---|
+| SR-A. `channel = ROUTE.get(channel, channel)` prepended inside the pinned closure: the arm reader swept it into the fall-through arm and read the table verbatim while `tool_request` was assessed by the topic-free policy under a relabelled channel — PR 5's move plus ten probes, in a diff reading as inert. | An arm is exactly two statements (`response = _bedrock.apply_guardrail(...)`, `return guardrail.interpret_apply(...)`); nothing precedes the arm chain; the only name bound inside `_inspect` is `response`. SR-A, SR-A2 red. |
+| SR-B. A decorator on `def inspect` wrapped the closure with the body shape, the nesting and the bare `_inspect()` intact. | Neither `_inspect` nor `inspect` carries a decorator. SR-B, SR-B2 red. |
+| SR-C. `reasons` was unguarded: the refused round's prose appended there reached the record's `error.message` and the caller. | The text-free assertions cover `reasons` on the bound and on every blocked channel. SR-C red. |
+| SR-D. A `toolUse` that is not an object raised out of the loop; tightening the request filter instead relabelled the round `answer` and assessed the request on no channel. | The loop fails the turn (`TurnFailed`, INFRA, calls attached) on a malformed `toolUse`; `test_a_tool_use_block_that_is_not_an_object_fails_the_turn`. SR-D red. |
+
+Security also asks for a probe that asserts the `tool_request` channel's
+`guardrail.id` in the record, not only a block. Same disposition as the
+`tool-name-echo` probe: the corpus is Security's own rule, outside this PR,
+owed by PR 3.
+
+**Platform Engineering — five of five survived, all accepted.** Two reinstated
+round-1 findings through the pins written to stop them, which is the finding.
+
+| finding | what changed |
+|---|---|
+| F7. `channel` rebound before the arm chain. | Closed by SR-A's shape pin (nothing precedes the chain; only `response` is bound in `_inspect`); replayed red. |
+| F8. `applied, _ = (applied or <fallback>), None` — a tuple target the F3 pin's bare-Name count did not see. | Every Store-context binding of `applied` in `handler()` counts, whatever statement binds it: exactly one. PE-P2 red. |
+| F9. A second module-level entrypoint reaching `run_turn`, naming the module constants and returning the refused text — every pin resolves `def handler`. | `MODULE_FUNCTIONS`, the module's functions pinned literally; `run_turn` is called exactly once, from `handler`. PE-P3 red. |
+| F10. `guard_ms` dropped on the bound path with only a digest noticing. | `guard_ms` asserted on the bound. PE-P4 red. |
+| P5. A shim named `interpret_apply` on another namespace satisfied every arm pin, because `calls_named` matches the callee's name. | Each arm's two calls are `_bedrock.apply_guardrail` and `guardrail.interpret_apply` by full dotted name; `_bedrock` is bound once to the boto3 runtime client and `guardrail` is imported from `core`, neither rebound. PE-P5b red. |
+
+On F4's decline the seat holds the `scorer_sha256` half and refuses the
+sentence "the binding is guarded by the wiring pins instead" as stated-and-
+absent, since P1 and P5 moved the channel that scoring reads past every pin.
+The sentence is corrected here: **the wiring pins are a closed list of routes
+the seats have planted and this file has closed, not a proof** — which is the
+concession decision 3 already makes about the loop ("a weaker guarantee than
+the one it replaces"). A change to `handler.py` moves no instrument digest;
+it is on the gateway two-key rule with the pins beside it, and the record
+names the guardrail that assessed each block (amendment 2), so a relabel
+that reaches the lake is visible in the sidecar's `channels` × `guardrail`
+columns rather than in a digest.
+
+**AI Quality — four of five survived, all accepted; two round-1 dispositions
+corrected.**
+
+| finding | what changed |
+|---|---|
+| 1. `_assess` returning an outcome stripped of its pair left every loop test green while every record would have been refused: the double stamped one pair on every channel, so no test could tell a carried pair from a lost one. | The double stamps a different pair per channel, as the deployed gateway does; the pair is asserted on `ANSWERED`, `LOOP_BOUND` and every blocked scenario. AQ-1 red. |
+| 2. A second-round request reached the guardrail as `""` under the correct label; the every-rounds test read only the first round's text. | Round 2's text is asserted whole, and a blocked scenario puts the injection on the second round. AQ-2 red. |
+| 3. `present: bool(text.strip())` produced `{present: False, chars: 6}`, schema-valid; the schema cannot express a cross-field rule. | `present == (chars > 0)`, parametrised over empty, whitespace and `None`. AQ-3 red. |
+| 4. One opaque digest over all historical registry rows is moved by any registration, so a registration that also edited a row and recomputed the pin passed. | One pin line per historical row: a registration adds a line and an edit changes one, visibly. AQ-4 red. |
+
+Corrections to round 1's dispositions, as the seat argues them: **Q6** said the
+`is_request` predicate — worth ten probes — "is inside `guardrail_sha256` and
+the gateway two-key rule"; both are true and neither gives AI Quality a key.
+`core/toolloop.py` and `tests/test_tool_loop.py` are on `(platform-eng,
+security)`, and `quality/adversarial/instruments.json` is on `(security)`
+alone, so the seat whose instrument the registry is and whose score the
+predicate moves holds no key on either. That is one owed `pave/twokey.py`
+decision, not two, and it is the operator's: it is recorded once, here.
+**Q7**: `withheld` on a `question` block digests the viewer's turn, which is a
+lookup key into committed corpora — carried to ADR-071 as Data Governance's
+question, not AI Quality's.
+
+
+### Round 3
+
+**Platform Engineering — four of four survived, all accepted; one sentence of
+this amendment withdrawn.** The class of gap: every pin resolved a `def`, and
+nothing pinned what a *name* was bound to afterwards.
+
+| finding | what changed |
+|---|---|
+| P1. A module-level class wrapping `handler` by assignment (`handler = _Staged(handler)`), downgrading the classification on the way in. | Module-level statements are one of six kinds (no class), the module-level bound names are a literal set, and no pinned function name is ever a Store target anywhere in the file. PE3-P1 red. |
+| P2. `_inspect = lambda ...` appended at module level, relabelling `tool_request` to `tool_output` before the stamp — PR 5's move, silently, and a record that is internally consistent. | Same pin. PE3-P2 red. |
+| P3. `outcome` rebuilt with a fallback pair one name upstream of `applied`. | `outcome` is bound once in `handler()`, to `toolloop.run_turn(...)`. PE3-P3 red. |
+| P4. `kwargs.update(json.loads(os.environ[...]))` in `_converse`, carrying a guardrail the literal scan cannot see. | `kwargs` is bound once from a `dict(...)` of keywords; the only other stores are the two subscripts; no function reads the environment. PE3-P4 red. |
+
+**Withdrawn:** the sentence in round 2's F4 paragraph that a relabel reaching
+the lake "is visible in the sidecar's `channels` × `guardrail` columns". P2
+relabels before the stamp, so the record is internally consistent and the
+sidecar shows nothing. What stands of F4's decline is the `scorer_sha256`
+half and the binding-level pins above, and the honest description of those
+pins is the one already given: a closed list of routes, not a proof.
+
+**Security — four of four survived, all accepted.** All four are paths this PR
+did not write; the seats are planting one layer out from the pins now.
+
+| finding | what changed |
+|---|---|
+| SR3-A. `_write` rewriting the record's guardrail to the module constants, downstream of every pin. | `_write` is the put and the return of the key, and stores nothing into the record. SR3-A red. |
+| SR3-B. The `except TurnFailed` path matched no pin: a throttle could be written as a guardrail block with a real record id and score every probe PASS on infrastructure noise. | The path writes exactly one record, the IAM denial, returns only inside the AccessDenied branch, and otherwise raises. SR3-B red. |
+| SR3-C. `mechanism="policy"` for every refused tool call satisfied every probe naming Cedar with a routing or schema failure; the rule was asserted only inside the loop. | Both record writers hand `build_record` the plane's decision, bare: `'none' if decision.allowed else decision.mechanism`. SR3-C red. |
+| SR3-D. `kwargs["guardrail" + "Config"] = dict(guardrailIdentifier=...)` defeated the three shapes the no-guardrail test knew. | The two guardrail keywords may appear only on `apply_guardrail`; no string constant outside a docstring is a fragment of the forbidden key; every store into the model call's kwargs is a literal key from `{system, toolConfig}`. SR3-D red. |
+
+**AI Quality — four of four survived, all accepted; the registry pin's blind
+spot closed.** Three of the four are in `core/guardrail.py` on paths older
+than this PR, reached because the gateway now reads through `interpret_apply`
+alone.
+
+| finding | what changed |
+|---|---|
+| 1. `reversed` deletable in `_viewer_text`: every test sent one message. | A three-message transcript; the question is the last user turn. AQ3-1 red. |
+| 2. `REGEX:` and `WORD:custom` in no test or fixture; both BLOCKED branches deletable. | Every policy type, on the apply path. AQ3-2 red. |
+| 3. The allowed-record shape asserted through `interpret({})`, the converse reader the gateway no longer calls. | Asserted through a non-intervened `interpret_apply` outcome, which carries `channels=(channel,)` and must still omit the key (ADR-040 d1). AQ3-3 red. |
+| 4. Dedup-and-order asserted on `interpret` only. | Repeated on the apply path. AQ3-4 red. |
+| 5. A vacuous `>= 0` on `guard_ms` in the bound test. | Replaced by the count of assessed rounds. |
+| The per-row pin over `rows[:-1]` left the row that is last at the time of a diff unpinned, so a diff editing it and appending a successor created its pin line from the edited value. | Every row is pinned, the current one included; its line moves only in the diff that moves its digests. AQ3-reg red. |
+
+AI Quality confirms the Q6 and Q7 corrections and asks which PR owes the
+`pave/twokey.py` decision: **PR 3**, beside ADR-071, since it is the next
+zero-call PR and the decision touches the registry PR 3's store does not.
+
+**Where the seat rounds stand, and why they stop here.** Round 1: four seats,
+42 plants, 14 survived, 24 findings. Round 2: three seats, 15 plants, 13
+survived, 13 findings. Round 3: three seats, 12 plants, 12 survived, 13
+findings. Seventy-eight mutations planted across the PR, seventy-eight red.
+Every finding was accepted and pinned. The rounds stop at three by the
+operator's decision, on this reading of the curve: round 3's survivors were,
+with two exceptions, gaps in paths this PR did not write — `_write`,
+`_tool_records`, the `TurnFailed` branch, two policy types, the apply reader's
+dedup — reached because the seats now plant one layer out from each round's
+pins, and an AST pin over a whole module is a closed list of routes that a
+fourth round would lengthen by another twelve. Decision 3's concession is the
+honest description of what the pins are, and the seats' own sentence for it
+is the right one: a human decides whether the list is long enough, and the
+list is in `tests/test_handler_wiring.py` by route.

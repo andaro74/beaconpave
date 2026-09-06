@@ -244,22 +244,24 @@ def _call_tool(tool_id, args):
 def _converse(system, tools):
     """Close over everything about a turn that does not change between rounds.
 
-    The guardrail is attached to every round, not only the first. The model's own
-    intermediate reasoning becomes assessed input on the next call — which is a
-    real cost of a tool loop and one M02 measured rather than assumed — and the
-    alternative, assessing only the opening turn, would leave a guardrail that
-    stops looking after the first thing it sees."""
+    **No `guardrailConfig` (ADR-070, option B).** The guardrail used to be
+    attached to every round, and it assessed each round's output under one policy
+    labelled `answer`, because Bedrock cannot tell a tool request from an answer —
+    it does not know which of the model's outputs the viewer will be shown. Only
+    the loop knows, so the loop applies the guardrail per channel through
+    `_inspect` below: the viewer's turn before this is ever called, each round's
+    output before it is appended or returned, each tool result before it joins
+    the transcript. The coverage argument for each of the four assessments
+    `converse` used to make is ADR-070 decision 3's table, and
+    `tests/test_handler_wiring.py` asserts this call names no guardrail at all —
+    a guardrail here would assess the transcript a second time under a policy
+    the loop did not choose, and label it `answer`."""
     def converse(transcript):
         started = time.monotonic()
         kwargs = dict(
             modelId=MODEL_ID,
             messages=transcript,
             inferenceConfig={"maxTokens": 800},
-            guardrailConfig={
-                "guardrailIdentifier": GUARDRAIL_ID,
-                "guardrailVersion": GUARDRAIL_VERSION,
-                "trace": "enabled",
-            },
         )
         if system:
             kwargs["system"] = [{"text": system}]
@@ -271,64 +273,103 @@ def _converse(system, tools):
 
 
 def _inspect():
-    """Hand one piece of platform-supplied content to the guardrail, directly.
+    """Hand one piece of content to the guardrail its channel names, directly.
 
-    **The same guardrail, the same pinned version, the same `INPUT` source.**
-    "Equivalently" is meant literally: this is the policy `converse` applies to
-    the viewer's turn, applied to content the viewer did not write. A separate
-    policy for this channel would have been a second thing to keep in step, and
-    the first divergence would show up as a probe result nobody could attribute.
+    **Four channels, four arms, each pinned at its own call site (ADR-070).**
+    This is the whole of the gateway's guardrail now: `converse` carries none.
+    The policy and the source per channel are the ones `converse` applied to the
+    same content before option B, so PR 4's stage-1 run isolates the mechanism's
+    own effect — except `tool_output`, which ADR-063 already moved to the
+    topic-free policy, measured 8 → 0 on the deployed gateway.
 
-    `INPUT` rather than `OUTPUT` because the hazard is an instruction, not an
-    utterance: `PROMPT_ATTACK` is input-only by the service's design, and it is
-    one of the two policies that fired on M04's user-turn arm. Assessing this
-    content as output would drop exactly the filter the channel most needs.
+    `source` is the channel's argument, not a constant. `INPUT` is for content
+    that will be read as an instruction — the viewer's turn, a tool result — and
+    it is the source `PROMPT_ATTACK` fires on, which is input-only by the
+    service's design. `OUTPUT` is for the model's own utterance, which is what
+    `converse` assessed the model's output as. **Stage 1 assesses `tool_request`
+    exactly as `converse` did: main guardrail, `OUTPUT`.** Stage 2 (PR 5) moves
+    that one arm to the tool-output policy at `INPUT`, under ADR-070 decision
+    4's rule, and touches nothing else.
+
+    **Selected by explicit channel comparisons, never a mapping (ADR-063).** A
+    dict keyed on channel names would route a channel added later to whichever
+    policy the default named. Here a channel this function does not name falls
+    to the last arm — the main guardrail at `INPUT`, the strictest policy the
+    gateway has — and `interpret_apply` refuses a channel `CHANNELS` does not
+    list before any of this runs. **One `apply_guardrail` per arm, constants at
+    the call site**, because `tests/test_handler_wiring.py` parses this file
+    rather than importing it (G8) and can only see a pin that is written where
+    the call is. Each arm hands the same pair to `interpret_apply`, so the audit
+    record names the guardrail that actually assessed the content (ADR-070
+    amendment 2) and the test can check the two call sites agree.
 
     **Nothing here is truncated.** A payload too large for the API raises, the
     turn fails, and the harness reports INFRA. Trimming it to fit would put the
     tail of every long tool result outside the control while the record went on
-    saying the content was inspected — a hole shaped precisely like the one this
-    change exists to close.
+    saying the content was inspected.
+
+    **Nothing here is serialised** (constraint 3). `text` arrives from
+    `core/toolloop.py` already in the one shape its channel has; this function
+    hands it over and reads a verdict back.
 
     The response's `usage` counts guardrail text units and is deliberately
     dropped. The meter is token-denominated (ADR-014) and a text unit is not a
     token; adding them would make the budget axis report a number with two
     denominations in it."""
     def inspect(text, *, channel):
-        # **ADR-063: the tool-output channel gets the topic-free policy.** The
-        # channel was already a parameter and was already recorded; until this
-        # change it selected nothing. Measured, on real tool payloads at k=5: the
-        # poisoned catalog and a schema-valid hostile payload both block under
-        # this policy naming `['PROMPT_ATTACK']`, while `entitlement-check`'s
-        # permissive verdicts stop being refused. The topic was redundant on the
-        # cases it was kept for.
-        #
-        # Selected by an EXPLICIT channel comparison rather than by a mapping
-        # keyed on every channel name. A dict would silently route a channel
-        # added later to whichever policy the default named, and the direction of
-        # that mistake is not knowable in advance.
-        # **Two call sites rather than one with computed arguments, and that is
-        # deliberate.** The first version bound `identifier, version` to locals and
-        # passed those. It worked, and it silently defeated
-        # `tests/test_handler_wiring.py`, which parses this file rather than
-        # importing it (G8) and can only see the pin when the constant is AT the
-        # call site. A guard that cannot read the thing it guards is the shape this
-        # repo keeps finding; a little duplication is the cheaper side of it.
         if channel == guardrail.CHANNEL_TOOL_OUTPUT and _TOOL_OUTPUT_GUARDRAIL_ID:
+            # ADR-063: a tool's result, under the policy with no topics. Measured
+            # on real payloads at k=5: the poisoned catalog and a schema-valid
+            # hostile payload both block naming `['PROMPT_ATTACK']`; the
+            # entitlement tool's grants stop being refused.
             response = _bedrock.apply_guardrail(
                 guardrailIdentifier=_TOOL_OUTPUT_GUARDRAIL_ID,
                 guardrailVersion=_TOOL_OUTPUT_GUARDRAIL_VERSION,
                 source="INPUT",
                 content=[{"text": {"text": text}}],
             )
-        else:
+            return guardrail.interpret_apply(
+                response, channel=channel,
+                guardrail_id=_TOOL_OUTPUT_GUARDRAIL_ID, version=_TOOL_OUTPUT_GUARDRAIL_VERSION)
+        if channel == guardrail.CHANNEL_TOOL_REQUEST:
+            # **Stage 1: identical coverage (ADR-070 decision 4).** The model's
+            # output on a round ending in `tool_use`, under the policy and source
+            # `converse` applied to it. This is the arm PR 5 moves, and the only
+            # one.
             response = _bedrock.apply_guardrail(
                 guardrailIdentifier=GUARDRAIL_ID,
                 guardrailVersion=GUARDRAIL_VERSION,
-                source="INPUT",
+                source="OUTPUT",
                 content=[{"text": {"text": text}}],
             )
-        return guardrail.interpret_apply(response, channel=channel)
+            return guardrail.interpret_apply(
+                response, channel=channel,
+                guardrail_id=GUARDRAIL_ID, version=GUARDRAIL_VERSION)
+        if channel == guardrail.CHANNEL_ANSWER:
+            # The model's output on the final round: what the viewer will be
+            # shown, under the policy `converse` showed it to.
+            response = _bedrock.apply_guardrail(
+                guardrailIdentifier=GUARDRAIL_ID,
+                guardrailVersion=GUARDRAIL_VERSION,
+                source="OUTPUT",
+                content=[{"text": {"text": text}}],
+            )
+            return guardrail.interpret_apply(
+                response, channel=channel,
+                guardrail_id=GUARDRAIL_ID, version=GUARDRAIL_VERSION)
+        # The viewer's turn (`question`), platform content the caller declared
+        # untrusted (`system`, withdrawn — see `untrusted` below), and a tool
+        # result when no tool-output pair is configured: the main guardrail, at
+        # the source an instruction is assessed at.
+        response = _bedrock.apply_guardrail(
+            guardrailIdentifier=GUARDRAIL_ID,
+            guardrailVersion=GUARDRAIL_VERSION,
+            source="INPUT",
+            content=[{"text": {"text": text}}],
+        )
+        return guardrail.interpret_apply(
+            response, channel=channel,
+            guardrail_id=GUARDRAIL_ID, version=GUARDRAIL_VERSION)
     return inspect
 
 
@@ -479,8 +520,14 @@ def handler(event, context):
         ) from failure.cause
 
     tool_record_ids = _tool_records(outcome, common, routing.classification)
-    fragment = (outcome.guardrail or guardrail.GuardrailOutcome(False)).as_record_fragment(
-        GUARDRAIL_ID, GUARDRAIL_VERSION)
+    # **The record names the guardrail that produced the assessment it reports
+    # (ADR-070 amendment 2)** — the pair `_inspect` stamped on the outcome at the
+    # call site, never the module constants reached for here. Every outcome the
+    # loop returns was produced by an inspection, so `applied` is never None; an
+    # outcome with no pair is refused by `as_record_fragment` rather than written
+    # as a record that names nothing.
+    applied = outcome.guardrail
+    fragment = applied.as_record_fragment(applied.guardrail_id, applied.version)
     common_out = {"tool_records": tool_record_ids, "trajectory": outcome.trajectory()}
 
     if outcome.status == toolloop.BLOCKED:
@@ -488,18 +535,14 @@ def handler(event, context):
             classification=routing.classification,
             decision="blocked",
             mechanism="guardrail",
-            # **ADR-066 step 0: open the response, describe it, never quote it.**
-            # This branch has held the blocked `converse` response on every one of
-            # M06b's 16 answer-channel refusals and never looked inside it, so
-            # nobody knows whether Bedrock returns the model's text alongside the
-            # intervention or replaces it with `blockedOutputsMessaging`. ADR-064's
-            # capture question and ADR-066's pricing both turn on which it is.
-            #
-            # `withheld_fingerprint` is total and cannot raise, deliberately: a
-            # diagnostic that can fail a refusal which is otherwise correct is
-            # worse than no diagnostic. It carries a length and a one-way digest,
-            # and `build_record` refuses any fragment holding more than those.
-            withheld=guardrail.withheld_fingerprint(outcome.response),
+            # **Describe what was refused, never quote it (ADR-066 step 0, ADR-070).**
+            # Under option B the loop holds the text the guardrail stopped and
+            # returns it under `outcome.refused` and nowhere else. The fragment is
+            # a length and a one-way digest of that text — the model's own words
+            # now, not Bedrock's placeholder — and `build_record` refuses any
+            # fragment holding more than those three fields. Where the text goes
+            # from here is ADR-071 (PR 3); this branch writes none of it anywhere.
+            withheld=guardrail.fingerprint_text(outcome.refused),
             guardrail=fragment,
             # **Absent, not zero, when nothing was spent.** A block on the system
             # block lands before the first model call, and the schema says usage is

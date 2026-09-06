@@ -346,6 +346,49 @@ def test_attribution_is_deduplicated_and_ordered():
     assert outcome.assessed == ("PROMPT_ATTACK",)
 
 
+def test_regex_and_custom_word_blocks_are_named_on_the_apply_path():
+    """**AI Quality round 3, finding 2.** `REGEX:` and `WORD:custom` appeared in
+    no test or fixture, so deleting both BLOCKED branches of `_blocked_names`
+    was invisible — a real block would read as unattributed, which the scorer
+    refuses. Both readers, every policy type, on the reader the gateway uses."""
+    outcome = guardrail.interpret_apply({
+        "action": "GUARDRAIL_INTERVENED",
+        "assessments": [{
+            "contentPolicy": {"filters": [{"type": "PROMPT_ATTACK", "action": "BLOCKED"}]},
+            "topicPolicy": {"topics": [{"name": "medical-advice", "action": "BLOCKED"}]},
+            "sensitiveInformationPolicy": {
+                "piiEntities": [{"type": "EMAIL", "action": "BLOCKED"}],
+                "regexes": [{"name": "account-number", "action": "BLOCKED"}]},
+            "wordPolicy": {"customWords": [{"match": "bypass", "action": "BLOCKED"}],
+                           "managedWordLists": [{"type": "PROFANITY", "action": "BLOCKED"}]},
+        }]}, channel=guardrail.CHANNEL_ANSWER, guardrail_id="g", version="4")
+    assert outcome.assessed == ("PII:EMAIL", "PROMPT_ATTACK", "REGEX:account-number",
+                                "TOPIC:medical-advice", "WORD:PROFANITY", "WORD:custom")
+
+
+def test_apply_attribution_is_deduplicated_and_ordered():
+    """**AI Quality round 3, finding 4.** The dedup-and-order rule was asserted on
+    `interpret` only — the converse reader the gateway no longer calls."""
+    fired = {"contentPolicy": {"filters": [{"type": "PROMPT_ATTACK", "action": "BLOCKED"}]}}
+    outcome = guardrail.interpret_apply(
+        {"action": "GUARDRAIL_INTERVENED", "assessments": [fired, fired]},
+        channel=guardrail.CHANNEL_ANSWER, guardrail_id="g", version="4")
+    assert outcome.assessed == ("PROMPT_ATTACK",)
+
+
+def test_an_unassessed_apply_outcome_writes_the_fragment_m04_recorded():
+    """**AI Quality round 3, finding 3.** The allowed-record shape was asserted
+    through `interpret({})`, the converse reader, dead under option B. Every
+    record the gateway writes now comes from `interpret_apply`, whose
+    non-intervened outcome carries `channels=(channel,)` — and the fragment
+    must still omit the key (ADR-040 decision 1: `channels` iff intervened)."""
+    outcome = guardrail.interpret_apply({"action": "NONE"}, channel=guardrail.CHANNEL_ANSWER,
+                                        guardrail_id="gr-1", version="4")
+    assert outcome.channels == ("answer",)
+    fragment = outcome.as_record_fragment(outcome.guardrail_id, outcome.version)
+    assert fragment == {"id": "gr-1", "version": "4", "action": "NONE", "assessed": []}
+
+
 def test_the_record_fragment_carries_a_pinned_version():
     fragment = guardrail.GuardrailOutcome(True, ("PROMPT_ATTACK",)).as_record_fragment("gr-1", "3")
     assert fragment == {"id": "gr-1", "version": "3", "action": "GUARDRAIL_INTERVENED",
@@ -489,6 +532,37 @@ def test_a_channel_block_records_which_channel_and_still_validates():
 
     record = a_record(decision="blocked", mechanism="guardrail", guardrail=fragment)
     jsonschema.validate(record, AUDIT_SCHEMA)
+
+
+def test_a_tool_request_block_names_the_guardrail_that_assessed_it_and_validates():
+    """ADR-070. `tool_request` is a channel the schema admits, and the fragment
+    names the guardrail `interpret_apply` was told produced the assessment —
+    amendment 2's rule: the record names the guardrail whose verdict it reports,
+    carried from the call site rather than reached for by the handler."""
+    outcome = guardrail.interpret_apply(
+        {"action": "GUARDRAIL_INTERVENED",
+         "assessments": [{"topicPolicy": {"topics": [
+             {"name": "entitlement-circumvention", "action": "BLOCKED"}]}}]},
+        channel=guardrail.CHANNEL_TOOL_REQUEST, guardrail_id="gr-main", version="4")
+
+    assert (outcome.guardrail_id, outcome.version) == ("gr-main", "4")
+    fragment = outcome.as_record_fragment(outcome.guardrail_id, outcome.version)
+    assert fragment["channels"] == ["tool_request"]
+    assert fragment["id"] == "gr-main" and fragment["version"] == "4"
+
+    record = a_record(decision="blocked", mechanism="guardrail", guardrail=fragment)
+    jsonschema.validate(record, AUDIT_SCHEMA)
+
+
+@pytest.mark.parametrize("pair", [(None, None), ("gr-main", None), (None, "4"), ("", "4")])
+def test_a_fragment_that_names_no_guardrail_is_refused(pair):
+    """An outcome no inspection stamped must not become a record that names
+    nothing. `"version": null` would fail the schema — but the schema is applied
+    by a caller a future path could forget to call, and a record naming no
+    instrument is ADR-018's hazard as a null."""
+    outcome = guardrail.interpret_apply({"action": "NONE"}, channel=guardrail.CHANNEL_ANSWER)
+    with pytest.raises(ValueError, match="must name a published guardrail"):
+        outcome.as_record_fragment(*pair)
 
 
 

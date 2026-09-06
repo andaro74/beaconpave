@@ -1,8 +1,8 @@
 """
 The agent loop, with the tool plane in front of every call.
 
-    inspect -> converse -> [guardrail?] -> [tool_use?] -> authorize -> call
-            -> validate -> inspect -> converse
+    inspect(question) -> converse -> inspect(tool_request | answer) -> [tool_use?]
+            -> authorize -> call -> validate -> inspect(tool_output) -> converse
 
 **Pure, and that is the whole reason this module exists.** The loop is where G3
 either holds or does not: it is the code that decides whether a tool call is
@@ -23,16 +23,28 @@ writing them from here keeps the clock, the bucket and the record shape on the
 other side of the pure boundary, and it means a test can assert the *sequence* of
 decisions without a lake to read them back from.
 
-**Content the platform puts in context is inspected before the model sees it.**
-`guardrailConfig` on `converse` assesses the turn Bedrock is handed, and M04
-measured what that leaves out: the identical payload was blocked three times out
-of three as a user turn and allowed twice out of three when it arrived as
-platform-supplied context. So the same guardrail, at the same pinned version,
-with the same `INPUT` source, is applied here to every piece of content that
-enters the model's context without coming from the viewer — the system block this
-deployment assembles from the catalog, and every tool result before it joins the
-transcript. No topic wording makes a guardrail inspect content it is never handed
-(ADR-035).
+**`converse` carries no guardrail. Every piece of content is assessed once, on
+entry, by the gateway, on the channel the loop labels it with (ADR-070).** Four
+channels, one assessment each: the viewer's turn as `question` before the first
+model call; each tool result as `tool_output` before it joins the transcript
+(ADR-035); the model's output on a round ending in `tool_use` as `tool_request`
+before it joins the transcript; the model's output on the final round as
+`answer` before it is returned. The loop is the only party that can tell the
+last two apart — Bedrock's own guardrail assessed every round's output under one
+policy and labelled all of it `answer`, because it does not know which output the
+viewer will be shown. That is why the guardrail moved from the call into the
+loop: per-channel policy on the output side is impossible from inside `converse`.
+
+**What that costs, said plainly (ADR-070, "What B costs").** Bedrock used to
+guarantee that blocked text never reached the gateway. Now the loop receives
+unassessed output and must not return it. The guarantee is a property of this
+module: a refused round returns no response at all, the refused text travels
+under `TurnOutcome.refused` and nowhere else, and the `ANSWERED` outcome carries
+only text an assessment passed. Tests plant a blocking assessment on every
+channel and assert the caller-facing shape is text-free. **One serialisation per
+channel, all here**: the viewer's turn verbatim, tool results and each
+`toolUse.input` through `_inspection_text`, text blocks joined. The handler
+serialises nothing, and `tests/test_handler_wiring.py` asserts that on its source.
 
 `inspect` is a **required** argument, with no default, for the same reason
 `converse` and `call_tool` are. A default of `None` would make the inspection
@@ -174,6 +186,13 @@ class TurnOutcome:
     guardrail: guardrail_module.GuardrailOutcome | None = None
     reasons: tuple[str, ...] = ()
     transcript: tuple[dict, ...] = ()
+    #: The text an assessment refused, on whichever channel it was refused
+    #: (ADR-070 constraint 1). **This is the only place it travels.** A `BLOCKED`
+    #: outcome carries `response=None`, so `answer` is empty and nothing derived
+    #: from the response can quote it; the handler fingerprints this attribute
+    #: into `withheld` and returns none of it. Where the text goes after that is
+    #: ADR-071's (PR 3), and nothing in this module decides it.
+    refused: str | None = None
 
     @property
     def answer(self) -> str:
@@ -281,7 +300,8 @@ def _tool_ms(started, ended) -> int:
 
 
 def _inspection_text(payload) -> str:
-    """What of a tool result the guardrail is handed.
+    """What of a tool result — and of each `toolUse.input` (ADR-070) — the
+    guardrail is handed.
 
     The whole payload, serialised, rather than the string fields picked out of
     it. A field-picking version was the first draft and it is the wrong shape for
@@ -294,6 +314,80 @@ def _inspection_text(payload) -> str:
     `ensure_ascii=False` because escaping non-ASCII would hide the very text the
     guardrail is being asked to read."""
     return json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
+
+
+def _text_blocks(message: dict) -> list[str]:
+    return [block["text"] for block in message.get("content") or ()
+            if isinstance(block, dict) and isinstance(block.get("text"), str)]
+
+
+def _viewer_text(messages: list[dict]) -> str:
+    """The viewer's turn, verbatim: the text of the last `user` message.
+
+    One text block is the shape the handler builds, and it is handed over
+    byte-identical. Several are joined with a newline, which is the only thing
+    done to them — no JSON, no framing, nothing the viewer did not write. A turn
+    with no user text is the empty string, and it is still inspected."""
+    for message in reversed(messages):
+        if message.get("role") == "user":
+            return "\n".join(_text_blocks(message))
+    return ""
+
+
+def _request_text(message: dict) -> str:
+    """The model's output on a round that ends in `tool_use`, serialised once.
+
+    Its text blocks as written, and each `toolUse` — its `name` and its `input`
+    — through `_inspection_text`, the same serialisation a tool's result gets,
+    because it is the same kind of thing: structured content addressed to the
+    platform. **The `name` is model-authored text and is assessed** (the
+    Security seat's PR 2 finding S-2). The first version omitted it as registry
+    vocabulary the plane validates; measured, a name carrying an injection was
+    then refused by the plane, quoted back to the model in the refusal reason,
+    and appended to the transcript with no assessment on any channel — the one
+    piece of the model's output the loop did not read. `toolUseId` is absent:
+    it is a correlation id the service generates, not the model, and ADR-063
+    measured this guardrail's verdict flipping on an unrelated field, so a
+    string that changes on every call would make the control look more
+    stochastic than it is."""
+    parts: list[str] = []
+    for block in message.get("content") or ():
+        if not isinstance(block, dict):
+            continue
+        if isinstance(block.get("text"), str):
+            parts.append(block["text"])
+        elif block.get("toolUse") is not None:
+            use = block.get("toolUse") or {}
+            parts.append(_inspection_text({"name": use.get("name"), "input": use.get("input")}))
+    return "\n".join(parts)
+
+
+def _answer_text(message: dict) -> str:
+    """The model's output on the final round: its text blocks, joined.
+
+    All of them, not the first. `TurnOutcome.answer` returns the first block to
+    the caller, so a second block is text nobody would see — but "nobody would
+    see it" is the argument that let the tool-output channel go uninspected
+    until M04 measured it, and the whole message is what `converse` assessed."""
+    return "\n".join(_text_blocks(message))
+
+
+def _assess(inspect, text: str, channel: str, *, totals: dict, calls: list, clock):
+    """One inspection: timed into `guard_ms`, and a failure wrapped in `TurnFailed`.
+
+    **An inspection that fails does not proceed.** `inspect` raising is wrapped so
+    the tool records already earned still reach the lake and the harness reports
+    INFRA rather than a decision — the gateway established nothing. Swallowing it
+    and continuing would be a control that reports itself green on the calls it
+    did not make (G2: an errored gate blocks, never skips). One helper for all
+    four channels, so the four sites cannot disagree about either property."""
+    started = clock()
+    try:
+        assessment = inspect(text, channel=channel)
+    except Exception as exc:  # noqa: BLE001 — re-raised as TurnFailed
+        raise TurnFailed(exc, calls, totals) from exc
+    totals["guard_ms"] = totals.get("guard_ms", 0) + _tool_ms(started, clock())
+    return assessment
 
 
 def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool,
@@ -312,11 +406,9 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
     it the platform assembled from a data source, and guessing would be a control
     whose scope moves whenever a caller changes shape.
 
-    **An inspection that fails does not proceed.** `inspect` raising is wrapped in
-    `TurnFailed`, so the tool records already earned still reach the lake and the
-    harness reports INFRA rather than a decision — the gateway established
-    nothing. Swallowing it and continuing would be a control that reports itself
-    green on the calls it did not make (G2: an errored gate blocks, never skips).
+    **An inspection that fails does not proceed** — see `_assess`. **A guardrail
+    block on any channel ends the turn with no response**: the refused text is
+    on `TurnOutcome.refused` and nowhere else (ADR-070 constraint 1).
 
     **`principal` is passed in and never read off the transcript or the event.**
     It is the Cedar principal, so anything a caller or a model can influence must
@@ -345,7 +437,7 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
     totals: dict = {}
 
     # **Before the first model call, not after it.** The content is already in
-    # context by the time `converse` would assess it, and a control that reports
+    # context by the time the model would read it, and a control that reports
     # the injection after the model has read it is a detector, not a guardrail.
     # A turn stopped here spent no TOKENS, which is the cost that matters for the
     # budget axis — but it did spend the inspection, and `guard_ms` records that.
@@ -353,15 +445,25 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
     for channel, text in untrusted:
         if not text:
             continue
-        started = clock()
-        try:
-            assessment = inspect(text, channel=channel)
-        except Exception as exc:  # noqa: BLE001 — re-raised as TurnFailed
-            raise TurnFailed(exc, calls, totals) from exc
-        totals["guard_ms"] = totals.get("guard_ms", 0) + _tool_ms(started, clock())
+        assessment = _assess(inspect, text, channel, totals=totals, calls=calls, clock=clock)
         if assessment.intervened:
             return TurnOutcome(BLOCKED, None, tuple(calls), totals, assessment,
-                               transcript=tuple(transcript))
+                               transcript=tuple(transcript), refused=text)
+
+    # **The viewer's turn, before the first model call (ADR-070 decision 3, row
+    # 1 of the coverage table).** `converse` used to assess it on the way in;
+    # under option B the gateway does, with the same policy at the same source,
+    # and one property stronger — a blocked turn now spends no tokens. Verbatim:
+    # the viewer wrote it, and the handler serialises nothing (constraint 3).
+    # Unconditional. An empty turn is handed over empty, exactly as `converse`
+    # would have been handed it; "nothing to inspect" is not a reason to skip
+    # the inspection, because a skip is a default that runs a turn uninspected.
+    text = _viewer_text(messages)
+    assessment = _assess(inspect, text, guardrail_module.CHANNEL_QUESTION,
+                         totals=totals, calls=calls, clock=clock)
+    if assessment.intervened:
+        return TurnOutcome(BLOCKED, None, tuple(calls), totals, assessment,
+                           transcript=tuple(transcript), refused=text)
 
     while True:
         try:
@@ -369,52 +471,83 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
         except Exception as exc:  # noqa: BLE001 — re-raised, with the calls attached
             raise TurnFailed(exc, calls, totals) from exc
 
-        outcome = guardrail_module.interpret(response)
+        # **`converse` carries no guardrail (ADR-070), so the response carries no
+        # verdict to read.** A stop reason claiming one is a response the gateway
+        # did not ask for and cannot attribute: reading it as a block would write
+        # a record whose `channels` name no side, and reading it as an answer
+        # would return a placeholder as the model's text. Neither is a finding
+        # about the system under test. INFRA, with the calls attached.
+        if response.get("stopReason") == guardrail_module.STOP_REASON_INTERVENED:
+            raise TurnFailed(RuntimeError(
+                "converse reported stopReason=guardrail_intervened with no guardrailConfig "
+                "attached (ADR-070): the gateway applies the guardrail itself, and a verdict "
+                "it did not request is not one it can record"), calls, totals)
 
-        # **Metered after the guardrail is read, not before.** `usage_from_response`
-        # raises when a response carries no usage, and it was running first — so a
-        # guardrail intervention that came back without usage would have raised
-        # instead of recording a block, on the path where recording it is the whole
-        # of G4. The meter's rule was written for the allowed path and is kept
-        # there; a refusal reports what the turn had already spent.
         try:
             _accumulate(totals, meter.usage_from_response(response, latency_ms))
         except ValueError as exc:
-            if not outcome.intervened:
-                # Still a metering failure on the allowed path — the meter's rule
-                # is unchanged there. Wrapped, not re-raised bare, so the calls
-                # this turn already made still reach the lake.
-                raise TurnFailed(exc, calls, totals) from exc
-            totals.setdefault("tokens_in", 0)
-            totals.setdefault("tokens_out", 0)
-            totals["latency_ms"] = totals.get("latency_ms", 0) + latency_ms
+            # A call that reached the model but reported no usage is a metering
+            # failure. Wrapped, not re-raised bare, so the calls this turn already
+            # made still reach the lake.
+            raise TurnFailed(exc, calls, totals) from exc
 
-        if outcome.intervened:
-            # The guardrail assesses the model's own intermediate reasoning on
-            # every round, so a turn that took four rounds handed it four more
-            # blocks of text to assess. That is measured rather than hypothetical:
-            # narrowing retrieval raised refusals from 2/15 to 5/15 by lengthening
-            # turns (milestones/M02/loop-shape.json).
-            return TurnOutcome(BLOCKED, response, tuple(calls), totals, outcome,
-                               transcript=tuple(transcript))
+        # **The loop is the party that knows which of the model's outputs the
+        # viewer will see, and it labels this one before anything else happens
+        # to it (ADR-070 decision 3).** A round that ends in `tool_use` AND
+        # carries a request is a `tool_request`: text the viewer never sees,
+        # addressed to the platform, assessed at the moment it would enter the
+        # transcript. Every other round is the `answer`: it is returned, so it
+        # is assessed as what the viewer will be shown — including the
+        # `stopReason: tool_use` with no `toolUse` block, which is returned as
+        # the answer it is and must not be assessed under the request's policy.
+        # Nothing is appended and nothing is returned until the assessment has
+        # passed; a refusal returns no response at all, and the refused text
+        # travels under its own attribute (constraint 1).
+        message = (response.get("output") or {}).get("message") or {}
+        requests = [block for block in message.get("content") or ()
+                    if isinstance(block, dict) and block.get("toolUse")]
+        # **A `toolUse` that is not an object fails the turn (Security round 2,
+        # SR-D).** Filtering it out instead would relabel the round `answer` and
+        # assess the request's name and input on no channel; letting it through
+        # would crash below the assessment. Neither is a verdict about the
+        # content, so it is INFRA, with the calls attached.
+        malformed = [block for block in requests if not isinstance(block["toolUse"], dict)]
+        if malformed:
+            raise TurnFailed(TypeError(
+                f"a toolUse block is not an object: {type(malformed[0]['toolUse']).__name__}. "
+                "The request cannot be labelled or serialised, so nothing was assessed"),
+                calls, totals)
+        is_request = response.get("stopReason") == STOP_REASON_TOOL_USE and bool(requests)
+        if is_request:
+            channel, text = guardrail_module.CHANNEL_TOOL_REQUEST, _request_text(message)
+        else:
+            channel, text = guardrail_module.CHANNEL_ANSWER, _answer_text(message)
+        assessment = _assess(inspect, text, channel, totals=totals, calls=calls, clock=clock)
+        if assessment.intervened:
+            return TurnOutcome(BLOCKED, None, tuple(calls), totals, assessment,
+                               transcript=tuple(transcript), refused=text)
 
-        if response.get("stopReason") != STOP_REASON_TOOL_USE:
-            return TurnOutcome(ANSWERED, response, tuple(calls), totals, outcome,
+        if not is_request:
+            return TurnOutcome(ANSWERED, response, tuple(calls), totals, assessment,
                                transcript=tuple(transcript))
 
         bound = turn.begin_round()
         if bound is not None:
-            return TurnOutcome(LOOP_BOUND, response, tuple(calls), totals, outcome,
+            # **No response on the bound either (AI Quality seat, PR 2 finding
+            # Q3).** The round the bound refuses was assessed as a `tool_request`
+            # — under stage 2, by the topic-free policy — so its text is not
+            # something the viewer may be shown, and `TurnOutcome.answer` must
+            # not be able to produce it. Measured on the first version: a prose
+            # block on the bound-refused round came back through `answer`. The
+            # handler never returned it; nothing pinned that it could not.
+            return TurnOutcome(LOOP_BOUND, None, tuple(calls), totals, assessment,
                                reasons=bound.reasons, transcript=tuple(transcript))
 
-        message = response["output"]["message"]
         transcript.append(message)
 
         results = []
-        for block in message.get("content", []):
-            use = block.get("toolUse")
-            if not use:
-                continue
+        for block in requests:
+            use = block["toolUse"]
             tool_id = use.get("name")
             args = use.get("input") if isinstance(use.get("input"), dict) else {}
 
@@ -463,30 +596,18 @@ def run_turn(*, plane, principal: str, messages: list[dict], converse, call_tool
             # in. Only an allowed result is inspected: a withheld one produced no
             # payload, and the refusal text in its place is the platform's own.
             if payload is not None:
-                started = clock()
-                try:
-                    assessment = inspect(
-                        _inspection_text(payload),
-                        channel=guardrail_module.CHANNEL_TOOL_OUTPUT)
-                except Exception as exc:  # noqa: BLE001 — re-raised as TurnFailed
-                    raise TurnFailed(exc, calls, totals) from exc
-                totals["guard_ms"] = totals.get("guard_ms", 0) + _tool_ms(started, clock())
+                text = _inspection_text(payload)
+                assessment = _assess(inspect, text, guardrail_module.CHANNEL_TOOL_OUTPUT,
+                                     totals=totals, calls=calls, clock=clock)
                 if assessment.intervened:
                     # The tool call's own record still says `allowed`, because it
                     # was: the plane authorized it and the tool answered. The turn
                     # record says blocked by the guardrail. Two controls, two
                     # records, and collapsing them would lose which one fired.
-                    return TurnOutcome(BLOCKED, response, tuple(calls), totals, assessment,
-                                       transcript=tuple(transcript))
+                    return TurnOutcome(BLOCKED, None, tuple(calls), totals, assessment,
+                                       transcript=tuple(transcript), refused=text)
 
             results.append(
                 _tool_result_block(use.get("toolUseId"), decision, payload, withheld))
-
-        if not results:
-            # `stopReason: tool_use` with no `toolUse` block. Nothing to answer,
-            # and continuing would send the model a transcript ending in an
-            # assistant turn it cannot act on. Treated as the answer it is.
-            return TurnOutcome(ANSWERED, response, tuple(calls), totals, outcome,
-                               transcript=tuple(transcript))
 
         transcript.append({"role": "user", "content": results})

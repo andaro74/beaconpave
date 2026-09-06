@@ -71,7 +71,7 @@
     },
     "guardrail": {
       "type": "object",
-      "description": "Present whenever a guardrail was consulted, whether or not it blocked.",
+      "description": "Present whenever a guardrail was consulted, whether or not it blocked. `id` and `version` name the guardrail WHOSE ASSESSMENT THIS RECORD REPORTS (ADR-070 amendment 2): on decision=blocked, the one that blocked on the channel `channels` names; on decision=allowed, the one that assessed the channel the turn ended on (`answer`); on mechanism=loop, the one that assessed the refused round (`tool_request`). Since ADR-070 the gateway applies the guardrail itself, per channel, and `converse` carries none, so a turn can transit two guardrails; the record names the one that produced this verdict, and the deployed channel table is read from the function's configuration rather than copied into every record.",
       "required": [
         "id",
         "version"
@@ -105,11 +105,12 @@
               "system",
               "tool_output",
               "question",
-              "answer"
+              "answer",
+              "tool_request"
             ]
           },
           "uniqueItems": true,
-          "description": "Which channels the blocked content arrived on. Present on EVERY intervention, including as an empty list, and absent when the guardrail did not intervene (ADR-040). It replaces the singular `channel`: an array because both sides of a Converse turn can fire at once. `question` is the input side and `answer` the output side; `system` and `tool_output` are the ApplyGuardrail planes. **`question` is a semantic name for a mechanical thing** -- Bedrock's inputAssessment covers the whole input, and in this deployment that is the user turn only because converse does not assess the system block. If that changes, `question` silently absorbs system-block blocks and the name lies. **Empty is a value, not a gap**: it means the recorder looked and attributed the block to no side, which the adversarial scorer refuses to credit. An ABSENT key on a block means a record written before this field existed."
+          "description": "Which channel the blocked content arrived on. Present on EVERY intervention, including as an empty list, and absent when the guardrail did not intervene (ADR-040). An array because, under Converse's own guardrail, both sides of a turn could fire at once; since ADR-070 every assessment is one ApplyGuardrail call on one channel, so a block carries exactly one. `question` is the viewer's turn, assessed before the first model call; `tool_request` is the model's output on a round ending in tool_use -- text the viewer never sees, addressed to the platform, assessed before it enters the transcript (ADR-070); `answer` is the model's output on the final round, assessed before it is returned; `tool_output` is a tool's result, assessed before it enters the transcript (ADR-035, ADR-063); `system` is platform content the caller declared untrusted (withdrawn, ADR-035 amendment 1). **Empty is a value, not a gap**: it means the recorder looked and attributed the block to no side, which the adversarial scorer refuses to credit. An ABSENT key on a block means a record written before this field existed."
         }
       },
       "additionalProperties": false
@@ -230,7 +231,7 @@
     },
     "withheld": {
       "type": "object",
-      "description": "ADR-066 step 0. What `converse` returned on a blocked turn, DESCRIBED AND NEVER QUOTED. Present only on decision='blocked'. `additionalProperties: false` is the G4 boundary expressed in the schema rather than only in a test: a `text` key cannot be added to this fragment without changing this file, which takes two keys. The digest is compared offline against sha256 of the guardrail's own blockedOutputsMessaging, a string the platform wrote and nobody's secret.",
+      "description": "ADR-066 step 0, ADR-070. The text a guardrail refused on a blocked turn, DESCRIBED AND NEVER QUOTED. Since ADR-070 the gateway applies the guardrail itself, so this describes the text the loop refused to return -- the model's own output on `tool_request` or `answer`, the serialised payload on `tool_output`, the viewer's turn on `question` -- rather than Bedrock's placeholder, which option B never produces. Present only on decision='blocked'. `additionalProperties: false` is the G4 boundary expressed in the schema rather than only in a test: a `text` key cannot be added to this fragment without changing this file, which takes two keys. The record carries no pointer to wherever the text itself goes (ADR-071).",
       "additionalProperties": false,
       "required": [
         "present",
