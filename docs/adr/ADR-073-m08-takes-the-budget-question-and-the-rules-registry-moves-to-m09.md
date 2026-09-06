@@ -229,3 +229,234 @@ changes — a tool added to `toolConfig`, a schema grown — with the loop bound
 enforced by the tool plane rather than asserted by the eval suite. The manifest
 already declares the ceiling, the runner already reports the measurement, and
 the census already reads both; only who notices the shape change moves.
+
+## Amendment 1 — a cold read of SPEC/08 before PR 2, four questions answered
+
+**Written 2026-09-06, after PR 1 merged (`dd4a5f0`) and before PR 2 opened.
+Zero model calls; every number is read from `milestones/M08/context-census.json`,
+`milestones/M07/goldens-score.txt`, the three journals and `pave/twokey.py`.**
+The reader did not write SPEC/08. Nothing in the plan is changed by this
+amendment; it names what PR 2 should change, and the operator disposes.
+
+**Operator's disposition, 2026-09-06: accepted in full, all five asks.**
+Committed in its own zero-call PR before PR 2 cut from `main`. The
+M02-to-stage-2 residual differential (question 3) runs in PR 2's diff.
+`p95_ms` is a **standing finding for M08**; the rule that derives a suite p95
+is owed to **M09 PR 1**, written before M09's fresh run and applied after it.
+No sixth PR for a signed latency ceiling. This PR is the milestone's sixth
+slot spent: SPEC/08 caps M08 at six and planned five, PRs 2–5 keep their
+numbers so every reference in SPEC/08 stays valid, and any later split closes
+the milestone at the cap.
+
+### 1. Is this M06b again?
+
+**Not on the dimension that broke M06b. Yes on one clause, in M06c's shape.
+And PR 3 has M07's PR-4 shape.**
+
+| | M06b | M06c | M07 | SPEC/08 as written |
+|---|---|---|---|---|
+| PRs | 34 (#74–#107), no bound that held | 3 of a cap of 6 | 6 of 6 | 5 planned, cap 6 |
+| Runs through the gateway | one per hypothesis, four hypotheses | one | 216 turns, two stages | none |
+| When the answer was chosen | never; the milestone closed on a diagnosis | step 0, two PRs in | pre-registered band, read at PR 5 | a rule pinned in PR 1, read once, outcome B |
+| What broke | the premise was unmeasurable on arrival; an investigation the plan had not priced was adopted and could not be bounded | the claim was unreachable by the plan beneath it, written by the author who had just learned why | 22/22 wrong answers failed one assert refusals had masked; the close found an owe the plan had not | see below |
+
+What M06b did that SPEC/08 does not: measure again after every negative result.
+SPEC/08 has no measurement to repeat — every PR reads M07's files, the rule
+that picks A or B ran once, and a red census closes the milestone rather than
+opening a hypothesis. The unbounded loop has no entry point here.
+
+What SPEC/08 does that M06c did: **PR 4's Definition of done is unreachable as
+written.** The side-prediction says the flipped set is *"exactly the
+budget-only cases with a ≤3-call majority"*, and constraint 4 keeps
+`tokens_out` where it is. Five of the fifteen budget-only cases fail
+`tokens_out` on two or three of their three samples at unchanged tiers —
+`blackout-001`, `blackout-007`, `blackout-008`, `blackout-009`,
+`concise-022` (transcript: *"tokens_in=6169 over 6000; tokens_out=330 over
+300"*, tiers from `cases.yaml`, per-sample `tokens_out` from the census).
+They cannot flip on a `tokens_in` move. The word *"exactly"* is a biconditional,
+so PR 4 fails its own checkbox on those five before the number is chosen, at
+any number in the band. The upper bound of 17 was the M07 journal's *"strike
+that assert"* figure, which strikes both halves of `budget`; with one half kept
+the bound is at most 12. This is a defect in the side-prediction, not in the
+claim, and it is exactly M06c amendment 1's shape: written by the seat that had
+just found that shape at M07. **The correction must land in PR 2, before PR 3
+opens** — corrected after PR 4 prints, it is a claim rewritten to match the
+outcome, which *What must not happen* forbids.
+
+What SPEC/08 carries of M06b's fourth finding — *a survivor population read as
+the whole* — in a new costume: the rule read the **attributed** population as
+the whole. Question 3.
+
+### 2. Each claim, the measurement that proves it, and the PR
+
+| # | claim in SPEC/08 | measurement | PR |
+|---|---|---|---|
+| 1 | **The one claim**: the re-derived ceiling passes every ≤3-call answered stage-2 sample and fails every ≥4-call sample, nothing else moved, same three files | `tests/test_budget_derivation.py` re-pointed at the census: `floor ≥ 1.15 × 6235`, `roof ≤ 1.60 × 6235`, and a new assertion `ceiling < 8181`. Then `run_evals --arm tools` over M07's files; every per-sample `budget` verdict read against the census's per-sample `calls` column — a join the PR-4 transcript must show, not a count. `context_census.py --check` green; `git diff --stat milestones/M07/` empty; `probes_sha256`, `g4_cases_sha256`, the judge digests unchanged | PR 3 (band, placement), PR 4 (the join) |
+| 2 | Side-prediction: `N/25`, 2 ≤ N ≤ 17, flipped set exactly the budget-only ≤3-call-majority cases | The same transcript. **Falsified in advance for five cases** (question 1). Measurable only after PR 2 restates it as *fails `budget` on `tokens_in` alone at M07 and passes every other assert including `tokens_out` on the ≤3-call majority*, with the bound re-derived from the transcript at 6000 and the tiers — not from any run at a new number | PR 2 restates; PR 4 measures |
+| 3 | `tokens_in` is a sum over the turn's `converse` calls | `tests/test_m08_census.py::test_the_client_constants_are_read_off_the_source_the_client_defines`; `core/toolloop.py::_accumulate` | PR 1, done |
+| 4 | Every 2-call turn under 6000, every 3-call turn over it | census `8_decision_rule.mandated_shape_tokens_in.by_calls` (2: max 3959; 3: min 6068) and `1_by_milestone` (3-call min 6022 across all 52) | PR 1, done |
+| 5 | The modal turn went 2 → 3 when `entitlement-check` became a second sequential round at M06b; per-call 1693 → 2057 | census `5_attribution`, exact, for the two factors. The causal clause — *because* the second tool is sequential — is `mandated_calls()`'s reading of the case asserts, pinned by `test_the_mandated_call_count_follows_the_case_asserts`. The step is measured; the cause is design read off the code | PR 1, done, with that split stated |
+| 6 | The per-call base is 1859–1974, of which committed text explains ≈1437; residual 422–537 | Bounded from seven 2-call turn totals; the *explained* half is an estimate at 3.368–3.389 chars/token from six single-call, no-tools anchors. **No PR in this plan measures it.** Per-call `inputTokens` are not in any committed file (`_accumulate` sums them), and a calibration call with tools offered is a model call. Question 3 |  none |
+| 7 | No sample over the ceiling at its mandated count carries evidenced removable content | census `8_decision_rule` (33 of 33 uncovered; `gap_per_call_max` 78.3); `test_the_decision_rule_reads_per_sample` with a synthetic pair | PR 1, done — within the three evidence categories the rule admits, and no further |
+| 8 | The pre-registered rule picked B | The record's `outcome`, and `cross_sample_reading_not_the_rule` holding the reading that printed A | PR 1, done. The rule's text was rewritten after its first reading and before any number; ADR-073 D2 says so |
+| 9 | The number sits in [7170, 8180], below 8181, argued from the census and not from which cases pass | The derivation test for the band. The *not from which cases pass* half is measured only by ordering: `test_the_reader_offers_no_other_ceiling`, and the PR-3 body citing no count. A seat can also check the amendment cites no case id | PR 3 |
+| 10 | Nothing else moved: no case, prompt, tool, topic or other assert | `--check`, `git diff` of M07, the three digest families — and one check the plan does not name: the PR-3 diff to `cases.yaml` is exactly 25 hunks, each `tokens_in: 6000` → the number, shown by `git diff -U0 -- services/highlights-agent/evals/golden/cases.yaml \| grep '^[-+] ' \| grep -vc tokens_in` printing 0 in the PR body | PR 3 and PR 4, each |
+| 11 | The ceiling will still catch every 4- and 5-call turn, which are `catalog-search`'s browse gap | The PR-4 join (claim 1) measures the first half: fourteen samples on seven cases fail. The second half — that they *are* the browse gap — is an attribution nothing in this plan measures; Tool Owner, no ADR | PR 4 (first half); none (second) |
+| 12 | The budget axis becomes discriminating again: passes the mandated shape, fails the runaway one (ADR-073 *Consequences*) | Overstated by the plan's own data. Nineteen answered samples ran **above their mandate** at three calls (six 2-mandate cases: `brand-021`, `entitlement-012`, `grounded-017/018/019`, `headroom-005/026`, `recommend-015`, `edge-025`; 6022–6792) and every one passes at any number in the band. The ceiling is uniform; the mandate is per case; the axis discriminates **call count ≥ 4**, not *more calls than the shape*. PR 4 can print this row; the sentence should say it | PR 4, with the consequence reworded in PR 3's amendment |
+| 13 | The census's latency table: model time 2289 ms at two calls, 3606 at three; guardrail 770–1212 | census `6_latency`, exact | PR 1, done |
+| 14 | Security's arm answer: no deployed arm can plant a model-authored tool name, so the probes credit nothing on every arm under ADR-041 | A reading of `handler.py`'s two arms and the loop test M07 PR 2 wrote. **No PR measures it**; it is a disposition, and it needs Security's key, not a run | PR 2 (question 4) |
+| 15 | M08 makes claim 6's suite scorable on the tools arm | Only M09's first fresh run. Not in this plan; say so where the sentence stands | none |
+| 16 | Zero model calls, no deploy, all milestone | `test_the_reader_imports_no_network_module`; `make check` hermetic; no new file under `milestones/M08/` carrying `usage`; the PR bodies. Asserted more than measured, and that is acceptable for a negative | every PR |
+
+Three of sixteen have no measurement in the plan (6, 11's second half, 15).
+Rows 6 and 11 are the same unknown from two sides: what a call carries that no
+committed text shows, and why a model searches twice. Neither is the claim.
+Row 2 is the one that must move before the number.
+
+### 3. Does any PR move the ceiling before the census has said the context cannot be reduced?
+
+**Yes. PR 3 does, and the census has not said that.** It said no sample over
+the ceiling at its mandated count carries *evidenced* removable content, where
+evidence is three enumerated categories: uncited replayed rows, text sent
+twice, tools the manifest does not declare. Outcome B is *not-A on the
+evidence admitted*, and the amendment that moves the ceiling has to say so in
+those words.
+
+**The residual is the size of the question, not a footnote to it.** 422–537
+tokens per call is 22.7–27.2 % of the per-call base. On a 3-call turn that is
+1266–1611 tokens per turn. The largest mandated-shape excess over 6000 is
+**235** (`blackout-008`, 6235); the largest per-call gap the rule saw is 78.3.
+If one fifth of the residual were content the agent sends and could stop
+sending, every mandated-shape sample would sit under 6000 and the rule would
+have printed A. The rule decided B on a question it could not see. That is
+M06b's fourth finding again: the attributed population read as the whole.
+
+The census cannot separate three explanations, and the amendment should list
+them rather than pick one:
+
+- **Estimation error.** The ≈1437 *explained* is chars ÷ 3.37, and the six
+  anchors that gave 3.37 are near-identical prose-plus-catalog prompts
+  (3.368–3.389, a band that covers only text of that kind). Tool specs and the
+  answer schema are JSON; a JSON-heavy text tokenises denser, so *explained*
+  is more likely an underestimate than the residual is a discovery. Removable
+  by nobody.
+- **Provider-side tool-use framing** — the `tool_use` and `tool_result`
+  blocks and whatever the provider prepends when `toolConfig` is present.
+  Design; removable by nobody the repo controls.
+- **Content the agent sends that no committed text shows.** Removable, and
+  the only explanation under which A was right.
+
+Zero-call work can narrow this and the plan does not schedule it: M02's
+one-tool per-call figure (1693, `loop-shape.json`) against stage 2's two-tool
+figure (2057) is a differential across one added spec whose size is known
+(≈282); a residual that grows with the spec points at the first two
+explanations, one that does not points at the third. The measurement that
+settles it is per-call `inputTokens` in the answer file plus one calibration
+call with tools offered — the first is a `run_with_tools.py` / `_accumulate`
+change constraint 5 forbids in M08, the second is a model call constraint 6
+forbids. Both are legitimately M09 PR 1's, beside the fresh run M09 takes
+anyway.
+
+**Debt or exclusion?** Today it is an exclusion: SPEC/08 lists it under *What
+it does not build* and gives it no row in *Obligations inherited*; ADR-073
+lists it under *does not decide* as *"Recorded."* — no owner, no date. SPEC/08
+*Bounded* says *"a discovered defect is recorded with a deadline and left
+alone"*; this is a discovered unknown recorded without one, and CLAUDE.md's
+rule that scope cuts are never silent simplifications is met in letter (it is
+written) and not in the part that matters (nothing will come looking for it).
+**It becomes a dated debt in PR 2**: owed to Platform Engineering (the loop's
+shape) with AI Quality (the ceiling it may move), dated **M09 PR 1**, paid by
+per-call usage in the answer file and one calibration call, with the
+differential above run at zero cost in the same PR-2 diff if the operator
+wants the narrowing now.
+
+**Does it weaken the derivation?** Not the arithmetic. The band is a function
+of exact turn totals — 6235 and 8181 — and no attribution enters it. What it
+weakens is the *warrant* for moving at all, and that is repaired by one clause
+in ADR-014 amendment 2, written before the number: *the ceiling is re-derived
+for the shape as measured, a quarter of whose per-call base is unattributed;
+if that residual is later attributed to content the agent sends and can stop
+sending, the ceiling is re-derived by this same rule in the milestone that
+removes it, downward, on the same keys.* A ceiling with its own re-derivation
+trigger is a decision; the same ceiling without one is a number that will be
+defended.
+
+### 4. PR 3 carries five decisions on one seat round
+
+**Yes, it is M07's PR-4 shape.** ADR-070 amendment 1 named it — *the stage-1
+run, the probe suite, step 6b, the `ATK-003` disposition with two keys and an
+ADR-062 amendment, and a new two-key rule; that is the PR that splits* — and
+amendment 4 resolved it by moving the two zero-call, deadline-bound items to
+the earlier PR, where their keys were already being collected. The same move
+is available here, in the same direction.
+
+The five, with the keys each actually needs under `pave/twokey.py`:
+
+| item | files it touches | rule and seats | relation to the number |
+|---|---|---|---|
+| The `tokens_in` ceiling | `cases.yaml` (25 lines), `pave.manifest.yaml` `max_tokens_in`, `tests/test_budget_derivation.py`, ADR-014 amendment 2 | `services/*/evals/` (AI Quality); manifest (AI Quality, Tool Owner); derivation pin (AI Quality, Platform Engineering); no rule on `docs/adr/` | **is** the number |
+| The suite `p95_ms` disposition | `pave.manifest.yaml` `gates.budgets.p95_ms` if moved; prose if not | manifest (AI Quality, Tool Owner) if moved; nothing if not | same file, different instrument, **no pinned rule** — `BANDS` covers `tokens_in` and `max_ms` only |
+| Security's two `tool_request` probes | `quality/adversarial/` if written; prose if declined | Security alone, plus an ADR | none |
+| `recommend-003`'s held text against `DEC-001` | none; a reading of the store through `read_withheld.py --show`, then prose | none; Security's seat | none |
+| ADR-071 decision 4, Data Governance's answer | prose; any code change is a gateway change constraint 5 forbids until M09 | **no rule in `pave/twokey.py` names `data-governance`** — its key is an attestation line wherever it is written | none |
+
+Three of the five touch nothing the ceiling touches and need no seat that PR 2
+is not already collecting: PR 2 carries `pave/twokey.py` (AI Quality, Legal,
+Platform Engineering, Security) and `tests/test_twokey_seats.py` (those plus
+Tool Owner), so every enforced seat attests on PR 2 already, and Data
+Governance's key is unenforced everywhere. **The probes' disposition, the
+held-text reading, and decision 4's answer ride PR 2**, as three written
+dispositions with their attestation lines and an ADR paragraph each — ADR-070
+amendment 8 is already in that diff for the probes, ADR-071 amendment 1 for
+decision 4. They do not ride PR 5: M07 dated its ADR index to PR 6 and it slid
+to SPEC/08's PR, and the same close found the `labels.json` owe nobody had
+listed. A debt dated to the close is a debt dated to the next milestone.
+
+The `p95_ms` disposition is the one that should **not** be moved as it stands,
+because it is not yet a disposition. SPEC/08 says *"a signed ceiling or a
+standing finding"*, undecided. A signed ceiling needs a pinned rule to be
+derived by, the way `tokens_in` has ADR-014's band, and none exists; deriving
+a new rule and applying it in the PR that moves the number — with 5431 in view
+— is the sequence constraint 1 exists to refuse for `tokens_in`, and it does
+not become legitimate for latency because the file is already open. The M07
+journal also recorded the latency direction as *"wrong twice, not explained"*;
+a ceiling derived from an unexplained measurement is a number, not a
+derivation. **Decide it now, in this amendment, as a standing finding for M08**
+— the census's table is the evidence that 2500 is breached by the shape (model
+time alone is 3606 ms at three calls) and not by a regression, the gate costs
+no case, and the rule that derives a suite p95 is owed to M09 PR 1, written
+before M09's fresh run and applied after it. Written that way it changes no
+file on a rule, and rides PR 2 beside the other three. If the operator wants a
+signed ceiling in M08 instead, it takes the spare sixth PR with its own rule
+and its own round, and PR 3 stays the number.
+
+**What PR 3 then is:** twenty-five identical line edits, one manifest value,
+one test re-pointed, one ADR amendment — and one question for the seats: *is
+this number produced by the rule from the record and by nothing else?* That
+is what *"Seats review this PR and no other"* should be able to mean.
+
+### What this amendment asks PR 2 to carry, beyond what SPEC/08 lists
+
+1. The side-prediction restated: *cases that fail `budget` on `tokens_in`
+   alone at M07 and pass every other assert, `tokens_out` included, on the
+   ≤3-call majority*; the bound re-derived from the transcript at 6000 and
+   the unchanged tiers; PR 4's checkbox reworded to match. SPEC/08 amendment 1,
+   with the five case ids and the reason.
+2. The residual as a dated debt row: Platform Engineering with AI Quality,
+   M09 PR 1, per-call usage plus one calibration call; the M02-to-stage-2
+   differential run in the same diff if wanted.
+3. Security's two probes disposed, the held text read against `DEC-001`,
+   Data Governance's answer on decision 4 — three written dispositions with
+   attestation lines; ADR-070 amendment 8 and ADR-071 amendment 1.
+4. The suite `p95_ms` disposition as a standing finding for M08 with the
+   derivation rule owed to M09 PR 1; SPEC/08's PR-3 paragraph and obligations
+   table re-dated accordingly.
+5. The wording for ADR-014 amendment 2 pre-registered here so PR 3 cannot
+   soften it: the *not-A on admitted evidence* sentence, the re-derivation
+   trigger, and the *discriminates call count ≥ 4, not calls above mandate*
+   statement, with the nineteen above-mandate samples named.
+
+### What this amendment does not change
+
+The claim. The band [7170, 8180] and the placement below 8181. The rule and
+its outcome. Constraints 1–8. The cap. Outcome A stays where D2 put it.
