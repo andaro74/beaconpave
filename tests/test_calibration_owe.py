@@ -22,7 +22,7 @@ import collections
 import json
 import re
 
-from milestone_status import README, ROOT, milestone_is_closed
+from milestone_status import README, ROOT, milestone_is_closed, progression_order
 
 LABELS = ROOT / "quality" / "judge" / "calibration" / "labels.json"
 
@@ -73,7 +73,15 @@ def test_an_owe_states_how_it_must_be_paid():
 
 
 def test_the_progression_table_can_actually_be_read():
-    """A parser that silently matched nothing would make the check above vacuous."""
+    """A parser that silently matched nothing would make the check above vacuous.
+
+    This pinned `M07 is False` and went red at the M07 close, for the reason
+    `tests/test_demo_recordings.py` records about its own literal: a sentinel
+    naming the next open milestone expires on the day that milestone closes.
+    The property is that the parser DISCRIMINATES -- a closed row and an open
+    row both resolve -- and the M04 pin stays because a closed row never
+    reopens."""
     assert milestone_is_closed("M04") is True
-    assert milestone_is_closed("M07") is False
+    answers = {milestone_is_closed(key) for key in progression_order()}
+    assert answers == {True, False}, answers
     assert re.search(r"^\| 04 \|", README.read_text(encoding="utf-8"), re.MULTILINE)

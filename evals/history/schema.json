@@ -127,6 +127,32 @@
       }
     },
     {
+      "title": "a scores.refused is derivable from its cases (ADR-069 D5 cut 1)",
+      "if": {
+        "properties": {
+          "scores": {
+            "required": [
+              "refused"
+            ]
+          }
+        },
+        "required": [
+          "scores"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cases": {
+            "items": {
+              "required": [
+                "refused"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
       "title": "only the adversarial suite has unstable cases",
       "if": {
         "not": {
@@ -210,6 +236,10 @@
               "INFRA",
               "OUT_OF_SCOPE"
             ]
+          },
+          "refused": {
+            "type": "boolean",
+            "description": "True when a control refused this case before it produced an answer to score, by the same per-case majority that produced `result` (SPEC/06d; ADR-069 D1). Read from the refusal marker `run_with_tools.py` writes on the answer, never from the text. It exists so that `scores.refused` and `scores.answered` are DERIVABLE from the row's own cases: from M06d to M07 PR 5 those two keys were written beside the tally and `pave/history.py::check_derivable` tolerated any two numbers there (ADR-069 D5 cut 1). Written by the goldens recorder on every case from M07; a goldens entry recorded after that which omits it is refused by `check_derivable`, and an entry carrying `scores.refused` without it is refused by the rule above. Absent on every entry recorded before it existed, which means UNKNOWN, never `false`."
           },
           "unearned": {
             "type": "boolean",

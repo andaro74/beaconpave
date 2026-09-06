@@ -681,7 +681,7 @@ def run(args) -> int:
         # the same ADR adds. An entry that does not say which bytes it read
         # cannot be anchored to them.
         path = record(results, scores, args, len(per_sample), samples,
-                      sources=_sources(paths), judged=judged_parts)
+                      sources=_sources(paths), judged=judged_parts, refused=refused_ids)
         try:
             shown = path.relative_to(ROOT)
         except ValueError:   # a test's HISTORY, or --history-dir on the twin
@@ -720,7 +720,8 @@ def run(args) -> int:
     return 0
 
 
-def record(results, scores, args, k=1, samples=None, sources=None, judged=None) -> pathlib.Path:
+def record(results, scores, args, k=1, samples=None, sources=None, judged=None,
+           refused=None) -> pathlib.Path:
     """Append a history entry. Never edits: a correction is a new entry carrying
     `supersedes`, because the value of this file is that every row came from a
     real execution.
@@ -728,8 +729,17 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None) 
     `k` and `arm` are what let a reader six months out tell a single sample from a
     summarised one. Without them, "we designated the run in advance" is a social
     protection rather than a legible one — which is the state this repo converts
-    into checks."""
+    into checks.
+
+    `refused` is the majority-refused set `run` computed at the seam (SPEC/06d,
+    ADR-069 D1), and every case records whether it is in it. **ADR-069 D5 cut 1,
+    closed at M07 PR 6:** `scores.refused` and `scores.answered` were written
+    beside the tally from M06d and derivable from nothing in the row --
+    `pave/history.py::check_derivable` tolerated any two numbers there for three
+    milestones. Now they derive from `cases[].refused`, key for key, the way
+    `passed` derives from `cases[].result`."""
     samples = samples or {}
+    refused = refused or set()
     # The sha names **the commit that produced the answers**, not the commit that
     # scored them. For a fresh run those are the same and the default is right. For
     # a re-reading they are not: the m00b judged anchor reads answers produced at
@@ -756,7 +766,7 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None) 
         "recorded_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
         "scores": scores,
         "cases": [
-            {"id": r.id, "result": r.result}
+            {"id": r.id, "result": r.result, "refused": r.id in refused}
             | ({"unearned": True, "unearned_reason": r.unearned_reason} if r.unearned else {})
             # The per-sample verdicts, so a 2-1 majority is checkable in the entry
             # rather than asserted by whoever ran it. Omitted at k=1, where the
@@ -810,7 +820,13 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None) 
         entry["supersedes"] = supersedes
         # `supersedes` means *the earlier entry was wrong* (ADR-027). Identical
         # numbers correct nothing and put the same number twice under one sha.
-        if superseded.get("scores") == entry["scores"] and superseded.get("cases") == entry["cases"]:
+        # Compared without the per-case `refused` flag: a correction of an entry
+        # recorded before the field existed (M07 PR 6) gains it on every case,
+        # and that alone is not a corrected number.
+        def sans_refusal(cases):
+            return [{k: v for k, v in c.items() if k != "refused"} for c in cases or []]
+        if (superseded.get("scores") == entry["scores"]
+                and sans_refusal(superseded.get("cases")) == sans_refusal(entry["cases"])):
             raise SystemExit(f"error: this entry's scores and cases equal {supersedes}'s. A correction "
                              "that corrects nothing is refused (ADR-042 decision 7).")
         if superseded.get("instrument") != entry.get("instrument"):

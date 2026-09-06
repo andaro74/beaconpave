@@ -42,7 +42,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 06b | Trajectory eval + `entitlement-check` ❖ | thirty-four PRs ❆ | `m06b` | 1/25, not recorded ❆ | not judged ✧ | 6/6 tool plane ❆ | ✅ |
 | 06c | The instrument, repaired ❅ | three PRs ❅ | `m06c` | not re-scored ❅ | – | n/a ❅ | ✅ |
 | 06d | The instrument, readable ❈ | three PRs ❈ | `m06d` | not re-scored ❈ | – | n/a ❈ | ✅ |
-| 07 | The guardrail, applied per channel by the gateway ✚ | `m07-guardrail-per-channel` | `m07` | –/25 | – | –/10 | ⬜ |
+| 07 | The guardrail, applied per channel by the gateway ✚ | six PRs ✚ | `m07` | **2/25** ✚ | not judged ✧ | 7/11, not recorded ✚ | ✅ |
 | 08 | Rules registry + regdelta loop | `m08-rules` | `m08` | –/25 | – | – | ⬜ |
 | 09 | Playwright + k6 on one verdict schema | `m09-surfaces` | `m09` | – | – | – | ⬜ |
 | 10 | Game-day drill + go/no-go artifact | `m10-drill` | `m10` | – | – | – | ⬜ |
@@ -412,6 +412,30 @@ Claim 6 is M08's, surfaces M09's, the drill M10's, self-heal M11's. The
 milestone's one claim, its two staged measurements and the rule that decides
 between them are in `SPEC/07-guardrail-per-channel.md`; the numbers arrive at
 close, never before.
+
+✚ **Closed 2026-09-06 at six PRs, on the cap.** Two staged runs of the tools arm
+through the deployed gateway at k=3, both committed as-run under
+`milestones/M07/`. Stage 1 moved the mechanism and not the policy: **18/25
+refused by majority**, all 51 refused samples on `tool_request` — the model's
+request to the platform, text no viewer would have seen. Stage 2 moved that one
+arm to the topic-free tool-output policy: **1/25 refused**, on the final answer,
+and the claim holds at the count. The bold **2/25** is pinned to
+[`m07-tools-goldens.json`](evals/history/m07-tools-goldens.json), the first
+goldens entry since M06: 2 passed, **1 refused before scoring, 22 answered and
+scored wrong — and all 22 fail the `budget` assert on `tokens_in`** (6022–9220
+against a 6000 ceiling; 15 fail on nothing else, so the suite would read 17/25
+without that one assert). Refusals were masking it: M06's answered samples ran
+about 1.2k tokens in, M06b's seven answered-wrong cases already failed budget,
+and nothing could see it behind 17 refusals. The ceiling did not move and is not
+this milestone's; it is M08's first question (`milestones/M07/README.md`). The
+two `scores` keys the ❈ row was waiting on are derivable now — every case in the
+entry carries `refused` (ADR-069 D5 cut 1). `suite latency OVER` at 5431 ms
+against 2500 (11171 at M06b) is recorded, not accommodated. Probes **7/11**,
+sample for sample identical across both stages and to ADR-041's v4 run, scored
+without `--record`: the probe run was the coverage falsifier for ADR-070
+decision 3, not a claim about the platform's adversarial posture, so no
+adversarial entry is written. `ATK-003` still 0/3, accepted as a scale cut
+(ADR-062 amendment 1).
 
 ## What part one produced
 

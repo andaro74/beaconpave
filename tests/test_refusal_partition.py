@@ -193,6 +193,14 @@ def test_the_partition_closes_and_reaches_the_entry_and_the_verdict(harness):
                        .read_text(encoding="utf-8"))
     assert entry["scores"]["refused"] == 2 and entry["scores"]["answered"] == 2
     assert entry["scores"]["passed"] == 1, "no score moved"
+    # ADR-069 D5 cut 1 (M07 PR 6): the two keys derive from the row's own cases.
+    # `flip-f` is refused on one sample of three and records `refused: false` --
+    # the majority, the same estimator as its `result`.
+    assert {c["id"]: c["refused"] for c in entry["cases"]} == {
+        "ref-a": True, "ref-b": True, "wrong-c": False, "pass-d": False, "flip-f": False}
+    from pave import history
+    assert history.derive_scores(entry)["refused"] == 2
+    assert history.derive_scores(entry)["answered"] == 2
     assert verdict["verdict"] == FAIL and verdict.get("notes") is None
 
 
