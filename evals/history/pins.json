@@ -7,5 +7,6 @@
   "m02-control-goldens.json": "8deb55ef1e2c441e48d74c444ffbbdefca3a481db73ceb43ae640d3b1d36789f",
   "m02-tools-goldens.json": "f0e7fe811f1b93eead0bfd02551c88a6fe8f2557248833a5e7fc38ad34ce78d8",
   "m04-adversarial.json": "6f6cc9fac38fd45d1c3bbe33ca3f98da8e11e74ae58d507f9cc2fd8d104debfe",
-  "m06-goldens.json": "4a21537742591663c28355d9da70b1b421f1a502ce9ff387535714004f957c7a"
+  "m06-goldens.json": "4a21537742591663c28355d9da70b1b421f1a502ce9ff387535714004f957c7a",
+  "m07-tools-goldens.json": "c1c5041ed5902385736bbed08bbc3014d0115649420ba4baba15bf9ebda179a4"
 }

@@ -1058,3 +1058,49 @@ AI Quality's and Security's at PR 6 (*What this ADR does not decide*), and
 ADR-069 decision 5 cut 1 binds the moment it is. The `docs/adr/README.md`
 index (amendment 4) and Data Governance's answer on ADR-071 decision 4 are
 PR 6's too.
+
+## Amendment 7 — the close: the entry is recorded, and what the count exposed
+
+**Written 2026-09-06, in PR 6, the sixth and last. Zero model calls, no
+deploy, no run; nothing under `milestones/M07/` changed but the journal.**
+
+**The seats' disposition.** AI Quality, Security and Platform Engineering each
+read the committed stage-2 evidence and the pre-flight header and returned
+*admissible with conditions*; the journal carries each seat's findings. The
+conditions were met in the order they bind: ADR-069 decision 5 cut 1 first —
+every goldens case now records `refused`, `scores.refused` and `scores.answered`
+derive from the cases, `pave/history.py` refuses a goldens entry after M07 that
+omits the field, and `evals/history/schema.json` refuses `scores.refused`
+without it — then the entry, `evals/history/m07-tools-goldens.json`, recorded
+with `HEAD` at `095f7a3` (PR 5's merge, the tree the deployed bundle digests
+equal) from the three committed answer files and the sidecar, three keys.
+
+**What the entry says.** **2/25**, 1 refused before scoring, 22 answered and
+scored wrong — and all 22 fail `budget` on `tokens_in` (6022–9220 against 6000;
+15 on that assert alone, so the suite reads 17/25 without it). AI Quality's
+condition was that this be stated wherever the number is published, and that
+the ceiling not move; both hold. The finding is **M08's first question**, and
+this ADR does not answer it. The two `scores` keys M06d wrote beside the tally
+are derivable for the first time.
+
+**Security's finding, carried.** The moved arm's evidence is a null result: the
+tool-output pair is named in no stage-2 record, because amendment 2 pre-registered
+that an allowed record names the main guardrail only. What measures the arm is
+the difference between the stages under one pre-flight (51 of 51 stage-1 blocks
+on `tool_request`, 0 at stage 2, the same eighteen cases answering) and the
+wiring pins, which decision 3 already calls *a closed list of routes, not a
+proof*. Recorded beside the reading, not answered by it.
+
+**Re-dated, and named as slides.** The ADR index (amendment 4: PR 6) and Data
+Governance's answer on ADR-071 decision 4 (amendment 6: PR 6) move to the
+SPEC/08 PR. New with a date: `topic-baseline.json` on no two-key rule
+(Security, this close) and the suite latency ceiling, both SPEC/08 PR. The
+journal's table is the register.
+
+**One correction decision 1's sweep missed.** ADR-026 amendment 1 re-deferred
+the `brand_tone` calibration widening to M07 because M07 was *the milestone
+that adds graded content* — the rules milestone, which decision 1 renumbered to
+M08 while its list of sites to correct named the progression table and the
+recordings register and not `quality/judge/calibration/labels.json`. The
+close's `make check` found it (`tests/test_calibration_owe.py`); it is
+re-deferred to M08 on two keys with ADR-026 amendment 2, the reason unchanged.

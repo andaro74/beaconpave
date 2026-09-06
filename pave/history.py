@@ -88,6 +88,19 @@ LEGACY_WITHOUT_EVIDENCE = frozenset({
     "m01-goldens.json",
 })
 
+#: The goldens entries recorded after the legacy eight and before per-case
+#: `refused` existed (ADR-069 D5 cut 1, closed at M07 PR 6). Closed by name, the
+#: way `LEGACY_ENTRIES` is: every goldens row outside `LEGACY_ENTRIES` and this
+#: set carries `refused` on every case, or `check_derivable` refuses it. A row
+#: that omitted the field used to be tolerated -- `scores.refused` and
+#: `scores.answered` were written beside the tally from M06d and derived from
+#: nothing, so a recorded entry could carry any two numbers there and nothing
+#: would notice. Adding a name here needs the same three keys and a sentence
+#: saying why an entry recorded after M07 has no per-case refusal state.
+PRE_PARTITION_GOLDENS = frozenset({
+    "m06-goldens.json",
+})
+
 #: An evidence file that was legitimately revised after an entry digested it.
 #: `{entry: [(recorded_digest, revised_digest, why), ...]}` -- a chain, appended
 #: to, never overwritten. The entry's `samples_from.sha256` must equal the first
@@ -120,7 +133,14 @@ EVIDENCE_REVISIONS: dict[str, list[tuple[str, str, str]]] = {
 #: new sub-schema is `additionalProperties: false` in both directions. Moving it
 #: in the same diff as the schema change is the point of the pin -- the digest is
 #: what makes the edit a line somebody has to defend rather than a silent one.
-SCHEMA_DIGEST = "1d5964c235535bc373359fcfcfda793f2f35624f48569a4e9f4487031cfa99da"
+#:
+#: **Moved again at M07 PR 6 (ADR-069 D5 cut 1)**, which adds the optional
+#: per-case `refused` boolean and one `if/then`: an entry whose `scores` carries
+#: `refused` must carry `refused` on every case. An addition and a tightening,
+#: not a loosening: top-level `required` is untouched at five, nothing optional
+#: became required for a committed entry (none carries `scores.refused`), and
+#: `test_the_committed_entries_still_validate` holds that line. Three keys.
+SCHEMA_DIGEST = "0ca86f58643fac7e2956a048dff3f919cd98b3ff8c6dc008931eedf0bde95a61"
 
 #: README progression rows tied to a goldens entry, by tag (ADR-042 decision 2).
 #: Pinned per tag because `m00b` has two goldens entries and `m02` two arms, so
@@ -130,6 +150,9 @@ README_GOLDENS = {
     "m01": "m01-goldens.json",
     "m02": "m02-tools-goldens.json",
     "m06": "m06-goldens.json",
+    # The arm is in the name because the recorder puts it there (`m02-tools`
+    # set the precedent); M07 ran the tools arm alone and recorded it at close.
+    "m07": "m07-tools-goldens.json",
 }
 
 
@@ -394,15 +417,27 @@ def _entries(history: pathlib.Path) -> dict[str, dict]:
 
 
 def derive_scores(entry: dict) -> dict:
-    """What `scores` must say, given `cases` (decision 2 item 4), key for key
-    what `evals/deterministic.py::tally` and `evals/adversarial.py::tally` write.
+    """What `scores` must say, given `cases` (decision 2 item 4): every key
+    `evals/deterministic.py::tally` and `evals/adversarial.py::tally` write, plus
+    the two `evals/run_evals.py::run` writes beside the tally from M06d --
+    `refused` and `answered` (SPEC/06d) -- which were derived from nothing until
+    M07 PR 6 put `refused` on every case (ADR-069 D5 cut 1). This docstring
+    used to say "key for key what `tally` writes", and ADR-069 named that false
+    the day the partition landed.
 
     The one key `cases` cannot determine is not derived: `model_declined_unscored`
     comes from `model_complied`, which `cases` does not record. The adversarial
     `pass_rate` is over SCORED probes -- `total` minus `OUT_OF_SCOPE` -- because
     a probe the arm was never asked established nothing; the AI Quality seat
     measured an honest ADR-041 arm (10 of 11 asked) refused by a derivation
-    over `total`."""
+    over `total`.
+
+    `refused` and `answered` are derived only when some case carries `refused`,
+    the same guard `pooled_pass_rate` uses for `samples`: an entry recorded
+    before the field existed says nothing about them, and deriving zero from
+    absence would assert a refusal count nobody measured. `answered` is the
+    count of FAIL cases not refused -- counted, never `failed - refused`, which
+    is a tautology that can never go red (ADR-069 D7)."""
     cases = entry.get("cases") or []
     results = [c.get("result") for c in cases]
     total = len(cases)
@@ -429,6 +464,10 @@ def derive_scores(entry: dict) -> dict:
         if sampled:
             all_samples = [s for c in sampled for s in c["samples"]]
             out["pooled_pass_rate"] = round(all_samples.count("PASS") / len(all_samples), 4)
+        if any("refused" in c for c in cases):
+            out["refused"] = sum(1 for c in cases if c.get("refused") is True)
+            out["answered"] = sum(1 for c in cases
+                                  if c.get("result") == "FAIL" and c.get("refused") is not True)
     return out
 
 
@@ -452,6 +491,24 @@ def check_derivable(history: pathlib.Path = HISTORY) -> list[str]:
                 # A new row carries every derivable key: the recorders always
                 # write them, and a row with only three is a row someone typed.
                 problems.append(f"{name}: scores has no {key}.")
+        if (entry.get("suite") == "goldens" and name not in LEGACY_ENTRIES
+                and name not in PRE_PARTITION_GOLDENS):
+            # ADR-069 D5 cut 1. A goldens row recorded after M07 says, per case,
+            # whether a control refused it -- or its `scores.refused` and
+            # `scores.answered` are two numbers derived from nothing, which is
+            # the tolerance this check used to have. Absence is refused rather
+            # than read as `false`: a row that omits the field entirely would
+            # otherwise derive nothing and pass, which is the shape ADR-035
+            # catalogued.
+            missing = [c.get("id") for c in entry.get("cases") or []
+                       if not isinstance(c.get("refused"), bool)]
+            if missing:
+                problems.append(
+                    f"{name}: {len(missing)} case(s) omit a boolean `refused` "
+                    f"({', '.join(str(m) for m in missing[:3])}{' ...' if len(missing) > 3 else ''}). "
+                    "A goldens entry recorded after M07 carries per-case refusal state so "
+                    "scores.refused and scores.answered derive from its cases (ADR-069 D5 cut 1); "
+                    "the recorder writes it, so a row without it was written some other way.")
         k = entry.get("k")
         for case in entry.get("cases") or []:
             samples = case.get("samples")

@@ -176,3 +176,37 @@ The check reads the README progression table rather than git tags, which keeps i
 hermetic and honest about what the repo *publishes*. That table was itself wrong
 once — M03 sat unmarked for four milestones after being tagged — which is a second
 reason a test that reads it is worth having.
+
+## Amendment 2 (2026-09-06, at the M07 close): re-deferred to M08, because the milestone the reason named was renumbered
+
+**The mechanism worked.** M07's close flipped the progression row and
+`tests/test_calibration_owe.py` went red on the owe above, which no document in
+M07's plan — not `SPEC/07`'s *Obligations inherited*, not ADR-070, not the close
+plan the seats reviewed — had listed. The owe was found by the check, in `make
+check`, on the closing PR, which is what amendment 1 built it for. The first
+lapse was discovered by a seat going looking; this one was discovered by a test.
+
+**Why M08, and why the reason is unchanged.** Amendment 1 re-deferred to M07
+because *"M07 is the next milestone that adds graded content — the disclosure
+disposition turns a rule into golden cases."* ADR-070 decision 1 then moved the
+rules registry and the regdelta loop from M07 to M08 and every later row by one.
+The milestone the reason describes has a new number and the same content; the
+number in `labels.json` was not moved with it, because ADR-070's correction sweep
+listed the recordings register and the progression table and not this file. So
+the reason stands and the target follows it. M07 itself added no graded content:
+its one claim is a refusal count, and all 22 of its answered-and-wrong cases
+fail a `budget` assert before any judge would read them (M07 journal).
+
+**What this is not.** Not a payment — paying needs a wider deterministic draw
+hand-labelled under the existing discipline, which is a judge run, and M07 PR 6
+is zero model calls by its spec. Not a third lapse — the target moved on the day
+the check fired, on two keys (AI Quality and Security, the `quality/judge/`
+rule), with this record. And not a licence: `how_it_must_be_paid` is unchanged,
+and "still one value" is still the finding it would be.
+
+**The residual, stated.** The parser-sanity test beside the owe pinned *"M07 is
+not closed"* as a literal and went red for the same reason
+`tests/test_demo_recordings.py` recorded about its own sentinel at M05. It now
+asserts the property — a closed row and an open row both resolve — so the next
+close does not pay this cost again. This amendment is the third file that says
+so; the pattern is in the record, and a linter for it is not.

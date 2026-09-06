@@ -209,6 +209,143 @@ def test_scores_must_be_what_the_cases_say(tmp_path):
     assert any("scores.total is 3" in p for p in check_derivable(h))
 
 
+# --- ADR-069 D5 cut 1: `refused` and `answered` derive from the cases ------------
+#
+# From M06d to M07 PR 5 `evals/run_evals.py::run` wrote `scores.refused` and
+# `scores.answered` beside the tally, `derive_scores` produced neither, and
+# `check_derivable` iterates `derive_scores`'s keys -- so a recorded row could
+# carry any two numbers there and nothing would notice (ADR-069 D5 cut 1, latent
+# for three milestones, binding on M07's entry). Each test below plants the row
+# that used to pass.
+
+def _post_partition_row(h: pathlib.Path, refused_on: tuple = ("blackout-007",)) -> dict:
+    """A goldens row recorded after M07: m06's cases with per-case `refused`, the
+    refused cases among those that already record FAIL, scores re-derived."""
+    row = json.loads((h / "m06-goldens.json").read_text(encoding="utf-8"))
+    row["tag"] = "mzz"
+    for c in row["cases"]:
+        c["refused"] = c["id"] in refused_on
+    row["scores"] = {**row["scores"], **history.derive_scores(row)}
+    return row
+
+
+def _named(problems: list, name: str) -> list:
+    return [p for p in problems if p.startswith(name)]
+
+
+def test_a_goldens_row_after_m07_that_omits_per_case_refused_is_red(tmp_path):
+    """The check the cut names: an entry that omits the field. Absence used to
+    derive nothing and pass; a row carrying `scores.refused: 1` with no case
+    saying which one is two numbers from nowhere."""
+    h = _copy_history(tmp_path)
+    row = _post_partition_row(h)
+    assert row["scores"]["refused"] == 1 and row["scores"]["answered"] == 3
+    for c in row["cases"]:
+        del c["refused"]
+    (h / "mzz-goldens.json").write_text(json.dumps(row), encoding="utf-8")
+    problems = _named(check_derivable(h), "mzz-goldens.json")
+    assert any("25 case(s) omit a boolean `refused`" in p for p in problems), problems
+    # one case, not all: still red, and the case is named
+    row = _post_partition_row(h)
+    del row["cases"][3]["refused"]
+    (h / "mzz-goldens.json").write_text(json.dumps(row), encoding="utf-8")
+    problems = _named(check_derivable(h), "mzz-goldens.json")
+    assert any("1 case(s) omit a boolean `refused` (blackout-008)" in p for p in problems), problems
+    # a string is not a boolean: `"refused": "no"` is not a refusal state
+    row = _post_partition_row(h)
+    row["cases"][3]["refused"] = "no"
+    (h / "mzz-goldens.json").write_text(json.dumps(row), encoding="utf-8")
+    assert _named(check_derivable(h), "mzz-goldens.json")
+    # the honest row: every case carries it, scores derive, nothing named
+    row = _post_partition_row(h)
+    (h / "mzz-goldens.json").write_text(json.dumps(row), encoding="utf-8")
+    assert _named(check_derivable(h), "mzz-goldens.json") == []
+
+
+def test_scores_refused_and_answered_must_be_what_the_cases_say(tmp_path):
+    """The two keys the recorder wrote beside the tally, now derived. A row
+    claiming one refusal over cases that record two is the 24/25 forgery one
+    key over."""
+    h = _copy_history(tmp_path)
+    for key, planted in (("refused", 5), ("answered", 0)):
+        row = _post_partition_row(h)
+        row["scores"][key] = planted
+        (h / "mzz-goldens.json").write_text(json.dumps(row), encoding="utf-8")
+        problems = _named(check_derivable(h), "mzz-goldens.json")
+        assert any(f"scores.{key} is {planted}" in p for p in problems), (key, problems)
+    # omitting the two keys on a row whose cases carry the field is red too: a
+    # new row carries every derivable key
+    row = _post_partition_row(h)
+    del row["scores"]["refused"], row["scores"]["answered"]
+    (h / "mzz-goldens.json").write_text(json.dumps(row), encoding="utf-8")
+    problems = _named(check_derivable(h), "mzz-goldens.json")
+    assert any("scores has no refused" in p for p in problems), problems
+    assert any("scores has no answered" in p for p in problems), problems
+
+
+def test_answered_is_counted_from_the_cases_never_failed_minus_refused():
+    """ADR-069 D7: `failed - refused` is a tautology that can never go red. On a
+    row where a refused case did NOT record FAIL (the partition did not close,
+    which the runner says aloud), the two disagree, and the derivation must be
+    the count."""
+    row = json.loads((HISTORY / "m06-goldens.json").read_text(encoding="utf-8"))
+    passing = next(c for c in row["cases"] if c["result"] == "PASS")
+    for c in row["cases"]:
+        c["refused"] = c is passing
+    derived = history.derive_scores(row)
+    assert derived["refused"] == 1
+    assert derived["answered"] == derived["failed"], "every FAIL answered; the refused case passed"
+    assert derived["answered"] != derived["failed"] - derived["refused"]
+
+
+def test_the_pre_partition_set_is_closed_and_the_field_is_absent_only_there():
+    """Two directions. Every goldens entry outside the legacy eight and the
+    pre-partition set carries `refused` on every case, so the closed set is the
+    only place absence is tolerated; and the members of that set really lack
+    it, so the set is a record of what was recorded before the field existed
+    rather than a tolerance somebody can grow."""
+    assert set(history.PRE_PARTITION_GOLDENS) == {"m06-goldens.json"}
+    seen_post = 0
+    for path in enumerate_entries()[0]:
+        entry = json.loads(path.read_text(encoding="utf-8"))
+        if entry.get("suite") != "goldens":
+            continue
+        carried = [isinstance(c.get("refused"), bool) for c in entry["cases"]]
+        if path.name in LEGACY_ENTRIES | history.PRE_PARTITION_GOLDENS:
+            assert not any(carried), f"{path.name} is pre-partition and carries the field"
+            assert "refused" not in entry["scores"], path.name
+        else:
+            assert all(carried), f"{path.name} was recorded after M07 and omits the field"
+            assert entry["scores"]["refused"] == history.derive_scores(entry)["refused"]
+            seen_post += 1
+    assert seen_post >= 1, "M07's entry is the first post-partition row; none found"
+
+
+def test_the_schema_refuses_scores_refused_without_per_case_refused(tmp_path):
+    """The schema's half of the cut: `scores.refused` on a row implies the
+    field on every case, and the field is a boolean. The ratchet holds because
+    no committed entry carries `scores.refused`."""
+    import jsonschema
+    schema = json.loads((HISTORY / "schema.json").read_text(encoding="utf-8"))
+    h = _copy_history(tmp_path)
+    row = _post_partition_row(h)
+    jsonschema.validate(row, schema)
+    stripped = json.loads(json.dumps(row))
+    del stripped["cases"][0]["refused"]
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(stripped, schema)
+    typed = json.loads(json.dumps(row))
+    typed["cases"][0]["refused"] = "yes"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(typed, schema)
+    # a row with neither is the pre-partition shape and still validates
+    neither = json.loads(json.dumps(row))
+    del neither["scores"]["refused"], neither["scores"]["answered"]
+    for c in neither["cases"]:
+        del c["refused"]
+    jsonschema.validate(neither, schema)
+
+
 def test_an_adversarial_result_is_the_unanimity_of_its_samples(tmp_path):
     h = _copy_history(tmp_path)
     adv = json.loads((h / "m04-adversarial.json").read_text(encoding="utf-8"))
@@ -955,7 +1092,11 @@ def test_a_correction_can_be_recorded_end_to_end(tmp_path, monkeypatch):
 
     results = [R(c["id"], c["result"]) for c in original["cases"]]
     results[0].result = "PASS" if results[0].result != "PASS" else "FAIL"
-    scores = history.derive_scores({"suite": "goldens", "cases": [{"id": r.id, "result": r.result} for r in results]})
+    # `refused: False` on every case: the runner writes `scores.refused` and
+    # `scores.answered` at its seam (M06d), and from M07 they derive from this
+    # field, so a stand-in for the runner's scores must carry it too.
+    scores = history.derive_scores({"suite": "goldens", "cases": [
+        {"id": r.id, "result": r.result, "refused": False} for r in results]})
     sources = run_evals._sources([ROOT / "milestones" / "M01" / "goldens-run.json"])
     sources[0]["path"] = "milestones/M01/goldens-run.json"
     path = run_evals.record(results, scores, Args(), sources=sources)
@@ -973,7 +1114,11 @@ def test_a_correction_can_be_recorded_end_to_end(tmp_path, monkeypatch):
         run_evals.record(results, scores, Args())
     # correcting the correction: counts, never nests, and the chain is one difference
     results[1].result = "PASS" if results[1].result != "PASS" else "FAIL"
-    scores = history.derive_scores({"suite": "goldens", "cases": [{"id": r.id, "result": r.result} for r in results]})
+    # `refused: False` on every case: the runner writes `scores.refused` and
+    # `scores.answered` at its seam (M06d), and from M07 they derive from this
+    # field, so a stand-in for the runner's scores must carry it too.
+    scores = history.derive_scores({"suite": "goldens", "cases": [
+        {"id": r.id, "result": r.result, "refused": False} for r in results]})
     Args.supersedes = "m01-correction1-goldens.json"
     path = run_evals.record(results, scores, Args(), sources=sources)
     assert path.name == "m01-correction2-goldens.json"
