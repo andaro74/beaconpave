@@ -1,0 +1,39 @@
+{
+  "_what_this_is": "PLANTED: the calibration record's shape (run_with_tools.py --calibrate).",
+  "case": "blackout-008",
+  "request_id": "blackout-008-m08b-planted-calibration",
+  "tools": "absent",
+  "decision": "allowed",
+  "mechanism": "none",
+  "record_id": "planted/blackout-008-m08b-planted-calibration.json",
+  "record_resolved": true,
+  "usage": {
+    "guard_ms": 600,
+    "tokens_in": 1470,
+    "tokens_out": 80,
+    "latency_ms": 1200,
+    "calls": [
+      {
+        "tokens_in": 1470,
+        "tokens_out": 80,
+        "latency_ms": 1200
+      }
+    ]
+  },
+  "record_usage": {
+    "guard_ms": 600,
+    "tokens_in": 1470,
+    "tokens_out": 80,
+    "latency_ms": 1200,
+    "calls": [
+      {
+        "tokens_in": 1470,
+        "tokens_out": 80,
+        "latency_ms": 1200
+      }
+    ]
+  },
+  "trajectory": [],
+  "system_sha256": "planted",
+  "text_sha256": "planted"
+}

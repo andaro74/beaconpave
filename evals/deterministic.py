@@ -307,7 +307,16 @@ class Scorer:
         per-case `p95_ms` it replaced was a category error: a p95 cannot be
         computed from one sample, and asserting it per case turned the tail it
         explicitly permits into a failure (ADR-016). The distributional statistic
-        now lives at suite level, in `suite_latency`."""
+        now lives at suite level, in `suite_latency`.
+
+        **The call count rides the failure when the usage carries one (M08b
+        PR 2, ADR-014 amendment 2's obligation).** `tokens_in=8181 over 7700`
+        did not say it was a four-call turn, and the ceiling was placed below
+        the next call count precisely to catch one; the hand-join M08 paid
+        once in `rescore-join.json` is what this suffix retires. Read as the
+        length of `usage.calls` — the per-round list the loop records — and
+        omitted when the list is absent, so every committed answer file
+        without one produces the verdict string it produced before."""
         over = []
         for key in ("tokens_in", "tokens_out"):
             limit, got = ceiling.get(key), usage.get(key)
@@ -316,7 +325,11 @@ class Scorer:
         limit_ms, got_ms = ceiling.get("max_ms"), usage.get("latency_ms")
         if limit_ms is not None and got_ms is not None and got_ms > limit_ms:
             over.append(f"latency_ms={got_ms} over max_ms {limit_ms} (stalled request)")
-        return AssertResult("budget", not over, "; ".join(over))
+        detail = "; ".join(over)
+        calls = usage.get("calls")
+        if over and isinstance(calls, list) and calls:
+            detail += f" (calls={len(calls)})"
+        return AssertResult("budget", not over, detail)
 
     # --- case ------------------------------------------------------------------
 

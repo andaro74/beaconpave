@@ -62,6 +62,16 @@ pair the pre-flight did not print exits 2 after writing — it is not a reading.
 `--tag` keeps the default `request_id` byte-identical and lets a same-day re-run
 write records the discarded run's keys cannot collide with.
 
+**Per-call usage and the calibration call, M08b PR 2 (ADR-074 decision 3 §4).**
+The gateway's `usage` now carries `calls`, one entry per model round, and this
+file writes it into the answer file beside the totals it always wrote — the
+totals are unchanged, and the sum over the list equals them by test. `--calibrate
+CASE` sends one turn on CASE's viewer turn with `tools` absent and the same
+system block, and writes the response's and the record's `usage` and nothing
+the model said: the first round's `inputTokens` with no `toolConfig` is the
+committed text as the model counts it, which is the number the residual is
+attributed against.
+
 Outside the hermetic surface. Owning seat: Service Team.
 """
 from __future__ import annotations
@@ -272,10 +282,92 @@ def _refusal(response: dict, record: dict | None) -> dict:
     }
 
 
+#: The calibration turn's sample name (M08b PR 2, ADR-074 decision 3 §4): its
+#: `request_id` is `<case>-<tag>-calibration`, numbered like a sample so it can
+#: collide with none and so the lake shows it beside the run it calibrates.
+CALIBRATION_SAMPLE = "calibration"
+
+
+def calibrate(case: dict, deployed: dict, header: dict, tag: str, path: pathlib.Path) -> int:
+    """One gateway turn on one case's viewer turn with `tools` ABSENT and the
+    same `system` block the run sends — the calibration call (ADR-074 decision
+    3 §4; SPEC/08b, the residual).
+
+    **The event carries no `tools` key at all.** The handler offers tools only
+    on `event.get("tools")`, so an absent key is the path the frozen control
+    arm already exercises, and the request that reaches the model is the
+    system block, the viewer turn verbatim, and no `toolConfig`. Its first
+    round's `inputTokens` is therefore the committed text as the model counts
+    it — **B** — against which the fresh run's round-1 `inputTokens` on the same
+    case (**A**) is read; the difference, less the tool specs' own estimate, is
+    what `toolConfig` costs beyond its text.
+
+    **What is written, and what is not.** The response's `usage` (with the
+    per-round list the loop now records) and the audit record's `usage` read
+    back out of the lake, the record id, the decision, and the digests of the
+    two texts sent. Never the answer: a reply to a catalog-less prompt with no
+    tools is evidence of nothing, and this file scores nothing. A turn refused
+    on the `answer` channel still spent its first round, and the schema keeps
+    `usage` on a guardrail refusal that reached the model — so B is readable
+    from either copy, which is the fallback SPEC/08b pre-registers before the
+    re-issue on the next case."""
+    viewer = case.get("viewer") or {}
+    text = gw.user_turn(case["input"], viewer.get("plan"), viewer.get("dma"))
+    system = gw.build_tool_prompt()
+    request_id = f"{case['id']}-{tag}-{CALIBRATION_SAMPLE}"
+    response = gw.invoke(deployed["GatewayFunctionName"], {
+        "text": text,
+        "system": system,
+        "request_id": request_id,
+        "service": "highlights-agent",
+        "classification": "internal",
+    })
+    record = None
+    if response.get("record_id"):
+        try:
+            record = gw.fetch_record(deployed["AuditLakeBucket"], response["record_id"])
+        except Exception as exc:  # noqa: BLE001
+            print(f"{case['id']}: FETCH FAILED: {exc}", file=sys.stderr)
+    payload = {
+        "_what_this_is": (
+            "ADR-074 decision 3 §4: the calibration call. One gateway turn on this case's "
+            "viewer turn with `tools` absent and the same system block the run sends, so "
+            "the first round's tokens_in is the committed text as the model counts it (B). "
+            "The answer is not recorded; nothing here is scored. `usage` is the response's, "
+            "`record_usage` the audit record's, and the two must agree."),
+        "_preflight": header,
+        "case": case["id"],
+        "request_id": request_id,
+        "tools": "absent",
+        "decision": response.get("decision"),
+        "mechanism": response.get("mechanism"),
+        "record_id": response.get("record_id"),
+        "record_resolved": record is not None,
+        "usage": response.get("usage"),
+        "record_usage": (record or {}).get("usage"),
+        "trajectory": response.get("trajectory") or [],
+        "system_sha256": _sha256(system.encode("utf-8")),
+        "text_sha256": _sha256(text.encode("utf-8")),
+    }
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8",
+                    newline="")
+    usage = response.get("usage") or {}
+    rounds = usage.get("calls") or []
+    print(f"{case['id']}: {response.get('decision')} by {response.get('mechanism')}; "
+          f"{usage.get('tokens_in')}in over {len(rounds)} round(s), first round "
+          f"{(rounds[0].get('tokens_in') if rounds else None)}in [audit {response.get('record_id')}]")
+    print(f"wrote {path}: the calibration record, tools absent; scored by nothing")
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="run the golden set through the tool plane")
     parser.add_argument("--out", default="run-m02-tools.json")
     parser.add_argument("--only", help="single case id, for a smoke test")
+    parser.add_argument("--calibrate", metavar="CASE",
+                        help="one turn on CASE's viewer turn with tools ABSENT and the same "
+                             "system block, written to --out with its audit record's usage "
+                             "(ADR-074 decision 3 §4). No run; one call")
     # The sample index reaches the gateway as part of `request_id`, so the samples
     # write distinct audit records instead of several versions of one key. This
     # arm had that from M02; the control arm did not until ADR-035, and its
@@ -313,6 +405,11 @@ def main(argv=None) -> int:
     if args.preflight_only:
         print("pre-flight only: nothing was called and nothing was written.")
         return 0
+    if args.calibrate:
+        target = next((c for c in cases if c["id"] == args.calibrate), None)
+        if target is None:
+            sys.exit(f"no such case: {args.calibrate}")
+        return calibrate(target, deployed, header, args.tag, pathlib.Path(args.out))
 
     system = gw.build_tool_prompt()
     samples = range(args.sample, args.sample + args.k)

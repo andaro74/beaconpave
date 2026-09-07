@@ -1,0 +1,21 @@
+{
+  "_what_this_is": "PLANTED: the grants file the operator writes after read_withheld.py --show; one entry per refused sample on the answer channel. No text.",
+  "grants": {
+    "recommend-003": {
+      "s1": {
+        "grant": true,
+        "dec001_shape": false
+      },
+      "s3": {
+        "grant": true,
+        "dec001_shape": false
+      }
+    },
+    "brand-020": {
+      "s1": {
+        "grant": false,
+        "dec001_shape": false
+      }
+    }
+  }
+}

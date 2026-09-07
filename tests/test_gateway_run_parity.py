@@ -658,6 +658,41 @@ def test_only_the_tool_arm_asks_for_tools():
     )
 
 
+def test_the_calibration_call_sends_the_tool_arms_system_block_and_no_tools_key():
+    """M08b PR 2 (ADR-074 decision 3 §4). `--calibrate` is the producer of B:
+    one turn with the SAME system block the run sends and `tools` ABSENT — not
+    `False`, absent, because the handler offers tools on `event.get("tools")`
+    and a key present at all is a key a future default could read. Pinned as a
+    tree: the one `gw.invoke` in `calibrate` carries exactly the run's keys
+    minus `tools`, its `system` comes from `build_tool_prompt`, and the run's
+    own invoke still carries `"tools": True`. A calibration event that asked
+    for tools would measure A twice and call it B."""
+    tree = ast.parse(TOOL_ARM.read_text(encoding="utf-8"))
+    functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    assert "calibrate" in functions, "run_with_tools.py has no calibration producer"
+
+    def invoke_payloads(fn):
+        return [call.args[1] for call in ast.walk(fn)
+                if isinstance(call, ast.Call) and ast.unparse(call.func) == "gw.invoke"]
+
+    calibration = invoke_payloads(functions["calibrate"])
+    assert len(calibration) == 1 and isinstance(calibration[0], ast.Dict)
+    keys = [k.value for k in calibration[0].keys]
+    assert keys == ["text", "system", "request_id", "service", "classification"], keys
+    assert "tools" not in keys
+    values = dict(zip(keys, (ast.unparse(v) for v in calibration[0].values), strict=True))
+    assert values["system"] == "system" and values["text"] == "text"
+    system_binds = [n for n in ast.walk(functions["calibrate"]) if isinstance(n, ast.Assign)
+                    and any(isinstance(t, ast.Name) and t.id == "system" for t in n.targets)]
+    assert len(system_binds) == 1 and ast.unparse(system_binds[0].value) == "gw.build_tool_prompt()"
+
+    run = invoke_payloads(functions["main"])
+    assert len(run) == 1 and isinstance(run[0], ast.Dict)
+    run_keys = {k.value: ast.unparse(v) for k, v in zip(run[0].keys, run[0].values, strict=True)}
+    assert run_keys["tools"] == "True"
+    assert set(run_keys) - {"tools"} == set(keys), "the two events differ by more than `tools`"
+
+
 def test_the_tool_arm_refuses_to_write_a_run_in_which_nothing_was_authorized():
     """The harness half of the finding Platform Engineering raised.
 

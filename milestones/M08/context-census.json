@@ -51,7 +51,7 @@
     "services/highlights-agent/evals/answer.schema.json": "d4219cc724c5c17e94693d99992637de9c8f987e58632239ca2bbfccd0baa155",
     "services/highlights-agent/evals/golden/cases.yaml": "f59f4a398f3a1693f3fa463485ff83b8a9b39a2fcd4f9f2ebb85611ea69bf027",
     "services/highlights-agent/gateway_client.py": "4554dd284606139de8ece32efc09884c68e89c770e2c9bc18617469230dcd73c",
-    "services/highlights-agent/pave.manifest.yaml": "59a3a4bbef89c5998b345accc23ef03c99d0ed4399702997f6552c48135cd536"
+    "services/highlights-agent/pave.manifest.yaml": "2f11414cef788db641195bcf9d33f632eb6630954501500c1b881a3e7c415f5c"
   },
   "1_by_milestone (exact)": {
     "m02-tools": {

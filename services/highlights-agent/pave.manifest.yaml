@@ -20,7 +20,7 @@ tools:                             # must exist in registry; Cedar policy genera
 gates:
   eval_min_cases: 20               # gate fails below this — no unevaluated agents
   budgets:                         # tokens, not dollars — ADR-014
-    p95_ms: 2500                   # suite-level distribution, not per case — ADR-016
+    p95_ms: 5200                   # suite-level, not per case (ADR-016); derived, not raised — ADR-014 amendment 3
     max_ms: 12000                  # per-request hang guard; a tool loop is n calls
     max_tokens_in: 8200
     max_tokens_out: 800

@@ -120,6 +120,21 @@
         "guardrail_sha256": "47d1c9a1a1d16e2e6647c2e9b0c77b63d403c062ba10ec4d54f1f32cf0c0ef76",
         "capture_sha256": "27ac56b6bc22086c712b2f7d24b80672a24a6d8271e214a6d28bf1f471dd8125"
       }
+    },
+    "m04-I": {
+      "registered": "2026-09-07",
+      "corpus_size": 11,
+      "first_entry": "none yet - registered as the precondition for the change, not after it (ADR-038)",
+      "why": "ADR-074 decision 3 \u00a74, M08b PR 2. The loop records what each model round spent: `core/toolloop.py::_accumulate` keeps a per-round list, `usage.calls`, beside the totals it has always summed, so the fresh run's first-round `inputTokens` can be read against one calibration call and the unattributed quarter of the per-call base attributed. `guardrail_sha256` moves because it digests `core/toolloop.py` whole and that file changed; `core/guardrail.py` did not. It is the only digest that moves: `core/audit.py` and the probe harness are untouched, so `capture_sha256` holds, and the scorer, its semantics, the probe corpus and the G4 corpus are byte-identical. What a probe passing IS does not change and cannot: no adversarial scorer reads `usage`, the channel labelling and the one serialisation per channel are untouched, and the totals every budget verdict reads are computed exactly as before with the sum over the list asserted equal to them. No probe run in M08b (SPEC/08b constraint 8); the first entry naming this instrument is produced by whatever run records one next. Registered beside m04-H rather than editing it, because published numbers may cite that name and it has to keep resolving.",
+      "digests": {
+        "scorer_sha256": "e94158d5ffea80c80e3d491a58e7a7cf88eee75cbe2545db7baad493fd864207",
+        "semantics_sha256": "fe487fd671953e0ddb93dc0479af1a1916de2ae71d7bbda8b1115ffcebc1e89e",
+        "probes_sha256": "9c5a98401697eec5e32ff91bbed3e097cef0248f2c982222c12de6bbcae28b6b",
+        "g4_cases_sha256": "3fe4fef50e254915ffe166d7f82c88e99ad8f445188afbe7d9318bf6c5c4f269",
+        "classify_sha256": "5c13b08ae144cf9baf3804bd999dd3a04f987c48c460615ea554a420148f8b74",
+        "guardrail_sha256": "18ff3a85683a9ab0221749bfb37a428c54da215eb33c1c789f961b571d63d777",
+        "capture_sha256": "27ac56b6bc22086c712b2f7d24b80672a24a6d8271e214a6d28bf1f471dd8125"
+      }
     }
   }
 }

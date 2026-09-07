@@ -331,6 +331,49 @@ def test_a_budget_is_enforced_on_latency(scorer):
     assert "latency_ms" in next(a.detail for a in result.failures if a.kind == "budget")
 
 
+def _round(tokens_in):
+    return {"tokens_in": tokens_in, "tokens_out": 50, "latency_ms": 1000}
+
+
+def test_a_budget_failure_names_the_call_count_when_the_usage_carries_one(scorer):
+    """M08b PR 2 (ADR-014 amendment 2's obligation, ADR-074 decision 4).
+    `tokens_in=8181 over 7700` did not say it was a four-call turn, and the
+    ceiling was placed below the next call count to catch exactly one. With the
+    loop's per-round list present the failure says so; the count is the list's
+    length, never a number written into the usage."""
+    four = answer()
+    four["usage"]["tokens_in"] = 8181
+    four["usage"]["calls"] = [_round(2000), _round(2000), _round(2100), _round(2081)]
+    detail = next(a.detail for a in scorer.score_case(CASES["blackout-001"], four, CATALOG).failures
+                  if a.kind == "budget")
+    assert "tokens_in=8181 over 7700" in detail and detail.endswith("(calls=4)"), detail
+
+    three = answer()
+    three["usage"]["tokens_in"] = 7701
+    three["usage"]["calls"] = [_round(2500), _round(2600), _round(2601)]
+    detail = next(a.detail for a in scorer.score_case(CASES["blackout-001"], three, CATALOG).failures
+                  if a.kind == "budget")
+    assert detail.endswith("(calls=3)"), detail
+
+
+def test_a_budget_verdict_without_per_call_usage_reads_as_it_always_did(scorer):
+    """Every committed answer file before M08b carries no `calls`, and M07's
+    verdict strings — which `rescore-join.json` is pinned to — must not move."""
+    over = answer()
+    over["usage"]["tokens_in"] = 8181
+    detail = next(a.detail for a in scorer.score_case(CASES["blackout-001"], over, CATALOG).failures
+                  if a.kind == "budget")
+    assert "calls" not in detail and detail.startswith("tokens_in=8181 over 7700"), detail
+
+    # A passing budget carries no detail either way, so the suffix cannot make
+    # a pass read as a finding.
+    under = answer()
+    under["usage"]["calls"] = [_round(2000), _round(2000), _round(2000)]
+    result = scorer.score_case(CASES["blackout-001"], under, CATALOG)
+    budget = next(a for a in result.asserts if a.kind == "budget")
+    assert budget.passed and budget.detail == ""
+
+
 # --- schema and substring semantics ----------------------------------------------
 
 def test_a_schema_violation_fails_before_prose_is_trusted(scorer):

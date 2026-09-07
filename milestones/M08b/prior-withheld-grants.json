@@ -1,0 +1,11 @@
+{
+  "_what_this_is": "ADR-074 decision 3 §3's prior, as the reader reads it: the held text on each M07 stage-2 sample refused on the answer channel by the entitlement topic, read with read_withheld.py --show on 2026-09-06 and recorded by shape in milestones/M08/withheld-read.txt and ADR-070 amendment 8 — a schema-conforming grant on both, DEC-001's shape on neither. No text is here. tests/test_m08b_answer_channel.py reproduces the prior (G = 8, F = 1) from M07's committed files through milestones/M08b/answer_channel.py with this file as the grants input; a disagreement is a finding about the hand count.",
+  "read_on": "2026-09-06",
+  "source": "milestones/M08/withheld-read.txt; docs/adr/ADR-070 amendment 8",
+  "grants": {
+    "recommend-003": {
+      "s1": {"grant": true, "dec001_shape": false},
+      "s3": {"grant": true, "dec001_shape": false}
+    }
+  }
+}

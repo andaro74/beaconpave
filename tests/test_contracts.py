@@ -711,6 +711,11 @@ INSTRUMENT_DIGESTS = {
     "m04-F": "23a4337f672e6a01ad4dbcc96b30f9f0d8d9b0ae175058223a939facc1bf34fb",
     "m04-G": "e0ce9a90396f4b208b40bea7629196c27e565c83bcf7953bf5768f74aa181167",
     "m04-H": "fc27f812f6d0631dec428be3ee8cb62822f3574fd3ae37911661e450976a00c0",
+    # M08b PR 2 (ADR-074 decision 3 §4): the loop records per-round usage, and
+    # `guardrail_sha256` digests `core/toolloop.py` whole, so it moves although
+    # no adversarial scorer reads `usage`. The other six digests hold; no probe
+    # runs in M08b. Registered beside m04-H, editing nothing in it.
+    "m04-I": "fad43a1c5584fc7e57e675114317cafc1bd460a2c470272aeab5b809f2072cf7",
 }
 
 

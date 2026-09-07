@@ -191,6 +191,76 @@ def test_the_turn_sums_what_every_round_spent():
     assert outcome.usage["latency_ms"] == 360
 
 
+def test_each_round_is_recorded_beside_the_totals_and_sums_to_them():
+    """M08b PR 2 (ADR-074 decision 3 §4). M08's census could bound the per-call
+    base only from turn totals, and a quarter of it stayed unattributed because
+    no committed file carried a single round's own figure. `usage.calls` is that
+    figure, one entry per model round, in order, three keys each; the totals are
+    computed exactly as before and the sum over the list equals them — so no
+    committed verdict moves, and the residual can be read from the first entry."""
+    converse, tool = Converse(tool_use(), tool_use(use_id="tu-2"), final()), Tool()
+    outcome = run(converse, tool)
+    rounds = outcome.usage["calls"]
+    assert len(rounds) == 3, "three model rounds, three entries"
+    for entry in rounds:
+        assert set(entry) == {"tokens_in", "tokens_out", "latency_ms"}
+        assert entry == {"tokens_in": USAGE["inputTokens"], "tokens_out": USAGE["outputTokens"],
+                         "latency_ms": 120}
+    for key in ("tokens_in", "tokens_out", "latency_ms"):
+        assert outcome.usage[key] == sum(entry[key] for entry in rounds), (
+            f"{key}: the total is not the sum over the per-round list")
+    # Guard time and tool time are their own keys and never enter the list.
+    assert "guard_ms" in outcome.usage and "tool_ms" in outcome.usage
+    assert not any("guard_ms" in e or "tool_ms" in e for e in rounds)
+
+
+def test_a_turn_blocked_before_its_first_model_call_records_no_rounds():
+    """The schema's own sentence: the token keys are what say a model call
+    happened, and `calls` is present exactly when one did. A block on the
+    viewer's turn spent guard time and no round."""
+    outcome = run(Converse(final()), Tool(), inspect=Inspect(question=blocks("question", "TOPIC:x")))
+    assert outcome.status == toolloop.BLOCKED
+    assert "calls" not in outcome.usage and "tokens_in" not in outcome.usage
+
+
+def test_a_turn_blocked_at_a_later_round_keeps_the_rounds_it_paid_for():
+    """A turn blocked on its answer at round three had already paid for three
+    rounds; the list carries all three, so a runaway turn refused late is not
+    understated by the amount that makes it worth catching."""
+    converse, tool = Converse(tool_use(), tool_use(use_id="tu-2"), final()), Tool()
+    outcome = run(converse, tool, inspect=Inspect(answer=blocks("answer", "TOPIC:x")))
+    assert outcome.status == toolloop.BLOCKED
+    assert len(outcome.usage["calls"]) == 3
+    assert outcome.usage["tokens_in"] == USAGE["inputTokens"] * 3
+
+
+def test_the_first_request_is_the_viewer_turn_verbatim_and_nothing_else():
+    """The round-1 pin, behavioural half (M08b PR 2; ADR-074 decision 3 §4).
+    ADR-014 amendment 2's downward re-derivation trigger arms only if the first
+    request the loop sends carries more than the caller handed it: the residual
+    attribution reads the first round's `inputTokens` as `system` plus the
+    viewer turn plus `toolConfig`, and anything the loop prepended or appended
+    would be content the agent sends that no committed text shows. So the first
+    transcript `converse` receives is the caller's `messages`, deep-equal, with
+    nothing declared `untrusted` prepended and nothing assessed inserted. The
+    handler's half — that `system` and `toolConfig` are the only other keys on
+    the model call, and that `messages` wraps the event's text verbatim — is
+    pinned structurally in `test_handler_wiring.py`, because the handler holds
+    boto3 and no hermetic test may import it (G8)."""
+    messages = [{"role": "user", "content": [{"text": "what is on tonight"}]}]
+    converse, tool = Converse(tool_use(), final()), Tool()
+    toolloop.run_turn(plane=plane(), principal=PRINCIPAL, messages=messages,
+                      converse=converse, call_tool=tool, inspect=NEVER_BLOCKS(),
+                      untrusted=(("system", "platform text the caller declared"),))
+    assert converse.transcripts[0] == messages, (
+        f"the first request was not the viewer turn verbatim: {converse.transcripts[0]}")
+    # And the second is the first plus the model's request and the tool's
+    # result — growth the transcript explains, which is what rounds two and
+    # three are read against.
+    assert converse.transcripts[1][:1] == messages
+    assert [m["role"] for m in converse.transcripts[1]] == ["user", "assistant", "user"]
+
+
 def test_the_tool_round_trip_is_measured_separately_from_the_model():
     """`latency_ms` came only from the `converse` timer, so a tools-arm turn
     reported model time while the real turn included n tool invocations — the

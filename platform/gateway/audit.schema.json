@@ -135,6 +135,21 @@
         "guard_ms": {
           "type": "number",
           "description": "Wall-clock milliseconds spent in guardrail inspections of platform-supplied content (ADR-035). Its own key rather than part of `latency_ms`, for the same reason `tool_ms` is: the p95 ceiling was derived from model time alone, and a number that quietly grew a new component would be compared against a ceiling that never included it. Absent on a turn that inspected nothing."
+        },
+        "calls": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One entry per model round, in order, each carrying what that round alone spent (M08b PR 2, ADR-074 decision 3 section 4). The three totals above are the sum over this list, asserted by test; the list is what the totals cannot say -- which round carried what -- and it is what the residual attribution reads (the first round's `tokens_in` is the committed text plus the tool specs plus whatever the provider frames around them). Present exactly when a model call happened: a turn blocked before its first call has no entry and no list; a turn blocked at round four carries three. Every entry is token-denominated like its totals, and carries these three keys and no other, so a per-round currency figure or a guardrail text-unit count cannot ride in under a new name.",
+          "items": {
+            "type": "object",
+            "required": ["tokens_in", "tokens_out", "latency_ms"],
+            "properties": {
+              "tokens_in": {"type": "number"},
+              "tokens_out": {"type": "number"},
+              "latency_ms": {"type": "number"}
+            },
+            "additionalProperties": false
+          }
         }
       }
     },

@@ -180,6 +180,15 @@ ADR043_SEATS = {
     # record. The same three seats as the census it joins to.
     "milestones/M08/rescore_join.py": {"ai-quality", "platform-eng", "security"},
     "milestones/M08/rescore-join.json": {"ai-quality", "platform-eng", "security"},
+    # M08b PR 2 (ADR-074 amendment 1, fact 3). The fresh run's join reader —
+    # the one that says whether the claim held per sample — on the census's
+    # rule, in the diff that creates it and before the data it reads exists.
+    "milestones/M08b/fresh_join.py": {"ai-quality", "platform-eng", "security"},
+    # M08b PR 2. The goldens scorer, on no rule since M00b: every recorded
+    # goldens count is a sum over its verdicts, and it was editable on one key
+    # by any seat — ADR-037's finding one scorer over. Measured on 4d6e451:
+    # `two-key: not required`.
+    "evals/deterministic.py": {"ai-quality", "platform-eng"},
 }
 
 
@@ -242,11 +251,13 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           "the goldens producer",
                                           "the topic baseline",
                                           # M08 PR 3, ADR-014 amendment 2
-                                          "the M08 census"))]
-    assert len(added) == 21, (
+                                          "the M08 census",
+                                          # M08b PR 2, ADR-074 amendment 1 fact 3
+                                          "the goldens scorer"))]
+    assert len(added) == 22, (
         f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one, "
         f"ADR-049's three, ADR-052's two, ADR-053's two, ADR-072's one, SPEC/08's "
-        f"two and ADR-014 amendment 2's one, found "
+        f"two, ADR-014 amendment 2's one and M08b PR 2's one, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -339,7 +350,27 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                            "milestones/M08/residual-differential.json",
                            # M08 PR 4: the join and its record, member by member.
                            "milestones/M08/rescore_join.py",
-                           "milestones/M08/rescore-join.json"],
+                           "milestones/M08/rescore-join.json",
+                           # M08b PR 2: the fresh run's three readers, their
+                           # records and the calibration record, member by member,
+                           # in the diff that creates them (ADR-074 amendment 1
+                           # fact 3). Narrowing `M08b/(...)` to drop the reader that
+                           # decides the claim is the two-line separation decision 1
+                           # forbids, and the record is pinned beside its reader.
+                           "milestones/M08b/fresh_join.py",
+                           "milestones/M08b/fresh-join.json",
+                           "milestones/M08b/residual_attribution.py",
+                           "milestones/M08b/residual-attribution.json",
+                           "milestones/M08b/answer_channel.py",
+                           "milestones/M08b/answer-channel.json",
+                           "milestones/M08b/calibration.json",
+                           # the operator's reading of the held texts — grant or
+                           # not, per refused sample — decides F, and so takes the
+                           # rule; the M07 prior's file too
+                           "milestones/M08b/withheld-grants.json",
+                           "milestones/M08b/prior-withheld-grants.json"],
+        # M08b PR 2. One file: the scorer every goldens verdict comes from.
+        "the goldens scorer": ["evals/deterministic.py"],
         # ADR-052. Enumerated here because the audit measured both narrowings
         # silent otherwise: deleting the three pin entries below left 173 passed,
         # and dropping `pave/tests/test_twokey.py` from the alternation was caught
@@ -385,10 +416,12 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # 57 -> 58 at ADR-072: the instrument registry's one path. 58 -> 65 at M08
     # PR 2: the goldens producer's two and the topic baseline's five. 65 -> 69 at
     # M08 PR 3: the M08 census's four. 69 -> 71 at M08 PR 4: the re-score join
-    # and its record, on the census's rule.
-    assert total == 71, (
+    # and its record, on the census's rule. 71 -> 81 at M08b PR 2: M08b's three
+    # readers, three records, the calibration record and the two grants files on
+    # the census's rule, and the goldens scorer on its own.
+    assert total == 81, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "71. Deleting a required path in the same diff that "
+        "81. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -558,6 +591,40 @@ def test_the_census_the_ceiling_is_derived_from_collects_three_seats():
     for transcript in ("per-sample-at-6000.txt", "per-sample-at-7700.txt",
                        "goldens-rescore.txt", "withheld-read.txt"):
         assert _seats_for(f"milestones/M08/{transcript}") == set()
+
+
+def test_the_fresh_runs_readers_records_and_calibration_collect_the_census_seats():
+    """M08b PR 2 (ADR-074 amendment 1, fact 3). Measured on 4d6e451 before the
+    widening: `fresh_join.py`, `residual_attribution.py`, `answer_channel.py`,
+    their records and `calibration.json` every one `two-key: not required` —
+    the reader that decides whether the claim held per sample, editable on one
+    key by any seat, which is ADR-037's finding in the file ADR-037's fix was
+    written for. Widened in the diff that creates them, before any real record
+    exists. The rule stays narrow: the run's transcripts and the withheld
+    reading are prose, and the answer files are the goldens evidence rule's."""
+    for name in ("fresh_join.py", "fresh-join.json", "residual_attribution.py",
+                 "residual-attribution.json", "answer_channel.py", "answer-channel.json",
+                 "calibration.json", "withheld-grants.json", "prior-withheld-grants.json"):
+        _blocked_for([f"milestones/M08b/{name}"], {"ai-quality", "platform-eng", "security"})
+    for transcript in ("per-sample.txt", "goldens-score.txt", "withheld-read.txt",
+                       "README.md"):
+        assert _seats_for(f"milestones/M08b/{transcript}") == set()
+    assert _seats_for("milestones/M08b/goldens-run-1.json") == {"ai-quality", "platform-eng"}
+
+
+def test_the_goldens_scorer_collects_ai_quality_and_platform_eng():
+    """M08b PR 2. `evals/deterministic.py` produces every verdict a recorded
+    goldens count is summed from and sat on no rule since M00b: measured on
+    4d6e451, `two-key: not required`. The adversarial scorer took two keys at
+    ADR-037 for exactly this reason; the deterministic one did not, and the
+    `calls` suffix this PR adds to the budget verdict would have landed on one
+    key. The derivation pin's pair, because a verdict's meaning is AI Quality's
+    and the mechanism that produces it is Platform Engineering's."""
+    _blocked_for(["evals/deterministic.py"], {"ai-quality", "platform-eng"})
+    # narrow: the recorders keep their own three-seat rule, and the judge and
+    # refusal modules beside the scorer stay where they were
+    assert _seats_for("evals/run_evals.py") == {"ai-quality", "security", "platform-eng"}
+    assert _seats_for("evals/refusals.py") == set()
 
 
 def test_a_forged_permit_from_the_generator_collects_four_seats():

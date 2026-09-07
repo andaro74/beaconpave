@@ -526,11 +526,41 @@ RULES: tuple[Rule, ...] = (
         # AI Quality (the ceiling), Platform Engineering (the loop the census
         # describes), and Security -- because this record now decides what
         # "catches a runaway loop" means, which is the counterweight seat's object.
-        "the M08 census — the reader and record the tokens_in ceiling is derived from",
-        re.compile(r"^milestones/M08/(context_census\.py|context-census\.json"
+        #
+        # **M08b's readers, records and the calibration record (M08b PR 2,
+        # ADR-074 amendment 1 fact 3).** `fresh_join.py` decides whether the
+        # ceiling held per sample on the fresh run -- the claim itself --
+        # `residual_attribution.py` decides what the unattributed quarter of
+        # the per-call base is, `answer_channel.py` decides whether the
+        # `recommend-003` refusal is a topic or an answer-policy question, and
+        # `calibration.json` is the one number (B) the residual is read against.
+        # Measured on 4d6e451 before the widening: every one `two-key: not
+        # required`. The same shape as the census one milestone earlier, found
+        # by a cold read rather than a seat; widened in the diff that creates
+        # them, before the data they read exists.
+        "the M08 census — the reader and record the tokens_in ceiling is derived from, "
+        "and M08b's readers and records",
+        re.compile(r"^(milestones/M08/(context_census\.py|context-census\.json"
                    r"|residual_differential\.py|residual-differential\.json"
-                   r"|rescore_join\.py|rescore-join\.json)$"),
+                   r"|rescore_join\.py|rescore-join\.json)"
+                   r"|milestones/M08b/(fresh_join\.py|fresh-join\.json"
+                   r"|residual_attribution\.py|residual-attribution\.json"
+                   r"|answer_channel\.py|answer-channel\.json|calibration\.json"
+                   r"|(prior-)?withheld-grants\.json))$"),
         ("ai-quality", "platform-eng", "security"),
+    ),
+    Rule(
+        # **The goldens scorer (M08b PR 2, ADR-074 amendment 1 fact 3).** Every
+        # recorded goldens count is a sum over the verdicts `evals/deterministic.py`
+        # produces, and the file sat on no rule: ADR-037's finding -- the
+        # adversarial scorer editable on one key by any seat -- one scorer over.
+        # Measured on 4d6e451: `two-key: not required`. Put on a rule in the diff
+        # that changes it (the `calls` suffix in the budget verdict), on the
+        # derivation pin's pair: AI Quality owns what a verdict means, Platform
+        # Engineering the mechanism that produces it.
+        "the goldens scorer — the deterministic verdicts every recorded goldens count is summed from",
+        re.compile(r"^evals/deterministic\.py$"),
+        ("ai-quality", "platform-eng"),
     ),
     Rule(
         # **ADR-049. The obligation register, and the check that reads it.** The

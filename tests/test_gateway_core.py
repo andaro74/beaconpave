@@ -136,6 +136,27 @@ def test_a_refusal_that_happened_after_the_model_may_record_what_it_spent():
         jsonschema.validate(record, AUDIT_SCHEMA)
 
 
+def test_a_per_round_entry_carries_three_keys_and_no_other():
+    """M08b PR 2: `usage.calls` is one entry per model round, each carrying the
+    three token-denominated keys the totals are summed from. Found silent by the
+    deletability audit — `additionalProperties: false` on the entry could be
+    flipped with the suite green — so the schema's refusal is pinned here: a
+    currency figure, or a guardrail text-unit count, cannot ride in per round
+    under a key the meter never sees."""
+    rounds = [{"tokens_in": 1980, "tokens_out": 60, "latency_ms": 1200},
+              {"tokens_in": 2100, "tokens_out": 150, "latency_ms": 2300}]
+    spend = {"tokens_in": 4080, "tokens_out": 210, "latency_ms": 3500, "calls": rounds}
+    jsonschema.validate(a_record(usage=spend), AUDIT_SCHEMA)
+    for extra in ({"cost_usd": 0.01}, {"text_units": 3}, {"guard_ms": 100}):
+        widened = {**spend, "calls": [{**rounds[0], **extra}, rounds[1]]}
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(a_record(usage=widened), AUDIT_SCHEMA)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(a_record(usage={**spend, "calls": []}), AUDIT_SCHEMA)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(a_record(usage={**spend, "calls": [{"tokens_in": 1}]}), AUDIT_SCHEMA)
+
+
 def test_the_spend_rule_names_every_mechanism_that_can_follow_a_model_call():
     """A list of names is only a boundary if something checks it against reality.
 
