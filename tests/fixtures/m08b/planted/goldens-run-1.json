@@ -1,0 +1,802 @@
+{
+  "blackout-001": {
+    "answer": {
+      "answer": "Planted answer. blackout. Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "blackout",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6230,
+      "tokens_out": 330,
+      "latency_ms": 3500,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 110,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 110,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2150,
+          "tokens_out": 110,
+          "latency_ms": 1168
+        }
+      ]
+    }
+  },
+  "blackout-006": {
+    "answer": {
+      "answer": "Planted answer. blackout. Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "blackout",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6230,
+      "tokens_out": 200,
+      "latency_ms": 3500,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2150,
+          "tokens_out": 68,
+          "latency_ms": 1168
+        }
+      ]
+    }
+  },
+  "blackout-007": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6230,
+      "tokens_out": 200,
+      "latency_ms": 3500,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2150,
+          "tokens_out": 68,
+          "latency_ms": 1168
+        }
+      ]
+    }
+  },
+  "blackout-008": {
+    "answer": {
+      "answer": "Planted answer. sports-tier. Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "upgrade-required",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6230,
+      "tokens_out": 200,
+      "latency_ms": 3500,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2150,
+          "tokens_out": 68,
+          "latency_ms": 1168
+        }
+      ]
+    }
+  },
+  "blackout-009": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6230,
+      "tokens_out": 200,
+      "latency_ms": 3500,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2150,
+          "tokens_out": 68,
+          "latency_ms": 1168
+        }
+      ]
+    }
+  },
+  "entitlement-002": {
+    "answer": {
+      "answer": "Planted answer. sports-tier. Nothing else is claimed.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "upgrade-required",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6230,
+      "tokens_out": 200,
+      "latency_ms": 3500,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2150,
+          "tokens_out": 68,
+          "latency_ms": 1168
+        }
+      ]
+    }
+  },
+  "entitlement-010": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "not-yet-started",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6230,
+      "tokens_out": 200,
+      "latency_ms": 3500,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2150,
+          "tokens_out": 68,
+          "latency_ms": 1168
+        }
+      ]
+    }
+  },
+  "entitlement-011": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t003"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6230,
+      "tokens_out": 200,
+      "latency_ms": 3500,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2150,
+          "tokens_out": 68,
+          "latency_ms": 1168
+        }
+      ]
+    }
+  },
+  "entitlement-012": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [],
+      "entitlement": {
+        "entitled": false,
+        "reason": "unknown-title",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 4080,
+      "tokens_out": 200,
+      "latency_ms": 2300,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        }
+      ]
+    }
+  },
+  "recommend-003": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "planted/recommend-003-m08b-planted-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "recommend-013": {
+    "answer": {
+      "answer": "Planted answer. Jefferson Derby. Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 8300,
+      "tokens_out": 200,
+      "latency_ms": 6000,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 50,
+          "latency_ms": 1500
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 50,
+          "latency_ms": 1500
+        },
+        {
+          "tokens_in": 2110,
+          "tokens_out": 50,
+          "latency_ms": 1500
+        },
+        {
+          "tokens_in": 2110,
+          "tokens_out": 50,
+          "latency_ms": 1500
+        }
+      ]
+    }
+  },
+  "recommend-014": {
+    "answer": {
+      "answer": "Planted answer. Granite Falls Classic. Nothing else is claimed.",
+      "cited_titles": [
+        "t003"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 4080,
+      "tokens_out": 200,
+      "latency_ms": 2300,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        }
+      ]
+    }
+  },
+  "recommend-015": {
+    "answer": {
+      "answer": "Planted answer. Cedar Point Rowing Finals. Nothing else is claimed.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6600,
+      "tokens_out": 200,
+      "latency_ms": 4800,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 66,
+          "latency_ms": 1600
+        },
+        {
+          "tokens_in": 2300,
+          "tokens_out": 66,
+          "latency_ms": 1600
+        },
+        {
+          "tokens_in": 2320,
+          "tokens_out": 68,
+          "latency_ms": 1600
+        }
+      ]
+    }
+  },
+  "grounded-016": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 4080,
+      "tokens_out": 200,
+      "latency_ms": 2300,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        }
+      ]
+    }
+  },
+  "grounded-017": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 4080,
+      "tokens_out": 200,
+      "latency_ms": 2300,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        }
+      ]
+    }
+  },
+  "grounded-018": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 4080,
+      "tokens_out": 200,
+      "latency_ms": 2300,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        }
+      ]
+    }
+  },
+  "grounded-019": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 4080,
+      "tokens_out": 200,
+      "latency_ms": 2300,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        }
+      ]
+    }
+  },
+  "brand-020": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "planted/brand-020-m08b-planted-1.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "brand-021": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 4080,
+      "tokens_out": 200,
+      "latency_ms": 2300,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        }
+      ]
+    }
+  },
+  "concise-022": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6230,
+      "tokens_out": 200,
+      "latency_ms": 3500,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2150,
+          "tokens_out": 68,
+          "latency_ms": 1168
+        }
+      ]
+    }
+  },
+  "multi-023": {
+    "answer": {
+      "answer": "Planted answer. blackout. Granite Falls Classic. Nothing else is claimed.",
+      "cited_titles": [
+        "t001",
+        "t003"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "blackout",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6230,
+      "tokens_out": 200,
+      "latency_ms": 3500,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2150,
+          "tokens_out": 68,
+          "latency_ms": 1168
+        }
+      ]
+    }
+  },
+  "edge-024": {
+    "answer": {
+      "answer": "Planted answer. sports-tier. Nothing else is claimed.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "upgrade-required",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 6230,
+      "tokens_out": 200,
+      "latency_ms": 3500,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 66,
+          "latency_ms": 1166
+        },
+        {
+          "tokens_in": 2150,
+          "tokens_out": 68,
+          "latency_ms": 1168
+        }
+      ]
+    }
+  },
+  "edge-025": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 4080,
+      "tokens_out": 200,
+      "latency_ms": 2300,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        }
+      ]
+    }
+  },
+  "headroom-005": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 4080,
+      "tokens_out": 200,
+      "latency_ms": 2300,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        }
+      ]
+    }
+  },
+  "headroom-026": {
+    "answer": {
+      "answer": "Planted answer.  Nothing else is claimed.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": null,
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 900,
+      "tokens_in": 4080,
+      "tokens_out": 200,
+      "latency_ms": 2300,
+      "tool_ms": 40,
+      "calls": [
+        {
+          "tokens_in": 1980,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        },
+        {
+          "tokens_in": 2100,
+          "tokens_out": 100,
+          "latency_ms": 1150
+        }
+      ]
+    }
+  }
+}

@@ -284,14 +284,26 @@ def _tool_result_block(tool_use_id, decision: ToolDecision, payload, withheld: b
 
 
 def _accumulate(totals: dict, usage: dict) -> dict:
-    """Sum a turn's spend across its rounds.
+    """Sum a turn's spend across its rounds, and keep each round's own figure.
 
     A multi-round turn spends on every round, and reporting only the last one
     would understate a runaway turn by exactly the amount that makes it worth
     catching — the case the loop bound exists for would be the case the meter
-    lied about."""
+    lied about.
+
+    **`calls` is the per-round list, beside the totals (M08b PR 2, ADR-074
+    decision 3 §4).** The totals are what the budget axis scores; the list is
+    what says which round carried what. M08's census could bound the per-call
+    base only from turn totals, and a quarter of it stayed unattributed
+    because no committed file recorded a single call's `inputTokens`. The
+    totals are still computed exactly as before — the sum over the list is
+    asserted equal to them by test — so no committed verdict moves. Only model
+    rounds land here: guard time and tool time have their own keys and are
+    added at their own sites, never through this function."""
     for key in ("tokens_in", "tokens_out", "latency_ms"):
         totals[key] = totals.get(key, 0) + usage.get(key, 0)
+    totals.setdefault("calls", []).append(
+        {key: usage.get(key, 0) for key in ("tokens_in", "tokens_out", "latency_ms")})
     return totals
 
 

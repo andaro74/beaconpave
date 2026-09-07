@@ -1184,6 +1184,117 @@ def test_the_model_call_is_assembled_from_a_literal_and_no_environment(tree):
                 f"{fn.name} reads os.environ; configuration is read once, at module level")
 
 
+def _binds(fn, name):
+    return [n for n in ast.walk(fn) if isinstance(n, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == name for t in n.targets)]
+
+
+def test_the_first_model_request_is_the_system_block_the_viewer_turn_verbatim_and_the_tool_config(tree):
+    """**The round-1 pin, structural half (M08b PR 2; ADR-074 decision 3 §4).**
+    The residual attribution reads the first round's `inputTokens` as the
+    system block plus the viewer turn plus `toolConfig` and nothing else, and
+    ADR-014 amendment 2's downward re-derivation trigger arms only if that is
+    false. The loop's half is behavioural (`test_tool_loop.py`: the first
+    transcript `converse` receives is the caller's `messages`, deep-equal).
+    This is the handler's half, and it is structural because `handler.py`
+    holds the boto3 clients and no hermetic test may import it (G8) — so it is
+    read as a tree, the way every other pin in this file is, never as text.
+
+    Three things, each a route a seat could plant: the viewer's text reaches
+    `messages` from the event verbatim, bound once and wrapped once; the model
+    call is `modelId`, `messages=transcript`, `inferenceConfig`, plus the two
+    conditional keys the test above already pins to `system` and `toolConfig`,
+    and no other; and the inner closure receives the transcript by that name
+    and neither stores into it nor calls anything on it."""
+    handler = _function(tree, "handler")
+    text = _binds(handler, "text")
+    assert len(text) == 1 and ast.unparse(text[0].value) == "event.get('text', '')", (
+        "`text` is not bound once from the event; the viewer turn is no longer verbatim")
+    system = _binds(handler, "system")
+    assert len(system) == 1 and ast.unparse(system[0].value) == "event.get('system', '')"
+    messages = _binds(handler, "messages")
+    assert len(messages) == 1 and ast.unparse(messages[0].value) == \
+        "[{'role': 'user', 'content': [{'text': text}]}]", (
+            f"messages = {ast.unparse(messages[0].value) if messages else '<unbound>'}; "
+            "the first request must wrap the event's text once and add nothing")
+    run = calls_named(handler, "run_turn")[0]
+    handed = {kw.arg: ast.unparse(kw.value) for kw in run.keywords}
+    assert handed["messages"] == "messages"
+    assert handed["converse"] == "_converse(system, tool_config(offered))"
+    # **After the bind (Platform Engineering seat, round 1).** `messages.append(...)`
+    # between the literal and `run_turn` satisfied every assertion above: the
+    # bind was verbatim and the name was handed over. So the name `messages`
+    # occurs in `handler` exactly twice — the bind and the hand-over — and is
+    # never the object of an attribute or a subscript.
+    uses = [n for n in ast.walk(handler) if isinstance(n, ast.Name) and n.id == "messages"]
+    assert len(uses) == 2 and {type(n.ctx).__name__ for n in uses} == {"Store", "Load"}, (
+        f"`messages` is used {len(uses)} times in handler(); once to bind and once to hand over")
+    for node in ast.walk(handler):
+        if isinstance(node, (ast.Attribute, ast.Subscript)):
+            assert ast.unparse(node.value) != "messages", (
+                f"handler touches messages after the bind: {ast.unparse(node)}")
+    # **The other two inputs to the first request (Platform Engineering seat,
+    # round 2).** `offered = offered + [...]` after its bind doubled the tool
+    # specs on round one and `F = A - B - S` absorbed it as framing; `offered`
+    # is bound once and read once, inside `tool_config(offered)` on the
+    # hand-over, and is never the object of an attribute or a subscript.
+    offered_uses = [n for n in ast.walk(handler) if isinstance(n, ast.Name) and n.id == "offered"]
+    assert [type(n.ctx).__name__ for n in offered_uses] == ["Store", "Load"], (
+        f"`offered` is used {len(offered_uses)} times in handler(); once to bind, once inside "
+        "tool_config(offered) on the hand-over")
+    assert all(ast.unparse(n.value) != "offered" for n in ast.walk(handler)
+               if isinstance(n, (ast.Attribute, ast.Subscript)))
+    assert not any(isinstance(n, ast.AugAssign) and ast.unparse(n.target) in {"offered", "messages", "system"}
+                   for n in ast.walk(handler))
+
+    converse = _function(tree, "_converse")
+    # `_converse`'s own body is the closure and its return, and nothing else:
+    # a `system = system + ...` or a `tools["tools"] = ...` between the
+    # signature and the closure rewrote every governed call's system block
+    # with the pin green (Platform Engineering seat, round 2).
+    body_kinds = [type(stmt).__name__ for stmt in converse.body]
+    assert body_kinds == ["Expr", "FunctionDef", "Return"], (
+        f"_converse's body is {body_kinds}; it must be the docstring, the closure and the return")
+    for node in ast.walk(converse):
+        if isinstance(node, ast.Name) and node.id in {"system", "tools"}:
+            assert isinstance(node.ctx, ast.Load), f"_converse stores into `{node.id}`"
+        if isinstance(node, (ast.Subscript, ast.Attribute)) and isinstance(node.ctx, ast.Store):
+            assert ast.unparse(node.value) not in {"system", "tools"}, (
+                f"_converse writes into {ast.unparse(node)}")
+    kwargs = _binds(converse, "kwargs")
+    assert len(kwargs) == 1
+    literal = {kw.arg: ast.unparse(kw.value) for kw in kwargs[0].value.keywords}
+    assert set(literal) == {"modelId", "messages", "inferenceConfig"}, (
+        f"the model call's literal carries {sorted(literal)}; the round-1 request is "
+        "modelId, the transcript, inferenceConfig, and the pinned system/toolConfig")
+    assert literal["messages"] == "transcript"
+    inner = next(n for n in ast.walk(converse)
+                 if isinstance(n, ast.FunctionDef) and n.name == "converse")
+    assert [a.arg for a in inner.args.args] == ["transcript"]
+    transcript_loads = 0
+    for node in ast.walk(inner):
+        if isinstance(node, ast.Name) and node.id == "transcript":
+            assert isinstance(node.ctx, ast.Load), "`transcript` is stored into inside converse"
+            transcript_loads += 1
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            assert ast.unparse(node.func.value) not in {"transcript", "kwargs"} and \
+                not ast.unparse(node.func.value).startswith("kwargs["), (
+                    f"converse calls {ast.unparse(node.func)}(...); the loop's transcript and the "
+                    "model call must reach the client untouched")
+    assert transcript_loads == 1, "the transcript is read more than once inside converse"
+    # `kwargs` is loaded only as the object of the two pinned subscript stores
+    # and as `**kwargs` on the one `_bedrock.converse` call; a
+    # `kwargs['messages'].append(...)` before the call is a Load of a subscript,
+    # and there are none.
+    for node in ast.walk(inner):
+        if isinstance(node, ast.Subscript) and ast.unparse(node.value) == "kwargs":
+            assert isinstance(node.ctx, ast.Store), (
+                f"converse reads {ast.unparse(node)}; the model call is assembled, never read back")
+    calls = [n for n in ast.walk(inner) if isinstance(n, ast.Call)
+             and any(kw.arg is None and ast.unparse(kw.value) == "kwargs" for kw in n.keywords)]
+    assert len(calls) == 1 and ast.unparse(calls[0].func) == "_bedrock.converse"
+
+
 def _function(tree, name):
     return next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == name)
 

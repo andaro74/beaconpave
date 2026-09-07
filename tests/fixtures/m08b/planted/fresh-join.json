@@ -1,0 +1,4328 @@
+{
+  "_what_this_is": "SPEC/08b's one claim, read per sample from the fresh run by milestones/M08b/fresh_join.py: every answered sample at three calls or fewer under the ceiling and every sample at four or more over it, with the pre-registered reading of any falsifying sample, the fresh re-derived band, the count and refusal bands, the two p95s, per-round growth, and the two triggers. Computed from the rows, never asserted; refuses a planted verdict, a planted call count and a foreign ceiling.",
+  "inputs_sha256": {
+    "tests/fixtures/m08b/planted/goldens-run-1.json": "499669fd741fbe74f72097ca4d93f99a9476a607222167b66b6540b432fe491e",
+    "tests/fixtures/m08b/planted/goldens-run-2.json": "27af4e2c24255d2a02252e9f2a82a063078a0b8e2f9cf0a72d5bfcb10d9b56ca",
+    "tests/fixtures/m08b/planted/goldens-run-3.json": "cbfcb3fc37beb01e7e70533f88b9c7b21eb4c1f9da6ec434d01d23e899eb9cd9",
+    "tests/fixtures/m08b/planted/goldens-run-1-trajectory.json": "d76666469bd959f4152090763d9c8536a0950ead2db1215a226ea3d8a5ab3c25",
+    "tests/fixtures/m08b/planted/goldens-run-2-trajectory.json": "44a8aea7db04df39b31a0c4b99277b3a8b6fb3282807176dcda79627ade23cb2",
+    "tests/fixtures/m08b/planted/goldens-run-3-trajectory.json": "6c26566b59d9ea12f6f254872ed5dd23b2f3a9e16c7533353e8d7a48be376868",
+    "tests/fixtures/m08b/planted/goldens-run-refusals.json": "5bf64dd92a8b10484da46e32edd2caeacf8d094d52ba4f5c45960fb5c2fcfa4c",
+    "tests/fixtures/m08b/planted/per-sample.txt": "ddcf16be1a2cdda54ba5b50db9fa1006d61e71a4dbe6842a4b81bd7f657bae4f",
+    "tests/fixtures/m08b/planted/goldens-score.txt": "a7fe7969745e82afbb31939415cf833cff96a6b0d7e72a48d90f9062bf5e20e9",
+    "services/highlights-agent/evals/golden/cases.yaml": "f59f4a398f3a1693f3fa463485ff83b8a9b39a2fcd4f9f2ebb85611ea69bf027",
+    "milestones/M08/context-census.json": "eee7a0144ae733708c3d099bfe8ee70803116df84d4597d5d3f80f4681bbd610",
+    "milestones/M08/rescore-join.json": "6a2e72af9e957f554830afd5be6d158ce97192f4d817236a7031d2c26295d512",
+    "services/highlights-agent/pave.manifest.yaml": "2f11414cef788db641195bcf9d33f632eb6630954501500c1b881a3e7c415f5c",
+    "data/catalog.json": "200a262fd5300c361c5bcbefa3240f642f655b5863ad4b75bd95f799ec921d6f",
+    "platform/gateway/policy/tools.contracts.json": "a0ad6eae3b8f4ada5e9e673368bf0970fa8bcec80dbe4ccfcc017d3d7742f9d7"
+  },
+  "ceiling": 7700,
+  "m08_reference": {
+    "mandated_shape_max": 6235,
+    "four_call_min": 8181,
+    "floor": 7170.25,
+    "roof": 8180,
+    "integer_band": [
+      7171,
+      8180
+    ],
+    "empty": false,
+    "unrounded_midpoint": 7675.125,
+    "point": 7700,
+    "mandated_calls_max": 3,
+    "as_run_three_call_max": 6792,
+    "gap": [
+      6792,
+      8181
+    ]
+  },
+  "grain": [
+    7675.125,
+    7700
+  ],
+  "claim": {
+    "ceiling": 7700,
+    "comparison": "got > limit (evals/deterministic.py::budget)",
+    "answered_samples": 72,
+    "samples_at_3_calls_or_fewer": 67,
+    "samples_at_4_calls_or_more": 5,
+    "3_call_or_fewer_samples_over": [],
+    "4_call_or_more_samples_under": [],
+    "largest_3_call_or_fewer_tokens_in": 7690,
+    "smallest_4_call_or_more_tokens_in": 8181,
+    "holds": true,
+    "falsifiers": [],
+    "grain_near_misses": [
+      "headroom-005 s2"
+    ]
+  },
+  "fresh_band": {
+    "available": true,
+    "mandated_shape_max": 6230,
+    "four_call_min": 8181,
+    "floor": 7164.5,
+    "roof": 8180,
+    "integer_band": [
+      7165,
+      8180
+    ],
+    "empty": false,
+    "unrounded_midpoint": 7672.25,
+    "point": 7700,
+    "point_inside": true,
+    "reading": "the number holds; the rule re-derives to 7700",
+    "note": "recorded, not ruled on: 7700 stands; a ceiling moved on a fresh run's band is a re-derivation, and that is a census milestone"
+  },
+  "count": {
+    "k3": {
+      "passed": 22,
+      "total": 25,
+      "failed": 3,
+      "infra": 0
+    },
+    "N": 22,
+    "band": [
+      7,
+      14
+    ],
+    "predicted": 12,
+    "in_band": false,
+    "falsifiers": {
+      "N_outside_band": true,
+      "3_of_3_pass_at_m08_failing_by_majority": [],
+      "0_of_3_fail_at_m08_passing_by_majority": [
+        "blackout-006",
+        "blackout-007",
+        "blackout-008",
+        "concise-022",
+        "edge-025",
+        "grounded-018",
+        "multi-023",
+        "recommend-014"
+      ]
+    },
+    "per_case": {
+      "blackout-001": {
+        "result": "FAIL",
+        "samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      },
+      "blackout-006": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      },
+      "blackout-007": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      },
+      "blackout-008": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      },
+      "blackout-009": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "PASS",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      },
+      "brand-020": {
+        "result": "PASS",
+        "samples": [
+          "FAIL",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "calls_by_sample": [
+          null,
+          3,
+          3
+        ]
+      },
+      "brand-021": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "calls_by_sample": [
+          2,
+          2,
+          2
+        ]
+      },
+      "concise-022": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      },
+      "edge-024": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      },
+      "edge-025": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          2,
+          2,
+          2
+        ]
+      },
+      "entitlement-002": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "PASS",
+          "FAIL",
+          "PASS"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      },
+      "entitlement-010": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      },
+      "entitlement-011": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "PASS",
+          "PASS",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      },
+      "entitlement-012": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "PASS",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          2,
+          2,
+          2
+        ]
+      },
+      "grounded-016": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "calls_by_sample": [
+          2,
+          2,
+          2
+        ]
+      },
+      "grounded-017": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "FAIL",
+          "PASS",
+          "PASS"
+        ],
+        "calls_by_sample": [
+          2,
+          2,
+          2
+        ]
+      },
+      "grounded-018": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          2,
+          2,
+          2
+        ]
+      },
+      "grounded-019": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "FAIL"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "PASS",
+          "PASS",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          2,
+          2,
+          4
+        ]
+      },
+      "headroom-005": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "PASS",
+          "FAIL",
+          "PASS"
+        ],
+        "calls_by_sample": [
+          2,
+          3,
+          2
+        ]
+      },
+      "headroom-026": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "calls_by_sample": [
+          2,
+          2,
+          2
+        ]
+      },
+      "multi-023": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      },
+      "recommend-003": {
+        "result": "FAIL",
+        "samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          null,
+          4,
+          null
+        ]
+      },
+      "recommend-013": {
+        "result": "FAIL",
+        "samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          4,
+          4,
+          4
+        ]
+      },
+      "recommend-014": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "FAIL",
+        "m08_samples": [
+          "FAIL",
+          "FAIL",
+          "FAIL"
+        ],
+        "calls_by_sample": [
+          2,
+          2,
+          2
+        ]
+      },
+      "recommend-015": {
+        "result": "PASS",
+        "samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "m08_result": "PASS",
+        "m08_samples": [
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "calls_by_sample": [
+          3,
+          3,
+          3
+        ]
+      }
+    }
+  },
+  "refusals": {
+    "by_majority": 1,
+    "cases": [
+      "recommend-003"
+    ],
+    "band": [
+      0,
+      2
+    ],
+    "in_band": true
+  },
+  "p95": {
+    "ceiling_ms": 5200,
+    "pooled": {
+      "n": 72,
+      "p95": 6000,
+      "verdict": "OVER"
+    },
+    "mandated_shape": {
+      "n": 63,
+      "p95": 3500,
+      "verdict": "within"
+    },
+    "transcript_line": {
+      "verdict": "OVER",
+      "p95": 6000,
+      "ceiling": 5200
+    },
+    "reading": "share: the pooled tail is over the ceiling and the mandated shape's is not — the browse gap's, ADR-074 decision 2's",
+    "costs_a_case": false
+  },
+  "triggers": {
+    "browse_gap": {
+      "rule": "a sample at 4 calls or more with an executed catalog-search beyond the case's mandate before entitlement-check or the answer (ADR-074 decision 2)",
+      "persists": true,
+      "samples": [
+        "recommend-013 s1",
+        "recommend-003 s2",
+        "recommend-013 s2",
+        "grounded-019 s3",
+        "recommend-013 s3"
+      ],
+      "cases": [
+        "grounded-019",
+        "recommend-003",
+        "recommend-013"
+      ],
+      "m08_count": {
+        "samples": 14,
+        "cases": 7
+      },
+      "four_call_samples_outside_the_seven": [],
+      "refused_samples_with_the_shape": [
+        "recommend-003 s1",
+        "recommend-003 s3"
+      ],
+      "beyond_mandate_under_the_threshold": {
+        "samples": [
+          "recommend-015 s1 (3 calls)",
+          "headroom-005 s2 (3 calls)",
+          "recommend-015 s2 (3 calls)",
+          "recommend-015 s3 (3 calls)"
+        ],
+        "cases": [
+          "headroom-005",
+          "recommend-015"
+        ],
+        "note": "recorded, not triggering: the same shape below the decision's four-call threshold; four M07 samples of the seven sat at three calls and were outside M08's fourteen by the same threshold, so a persists:false reading is read beside this column, never as not reproduced on its own"
+      }
+    },
+    "tokens_out_five": {
+      "persists": true,
+      "cases": {
+        "blackout-001": {
+          "tokens_out_verdicts": [
+            "FAIL",
+            "FAIL",
+            "FAIL"
+          ],
+          "fails_by_majority": true
+        },
+        "blackout-007": {
+          "tokens_out_verdicts": [
+            "PASS",
+            "PASS",
+            "PASS"
+          ],
+          "fails_by_majority": false
+        },
+        "blackout-008": {
+          "tokens_out_verdicts": [
+            "PASS",
+            "PASS",
+            "PASS"
+          ],
+          "fails_by_majority": false
+        },
+        "blackout-009": {
+          "tokens_out_verdicts": [
+            "PASS",
+            "PASS",
+            "PASS"
+          ],
+          "fails_by_majority": false
+        },
+        "concise-022": {
+          "tokens_out_verdicts": [
+            "PASS",
+            "PASS",
+            "PASS"
+          ],
+          "fails_by_majority": false
+        }
+      },
+      "m08_count": 5,
+      "failing_by_majority_outside_the_five": []
+    },
+    "note": "read, not diagnosed (SPEC/08b constraint 9)"
+  },
+  "per_sample": [
+    {
+      "case": "blackout-001",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "FAIL",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 330,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 126,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-006",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 126,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-007",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 120,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-008",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 135,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-009",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 120,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "brand-020",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "FAIL",
+      "other_failing_asserts": [
+        "entitlement",
+        "json_schema",
+        "must_cite"
+      ],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": false,
+      "refused": true,
+      "calls": null,
+      "at_mandate": null,
+      "tokens_in": null,
+      "per_call_tokens_in": null,
+      "tokens_in_verdict": null,
+      "tokens_out_verdict": null,
+      "latency_ms": null,
+      "distance": null,
+      "reading": "refused",
+      "per_round_growth": []
+    },
+    {
+      "case": "brand-021",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "concise-022",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 120,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "edge-024",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 133,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "edge-025",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-002",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 133,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-010",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 132,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-011",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 85,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-012",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-016",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-017",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-018",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-019",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "headroom-005",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "headroom-026",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "multi-023",
+      "sample": 1,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 126,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "recommend-003",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "FAIL",
+      "other_failing_asserts": [
+        "json_schema",
+        "must_cite",
+        "must_mention"
+      ],
+      "search": {
+        "searches_attempted": 3,
+        "searches_executed": 3,
+        "searches_executed_before_verdict": 3,
+        "beyond_mandate_before_verdict": true
+      },
+      "answered": false,
+      "refused": true,
+      "calls": null,
+      "at_mandate": null,
+      "tokens_in": null,
+      "per_call_tokens_in": null,
+      "tokens_in_verdict": null,
+      "tokens_out_verdict": null,
+      "latency_ms": null,
+      "distance": null,
+      "reading": "refused",
+      "per_round_growth": []
+    },
+    {
+      "case": "recommend-013",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "FAIL",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 3,
+        "searches_executed": 3,
+        "searches_executed_before_verdict": 3,
+        "beyond_mandate_before_verdict": true
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 4,
+      "at_mandate": false,
+      "tokens_in": 8300,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2110,
+        2110
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 6000,
+      "distance": {
+        "to_point": 600,
+        "to_unrounded_midpoint": 624.875,
+        "to_nearer_band_edge": -120,
+        "nearer_band_edge": "roof"
+      },
+      "reading": "fail",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2110,
+          "delta_tokens": 10,
+          "replayed_chars_added": 15,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 4,
+          "tokens_in": 2110,
+          "delta_tokens": 0,
+          "replayed_chars_added": 138,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "recommend-014",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "recommend-015",
+      "sample": 1,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 2,
+        "searches_executed": 2,
+        "searches_executed_before_verdict": 2,
+        "beyond_mandate_before_verdict": true
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": false,
+      "tokens_in": 6600,
+      "per_call_tokens_in": [
+        1980,
+        2300,
+        2320
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 4800,
+      "distance": {
+        "to_point": -1100,
+        "to_unrounded_midpoint": -1075.125,
+        "to_nearer_band_edge": -571,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2300,
+          "delta_tokens": 320,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2320,
+          "delta_tokens": 20,
+          "replayed_chars_added": 15,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-001",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "FAIL",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 330,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 126,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-006",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 126,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-007",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 120,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-008",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 135,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-009",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 120,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "brand-020",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 85,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "brand-021",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "concise-022",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 120,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "edge-024",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 133,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "edge-025",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-002",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 133,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-010",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 132,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-011",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 85,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-012",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-016",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-017",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-018",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-019",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "headroom-005",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 2,
+        "searches_executed": 2,
+        "searches_executed_before_verdict": 2,
+        "beyond_mandate_before_verdict": true
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": false,
+      "tokens_in": 7690,
+      "per_call_tokens_in": [
+        1980,
+        2800,
+        2910
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 5000,
+      "distance": {
+        "to_point": -10,
+        "to_unrounded_midpoint": 14.875,
+        "to_nearer_band_edge": 490,
+        "nearer_band_edge": "roof"
+      },
+      "reading": "grain near miss: a sample at three calls or fewer inside (unrounded midpoint, point] passed by the rounding alone — recorded, not a falsification",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2800,
+          "delta_tokens": 820,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2910,
+          "delta_tokens": 110,
+          "replayed_chars_added": 15,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "headroom-026",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "multi-023",
+      "sample": 2,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 126,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "recommend-003",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "FAIL",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 3,
+        "searches_executed": 3,
+        "searches_executed_before_verdict": 3,
+        "beyond_mandate_before_verdict": true
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 4,
+      "at_mandate": false,
+      "tokens_in": 8200,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2100,
+        2020
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 6100,
+      "distance": {
+        "to_point": 500,
+        "to_unrounded_midpoint": 524.875,
+        "to_nearer_band_edge": -20,
+        "nearer_band_edge": "roof"
+      },
+      "reading": "fail",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2100,
+          "delta_tokens": 0,
+          "replayed_chars_added": 15,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 4,
+          "tokens_in": 2020,
+          "delta_tokens": -80,
+          "replayed_chars_added": 138,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "recommend-013",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "FAIL",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 3,
+        "searches_executed": 3,
+        "searches_executed_before_verdict": 3,
+        "beyond_mandate_before_verdict": true
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 4,
+      "at_mandate": false,
+      "tokens_in": 8300,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2110,
+        2110
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 6000,
+      "distance": {
+        "to_point": 600,
+        "to_unrounded_midpoint": 624.875,
+        "to_nearer_band_edge": -120,
+        "nearer_band_edge": "roof"
+      },
+      "reading": "fail",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2110,
+          "delta_tokens": 10,
+          "replayed_chars_added": 15,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 4,
+          "tokens_in": 2110,
+          "delta_tokens": 0,
+          "replayed_chars_added": 138,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "recommend-014",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "recommend-015",
+      "sample": 2,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 2,
+        "searches_executed": 2,
+        "searches_executed_before_verdict": 2,
+        "beyond_mandate_before_verdict": true
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": false,
+      "tokens_in": 6600,
+      "per_call_tokens_in": [
+        1980,
+        2300,
+        2320
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 4800,
+      "distance": {
+        "to_point": -1100,
+        "to_unrounded_midpoint": -1075.125,
+        "to_nearer_band_edge": -571,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2300,
+          "delta_tokens": 320,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2320,
+          "delta_tokens": 20,
+          "replayed_chars_added": 15,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-001",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "FAIL",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 330,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 126,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-006",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 126,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-007",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 120,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-008",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 135,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "blackout-009",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 120,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "brand-020",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 85,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "brand-021",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "concise-022",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 120,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "edge-024",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 133,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "edge-025",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-002",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 133,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-010",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 132,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-011",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 85,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "entitlement-012",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-016",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-017",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-018",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "grounded-019",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "FAIL",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 3,
+        "searches_executed": 3,
+        "searches_executed_before_verdict": 3,
+        "beyond_mandate_before_verdict": true
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 4,
+      "at_mandate": false,
+      "tokens_in": 8181,
+      "per_call_tokens_in": [
+        1980,
+        2050,
+        2070,
+        2081
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 5900,
+      "distance": {
+        "to_point": 481,
+        "to_unrounded_midpoint": 505.875,
+        "to_nearer_band_edge": -1,
+        "nearer_band_edge": "roof"
+      },
+      "reading": "fail",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2050,
+          "delta_tokens": 70,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2070,
+          "delta_tokens": 20,
+          "replayed_chars_added": 15,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 4,
+          "tokens_in": 2081,
+          "delta_tokens": 11,
+          "replayed_chars_added": 138,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "headroom-005",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "headroom-026",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "multi-023",
+      "sample": 3,
+      "mandated_calls": 3,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": true,
+      "tokens_in": 6230,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2150
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 3500,
+      "distance": {
+        "to_point": -1470,
+        "to_unrounded_midpoint": -1445.125,
+        "to_nearer_band_edge": -941,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2150,
+          "delta_tokens": 50,
+          "replayed_chars_added": 126,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "recommend-003",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "FAIL",
+      "other_failing_asserts": [
+        "json_schema",
+        "must_cite",
+        "must_mention"
+      ],
+      "search": {
+        "searches_attempted": 3,
+        "searches_executed": 3,
+        "searches_executed_before_verdict": 3,
+        "beyond_mandate_before_verdict": true
+      },
+      "answered": false,
+      "refused": true,
+      "calls": null,
+      "at_mandate": null,
+      "tokens_in": null,
+      "per_call_tokens_in": null,
+      "tokens_in_verdict": null,
+      "tokens_out_verdict": null,
+      "latency_ms": null,
+      "distance": null,
+      "reading": "refused",
+      "per_round_growth": []
+    },
+    {
+      "case": "recommend-013",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "FAIL",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 3,
+        "searches_executed": 3,
+        "searches_executed_before_verdict": 3,
+        "beyond_mandate_before_verdict": true
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 4,
+      "at_mandate": false,
+      "tokens_in": 8300,
+      "per_call_tokens_in": [
+        1980,
+        2100,
+        2110,
+        2110
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 6000,
+      "distance": {
+        "to_point": 600,
+        "to_unrounded_midpoint": 624.875,
+        "to_nearer_band_edge": -120,
+        "nearer_band_edge": "roof"
+      },
+      "reading": "fail",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2110,
+          "delta_tokens": 10,
+          "replayed_chars_added": 15,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 4,
+          "tokens_in": 2110,
+          "delta_tokens": 0,
+          "replayed_chars_added": 138,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "recommend-014",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 1,
+        "searches_executed": 1,
+        "searches_executed_before_verdict": 1,
+        "beyond_mandate_before_verdict": false
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 2,
+      "at_mandate": true,
+      "tokens_in": 4080,
+      "per_call_tokens_in": [
+        1980,
+        2100
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 2300,
+      "distance": {
+        "to_point": -3620,
+        "to_unrounded_midpoint": -3595.125,
+        "to_nearer_band_edge": -3091,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2100,
+          "delta_tokens": 120,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    },
+    {
+      "case": "recommend-015",
+      "sample": 3,
+      "mandated_calls": 2,
+      "sample_result": "PASS",
+      "other_failing_asserts": [],
+      "search": {
+        "searches_attempted": 2,
+        "searches_executed": 2,
+        "searches_executed_before_verdict": 2,
+        "beyond_mandate_before_verdict": true
+      },
+      "answered": true,
+      "refused": false,
+      "calls": 3,
+      "at_mandate": false,
+      "tokens_in": 6600,
+      "per_call_tokens_in": [
+        1980,
+        2300,
+        2320
+      ],
+      "tokens_out": 200,
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "latency_ms": 4800,
+      "distance": {
+        "to_point": -1100,
+        "to_unrounded_midpoint": -1075.125,
+        "to_nearer_band_edge": -571,
+        "nearer_band_edge": "floor"
+      },
+      "reading": "pass",
+      "per_round_growth": [
+        {
+          "round": 2,
+          "tokens_in": 2300,
+          "delta_tokens": 320,
+          "replayed_chars_added": 216,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        },
+        {
+          "round": 3,
+          "tokens_in": 2320,
+          "delta_tokens": 20,
+          "replayed_chars_added": 15,
+          "steps_replayed": 1,
+          "steps_not_replayed": 0
+        }
+      ]
+    }
+  ]
+}

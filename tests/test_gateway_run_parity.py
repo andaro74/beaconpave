@@ -658,6 +658,94 @@ def test_only_the_tool_arm_asks_for_tools():
     )
 
 
+def test_the_calibration_call_sends_the_tool_arms_system_block_and_no_tools_key():
+    """M08b PR 2 (ADR-074 decision 3 §4). `--calibrate` is the producer of B:
+    one turn with the SAME system block the run sends and `tools` ABSENT — not
+    `False`, absent, because the handler offers tools on `event.get("tools")`
+    and a key present at all is a key a future default could read. Pinned as a
+    tree: the one `gw.invoke` in `calibrate` carries exactly the run's keys
+    minus `tools`, its `system` comes from `build_tool_prompt`, and the run's
+    own invoke still carries `"tools": True`. A calibration event that asked
+    for tools would measure A twice and call it B."""
+    tree = ast.parse(TOOL_ARM.read_text(encoding="utf-8"))
+    functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    assert "calibrate" in functions, "run_with_tools.py has no calibration producer"
+
+    def invoke_payloads(fn):
+        return [call.args[1] for call in ast.walk(fn)
+                if isinstance(call, ast.Call) and ast.unparse(call.func) == "gw.invoke"]
+
+    calibration = invoke_payloads(functions["calibrate"])
+    assert len(calibration) == 1 and isinstance(calibration[0], ast.Dict)
+    keys = [k.value for k in calibration[0].keys]
+    assert keys == ["text", "system", "request_id", "service", "classification"], keys
+    assert "tools" not in keys
+    values = dict(zip(keys, (ast.unparse(v) for v in calibration[0].values), strict=True))
+    assert values["system"] == "system" and values["text"] == "text"
+    system_binds = [n for n in ast.walk(functions["calibrate"]) if isinstance(n, ast.Assign)
+                    and any(isinstance(t, ast.Name) and t.id == "system" for t in n.targets)]
+    assert len(system_binds) == 1 and ast.unparse(system_binds[0].value) == "gw.build_tool_prompt()"
+
+    run = invoke_payloads(functions["main"])
+    assert len(run) == 1 and isinstance(run[0], ast.Dict)
+    run_keys = {k.value: ast.unparse(v) for k, v in zip(run[0].keys, run[0].values, strict=True)}
+    assert run_keys["tools"] == "True"
+    assert set(run_keys) - {"tools"} == set(keys), "the two events differ by more than `tools`"
+    # The VALUES too (Security seat, round 2): `classification: "sensitive"` on
+    # the calibration event passed a key-set comparison, and classification is
+    # G5's router. The calibration event is the run's event minus `tools` and
+    # plus its own request id, value for value.
+    for key in ("text", "system", "service", "classification"):
+        assert values[key] == run_keys[key], f"the calibration event's {key} differs from the run's"
+    assert values["classification"] == "'internal'"
+    assert values["request_id"] == "request_id"
+    bound = [n for n in ast.walk(functions["calibrate"]) if isinstance(n, ast.Assign)
+             and any(isinstance(t, ast.Name) and t.id == "request_id" for t in n.targets)]
+    assert len(bound) == 1 and ast.unparse(bound[0].value) == 'f"{case[\'id\']}-{tag}-{CALIBRATION_SAMPLE}"'
+
+
+def test_the_calibration_record_carries_usage_and_digests_and_never_the_answer():
+    """What `calibrate()` WRITES, pinned beside what it sends (Security and
+    Platform Engineering seats, round 1: the docstring's *never the answer* was
+    a comment). The record's keys are exactly these; no value reads the
+    response's answer, the record's withheld fingerprint, or a trajectory; and
+    the audit record is fetched from the deployed lake and no other bucket."""
+    tree = ast.parse(TOOL_ARM.read_text(encoding="utf-8"))
+    calibrate = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "calibrate")
+    payloads = [n for n in ast.walk(calibrate) if isinstance(n, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == "payload" for t in n.targets)]
+    assert len(payloads) == 1 and isinstance(payloads[0].value, ast.Dict)
+    written = {k.value: ast.unparse(v) for k, v in zip(payloads[0].value.keys, payloads[0].value.values,
+                                                       strict=True)}
+    assert set(written) == {"_what_this_is", "_preflight", "case", "request_id", "tools", "decision",
+                            "mechanism", "record_id", "record_resolved", "usage", "record_usage",
+                            "system_sha256", "text_sha256"}, sorted(written)
+    assert written["tools"] == "'absent'"
+    assert written["usage"] == "response.get('usage')"
+    assert written["record_usage"] == "(record or {}).get('usage')"
+    for node in ast.walk(calibrate):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            assert node.value not in {"answer", "withheld", "trajectory", "output", "content"}, (
+                f"calibrate() names {node.value!r}: a model-text channel into the calibration record")
+    fetches = [n for n in ast.walk(calibrate) if isinstance(n, ast.Call)
+               and ast.unparse(n.func) == "gw.fetch_record"]
+    assert len(fetches) == 1 and ast.unparse(fetches[0].args[0]) == "deployed['AuditLakeBucket']", (
+        "the calibration record must be fetched from the deployed lake, not a bucket named here")
+    # the `payload` dict is written once, to the path the operator named, and
+    # nothing is appended to it between the literal and the write
+    stores = [n for n in ast.walk(calibrate) if isinstance(n, ast.Subscript)
+              and isinstance(n.ctx, ast.Store) and ast.unparse(n.value) == "payload"]
+    assert not stores, "payload is widened after the literal"
+    # ...and not by a method either (Platform Engineering seat, round 2:
+    # `payload.update({...})` wrote the audit record and the response whole).
+    # `payload` is bound once and loaded once, into the write.
+    uses = [n for n in ast.walk(calibrate) if isinstance(n, ast.Name) and n.id == "payload"]
+    assert [type(n.ctx).__name__ for n in uses] == ["Store", "Load"], (
+        f"`payload` is used {len(uses)} times in calibrate(); once to bind, once to write")
+    assert not any(isinstance(n, ast.Attribute) and ast.unparse(n.value) == "payload"
+                   for n in ast.walk(calibrate)), "calibrate() calls a method on payload"
+
+
 def test_the_tool_arm_refuses_to_write_a_run_in_which_nothing_was_authorized():
     """The harness half of the finding Platform Engineering raised.
 

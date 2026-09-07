@@ -526,11 +526,85 @@ RULES: tuple[Rule, ...] = (
         # AI Quality (the ceiling), Platform Engineering (the loop the census
         # describes), and Security -- because this record now decides what
         # "catches a runaway loop" means, which is the counterweight seat's object.
-        "the M08 census — the reader and record the tokens_in ceiling is derived from",
-        re.compile(r"^milestones/M08/(context_census\.py|context-census\.json"
+        #
+        # **M08b's readers, records and the calibration record (M08b PR 2,
+        # ADR-074 amendment 1 fact 3).** `fresh_join.py` decides whether the
+        # ceiling held per sample on the fresh run -- the claim itself --
+        # `residual_attribution.py` decides what the unattributed quarter of
+        # the per-call base is, `answer_channel.py` decides whether the
+        # `recommend-003` refusal is a topic or an answer-policy question, and
+        # `calibration.json` is the one number (B) the residual is read against.
+        # Measured on 4d6e451 before the widening: every one `two-key: not
+        # required`. The same shape as the census one milestone earlier, found
+        # by a cold read rather than a seat; widened in the diff that creates
+        # them, before the data they read exists.
+        #
+        # **And the fixture and tests they are proved against (round 1, three
+        # seats).** The readers took three keys while the planted run under
+        # `tests/fixtures/m08b/`, its builder, and `tests/test_m08b_*.py` — the
+        # only evidence the readers work before PR 3 — took none: ADR-035's
+        # thermostat guarded and thermometer free, inverted. A reader's pattern
+        # rather than three names, so a fourth reader under `milestones/M08b/`
+        # lands on the rule the day it is written (Platform Engineering, round 1).
+        "the M08 census — the reader and record the tokens_in ceiling is derived from, "
+        "and M08b's readers, records, fixture and tests",
+        re.compile(r"^(milestones/M08/(context_census\.py|context-census\.json"
                    r"|residual_differential\.py|residual-differential\.json"
-                   r"|rescore_join\.py|rescore-join\.json)$"),
+                   r"|rescore_join\.py|rescore-join\.json)"
+                   r"|milestones/M08b/([a-z0-9_]+\.py|fresh-join\.json"
+                   r"|residual-attribution\.json|answer-channel\.json|calibration\.json)"
+                   r"|tests/test_m08b_[a-z0-9_]+\.py|tests/fixtures/m08b/.+)$"),
         ("ai-quality", "platform-eng", "security"),
+    ),
+    Rule(
+        # **The held-text readings (M08b PR 2, Legal/S&P seat, round 1).** One
+        # boolean per refused sample — grant or not, DEC-001's shape or not —
+        # written by the operator after `read_withheld.py --show`, and the input
+        # that moves F and G both. Its four outcomes bill different seats: a
+        # topic question is Security's calibration on the corpus, an answer-policy
+        # question the core rule's — Platform Engineering and Security — with
+        # Legal/S&P, and DEC-001's shape re-opens ADR-068, which Security and
+        # Platform Engineering own. So every seat a branch bills holds a key —
+        # Security, Legal/S&P and Platform Engineering (round 2: the first
+        # version omitted Platform Engineering and pinned the absence without a
+        # reason, which was round one's finding with a seat's name changed) —
+        # and AI Quality is the fourth, not because it feels neither (Tool Owner
+        # and Service Team feel neither too) but because it already holds the key
+        # on the answer files G is summed from. The census rule's three seats
+        # were G9's letter and not its substance.
+        "the held-text readings — the operator's grant booleans that decide F against G",
+        re.compile(r"^milestones/M08b/(prior-)?withheld-grants\.json$"),
+        ("security", "legal-sp", "platform-eng", "ai-quality"),
+    ),
+    Rule(
+        # **The refusal estimator (M08b PR 2, Legal/S&P seat, round 1).**
+        # `census_from_samples` is ADR-035's pre-registered majority estimator,
+        # written into every sidecar before anybody reads it, and `BAND` is
+        # SPEC/01's refusal band; the producer that calls it took two keys since
+        # M08 PR 2 and the estimator none, while `answer_channel.py`'s copy of
+        # the same arithmetic took three — one pre-registered rule, two executable
+        # expressions, one guarded. The same pair as the sidecar the estimator
+        # writes into.
+        "the refusal estimator — the majority rule every sidecar's census is computed by",
+        re.compile(r"^evals/refusals\.py$"),
+        ("security", "ai-quality"),
+    ),
+    Rule(
+        # **The goldens scorer (M08b PR 2, ADR-074 amendment 1 fact 3).** Every
+        # recorded goldens count is a sum over the verdicts `evals/deterministic.py`
+        # produces, and the file sat on no rule: ADR-037's finding -- the
+        # adversarial scorer editable on one key by any seat -- one scorer over.
+        # Measured on 4d6e451: `two-key: not required`. Put on a rule in the diff
+        # that changes it (the `calls` suffix in the budget verdict), on the
+        # derivation pin's pair: AI Quality owns what a verdict means, Platform
+        # Engineering the mechanism that produces it.
+        # **And its test (round 2, AI Quality).** The only test pinning the
+        # comparison SPEC/08b's falsifier is written in collected nothing while
+        # the scorer took two keys: ADR-035's thermometer and thermostat, the
+        # shape the round-1 fix closed for the M08b readers and missed here.
+        "the goldens scorer — the deterministic verdicts every recorded goldens count is summed from",
+        re.compile(r"^(evals/deterministic\.py|tests/test_deterministic_runner\.py)$"),
+        ("ai-quality", "platform-eng"),
     ),
     Rule(
         # **ADR-049. The obligation register, and the check that reads it.** The

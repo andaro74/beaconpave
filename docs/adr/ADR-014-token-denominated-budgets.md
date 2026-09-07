@@ -532,3 +532,126 @@ the loop bound enforced by the tool plane and the next call count's minimum read
 from the run rather than from a milestone's record. The interface already
 matches: the manifest declares the ceiling, the runner reports the measurement,
 and the census reads both.
+
+## Amendment 3 (M08b): the suite `p95_ms` is derived from the mandated shape by the same rule, not raised
+
+**Seats:** AI Quality (the ceilings — two-key) · Platform Engineering (the
+derivation pin) · Tool Owner (the manifest's declaration). **Evidence:**
+`milestones/M08/context-census.json`'s per-sample table joined to the three M07
+stage-2 answer files' `usage.latency_ms`, both committed before the rule was
+written; the rule is ADR-074 decision 3 §5, written in M08b PR 1 (`8c7a428`)
+before any number was printed by a test. **Zero model calls.** The number is
+executed and pinned by `tests/test_budget_derivation.py` in M08b PR 2, and
+this amendment carries it in the words ADR-074 pre-registered.
+
+### Why a raise was refused twice, and why this is not one
+
+`gates.budgets.p95_ms` was 2500 from ADR-016. M01 breached it at 3194 ms and
+declined to raise it; M02 breached it further and declined again; the test
+that guarded it said in its docstring why: *a breach found by the instrument
+working is not a configuration problem.* M07 recorded 5431 ms and M08 recorded
+it again as a standing finding — breached by the shape (model time alone is
+3606 ms at three calls, guard time 770–1212 ms in its own key) and not by a
+regression — and ADR-073 amendment 1 §4 refused to derive a ceiling in the PR
+that would move it, with 5431 in view, dating the rule to the next milestone's
+first PR, written before a fresh run and applied after. That is this. The
+number is not raised; it is produced by a rule from a population, and the rule
+adds no constant.
+
+### What a suite p95 can and cannot discriminate
+
+The `tokens_in` rule places the ceiling below the next call count because turn
+tokens separate cleanly by call count: no three-call turn is above 6792 and no
+four-call turn below 8181. Latency does not: the fastest four-call turn in the
+M07 files is 3526 ms and the mandated shape's p95 is above it. So a p95 ceiling
+cannot be placed below the runaway shape, and this rule does not pretend to.
+What a suite p95 discriminates is a **share**: the gate passes when at most one
+turn in twenty runs slower than the ceiling, and it fails when the population's
+tail is no longer the mandated shape's tail.
+
+### The rule, verbatim from ADR-074 decision 3 §5
+
+The ceiling sits within ADR-014's pinned band, 1.15–1.60×, of the **mandated
+shape's own p95**: the latency of every answered M07 stage-2 sample whose call
+count equals its case's mandate, with `evals/deterministic.py`'s p95
+(`samples[ceil(0.95 n) − 1]`) over that population. The point is the band's
+midpoint rounded to the nearest hundred — the rule
+`tests/test_budget_derivation.py` already executes for `tokens_in`. The inputs
+are the three M07 answer files' `usage.latency_ms` and the census's per-sample
+`mandated_calls`; nothing else, and never a pooled p95 of any run.
+
+**The population, by key.** `2_stage2_per_sample (exact + replayed)` rows with
+`answered` true and `calls == mandated_calls`, joined on `(case, sample)` to
+`milestones/M07/goldens-run-{1,2,3}.json`'s `usage.latency_ms`. The two
+refused samples carry `latency_ms: null` and are in no population.
+
+### The arithmetic
+
+Forty answered samples at their mandate; their p95 is **3769** ms (maximum
+3934). Band floor 1.15 × 3769 = **4334.35**; roof 1.60 × 3769 = **6030.4**;
+midpoint **5182.375**; rounded to the nearest hundred, **`p95_ms: 5200`**.
+Checks: 5200 ≥ 4334.35; 5200 ≤ 6030.4. It is 1.38× the mandated shape's p95.
+
+The test computes each figure from the committed inputs — the percentile read
+out of `suite_latency` itself, so the rule and the gate cannot disagree about
+what a p95 is — pins `gates.budgets.p95_ms` to the number it prints, is red
+on any planted constant, and asserts this amendment carries every figure
+above verbatim. The direct pin on `BANDS` that ADR-014 amendment 2 dated to
+this milestone lands in the same file: each constant literally, with `p95_ms`
+on the budget band and not the hang guard's.
+
+### What was in view, and the populations not taken
+
+M07's pooled p95 of 5431 was in view when the rule was written, and this
+amendment prints no verdict at the new ceiling on M07's run. What it prints
+instead is the choice a seat can check: the populations the rule could have
+read, the number each gives, and how the run in view would read under each.
+
+| population | p95 | band | point | M07's 5431 reads |
+|---|---|---|---|---|
+| mandated shape, n = 40 (**the rule**) | 3769 | 4334–6030 | **5200** | **OVER** |
+| as-run three-call, n = 59 | 5004 | 5755–8006 | 6900 | within |
+| pooled, n = 73 | 5431 | 6246–8690 | 7500 | within |
+
+The rule takes the only population under which the run in view fails the
+gate. Re-scoring M07's committed files at the new gate prints
+`suite latency  OVER p95=5431ms over 5200ms`; the per-sample join is
+byte-identical to `rescore-join.json`, because the join reads token verdicts
+and not the latency line.
+
+### What the rule leaves standing, and what PR 3 reads
+
+Nineteen samples ran three calls against a two-call mandate and are outside
+the mandated-shape population by construction; fourteen ran four or more. The
+as-run three-call p95 is 5004 and the pooled p95 5431. A share of the
+population above the ceiling is what the gate now reports, and today that
+share is the browse gap's; ADR-074 decision 2 owns it.
+
+**PR 3 reads two numbers, not one** (ADR-074 amendment 1 §4): the fresh run's
+pooled p95 against 5200, OVER or within, and the fresh run's mandated-shape
+p95 against 5200 beside it. Pooled OVER with the mandated-shape p95 within is
+the share the rule was written to report. A mandated-shape p95 over 5200 is
+latency drift in the shape itself — a dated finding for Platform Engineering —
+and the rule's premise, that the mandated shape's tail is stable across runs,
+is what failed. One number cannot tell these apart. **The gate costs no case
+either way**: it is a suite statistic computed apart from case scoring (this
+ADR's M02 amendment), and moving it moves no verdict.
+
+### What moves, and what does not
+
+- **`gates.budgets.p95_ms`: 2500 → 5200.** The manifest's two keys (AI
+  Quality, Tool Owner) and the derivation pin's two (AI Quality, Platform
+  Engineering).
+- **`tests/test_budget_derivation.py`**: `BANDS` gains `p95_ms` on the budget
+  band and is pinned directly; `test_the_suite_percentile_budget_was_not_raised`
+  is replaced by the test that executes the rule, and the replacement's
+  docstring carries the rule and the reason the two-milestone refusal ends.
+- **`milestones/M08/context-census.json`**: its `inputs_sha256` line for
+  `services/highlights-agent/pave.manifest.yaml` moves, because the census
+  digests the manifest and `tests/test_m08_census.py` regenerates the record
+  byte for byte (ADR-074 amendment 1, fact 1). Re-produced by its own reader
+  with that one line moved and nothing else, on the census rule's three keys.
+- **`tokens_in` stays 7700; `tokens_out`, `max_ms` and every tier stay** where
+  amendment 2 and the original derivation put them. No case moves.
+- **The M07 files' verdicts do not move.** The latency line at the new gate is
+  the one predicted above; the count and the join are what M08 pinned.

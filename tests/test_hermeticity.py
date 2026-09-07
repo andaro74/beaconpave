@@ -54,6 +54,12 @@ HERMETIC_ROOTS = (
     ROOT / "evals",
     ROOT / "platform" / "gateway" / "core",
     ROOT / "tools",
+    # M08b PR 2 (Platform Engineering seat, round 1): every milestone reader —
+    # the census, the joins, the residual and answer-channel readers — is run
+    # by the hermetic suite and was guarded per file by a bespoke import test
+    # each; a fourth reader under `milestones/M08b/` got none. The directory is
+    # the surface, not the three names.
+    ROOT / "milestones",
 )
 
 #: Importing any of these means the module can talk to AWS.

@@ -1,0 +1,235 @@
+{
+  "_what_this_is": "PLANTED (tests/fixtures/m08b/build_planted.py): a synthetic M08b sidecar for the readers' tests. No gateway, no record, no model.",
+  "_k": 3,
+  "samples": [
+    1,
+    2,
+    3
+  ],
+  "_preflight": {
+    "gateway_function": "planted",
+    "guardrail": {
+      "id": "planted",
+      "version": "4"
+    },
+    "tool_output_guardrail": {
+      "id": "planted-tool-output",
+      "version": "2"
+    },
+    "deployed_bundle": {
+      "code_sha256": "planted"
+    },
+    "tag": "m08b-planted"
+  },
+  "_guardrail_versions": [
+    "4"
+  ],
+  "_guardrails_observed": {
+    "planted": [
+      "4"
+    ]
+  },
+  "census": {
+    "k": 3,
+    "n_cases": 25,
+    "refused_at_least_once": 2,
+    "refused_by_majority": 1,
+    "refused_unanimously": 0,
+    "cases_at_least_once": [
+      "brand-020",
+      "recommend-003"
+    ],
+    "cases_by_majority": [
+      "recommend-003"
+    ],
+    "cases_separating_the_estimators": [
+      "brand-020"
+    ],
+    "cases_with_missing_samples": [],
+    "estimator_for_adr_035": "refused_at_least_once"
+  },
+  "refusals": {
+    "recommend-003": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "guardrail": {
+          "id": "planted",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "planted/recommend-003-m08b-planted-1.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "guardrail": {
+          "id": "planted",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "planted/recommend-003-m08b-planted-3.json",
+        "record_resolved": true
+      }
+    },
+    "brand-020": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "guardrail": {
+          "id": "planted",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "planted/brand-020-m08b-planted-1.json",
+        "record_resolved": true
+      }
+    }
+  },
+  "per_sample_refused": {
+    "blackout-001": [
+      false,
+      false,
+      false
+    ],
+    "blackout-006": [
+      false,
+      false,
+      false
+    ],
+    "blackout-007": [
+      false,
+      false,
+      false
+    ],
+    "blackout-008": [
+      false,
+      false,
+      false
+    ],
+    "blackout-009": [
+      false,
+      false,
+      false
+    ],
+    "entitlement-002": [
+      false,
+      false,
+      false
+    ],
+    "entitlement-010": [
+      false,
+      false,
+      false
+    ],
+    "entitlement-011": [
+      false,
+      false,
+      false
+    ],
+    "entitlement-012": [
+      false,
+      false,
+      false
+    ],
+    "recommend-003": [
+      true,
+      false,
+      true
+    ],
+    "recommend-013": [
+      false,
+      false,
+      false
+    ],
+    "recommend-014": [
+      false,
+      false,
+      false
+    ],
+    "recommend-015": [
+      false,
+      false,
+      false
+    ],
+    "grounded-016": [
+      false,
+      false,
+      false
+    ],
+    "grounded-017": [
+      false,
+      false,
+      false
+    ],
+    "grounded-018": [
+      false,
+      false,
+      false
+    ],
+    "grounded-019": [
+      false,
+      false,
+      false
+    ],
+    "brand-020": [
+      true,
+      false,
+      false
+    ],
+    "brand-021": [
+      false,
+      false,
+      false
+    ],
+    "concise-022": [
+      false,
+      false,
+      false
+    ],
+    "multi-023": [
+      false,
+      false,
+      false
+    ],
+    "edge-024": [
+      false,
+      false,
+      false
+    ],
+    "edge-025": [
+      false,
+      false,
+      false
+    ],
+    "headroom-005": [
+      false,
+      false,
+      false
+    ],
+    "headroom-026": [
+      false,
+      false,
+      false
+    ]
+  }
+}

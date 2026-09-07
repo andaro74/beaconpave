@@ -24,20 +24,36 @@ artifact. The new assertion is the placement ADR-014 always stated in prose and
 never pinned: the input ceiling sits **below** the next call count's minimum, so
 a runaway loop is the thing it catches.
 
+**The suite `p95_ms` joins at M08b (ADR-014 amendment 3, ADR-074 decision 3
+§5).** For two milestones the test here refused to raise it, because a breach
+found by the instrument working is not a configuration problem. It is now
+*derived* rather than raised, by the same band and point rule `tokens_in` uses,
+from the mandated shape's own p95 over the M07 stage-2 samples — and the rule
+was written in PR 1 with the population named and the number not yet printed.
+The population is read from the census's per-sample table joined to the three
+answer files, never a pooled p95 of any run; the percentile is the scorer's own
+`suite_latency`, so the test cannot disagree with the gate about what a p95 is.
+
 Hermetic (G8): a committed measurement, no model call. Owning seat: AI Quality
 (the ceilings — two-key) · Platform Engineering (the loop bound).
 """
 import json
 import pathlib
+import re
 
 import pytest
 import yaml
+
+from evals import deterministic
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 MEASUREMENT = ROOT / "milestones" / "M02" / "loop-shape.json"
 CENSUS = ROOT / "milestones" / "M08" / "context-census.json"
 GOLDENS = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
 MANIFEST = ROOT / "services" / "highlights-agent" / "pave.manifest.yaml"
+#: The three M07 stage-2 answer files, the latencies the suite p95 rule reads
+#: (ADR-074 decision 3 §5). Listed rather than globbed, like the census's RUNS.
+M07_ANSWERS = tuple(ROOT / "milestones" / "M07" / f"goldens-run-{n}.json" for n in (1, 2, 3))
 
 #: The census sections the `tokens_in` derivation reads (ADR-073 decision 3):
 #: the maximum of the mandated shape, and the minimum of the next call count.
@@ -64,10 +80,32 @@ ADR_073 = ROOT / "docs" / "adr" / "ADR-073-m08-takes-the-budget-question-and-the
 #: `max_ms` is a hang guard and ADR-016 says outright it is not a performance
 #: target — it catches a stalled request, so it is meant to sit well clear of any
 #: legitimate reply. ADR-016 derived its own at roughly twice the observed p95.
+#:
+#: `p95_ms` takes the BUDGET band, not the hang guard's (ADR-074 decision 3 §5):
+#: the suite p95 discriminates a share of the population above the mandated
+#: shape's tail, and a roof at 2.5x would sit past every four-call turn the
+#: shape produces and report nothing. Same two constants as `tokens_in`, so the
+#: rule adds none.
 BANDS = {
     "tokens_in": (1.15, 1.60),
     "max_ms": (1.15, 2.50),
+    "p95_ms": (1.15, 1.60),
 }
+
+
+def test_the_bands_are_pinned_directly():
+    """ADR-014 amendment 2's obligation, dated to this milestone: `BANDS` was
+    guarded by the two-key rule on this file and by no test. The point test
+    below catches a floor lowered to 1.00 (the rounded midpoint moves), but a
+    roof raised while the four-call cap still binds moves nothing and survived
+    the first mutation audit. This is the direct pin: each constant, literally,
+    with the reason it is what it is in the comment above. A band that moves
+    takes this file's two keys and an ADR-014 amendment, never a constant."""
+    assert BANDS == {
+        "tokens_in": (1.15, 1.60),
+        "max_ms": (1.15, 2.50),
+        "p95_ms": (1.15, 1.60),
+    }, "a headroom band moved; re-derive the ceiling it governs in an ADR-014 amendment"
 
 
 def measurement():
@@ -281,11 +319,11 @@ def test_the_output_ceilings_were_left_alone_and_still_hold():
 
 
 def test_the_manifest_ceilings_that_moved_are_pinned_too():
-    """The test below pins `p95_ms` and its name made the manifest look guarded —
+    """A test pinning `p95_ms` at 2500 once made the manifest look guarded —
     while the two numbers that actually *did* move in the same block were unpinned
     and, at first, underived. `gates.budgets` is a two-key path; a number that
     moves there without a written derivation is the change this rule exists to
-    make visible."""
+    make visible. `p95_ms` is now derived below, by the same rule as `tokens_in`."""
     gates = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))["gates"]["budgets"]
     per_case = {field: ceiling for _, budget in budgets() for field, ceiling in budget.items()}
     # 8200: the per-case 7700 plus the margin the pair has always had — 1500/2000,
@@ -301,19 +339,108 @@ def test_the_manifest_ceilings_that_moved_are_pinned_too():
     assert gates["max_ms"] >= per_case["max_ms"]
 
 
-def test_the_suite_percentile_budget_was_not_raised():
-    """M01 breached `p95_ms` at 3194 ms against 2500 and declined to raise it. M02
-    breaches it further and declines again.
+def mandated_shape_latencies() -> list[int]:
+    """The population the suite p95 rule reads (ADR-074 decision 3 §5): every
+    answered M07 stage-2 sample whose call count equals its case's mandate,
+    joined from the census's per-sample table (`answered`, `calls`,
+    `mandated_calls`) to the three answer files' `usage.latency_ms`. The
+    refused samples carry `latency_ms: null` and are in no population. Never a
+    pooled p95: the nineteen samples that ran three calls against a two-call
+    mandate and the fourteen at four or more are outside the shape by
+    construction, and the share of a run above this tail is what the gate
+    reports."""
+    rows = {(r["case"], r["sample"]): r for r in census()[PER_SAMPLE]}
+    latencies = []
+    for n, path in enumerate(M07_ANSWERS, 1):
+        answers = json.loads(path.read_text(encoding="utf-8"))
+        for case_id, answer in answers.items():
+            row = rows.get((case_id, n))
+            latency = ((answer or {}).get("usage") or {}).get("latency_ms")
+            if row is None or not row["answered"] or latency is None:
+                continue
+            if row["calls"] == row["mandated_calls"]:
+                latencies.append(latency)
+    return latencies
 
-    It is a suite-level statistic computed separately from case scoring, so the
-    breach costs no golden case — which is exactly why raising it would be a
-    configuration change dressed as a measurement correction. Two milestones of
-    breach is a finding."""
-    gates = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))["gates"]["budgets"]
-    assert gates["p95_ms"] == 2500, (
-        "the suite p95 budget moved. A breach found by the instrument working is not a "
-        "configuration problem, and this path is two-key for that reason (G9)."
+
+def suite_p95(latencies: list[int]) -> int:
+    """The scorer's own percentile, read out of `suite_latency`'s detail rather
+    than re-implemented here, so the rule and the gate cannot disagree about
+    what a p95 is (`samples[ceil(0.95 n) - 1]`, one slow call in twenty)."""
+    answers = {f"s{i}": {"usage": {"latency_ms": ms}} for i, ms in enumerate(latencies)}
+    detail = deterministic.suite_latency(answers, None).detail
+    return int(re.match(r"p95=(\d+)ms", detail).group(1))
+
+
+def test_the_suite_p95_ceiling_is_the_number_the_rule_produces_from_the_mandated_shape():
+    """M01 breached `p95_ms` at 3194 ms against 2500 and declined to raise it; M02
+    breached it further and declined again; M07 and M08 recorded 5431 as a
+    standing finding, breached by the shape and not by a regression. The test
+    that stood here for two milestones refused a raise, and the reason it gave
+    still holds: a breach found by the instrument working is not a
+    configuration problem. What ends the refusal is not a raise but a
+    derivation, written before the run it is applied to (ADR-074 decision 3
+    §5; ADR-014 amendment 3):
+
+      the ceiling sits within ADR-014's budget band, 1.15–1.60x, of the
+      MANDATED SHAPE's own p95 — the latency of every answered M07 stage-2
+      sample at the call count its case mandates, forty of them, with the
+      scorer's percentile — at the band's midpoint rounded to the nearest
+      hundred; the same point rule `tokens_in` executes above.
+
+    Forty samples, p95 3769, band 4334.35–6030.4, midpoint 5182.375: **5200**.
+    M07's pooled p95 of 5431 is not an input and reads OVER at this number, as
+    the as-run three-call population (5004 -> 6900) and the pooled population
+    (5431 -> 7500) would not have — the rule takes the one population under
+    which the run in view fails the gate. The fresh run's pooled p95 and its
+    mandated-shape p95 are both read against this number at PR 3, and the gate
+    costs no case either way."""
+    latencies = mandated_shape_latencies()
+    assert len(latencies) == 40, (
+        f"the mandated-shape population is {len(latencies)} samples, not the forty ADR-074 "
+        "decision 3 §5 names; the census's per-sample table or the M07 files moved"
     )
+    observed = suite_p95(latencies)
+    floor_x, roof_x = BANDS["p95_ms"]
+    floor, roof = observed * floor_x, observed * roof_x
+    produced = round(((floor + roof) / 2) / 100) * 100
+    assert produced == 5200, (
+        f"the p95 rule now yields {produced} from a mandated-shape p95 of {observed}, not "
+        "5200: the record moved. Re-derive in an ADR-014 amendment on this file's two keys; "
+        "do not edit the number here."
+    )
+    gates = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))["gates"]["budgets"]
+    assert gates["p95_ms"] == produced, (
+        f"gates.budgets.p95_ms is {gates['p95_ms']}, not the {produced} the pinned rule "
+        "produces from the committed inputs. The suite p95 is derived, not chosen (G9)."
+    )
+    assert floor <= gates["p95_ms"] <= roof
+    # The ceiling cannot sit below the runaway shape, and this rule does not
+    # pretend to: the fastest four-call turn in the same files is under the
+    # mandated shape's p95, so what the gate discriminates is a share, not a turn.
+    assert gates["p95_ms"] < max(latencies) * roof_x
+
+
+def test_adr_014_amendment_3_carries_the_numbers_the_rule_produces():
+    """ADR-074 decision 3 §5 pre-registered that *ADR-014 amendment 3 carries
+    the number in these words*. The amendment's figures are computed here from
+    the committed inputs — never typed — and each must appear in the amendment
+    verbatim, so a re-derivation that changes a figure goes red until the
+    amendment says so."""
+    latencies = mandated_shape_latencies()
+    observed = suite_p95(latencies)
+    floor_x, roof_x = BANDS["p95_ms"]
+    floor, roof = observed * floor_x, observed * roof_x
+    produced = round(((floor + roof) / 2) / 100) * 100
+    text = ADR_014.read_text(encoding="utf-8")
+    assert "## Amendment 3" in text, "ADR-014 has no amendment 3; the suite p95 is underived"
+    amendment = text[text.index("## Amendment 3"):]
+    for figure in (str(len(latencies)), str(observed), f"{floor:.2f}", f"{roof:.1f}",
+                   f"{(floor + roof) / 2:.3f}", str(produced), str(max(latencies))):
+        assert figure in amendment, (
+            f"ADR-014 amendment 3 does not carry {figure!r}, which the rule produces from "
+            "the committed inputs"
+        )
 
 
 def test_the_loop_is_bounded_and_no_sample_reached_the_bound():

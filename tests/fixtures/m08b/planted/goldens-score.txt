@@ -1,0 +1,42 @@
+=== python -m evals.run_evals --arm tools --answers tests/fixtures/m08b/planted/goldens-run-1.json --answers tests/fixtures/m08b/planted/goldens-run-2.json --answers tests/fixtures/m08b/planted/goldens-run-3.json --refusals tests/fixtures/m08b/planted/goldens-run-refusals.json
+summarised 3 samples by per-case majority (arm=tools)
+
+blackout-001     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_out=330 over 300 (calls=3)
+blackout-006     PASS  [PASS PASS PASS]
+blackout-007     PASS  [PASS PASS PASS]
+blackout-008     PASS  [PASS PASS PASS]
+blackout-009     PASS  [PASS PASS PASS]
+entitlement-002  PASS  [PASS PASS PASS]
+entitlement-010  PASS  [PASS PASS PASS]
+entitlement-011  PASS  [PASS PASS PASS]
+entitlement-012  PASS  [PASS PASS PASS]
+recommend-003    FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+recommend-013    FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=8300 over 7700 (calls=4)
+recommend-014    PASS  [PASS PASS PASS]
+recommend-015    PASS  [PASS PASS PASS]
+grounded-016     PASS  [PASS PASS PASS]
+grounded-017     PASS  [PASS PASS PASS]
+grounded-018     PASS  [PASS PASS PASS]
+grounded-019     PASS  [PASS PASS FAIL]
+brand-020        PASS  [FAIL PASS PASS]
+brand-021        PASS  [PASS PASS PASS]
+concise-022      PASS  [PASS PASS PASS]
+multi-023        PASS  [PASS PASS PASS]
+edge-024         PASS  [PASS PASS PASS]
+edge-025         PASS  [PASS PASS PASS]
+headroom-005     PASS  [PASS PASS PASS]
+headroom-026     PASS  [PASS PASS PASS]
+
+22/25 passed (3 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 3 failed: 1 were refused before scoring, 2 answered and scored wrong
+refusals: 3/3 resolved to 1 (mechanism, assessed) pair — guardrail / TOPIC:entitlement-circumvention
+suite latency  OVER p95=6000ms over 5200ms
+deferred, evaluated but not scored: 23 assert(s) across ['entitlement_source', 'tool_before_answer']
+  entitlement_source: reads a self-report; verifiable only by M06's trajectory eval (ADR-016)
+  tool_before_answer: evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)
+exit 0

@@ -331,6 +331,123 @@ def test_a_budget_is_enforced_on_latency(scorer):
     assert "latency_ms" in next(a.detail for a in result.failures if a.kind == "budget")
 
 
+def _round(tokens_in):
+    return {"tokens_in": tokens_in, "tokens_out": 50, "latency_ms": 1000}
+
+
+def test_a_budget_failure_names_the_call_count_when_the_usage_carries_one(scorer):
+    """M08b PR 2 (ADR-014 amendment 2's obligation, ADR-074 decision 4).
+    `tokens_in=8181 over 7700` did not say it was a four-call turn, and the
+    ceiling was placed below the next call count to catch exactly one. With the
+    loop's per-round list present the failure says so; the count is the list's
+    length, never a number written into the usage."""
+    four = answer()
+    four["usage"]["tokens_in"] = 8181
+    four["usage"]["calls"] = [_round(2000), _round(2000), _round(2100), _round(2081)]
+    detail = next(a.detail for a in scorer.score_case(CASES["blackout-001"], four, CATALOG).failures
+                  if a.kind == "budget")
+    assert "tokens_in=8181 over 7700" in detail and detail.endswith("(calls=4)"), detail
+
+    three = answer()
+    three["usage"]["tokens_in"] = 7701
+    three["usage"]["calls"] = [_round(2500), _round(2600), _round(2601)]
+    detail = next(a.detail for a in scorer.score_case(CASES["blackout-001"], three, CATALOG).failures
+                  if a.kind == "budget")
+    assert detail.endswith("(calls=3)"), detail
+    # The count is the list's length and cannot be a function of the totals:
+    # 8181 over two rounds and 7701 over five (Platform Engineering seat,
+    # round 1: `1 + tokens_in // 2727` satisfied the two cases above).
+    two = answer()
+    two["usage"]["tokens_in"] = 8181
+    two["usage"]["calls"] = [_round(4000), _round(4181)]
+    assert next(a.detail for a in scorer.score_case(CASES["blackout-001"], two, CATALOG).failures
+                if a.kind == "budget").endswith("(calls=2)")
+    five = answer()
+    five["usage"]["tokens_in"] = 7701
+    five["usage"]["calls"] = [_round(1540)] * 5
+    assert next(a.detail for a in scorer.score_case(CASES["blackout-001"], five, CATALOG).failures
+                if a.kind == "budget").endswith("(calls=5)")
+
+
+def test_the_suite_p95_comparison_is_at_most_the_ceiling():
+    """AI Quality seat, round 2: `p95 <= ceiling_ms` widened by 250 left the
+    suite green and the M07 re-score printing `OK p95=5431ms within 5200ms`.
+    The derivation test exercises the no-ceiling path; this is the boundary
+    on the comparison PR 3 reads the fresh run against, twice."""
+    def suite(p95, ceiling):
+        answers = {f"c{i}": {"usage": {"latency_ms": p95}} for i in range(20)}
+        return det.suite_latency(answers, ceiling)
+    assert suite(5200, 5200).passed and "within 5200ms" in suite(5200, 5200).detail
+    assert not suite(5201, 5200).passed and "p95=5201ms over 5200ms" in suite(5201, 5200).detail
+    assert not suite(5431, 5200).passed
+
+
+def test_only_the_scorer_names_the_per_round_list_and_only_the_scorer_and_recorder_name_usage():
+    """SPEC/08b constraint 8: *the usage field is read by no scorer but
+    `budget`.* Security seat, round 2: a `usage.calls` read planted into
+    `evals/judge.py` left the suite green, and the same plant in
+    `evals/adversarial.py` was caught only because that file's digest moved.
+    A closed set, as text the AST carries: `calls` is a string constant in
+    `evals/deterministic.py` and nowhere else under `evals/`; `usage` in the
+    scorer and the recorder that loads answer files, and nowhere else."""
+    import ast
+    import pathlib
+
+    evals_dir = pathlib.Path(det.__file__).resolve().parent
+    names = {}
+    for path in sorted(evals_dir.glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        literals = {n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)}
+        attrs = {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+        names[path.name] = {"calls": "calls" in literals or "calls" in attrs,
+                            "usage": "usage" in literals or "usage" in attrs}
+    assert {n for n, v in names.items() if v["calls"]} == {"deterministic.py"}, names
+    # Measured: the recorder loads answer files whole and never names the
+    # field; only the scorer does.
+    assert {n for n, v in names.items() if v["usage"]} == {"deterministic.py"}, names
+
+
+def test_the_budget_comparison_is_strictly_over(scorer):
+    """SPEC/08b's falsifier is written in this comparison — `got > limit`, so a
+    sample at exactly the ceiling passes — and the AI Quality seat inverted it
+    to `>=` with the suite green (round 1). Pinned at the boundary on every
+    axis the budget scores: at the ceiling passes, one over fails."""
+    for key, limit in (("tokens_in", 7700), ("tokens_out", 300)):
+        at = answer()
+        at["usage"][key] = limit
+        assert scorer.score_case(CASES["blackout-001"], at, CATALOG).result == det.PASS, key
+        over = answer()
+        over["usage"][key] = limit + 1
+        failure = next(a for a in scorer.score_case(CASES["blackout-001"], over, CATALOG).failures
+                       if a.kind == "budget")
+        assert f"{key}={limit + 1} over {limit}" in failure.detail
+    at_ms = answer()
+    at_ms["usage"]["latency_ms"] = 12000
+    assert scorer.score_case(CASES["blackout-001"], at_ms, CATALOG).result == det.PASS
+    over_ms = answer()
+    over_ms["usage"]["latency_ms"] = 12001
+    assert "stalled" in next(a.detail for a in scorer.score_case(CASES["blackout-001"], over_ms,
+                                                                  CATALOG).failures if a.kind == "budget")
+
+
+def test_a_budget_verdict_without_per_call_usage_reads_as_it_always_did(scorer):
+    """Every committed answer file before M08b carries no `calls`, and M07's
+    verdict strings — which `rescore-join.json` is pinned to — must not move."""
+    over = answer()
+    over["usage"]["tokens_in"] = 8181
+    detail = next(a.detail for a in scorer.score_case(CASES["blackout-001"], over, CATALOG).failures
+                  if a.kind == "budget")
+    assert "calls" not in detail and detail.startswith("tokens_in=8181 over 7700"), detail
+
+    # A passing budget carries no detail either way, so the suffix cannot make
+    # a pass read as a finding.
+    under = answer()
+    under["usage"]["calls"] = [_round(2000), _round(2000), _round(2000)]
+    result = scorer.score_case(CASES["blackout-001"], under, CATALOG)
+    budget = next(a for a in result.asserts if a.kind == "budget")
+    assert budget.passed and budget.detail == ""
+
+
 # --- schema and substring semantics ----------------------------------------------
 
 def test_a_schema_violation_fails_before_prose_is_trusted(scorer):
