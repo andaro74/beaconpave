@@ -1,0 +1,2040 @@
+{
+  "_what_this_is": "M08 PR 4: M07's three committed stage-2 answer files re-scored once at the ceiling PR 3 signed, joined per sample to the census's call counts. The claim is read from `claim`; the side-prediction from `side_prediction`; both are computed from `per_sample` and `per_case`, never written. Zero model calls.",
+  "ceiling": 7700,
+  "census_ceiling": 6000,
+  "inputs_sha256": {
+    "milestones/M08/per-sample-at-7700.txt": "e92195b658d228a46ad8cc896bfc70792f06dc63affceb010e819c34d2357f4a",
+    "milestones/M08/per-sample-at-6000.txt": "24e39d6b98b4c9dd6f848deaa7a39a6fe7d1e7dfd9ef39b9072b7d90ea2c86c0",
+    "milestones/M08/goldens-rescore.txt": "a2a28f6e5a701ac5e9eae643a7bbb71e3a65cf9acfd0dcafef8a8b7961049c32",
+    "milestones/M08/context-census.json": "ee3445ffaf14e658b2a475797ddcc49693710413c09d94892106915a7a27f596",
+    "evals/history/m07-tools-goldens.json": "c1c5041ed5902385736bbed08bbc3014d0115649420ba4baba15bf9ebda179a4",
+    "services/highlights-agent/evals/golden/cases.yaml": "f59f4a398f3a1693f3fa463485ff83b8a9b39a2fcd4f9f2ebb85611ea69bf027"
+  },
+  "count": {
+    "passed": 12,
+    "total": 25,
+    "failed": 13,
+    "infra": 0
+  },
+  "claim": {
+    "ceiling": 7700,
+    "answered_samples": 73,
+    "samples_at_3_calls_or_fewer": 59,
+    "samples_at_4_calls_or_more": 14,
+    "every_3_call_or_fewer_sample_passes_tokens_in": true,
+    "every_4_call_or_more_sample_fails_tokens_in": true,
+    "3_call_or_fewer_samples_over": [],
+    "4_call_or_more_samples_under": [],
+    "largest_3_call_or_fewer_tokens_in": 6792,
+    "smallest_4_call_or_more_tokens_in": 8181,
+    "cases_with_a_4_call_or_more_sample": [
+      "edge-025",
+      "grounded-018",
+      "grounded-019",
+      "multi-023",
+      "recommend-003",
+      "recommend-013",
+      "recommend-014"
+    ],
+    "holds": true
+  },
+  "side_prediction": {
+    "N": 12,
+    "total": 25,
+    "predicted_N": 12,
+    "bound": [
+      2,
+      12
+    ],
+    "N_in_bound": true,
+    "N_is_predicted": true,
+    "flipped": [
+      "entitlement-002",
+      "entitlement-010",
+      "entitlement-011",
+      "recommend-015",
+      "grounded-017",
+      "grounded-019",
+      "brand-020",
+      "edge-024",
+      "headroom-005",
+      "headroom-026"
+    ],
+    "regressed": [],
+    "predicted_flips": [
+      "entitlement-002",
+      "entitlement-010",
+      "entitlement-011",
+      "recommend-015",
+      "grounded-017",
+      "grounded-019",
+      "brand-020",
+      "edge-024",
+      "headroom-005",
+      "headroom-026"
+    ],
+    "predicted_held": [
+      "blackout-001",
+      "blackout-007",
+      "blackout-008",
+      "blackout-009",
+      "concise-022"
+    ],
+    "passing_at_m07": [
+      "grounded-016",
+      "brand-021"
+    ],
+    "flipped_set_is_exactly_the_ten": true,
+    "falsifiers": {
+      "a_case_flipped_on_a_4_call_majority": [],
+      "a_flipped_case_failed_another_assert_at_m07": {},
+      "one_of_the_five_flipped": [],
+      "one_of_the_ten_did_not_flip": []
+    },
+    "held": true
+  },
+  "per_case": [
+    {
+      "case": "blackout-001",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "budget"
+      ]
+    },
+    {
+      "case": "blackout-006",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "budget",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "blackout-007",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "budget"
+      ]
+    },
+    {
+      "case": "blackout-008",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "budget"
+      ]
+    },
+    {
+      "case": "blackout-009",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "PASS",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "budget"
+      ]
+    },
+    {
+      "case": "entitlement-002",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "PASS",
+        "FAIL",
+        "PASS"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": true,
+      "regressed": false,
+      "representative_failures": []
+    },
+    {
+      "case": "entitlement-010",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": true,
+      "regressed": false,
+      "representative_failures": []
+    },
+    {
+      "case": "entitlement-011",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "PASS",
+        "PASS",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": true,
+      "regressed": false,
+      "representative_failures": []
+    },
+    {
+      "case": "entitlement-012",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "PASS",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "PASS",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        2,
+        3,
+        3
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "entitlement"
+      ]
+    },
+    {
+      "case": "recommend-003",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        null,
+        4,
+        null
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "json_schema",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-013",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        4,
+        4,
+        4
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "budget",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-014",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        4,
+        4,
+        4
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "budget",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-015",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": true,
+      "regressed": false,
+      "representative_failures": []
+    },
+    {
+      "case": "grounded-016",
+      "m07_result": "PASS",
+      "m07_samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "calls_by_sample": [
+        2,
+        2,
+        2
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": []
+    },
+    {
+      "case": "grounded-017",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "FAIL",
+        "PASS",
+        "PASS"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": true,
+      "regressed": false,
+      "representative_failures": []
+    },
+    {
+      "case": "grounded-018",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        3,
+        4,
+        4
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "budget",
+        "cites_at_least_one",
+        "json_schema"
+      ]
+    },
+    {
+      "case": "grounded-019",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "PASS",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "PASS",
+        "PASS",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        2,
+        3,
+        4
+      ],
+      "flipped": true,
+      "regressed": false,
+      "representative_failures": []
+    },
+    {
+      "case": "brand-020",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": true,
+      "regressed": false,
+      "representative_failures": []
+    },
+    {
+      "case": "brand-021",
+      "m07_result": "PASS",
+      "m07_samples": [
+        "FAIL",
+        "PASS",
+        "PASS"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "calls_by_sample": [
+        3,
+        2,
+        2
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": []
+    },
+    {
+      "case": "concise-022",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "budget"
+      ]
+    },
+    {
+      "case": "multi-023",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        4,
+        4,
+        5
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "budget",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "edge-024",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": true,
+      "regressed": false,
+      "representative_failures": []
+    },
+    {
+      "case": "edge-025",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "FAIL",
+      "rescore_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        4
+      ],
+      "flipped": false,
+      "regressed": false,
+      "representative_failures": [
+        "budget",
+        "cites_at_least_one"
+      ]
+    },
+    {
+      "case": "headroom-005",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "PASS",
+        "FAIL",
+        "PASS"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": true,
+      "regressed": false,
+      "representative_failures": []
+    },
+    {
+      "case": "headroom-026",
+      "m07_result": "FAIL",
+      "m07_samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ],
+      "rescore_result": "PASS",
+      "rescore_samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "calls_by_sample": [
+        3,
+        3,
+        3
+      ],
+      "flipped": true,
+      "regressed": false,
+      "representative_failures": []
+    }
+  ],
+  "per_sample": [
+    {
+      "case": "blackout-001",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6169,
+      "tokens_out": 330,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "blackout-001",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6218,
+      "tokens_out": 358,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "entitlement",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "entitlement",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "blackout-001",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6221,
+      "tokens_out": 338,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "blackout-006",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6149,
+      "tokens_out": 313,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "blackout-006",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6152,
+      "tokens_out": 302,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "blackout-006",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6186,
+      "tokens_out": 301,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "blackout-007",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6183,
+      "tokens_out": 326,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "blackout-007",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6188,
+      "tokens_out": 335,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "blackout-007",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6196,
+      "tokens_out": 321,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "blackout-008",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6235,
+      "tokens_out": 341,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "blackout-008",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6232,
+      "tokens_out": 335,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "blackout-008",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6225,
+      "tokens_out": 335,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "blackout-009",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6137,
+      "tokens_out": 294,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "blackout-009",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6172,
+      "tokens_out": 309,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "blackout-009",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6182,
+      "tokens_out": 302,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "brand-020",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6068,
+      "tokens_out": 276,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "brand-020",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6069,
+      "tokens_out": 274,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "brand-020",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6069,
+      "tokens_out": 274,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "brand-021",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6185,
+      "tokens_out": 348,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "brand-021",
+      "sample": 2,
+      "answered": true,
+      "calls": 2,
+      "mandated_calls": 2,
+      "tokens_in": 3949,
+      "tokens_out": 207,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": []
+    },
+    {
+      "case": "brand-021",
+      "sample": 3,
+      "answered": true,
+      "calls": 2,
+      "mandated_calls": 2,
+      "tokens_in": 3949,
+      "tokens_out": 192,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": []
+    },
+    {
+      "case": "concise-022",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6161,
+      "tokens_out": 312,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "concise-022",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6154,
+      "tokens_out": 312,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "concise-022",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6159,
+      "tokens_out": 311,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "edge-024",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6199,
+      "tokens_out": 338,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "edge-024",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6217,
+      "tokens_out": 329,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "edge-024",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6200,
+      "tokens_out": 320,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "edge-025",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6042,
+      "tokens_out": 313,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "cites_at_least_one"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "cites_at_least_one"
+      ]
+    },
+    {
+      "case": "edge-025",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6324,
+      "tokens_out": 391,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "cites_at_least_one"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "cites_at_least_one"
+      ]
+    },
+    {
+      "case": "edge-025",
+      "sample": 3,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 2,
+      "tokens_in": 8293,
+      "tokens_out": 372,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "cites_at_least_one"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "cites_at_least_one"
+      ]
+    },
+    {
+      "case": "entitlement-002",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6192,
+      "tokens_out": 300,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "entitlement-002",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6212,
+      "tokens_out": 308,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "entitlement-002",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6160,
+      "tokens_out": 291,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "entitlement-010",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6156,
+      "tokens_out": 316,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "entitlement-010",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6229,
+      "tokens_out": 347,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "entitlement-010",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6197,
+      "tokens_out": 340,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "entitlement-011",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6131,
+      "tokens_out": 295,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "entitlement-011",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6120,
+      "tokens_out": 293,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "entitlement-011",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 3,
+      "tokens_in": 6158,
+      "tokens_out": 315,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "entitlement-012",
+      "sample": 1,
+      "answered": true,
+      "calls": 2,
+      "mandated_calls": 2,
+      "tokens_in": 3887,
+      "tokens_out": 184,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": []
+    },
+    {
+      "case": "entitlement-012",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6022,
+      "tokens_out": 264,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [
+        "entitlement"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "entitlement"
+      ]
+    },
+    {
+      "case": "entitlement-012",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6040,
+      "tokens_out": 266,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [
+        "entitlement",
+        "must_not_claim"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "entitlement",
+        "must_not_claim"
+      ]
+    },
+    {
+      "case": "grounded-016",
+      "sample": 1,
+      "answered": true,
+      "calls": 2,
+      "mandated_calls": 2,
+      "tokens_in": 3939,
+      "tokens_out": 157,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": []
+    },
+    {
+      "case": "grounded-016",
+      "sample": 2,
+      "answered": true,
+      "calls": 2,
+      "mandated_calls": 2,
+      "tokens_in": 3955,
+      "tokens_out": 173,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": []
+    },
+    {
+      "case": "grounded-016",
+      "sample": 3,
+      "answered": true,
+      "calls": 2,
+      "mandated_calls": 2,
+      "tokens_in": 3959,
+      "tokens_out": 177,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": []
+    },
+    {
+      "case": "grounded-017",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6088,
+      "tokens_out": 310,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "grounded-017",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6090,
+      "tokens_out": 296,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "grounded-017",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6104,
+      "tokens_out": 300,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "grounded-018",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6265,
+      "tokens_out": 386,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "cites_at_least_one",
+        "json_schema"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "cites_at_least_one",
+        "json_schema"
+      ]
+    },
+    {
+      "case": "grounded-018",
+      "sample": 2,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 2,
+      "tokens_in": 8606,
+      "tokens_out": 382,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "must_not_claim"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "must_not_claim"
+      ]
+    },
+    {
+      "case": "grounded-018",
+      "sample": 3,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 2,
+      "tokens_in": 8581,
+      "tokens_out": 399,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "cites_at_least_one",
+        "json_schema"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "cites_at_least_one",
+        "json_schema"
+      ]
+    },
+    {
+      "case": "grounded-019",
+      "sample": 1,
+      "answered": true,
+      "calls": 2,
+      "mandated_calls": 2,
+      "tokens_in": 3899,
+      "tokens_out": 166,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": []
+    },
+    {
+      "case": "grounded-019",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6022,
+      "tokens_out": 251,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "grounded-019",
+      "sample": 3,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 2,
+      "tokens_in": 8181,
+      "tokens_out": 309,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "headroom-005",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6711,
+      "tokens_out": 575,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "headroom-005",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6792,
+      "tokens_out": 628,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "headroom-005",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6690,
+      "tokens_out": 519,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "headroom-026",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6191,
+      "tokens_out": 335,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "headroom-026",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6155,
+      "tokens_out": 325,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "headroom-026",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6187,
+      "tokens_out": 340,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "multi-023",
+      "sample": 1,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 3,
+      "tokens_in": 9220,
+      "tokens_out": 607,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "must_cite",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "multi-023",
+      "sample": 2,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 3,
+      "tokens_in": 8891,
+      "tokens_out": 550,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [
+        "entitlement",
+        "must_cite",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "entitlement",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "multi-023",
+      "sample": 3,
+      "answered": true,
+      "calls": 5,
+      "mandated_calls": 3,
+      "tokens_in": 11081,
+      "tokens_out": 565,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [
+        "entitlement",
+        "must_cite",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "entitlement",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-003",
+      "sample": 1,
+      "answered": false,
+      "calls": null,
+      "mandated_calls": 2,
+      "tokens_in": null,
+      "tokens_out": null,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": null,
+      "tokens_out_verdict": null,
+      "other_failing_asserts": [
+        "json_schema",
+        "must_cite",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "json_schema",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-003",
+      "sample": 2,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 2,
+      "tokens_in": 8535,
+      "tokens_out": 466,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out"
+      ]
+    },
+    {
+      "case": "recommend-003",
+      "sample": 3,
+      "answered": false,
+      "calls": null,
+      "mandated_calls": 2,
+      "tokens_in": null,
+      "tokens_out": null,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": null,
+      "tokens_out_verdict": null,
+      "other_failing_asserts": [
+        "json_schema",
+        "must_cite",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "json_schema",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-013",
+      "sample": 1,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 2,
+      "tokens_in": 8302,
+      "tokens_out": 411,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "must_cite",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-013",
+      "sample": 2,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 2,
+      "tokens_in": 8400,
+      "tokens_out": 423,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "must_cite",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-013",
+      "sample": 3,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 2,
+      "tokens_in": 8391,
+      "tokens_out": 426,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "must_cite",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-014",
+      "sample": 1,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 2,
+      "tokens_in": 8309,
+      "tokens_out": 408,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [
+        "must_cite",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-014",
+      "sample": 2,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 2,
+      "tokens_in": 8352,
+      "tokens_out": 408,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [
+        "must_cite",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-014",
+      "sample": 3,
+      "answered": true,
+      "calls": 4,
+      "mandated_calls": 2,
+      "tokens_in": 8892,
+      "tokens_out": 524,
+      "sample_result": "FAIL",
+      "tokens_in_verdict": "FAIL",
+      "tokens_out_verdict": "FAIL",
+      "other_failing_asserts": [
+        "must_cite",
+        "must_mention"
+      ],
+      "failed_on_at_6000": [
+        "budget.tokens_in",
+        "budget.tokens_out",
+        "must_cite",
+        "must_mention"
+      ]
+    },
+    {
+      "case": "recommend-015",
+      "sample": 1,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6153,
+      "tokens_out": 347,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "recommend-015",
+      "sample": 2,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6156,
+      "tokens_out": 341,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    },
+    {
+      "case": "recommend-015",
+      "sample": 3,
+      "answered": true,
+      "calls": 3,
+      "mandated_calls": 2,
+      "tokens_in": 6153,
+      "tokens_out": 329,
+      "sample_result": "PASS",
+      "tokens_in_verdict": "PASS",
+      "tokens_out_verdict": "PASS",
+      "other_failing_asserts": [],
+      "failed_on_at_6000": [
+        "budget.tokens_in"
+      ]
+    }
+  ]
+}

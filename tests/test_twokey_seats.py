@@ -175,6 +175,11 @@ ADR043_SEATS = {
     # with every test green on AI Quality's key alone.
     "milestones/M08/context_census.py": {"ai-quality", "platform-eng", "security"},
     "milestones/M08/context-census.json": {"ai-quality", "platform-eng", "security"},
+    # M08 PR 4 (SPEC/08). The re-score join: the reader that says whether the
+    # ceiling passed every ≤3-call sample and failed every ≥4-call one, and its
+    # record. The same three seats as the census it joins to.
+    "milestones/M08/rescore_join.py": {"ai-quality", "platform-eng", "security"},
+    "milestones/M08/rescore-join.json": {"ai-quality", "platform-eng", "security"},
 }
 
 
@@ -331,7 +336,10 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
         "the M08 census": ["milestones/M08/context_census.py",
                            "milestones/M08/context-census.json",
                            "milestones/M08/residual_differential.py",
-                           "milestones/M08/residual-differential.json"],
+                           "milestones/M08/residual-differential.json",
+                           # M08 PR 4: the join and its record, member by member.
+                           "milestones/M08/rescore_join.py",
+                           "milestones/M08/rescore-join.json"],
         # ADR-052. Enumerated here because the audit measured both narrowings
         # silent otherwise: deleting the three pin entries below left 173 passed,
         # and dropping `pave/tests/test_twokey.py` from the alternation was caught
@@ -376,10 +384,11 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     total = sum(len(v) for v in required.values())
     # 57 -> 58 at ADR-072: the instrument registry's one path. 58 -> 65 at M08
     # PR 2: the goldens producer's two and the topic baseline's five. 65 -> 69 at
-    # M08 PR 3: the M08 census's four.
-    assert total == 69, (
+    # M08 PR 3: the M08 census's four. 69 -> 71 at M08 PR 4: the re-score join
+    # and its record, on the census's rule.
+    assert total == 71, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "69. Deleting a required path in the same diff that "
+        "71. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -540,11 +549,15 @@ def test_the_census_the_ceiling_is_derived_from_collects_three_seats():
     same reader module, same inputs, same pin shape."""
     for path in ("milestones/M08/context_census.py", "milestones/M08/context-census.json",
                  "milestones/M08/residual_differential.py",
-                 "milestones/M08/residual-differential.json"):
+                 "milestones/M08/residual-differential.json",
+                 # M08 PR 4: the join reader and its record. Measured on f8e3bd3
+                 # before the widening: both `two-key: not required`.
+                 "milestones/M08/rescore_join.py", "milestones/M08/rescore-join.json"):
         _blocked_for([path], {"ai-quality", "platform-eng", "security"})
     # the rule stays narrow: the other M08 records are prose and transcripts
-    assert _seats_for("milestones/M08/per-sample-at-6000.txt") == set()
-    assert _seats_for("milestones/M08/withheld-read.txt") == set()
+    for transcript in ("per-sample-at-6000.txt", "per-sample-at-7700.txt",
+                       "goldens-rescore.txt", "withheld-read.txt"):
+        assert _seats_for(f"milestones/M08/{transcript}") == set()
 
 
 def test_a_forged_permit_from_the_generator_collects_four_seats():
