@@ -44,6 +44,14 @@ MANIFEST = ROOT / "services" / "highlights-agent" / "pave.manifest.yaml"
 DECISION_RULE = "8_decision_rule (pre-registered, SPEC/08)"
 BY_MILESTONE = "1_by_milestone (exact)"
 STAGE2 = "m07-stage2"
+PER_SAMPLE = "2_stage2_per_sample (exact + replayed)"
+
+#: The margin the manifest's `max_tokens_in` has always sat above the per-case
+#: ceiling: 1500/2000, 6000/6500, 7700/8200 (ADR-073 decision 3).
+MANIFEST_MARGIN = 500
+
+ADR_014 = ROOT / "docs" / "adr" / "ADR-014-token-denominated-budgets.md"
+ADR_073 = ROOT / "docs" / "adr" / "ADR-073-m08-takes-the-budget-question-and-the-rules-registry-moves-to-m09.md"
 
 #: The headroom band each ceiling was derived into, as a multiple of the measured
 #: maximum. Below a floor, an unmeasured case or a prompt edit breaches the ceiling
@@ -81,6 +89,34 @@ def observed_maximum(field: str) -> int:
     if field == "tokens_in":
         return census()[DECISION_RULE]["mandated_shape_tokens_in"]["max"]
     return measurement()["summary"]["latency_ms"]["max"]
+
+
+def next_call_count_minimum() -> int:
+    """The minimum `tokens_in` of the smallest call count above the mandated
+    shape — the runaway anchor the input ceiling must sit below.
+
+    Read two ways from the record and required to agree, because the Security
+    seat re-pointed a single read at stage 1's table (`m07-stage1`, 8271) and at
+    M06b's (8289) and landed a ceiling above the real four-call turn with every
+    test green. The call count itself is derived from the mandated shape the
+    census records (its largest mandated count plus one), not named as a literal;
+    the summary table is read at that count, and the per-sample table is folded
+    independently over every answered sample above the mandate. A summary from
+    another run does not agree with stage 2's own samples, and goes red."""
+    record = census()
+    mandated = record[DECISION_RULE]["mandated_shape_tokens_in"]["by_calls"]
+    mandated_max = max(int(calls) for calls in mandated)
+    from_summary = record[BY_MILESTONE][STAGE2]["by_calls"][str(mandated_max + 1)]["min"]
+    from_samples = min(
+        sample["tokens_in"] for sample in record[PER_SAMPLE]
+        if sample["answered"] and sample["calls"] > mandated_max
+    )
+    assert from_summary == from_samples, (
+        f"the summary table's minimum above the mandated shape ({from_summary}) is not what "
+        f"stage 2's own samples fold to ({from_samples}); the test is reading a different "
+        "run's table than the samples it was derived from"
+    )
+    return from_summary
 
 
 def budgets():
@@ -148,12 +184,80 @@ def test_the_input_ceiling_sits_below_the_next_call_count():
     Read from the census's exact stage-2 table: the minimum of the smallest call
     count above the mandated shape. A ceiling at or above it passes a four-call
     turn, which is what the budget axis exists to catch (ADR-073 decision 3)."""
-    next_shape = census()[BY_MILESTONE][STAGE2]["by_calls"]["4"]["min"]
-    for case_id, budget in budgets():
+    next_shape = next_call_count_minimum()
+    checked = list(budgets())
+    # Vacuity guard (the Security seat's plant): with every `budget:` line removed
+    # the loop below asserts nothing and passes. Every case carries a budget, and
+    # the pack is at least the manifest's own floor.
+    cases = yaml.safe_load(GOLDENS.read_text(encoding="utf-8"))
+    floor = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))["gates"]["eval_min_cases"]
+    assert len(checked) == len(cases) >= floor, (
+        f"{len(checked)} budgets over {len(cases)} cases (floor {floor}): a case without a "
+        "budget is a case this ceiling does not govern"
+    )
+    for case_id, budget in checked:
         assert budget["tokens_in"] < next_shape, (
             f"{case_id}: tokens_in={budget['tokens_in']} is at or above the minimum four-call "
             f"turn ({next_shape}). The ceiling passes a runaway loop and catches nothing; "
             "re-derive it below the next call count (ADR-014 amendment 2)."
+        )
+
+
+def test_the_input_ceiling_is_the_number_the_point_rule_produces():
+    """ADR-014 amendment 2's point rule, executable: the midpoint of the band —
+    floor at 1.15x the mandated-shape maximum, roof at the lesser of 1.60x and
+    one under the next call count's minimum — rounded to the nearest hundred.
+
+    Every seat on M08 PR 3 found the same thing: the band is pinned by the
+    record and the tests, but every integer inside it was equally green, so the
+    point was prose and the seat that owns the cases could move it anywhere in
+    the band on one key. Pinning the number here puts a move onto this file's
+    two keys as well, and pinning the *rule* beside it means a record that moves
+    yields a different number and goes red until an amendment re-derives it —
+    which is what "re-derived by this same rule ... on the same keys" in the
+    amendment's trigger sentence has to mean in code.
+
+    The literal is deliberate and is the number the amendment names. The
+    manifest sits above it by the margin the pair has always had."""
+    observed = observed_maximum("tokens_in")
+    floor_x, roof_x = BANDS["tokens_in"]
+    floor = observed * floor_x
+    roof = min(observed * roof_x, next_call_count_minimum() - 1)
+    produced = round(((floor + roof) / 2) / 100) * 100
+    assert produced == 7700, (
+        f"the point rule now yields {produced}, not 7700: the record moved. Re-derive in an "
+        "ADR-014 amendment on this file's two keys; do not edit the number here."
+    )
+    for case_id, budget in budgets():
+        assert budget["tokens_in"] == produced, (
+            f"{case_id}: tokens_in={budget['tokens_in']} is not the number the pinned rule "
+            f"produces from the record ({produced})"
+        )
+    gates = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))["gates"]["budgets"]
+    assert gates["max_tokens_in"] == produced + MANIFEST_MARGIN
+
+
+def test_the_amendment_carries_the_pre_registered_sentences_verbatim():
+    """ADR-073 amendment 2 §5 pre-registered three sentences for ADR-014 amendment
+    2 so PR 3 could fill in a number and nothing else, and said a seat could check
+    them against the text. A seat check with no mechanism drifts (ADR-037); this
+    makes the next drift a red check. Whitespace-normalised, because the two
+    files wrap at different columns."""
+    import re
+
+    def normalise(text: str) -> str:
+        return " ".join(text.split())
+
+    adr_073 = ADR_073.read_text(encoding="utf-8")
+    section = adr_073[adr_073.index("### 5. ADR-014 amendment 2"):adr_073.index("### 6. ")]
+    quoted = re.findall(r'\*"(.+?)"\*', section, re.S)
+    assert len(quoted) == 3, "ADR-073 amendment 2 §5 pre-registers exactly three sentences"
+    adr_014 = ADR_014.read_text(encoding="utf-8")
+    amendment = normalise(adr_014[adr_014.index("## Amendment 2 (M08)"):])
+    for sentence in quoted:
+        assert normalise(sentence) in amendment, (
+            "ADR-014 amendment 2 no longer carries a pre-registered sentence verbatim: "
+            + normalise(sentence)[:80]
         )
 
 

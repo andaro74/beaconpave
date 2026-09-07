@@ -303,18 +303,32 @@ measured maximum of the shape, and below the next call count, because *a loop
 that starts iterating more than the measured shape is the runaway generation
 case*. From the census record, and from nothing else:
 
-| | read from | value |
+| | read from (the record's keys, verbatim) | value |
 |---|---|---|
-| mandated-shape maximum | `8_decision_rule.mandated_shape_tokens_in.max` | 6235 |
-| minimum four-call turn | `1_by_milestone.m07-stage2.by_calls.4.min` | 8181 |
+| mandated-shape maximum | `"8_decision_rule (pre-registered, SPEC/08)"` → `mandated_shape_tokens_in` → `max` | 6235 |
+| minimum four-call turn | `"1_by_milestone (exact)"` → `m07-stage2` → `by_calls` → `"4"` → `min`, and independently the fold of `"2_stage2_per_sample (exact + replayed)"` over answered samples above the mandated shape | 8181 |
 | band floor | 1.15 × 6235 | 7170.25 |
 | band roof | min(1.60 × 6235 = 9976, 8181 − 1) | 8180 |
 
 The exact floor is 7170.25, so the integer band is **[7171, 8180]**; ADR-073
 wrote it as [7170, 8180], and 7170 itself would fail the pin.
 
-**The point rule, pre-registered in M08 PR 3's plan before the number was
-named: the midpoint of the band, rounded to the nearest hundred for
+**Which maximum.** The band's input is the *mandated-shape* maximum, 6235,
+because SPEC/08 pre-registered it by that name at PR 1 (`dd4a5f0`: *"within
+1.15–1.60× the mandated-shape maximum of 6235"*). The same record offers a
+second reading: the as-run three-call maximum, 6792, which includes the
+nineteen samples that ran three calls against a two-call mandate. Read that
+way the floor is 7811 and the band [7811, 8180]. It is not the input, for the
+reason statement 3 gives: those samples are the browse gap's first extra call,
+the thing the axis cannot discriminate, and deriving the floor from them would
+build that call's cost into the ceiling's headroom. The M02 amendment, by
+contrast, took its maximum (4834) from a sample that was itself above its
+mandate — the census's `mandated_calls()` did not exist then — so the two
+applications of the same band read *"the measured maximum"* differently. That
+is recorded here, and it is why the pin now names the mandated-shape maximum
+by its key rather than reading a summary's `max`.
+
+**The point rule: the midpoint of the band, rounded to the nearest hundred for
 legibility.** It adds no constant beyond the two the pinned rule already
 carries — the 1.15 floor and the next call count. It sits equidistant from the
 two failure modes the derivation test names in words: under the floor, a prompt
@@ -323,6 +337,26 @@ at or above the four-call minimum, a runaway turn passes and the ceiling catches
 nothing. Rounding to the hundred is this ADR's own *"rounded for legibility"* at
 the grain every ceiling in the file already has. The rule cites no case and no
 count.
+
+**Where the rule was written, honestly.** It was stated in the PR plan the
+operator approved before the number was named, and that plan is a conversation,
+not a committed artifact: in the repository the rule first appears in the
+commit that carries the number. ADR-073 decision 3 left the point to *"whichever
+value in it the amendment argues"*, so this is admissible; it is not
+pre-registered in the sense the band is, and every seat on PR 3 said so. Two
+things stand in its place. First, the rule is executable and pinned in the
+two-key derivation test
+(`test_the_input_ceiling_is_the_number_the_point_rule_produces`): the test
+computes the floor, the roof and the rounded midpoint from the record and
+asserts every case and the manifest carry that number, so a move anywhere in
+the band takes this file's two keys and a record that moves yields a different
+number and goes red until an amendment re-derives it. Second, and stronger: by
+the record, no answered stage-2 sample lies between the three-call maximum
+(6792) and the four-call minimum (8181), so **every value in the band produces
+the same per-sample join**. The point could not have been chosen by looking at
+which cases pass, and cannot be checked against it either — the choice inside
+the band is a judgment about headroom, and this paragraph is where it is
+argued.
 
 **The number: (7170.25 + 8180) / 2 = 7675.125, rounded to the nearest hundred —
 `tokens_in: 7700`.** Checks: 7700 ≥ 7170.25; 7700 ≤ 9976; 7700 < 8181. It is
@@ -351,22 +385,45 @@ none is the number.
   the margin the pair has always had (1500/2000, 6000/6500; ADR-073 decision 3).
   It is a **declaration bound, not a scoring value**: nothing in `pave/` or
   `evals/` scores a case against it, `tests/test_contracts.py` only requires
-  every per-case budget to sit under it, and the derivation test pins it. It
-  sits above the four-call minimum, which is why the placement is asserted on
-  the per-case ceiling and not on the manifest: **the new test fails any case
-  at or above 8181.**
+  every per-case budget to sit under it, and the derivation test pins it (the
+  literal, and the margin as `MANIFEST_MARGIN`). It sits above the four-call
+  minimum, which is why the placement is asserted on the per-case ceiling and
+  not on the manifest: **the new test fails any case at or above 8181.** This
+  is the first time the two rules disagree — at M02 the manifest's 6500 also
+  sat under the next call count (~6600) — and the decision is written rather
+  than carried in: **the margin governs the manifest; the placement governs the
+  per-case ceiling.** `pave/manifest.py` and `tests/test_contracts.py` both
+  describe the manifest as the production budget every case is checked
+  against; that enforcement does not exist, and if it lands where those
+  sentences say it is, the manifest's own placement becomes a decision on the
+  same keys. Recorded, not repaired.
 - **`tests/test_budget_derivation.py`** is re-pointed: the `tokens_in` half of
   the headroom test reads the census's mandated-shape maximum, `BANDS`
   unchanged; the `max_ms` half still reads M02's artifact, because the hang
   guard did not move. A new test asserts every case's `tokens_in` is under the
   census's minimum four-call turn — the placement this ADR stated twice in prose
-  and never pinned; the band's roof at 1.60× (9976) is past the four-call
-  minimum, so a ceiling could clear the band and pass every runaway turn.
-  Mutation audit, each restored from a scratchpad copy: 7100 planted, red on the
-  floor; 8181 planted, red on the new test only, the roof silent; 10000, red on
-  the roof; 6500 or 7600 in the manifest, red on the pin; the new test
-  re-pointed at the three-call maximum, red; the new test deleted with 8181
-  planted, nothing red — which is what makes it load-bearing.
+  and never pinned. **Re-pointing the band is what makes that test necessary**:
+  against M02's artifact the roof was 1.60 × 4834 = 7734, under 8181, so the
+  placement held by accident; against the census it is 9976, past the four-call
+  minimum, so a ceiling could clear the band and pass every runaway turn. The
+  test this PR adds repairs a protection the same diff removes. The anchor it
+  reads — the four-call minimum — is derived from the mandated shape (its
+  largest mandated count plus one), read from the stage-2 summary and folded
+  independently from stage 2's own samples, and the two must agree; a single
+  read re-pointed at stage 1's table (8271) or M06b's (8289) landed a ceiling
+  above the real four-call turn with every test green, and now goes red. A
+  second test executes the point rule itself and pins the number (see *Where
+  the rule was written*). A third asserts the three pre-registered sentences
+  are carried verbatim. Mutation audit, each restored from a scratchpad copy
+  and with the two records re-produced where a real PR would: 7100 planted, red
+  on the floor; 8181 planted, red on the placement test only, the roof silent;
+  10000, red on the roof; 6500, 7600 or 8100 in the manifest, red on the pins;
+  the placement test re-pointed at the three-call maximum, at stage 1 or at
+  M06b, red; every case at 7500 or at 8180 (both in band), red on the point
+  test; every budget line removed, red; one word changed in a pre-registered
+  sentence, red; the `BANDS` floor lowered to 1.00, red on the point test; the
+  placement test deleted with 8181 planted, or the point test deleted with 7500
+  planted, nothing red — which is what makes each load-bearing.
 - **`gates.budgets.p95_ms` is not touched** and stays breached at 2500 ms, a
   standing finding for M08 (ADR-073 amendment 2 §4); the rule that derives a
   suite p95 is owed at M09 PR 1.
@@ -375,7 +432,12 @@ none is the number.
   four-seat path, no test couples their values to the service's, and a
   scaffolded service's ceiling is its own derivation from its own measurement —
   a number copied from another service's census is a number, not a derivation.
-  Named here so it is dated, by M08 PR 5's journal, rather than discovered.
+  The stronger reason, found by the Platform Engineering seat: the template
+  scaffolds a **one-tool** service (`catalog-search@^0` alone, no
+  `expect_tool_before_answer` in its sample case), which is the two-call shape
+  the M02 amendment derived 6000 for. The template is not stale; it is correct
+  for what it produces. Named here so it is dated, by M08 PR 5's journal,
+  rather than discovered.
 - **Records.** The census record and `residual-differential.json` carry
   whole-file provenance digests of `cases.yaml` (both) and of the manifest (the
   census). Every measured figure in both is byte-identical before and after this
@@ -394,8 +456,40 @@ none is the number.
 
 | debt | owed to | date |
 |---|---|---|
-| `BANDS` in `tests/test_budget_derivation.py` is guarded by the two-key rule on its file and by no test: the mutation audit lowered the `tokens_in` floor to 1.00 with 7100 planted and nothing went red. A pin that plants a constant and expects the band to refuse it | AI Quality with Platform Engineering | **M09 PR 1** |
-| The template's 6000 and 6500 (`templates/agent-tools/`), named above as not moving | Platform Engineering, ADR-047's four seats | **dated by M08 PR 5's journal** |
+| `BANDS` in `tests/test_budget_derivation.py` was guarded by the two-key rule on its file and by no test: the first mutation audit lowered the `tokens_in` floor to 1.00 with 7100 planted and nothing went red. The point test added after the seat round now catches any `BANDS` change that moves the rounded midpoint (the floor to 1.00, the roof to 1.20, both red); a roof raised while the four-call cap still binds does not move it and survives. Still owed: a direct pin that plants each constant and expects the band to refuse it | AI Quality with Platform Engineering | **M09 PR 1** |
+| The template's 6000 and 6500 (`templates/agent-tools/`), named above as not moving and correct for the one-tool shape it scaffolds | Platform Engineering, ADR-047's four seats | **dated by M08 PR 5's journal** |
+| The budget failure record names the excess and not the call count (`evals/deterministic.py`: *"tokens_in=8181 over 7700"*), so what this ceiling was derived to catch — a four-call turn — is not recoverable from the verdict without a hand-join to the trajectory. Carry `calls` into the record the way M07 made per-case `refused` derivable | AI Quality with Platform Engineering | **M08 PR 4** to decide; not this PR's, which moves no instrument |
+
+### The seat round on PR 3, dispositioned
+
+Four seats — AI Quality, Platform Engineering and Tool Owner on the enforced
+rules, Security as the counterweight on the four-call assertion — each in an
+isolated worktree at the PR's first commit, each asked one question: *is this
+number produced by the pinned rule from the committed record and by nothing
+else?* Each re-derived the band and the number from the JSON independently
+and matched every figure above. Every seat answered the same way: **the band,
+yes; the point, not by anything committed before this PR.** Every finding
+below was made by planting and running, not by reading; none turns on which
+cases pass, and no seat computed a count at any ceiling but 6000.
+
+| finding | seats | disposition |
+|---|---|---|
+| The point rule's *"pre-registered in PR 3's plan"* names an artifact that is not in the repository; every integer in the band was equally green | all four | **Fixed above** (*Where the rule was written*): the claim is withdrawn and the truth stated; the rule is now executable and pinned in the two-key derivation test; the record's gap (6792, 8181) means every value in the band produces the same join |
+| The band's input could be read as the as-run three-call maximum 6792, under which 7700 is below the floor | Tool Owner | **Declined, recorded above** (*Which maximum*): SPEC/08 pre-registered the mandated-shape maximum by name at PR 1; the as-run maximum includes the above-mandate samples statement 3 says the axis cannot discriminate |
+| `milestones/M08/context_census.py` and its record sit on no two-key rule; a four-line trim in the reader's `by_calls()`, both records regenerated, landed a ceiling at 8190 — above the real four-call turn — with 2944 tests green on AI Quality's key alone | Security (blocking) | **Operator's decision, pending.** The repository's own precedent (ADR-060) widens a rule in the diff that creates the dependency; a rule on the reader and record is a `pave/twokey.py` change on four seats, outside this PR's list |
+| The required L2 lane re-scores M02's committed answers against the live cases file at 7700 and compares to `evals/comparators.json`'s 15/25; if the tools arm's count moves, the comparator must move in its own three-key PR, and PR 3 — not PR 4 — prints the first count at the new ceiling on M02's answers | Security (blocking) | **Operator's decision, pending.** Not run locally: computing it is the count constraint 2 reserves. The census's M02 four-call samples span 7146–7868, so invariance is not structural |
+| The four-call anchor was three unpinned string constants and a literal `"4"`; re-pointing at stage 1's or M06b's table survived | Security, AI Quality | **Fixed**: the call count is derived from the mandated shape, the minimum is read from the summary and folded from the samples, and the two must agree |
+| The placement test is vacuous on an empty budget set | Security | **Fixed**: every case carries a budget and the pack is at least the manifest's `eval_min_cases` |
+| The manifest's +500 margin and the below-next-call-count placement disagree for the first time, and the ADR carried the margin in without deciding | Tool Owner | **Fixed above**: the decision is written; the prose in `pave/manifest.py` and `tests/test_contracts.py` describing an enforcement that does not exist is recorded |
+| Re-pointing the band loosened the roof from 7734 to 9976; the new test repairs a protection the same diff removes, and the ADR did not say so | Platform Engineering | **Fixed above** |
+| The derivation table's key paths dropped the record's parentheticals; a reader following them literally gets a `KeyError` | Platform Engineering | **Fixed above**: keys verbatim |
+| The template's reason was weaker than the real one: it scaffolds the one-tool, two-call shape 6000 was derived for | Platform Engineering | **Fixed above**; the date stays PR 5's |
+| Nothing asserts the three pre-registered sentences are carried verbatim | Platform Engineering | **Fixed**: a test in the derivation file, red on one changed word |
+| `BANDS` guarded by no test | AI Quality, Platform Engineering, Security | **Narrowed** by the point test; the direct pin stays dated M09 PR 1 (obligations) |
+| The golden-cases rule collects AI Quality alone, and ADR-073 D3 calls that *"two keys on the cases"* | AI Quality | **Declined** as a finding on this PR: the rule set is `pave/twokey.py`'s and predates M08; the point pin now puts any move of the number onto the derivation file's two keys as well |
+| The budget failure record does not carry the call count | Security | **Dated** to PR 4's decision (obligations); `evals/deterministic.py` is not in this PR |
+| `tests/test_g4_capture_boundary.py` is vacuous in any checkout under a directory named `.claude`, because `SKIP_DIRS` is matched against absolute parts; its own has-something-to-scan guard catches it | all four | **Declined here**: pre-existing, not this diff's; a discovered defect for the journal with a deadline (SPEC/08 *Bounded*) |
+| A uniform ceiling cannot discriminate calls above a per-case mandate; a per-case ceiling keyed to `mandated_calls()` would | AI Quality | **Declined**: statement 3 records the limit; a per-case ceiling is a new rule, M09's |
 
 ### Why the order matters more than the number, again
 
