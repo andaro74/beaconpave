@@ -214,6 +214,31 @@ provenance digest of `cases.yaml` (`b0e874a8…` → `f59f4a39…`), which is th
 re-reading's `cases_file.sha256` carries and which `check_rereadings` reads back out
 of both commits. The ADR was not edited; the correction is in amendment 3.
 
+**The close's gate went red on a citation the previous merge dissolved — and
+`make check` was green on it.** ADR-073 amendment 3 records PR 4's work by its own
+branch commits, `f8e3bd3` and `1492358`. GitHub deleted `m08-pr4-rescore` on the
+squash-merge, `906d74e` carries no parent link to either, and
+`tests/test_cited_commits_resolve.py` blocked the contract lane in four
+parametrisations. Two things are worth carrying out of it. **The check is late by
+one PR by construction**: nothing in PR 4's tree was wrong and its own gate was
+green, because the branch it names still existed while it ran; the defect is
+created by the merge, and the first fresh clone after a merge is the *next* PR's.
+**And the local run was green for the exact reason the test exists** — this clone
+still holds a stale `origin/m08-pr4-rescore`, so the citation resolved in the
+author's checkout and in no other, which is the sentence that test's docstring
+opens with, written after ADR-042 and SPEC/05 were caught doing it. It has now
+caught the shape it was built for, in the tree of the person running it, one
+milestone later. `git remote prune --dry-run origin` names **52** stale refs here
+against the 33 branches `origin` publishes. The remedy is the repo's own
+convention — annotated `cited-f8e3bd3` and `cited-1492358` tags, as ADR-035's two
+and ADR-036's one already are, the third and fourth time it has been paid by hand
+— and **no document's text was edited**: the sentences amendment 3 wrote are true,
+and a citation is repaired by making the commit reachable, not by renaming it to
+the merge sha. The root cause is a setting that contradicts a rule this repository
+states: `close-milestone` step 7 says *"do not delete the merged branch — the
+branch list is a visible progress ledger"*, and *automatically delete head
+branches* is on.
+
 **Small things, measured and left.** `goldens-rescore.txt` prints the census record's
 absolute path in Windows form, because that is what the reader prints — committed
 as-run, not edited. `.gitattributes` declares `eol=lf` and 191 tracked files are CRLF
@@ -280,6 +305,9 @@ milestone that records no run of its own.
 | `tests/test_g4_capture_boundary.py` is vacuous in any checkout under a `.claude/` directory — found by all four seats on PR 3, pre-existing, not that diff's | Security + Platform Engineering | **M09 PR 1** |
 | `.gitattributes` declares `eol=lf` and 191 tracked files are CRLF in the working tree and LF in the index. **`.gitattributes` is on no `pave/twokey.py` rule**, so the file that decides how every byte-level check reads a checkout takes one key — which is the finding, beside the renormalisation | Platform Engineering | **M09 PR 1** |
 | `docs/adr/README.md`'s index rows for ADR-014 and ADR-073 name their amendments as of this PR, and **no check reads the index**: the clause that an amended ADR shows where it was corrected is enforced by nobody | PM seat | **M09 PR 1** for the check |
+| **A document that cites its own branch commits is a citation with a fuse.** Nothing tags them before the squash-merge dissolves them, and `test_cited_commits_resolve.py` can only find it one PR late, in somebody else's diff. Either the close tags the cited commits before merging, or documents cite merge shas — a decision, not a habit | Platform Engineering + PM | **M09 PR 1** |
+| **`make check` is green in a clone carrying stale remote-tracking refs**, which is the "resolves in the author's checkout only" defect the citation test was written for. The honest local run needs `git remote prune origin` first and nothing says so; 52 stale refs here against 33 published branches | Platform Engineering | **M09 PR 1** |
+| **GitHub's *automatically delete head branches* is on, against `close-milestone` step 7's "do not delete the merged branch".** The stated ledger and the actual one disagree by ~52 branches; this is what turns a branch-commit citation into `fatal: bad object` | the operator, a repository setting | **before M09 opens** |
 | The seven browse-gap cases — the extra `catalog-search` call and the wrong citation arrive together, on the same seven cases, in every committed stage-2 sample that ran long | Tool Owner, no ADR | **M10** |
 | The five `tokens_out` cases at unchanged tiers — `blackout-001`, `blackout-007`, `blackout-008`, `blackout-009`, `concise-022` — which no `tokens_in` move can reach | AI Quality | **M10** |
 

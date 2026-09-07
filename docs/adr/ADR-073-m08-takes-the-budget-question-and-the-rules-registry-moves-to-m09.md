@@ -1074,7 +1074,58 @@ records none of its own: `enforcement-probing`'s footprint **0 of 25**,
 dispositioned at M07 as a scale cut. No baseline run: M08 moved no guardrail,
 policy or topic wording and made zero model calls.
 
-### 6. What this amendment does not change
+### 6. The gate went red on a citation the squash-merge dissolved
+
+**Found by CI on this PR, not by `make check`, and it is amendment 3's text
+rather than this one's.** Amendment 3 §7 records PR 4's work as *"Two
+transcripts, raw stdout, run once (`f8e3bd3`)"* and *"The join reader and its
+record ... (`1492358`)"* — its own branch commits, which were true and reachable
+while `m08-pr4-rescore` existed. GitHub deleted that branch on the squash-merge,
+`906d74e` carries no parent link to either, and both became reachable from no
+branch or tag `origin` publishes. `tests/test_cited_commits_resolve.py` went red
+in four parametrisations and `pave gate decide` blocked the contract lane.
+
+**The check is correct and is late by one PR, by construction.** The defect is
+created by a *merge* — nothing in PR 4's own tree was wrong, and its gate was
+green because the branch it names still existed while it ran. The first fresh
+clone taken after the merge is the next PR's, so a citation with this fuse in it
+always detonates in somebody else's diff. That is the structural half, and it is
+owed below rather than fixed here.
+
+**`make check` was green locally at 3051 passed, and that is the same defect
+wearing the reviewer's clothes.** This clone still holds a stale
+remote-tracking ref, `origin/m08-pr4-rescore`, so `for-each-ref --contains`
+found it and the citation resolved — in the author's checkout and in no fresh
+clone. `tests/test_cited_commits_resolve.py`'s own docstring opens on that
+sentence, written after ADR-042 and SPEC/05 were found citing commits that
+resolved only where they were written; it has now caught the shape it was built
+for, one milestone later, in the tree of the person running it.
+`git remote prune --dry-run origin` names **52** such refs here against 33
+branches `origin` actually publishes, so the blind spot is wide and not specific
+to this milestone.
+
+**The remedy is the repository's own convention, applied twice.** Annotated tags
+`cited-f8e3bd3` and `cited-1492358` on the two commits, message *"Cited by
+ADR-073 amendment 3; unreachable after squash-merge"* — the same shape as
+`cited-a0a63d1` and `cited-a5a8077` (ADR-035) and `cited-e6589ae` (ADR-036),
+which is the third and fourth time this has been paid by hand. Measured against
+the ref set a fresh clone gets — `refs/heads/*` and `refs/tags/*` as `origin`
+publishes them, `refs/pull/*` excluded because `actions/checkout` does not fetch
+them — all 76 distinct citations in `docs/` and `SPEC/` resolve once the two tags
+are pushed, and two do not without them. **No document's text is edited**: the
+sentences amendment 3 wrote are true, and a citation is repaired by making the
+commit reachable, never by quietly renaming it to the merge sha that replaced it.
+
+**The root cause is a setting, and it contradicts a stated rule.**
+`.claude/skills/close-milestone` step 7 says *"Do not delete the merged branch —
+the branch list is a visible progress ledger."* GitHub's *automatically delete
+head branches* is on, so every squash-merge has been deleting one: 33 branches
+published against 85 this clone remembers. A rule stated in the checklist and
+enforced by nobody is CLAUDE.md's *stated and absent* shape, and turning the
+setting off is where the next one is prevented rather than tagged after the
+fact. The operator's, recorded here with the two debts it leaves.
+
+### 7. What this amendment does not change
 
 The claim, the band, the placement, the number, the rule and its outcome.
 Constraints 1–8 — including constraint 8, which is why the entry's `sha` is PR 3's
