@@ -44,6 +44,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 06d | The instrument, readable ❈ | three PRs ❈ | `m06d` | not re-scored ❈ | – | n/a ❈ | ✅ |
 | 07 | The guardrail, applied per channel by the gateway ✚ | six PRs ✚ | `m07` | **2/25** ✚ | not judged ✧ | 7/11, not recorded ✚ | ✅ |
 | 08 | The tools arm's budget: the context or the ceiling ✜ | six PRs ✜ | `m08` | **12/25** ✜ | not judged ✧ | not run ✜ | ✅ |
+| 08b | The ceiling, measured on samples it was not derived from ❁ | `m08b-fresh-run` | `m08b` | –/25 | – | – | ⬜ |
 | 09 | Rules registry + regdelta loop | `m09-rules` | `m09` | –/25 | – | – | ⬜ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
@@ -479,6 +480,26 @@ published, and `pave/history.py` is red if either stops. `suite latency OVER` at
 census puts model time alone at 3606 ms on a three-call turn, so the gate is
 breached by the shape, and the rule that derives a suite p95 is owed to M09 PR 1.
 Adversarial not run: no corpus edit, no probe run, no digest moved.
+
+❁ **M08b is the fresh run, added in place on ADR-054's precedent, and nothing
+below it shifts (ADR-074).** M09 as inherited carried the rules registry, the
+first fresh run of any arm since M07 stage 2, and twelve dated debts of which
+seven need a run; the operator split it in two and kept the registry at M09,
+so every reference to M09, M10, M11 and M12 in this file and the obligation
+registers stays true. **Where the ✜ paragraphs above say "M09 PR 1", read this
+row** — the M08b PR that pays each debt is named in
+`SPEC/08b-ceiling-on-fresh-samples.md`; the closed journal, SPEC/08, ADR-073
+and the residual record keep the string as a record of what was believed.
+**Where they say the seven browse-gap cases are the Tool Owner's "for M10",
+read *unscheduled*:** answer quality has no claim in the twelve and no row in
+this table, and ADR-074 decision 2 records the seven cases and the five
+`tokens_out` cases as owned and unscheduled on claim 10's precedent, with one
+written trigger — persists on this row's fresh run. The milestone's one claim
+is M08's measured where M08 could not measure it: the 7700 ceiling holds per
+sample on samples it was not derived from. Its bands, the `recommend-003`
+reading rule, the residual's attribution and the suite p95 rule are all
+written in ADR-074 decision 3 before the run; the numbers arrive at close,
+never before.
 
 ## What part one produced
 
