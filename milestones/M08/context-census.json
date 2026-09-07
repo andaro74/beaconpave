@@ -49,9 +49,9 @@
     "milestones/M07/stage1/goldens-run-3.json": "47063367894d32a82e7d73f58ce1af576213cb8fd5a754d75cc03519586121fd",
     "platform/gateway/policy/tools.contracts.json": "a0ad6eae3b8f4ada5e9e673368bf0970fa8bcec80dbe4ccfcc017d3d7742f9d7",
     "services/highlights-agent/evals/answer.schema.json": "d4219cc724c5c17e94693d99992637de9c8f987e58632239ca2bbfccd0baa155",
-    "services/highlights-agent/evals/golden/cases.yaml": "b0e874a89f322865e2daeae68dbc3caa317f60bc24749c7665964693e5cfdf2c",
+    "services/highlights-agent/evals/golden/cases.yaml": "f59f4a398f3a1693f3fa463485ff83b8a9b39a2fcd4f9f2ebb85611ea69bf027",
     "services/highlights-agent/gateway_client.py": "4554dd284606139de8ece32efc09884c68e89c770e2c9bc18617469230dcd73c",
-    "services/highlights-agent/pave.manifest.yaml": "7bacde444e2dc8806d038180e86ce9404bcf90b87a1cf0ea6831bba0ee1e7fb0"
+    "services/highlights-agent/pave.manifest.yaml": "59a3a4bbef89c5998b345accc23ef03c99d0ed4399702997f6552c48135cd536"
   },
   "1_by_milestone (exact)": {
     "m02-tools": {

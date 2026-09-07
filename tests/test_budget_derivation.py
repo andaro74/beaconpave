@@ -14,6 +14,16 @@ a diff distinguishes a ceiling derived from measurement from one tuned until a r
 went green. The artifact is what distinguishes them, so it is committed, and these
 tests are what keep the two from drifting apart afterwards.
 
+**Re-pointed at M08 (ADR-014 amendment 2).** The shape moved a second time —
+two calls became three when `entitlement-check` arrived at M06b — and `tokens_in`
+is re-derived by the same rule from `milestones/M08/context-census.json`, the
+zero-call census committed at dd4a5f0 before any number was proposed and pinned
+byte for byte by `tests/test_m08_census.py`. `BANDS` is unchanged; only the record
+the `tokens_in` half reads moved. `max_ms` did not move and still reads M02's
+artifact. The new assertion is the placement ADR-014 always stated in prose and
+never pinned: the input ceiling sits **below** the next call count's minimum, so
+a runaway loop is the thing it catches.
+
 Hermetic (G8): a committed measurement, no model call. Owning seat: AI Quality
 (the ceilings — two-key) · Platform Engineering (the loop bound).
 """
@@ -25,8 +35,15 @@ import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 MEASUREMENT = ROOT / "milestones" / "M02" / "loop-shape.json"
+CENSUS = ROOT / "milestones" / "M08" / "context-census.json"
 GOLDENS = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
 MANIFEST = ROOT / "services" / "highlights-agent" / "pave.manifest.yaml"
+
+#: The census sections the `tokens_in` derivation reads (ADR-073 decision 3):
+#: the maximum of the mandated shape, and the minimum of the next call count.
+DECISION_RULE = "8_decision_rule (pre-registered, SPEC/08)"
+BY_MILESTONE = "1_by_milestone (exact)"
+STAGE2 = "m07-stage2"
 
 #: The headroom band each ceiling was derived into, as a multiple of the measured
 #: maximum. Below a floor, an unmeasured case or a prompt edit breaches the ceiling
@@ -49,6 +66,23 @@ def measurement():
     return json.loads(MEASUREMENT.read_text(encoding="utf-8"))
 
 
+def census():
+    return json.loads(CENSUS.read_text(encoding="utf-8"))
+
+
+def observed_maximum(field: str) -> int:
+    """The measured maximum each ceiling was derived against, read from the record
+    its derivation names rather than from the sentence describing it.
+
+    `tokens_in` reads the census's mandated-shape maximum (ADR-014 amendment 2):
+    answered stage-2 samples at the call count the case's own asserts mandate.
+    `max_ms` still reads M02's loop-shape artifact, because the hang guard did not
+    move and its derivation is still M02's."""
+    if field == "tokens_in":
+        return census()[DECISION_RULE]["mandated_shape_tokens_in"]["max"]
+    return measurement()["summary"]["latency_ms"]["max"]
+
+
 def budgets():
     for case in yaml.safe_load(GOLDENS.read_text(encoding="utf-8")):
         for assertion in case.get("asserts", []):
@@ -62,6 +96,10 @@ def test_the_measurement_the_ceilings_were_derived_from_is_committed():
     assert MEASUREMENT.is_file(), (
         "milestones/M02/loop-shape.json is gone. The ceilings in cases.yaml now assert a "
         "number with no recorded basis, which is the state ADR-014 was written to end."
+    )
+    assert CENSUS.is_file(), (
+        "milestones/M08/context-census.json is gone. The `tokens_in` ceiling was re-derived "
+        "from it (ADR-014 amendment 2) and now asserts a number with no recorded basis."
     )
 
 
@@ -79,11 +117,11 @@ def test_the_derivation_excluded_guardrail_refusals():
     assert max(s["tokens_in"] for s in basis) == data["summary"]["tokens_in"]["max"]
 
 
-@pytest.mark.parametrize("field,summary_key", [("tokens_in", "tokens_in"), ("max_ms", "latency_ms")])
-def test_each_re_derived_ceiling_sits_in_the_headroom_band(field, summary_key):
-    """The two ceilings ADR-014's amendment moved, checked against the measurement
-    rather than against the sentence describing it."""
-    observed = measurement()["summary"][summary_key]["max"]
+@pytest.mark.parametrize("field", ["tokens_in", "max_ms"])
+def test_each_re_derived_ceiling_sits_in_the_headroom_band(field):
+    """The two ceilings ADR-014's amendments moved, checked against the record each
+    was derived from rather than against the sentence describing it."""
+    observed = observed_maximum(field)
     floor, roof = BANDS[field]
     for case_id, budget in budgets():
         ceiling = budget[field]
@@ -96,6 +134,26 @@ def test_each_re_derived_ceiling_sits_in_the_headroom_band(field, summary_key):
             f"({observed}). For tokens that means the ceiling sits past a four-call turn and "
             "catches no runaway loop; for latency it means the hang guard has stopped being "
             "one. Either way the assert is green and means nothing (ADR-014, ADR-016)."
+        )
+
+
+def test_the_input_ceiling_sits_below_the_next_call_count():
+    """ADR-014's placement, pinned instead of stated. Both amendments put
+    `tokens_in` *below* the next call count — "a loop that starts iterating more
+    than the measured shape is the runaway generation case" — and until M08 that
+    sentence had no assertion behind it: the band's roof at 1.60x sits past the
+    four-call minimum (9976 against 8181), so a ceiling could clear the band and
+    still pass every runaway turn, green and meaning nothing.
+
+    Read from the census's exact stage-2 table: the minimum of the smallest call
+    count above the mandated shape. A ceiling at or above it passes a four-call
+    turn, which is what the budget axis exists to catch (ADR-073 decision 3)."""
+    next_shape = census()[BY_MILESTONE][STAGE2]["by_calls"]["4"]["min"]
+    for case_id, budget in budgets():
+        assert budget["tokens_in"] < next_shape, (
+            f"{case_id}: tokens_in={budget['tokens_in']} is at or above the minimum four-call "
+            f"turn ({next_shape}). The ceiling passes a runaway loop and catches nothing; "
+            "re-derive it below the next call count (ADR-014 amendment 2)."
         )
 
 
@@ -126,7 +184,10 @@ def test_the_manifest_ceilings_that_moved_are_pinned_too():
     make visible."""
     gates = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))["gates"]["budgets"]
     per_case = {field: ceiling for _, budget in budgets() for field, ceiling in budget.items()}
-    assert gates["max_tokens_in"] == 6500
+    # 8200: the per-case 7700 plus the margin the pair has always had — 1500/2000,
+    # 6000/6500 (ADR-014 amendment 2, ADR-073 decision 3). A declaration bound, not
+    # a scoring value: nothing in `pave/` or `evals/` scores a case against it.
+    assert gates["max_tokens_in"] == 8200
     assert gates["max_ms"] == 12000
     assert gates["max_tokens_out"] == 800, "output ceilings did not move; nor should the manifest"
     assert gates["max_tokens_in"] > per_case["tokens_in"], (

@@ -246,3 +246,172 @@ re-derived automatically whenever the architecture changes, with the loop bound
 enforced by the tool plane rather than asserted by the eval suite. The interface
 already matches — the manifest declares the ceiling and the runner reports the
 measurement; only who notices the shape change moves.
+
+## Amendment 2 (M08): two calls became three, and `tokens_in` is re-derived from the census by the same rule
+
+**Seats:** AI Quality (the ceilings — two-key) · Platform Engineering (the
+derivation pin) · Tool Owner (the manifest's declaration). **Evidence:**
+`milestones/M08/context-census.json`, produced by
+`milestones/M08/context_census.py` from files committed since M02, committed at
+`dd4a5f0` (M08 PR 1) before any number was proposed, and pinned byte for byte by
+`tests/test_m08_census.py`. **Zero model calls.** Every figure below is read out
+of that record; the three pre-registered statements are ADR-073 amendment 2 §5's
+wording, filled with a number and nothing else.
+
+### The shape moved again
+
+The M02 amendment above re-derived `tokens_in` because one call had become a
+loop of two or three, and it wrote the reason down: *the ceilings did not become
+wrong because the system got worse; they became wrong because they measure a
+shape that no longer exists.* The same thing happened at M06b and went unseen
+until M07 cleared the refusals that hid it. `entitlement-check` became a second
+sequential tool round, so the modal turn went from two model calls to three; the
+second tool's spec joined every call, so the per-call input went from 1693 to
+2057. `tokens_in` is a sum over the turn's calls (`core/toolloop.py::_accumulate`),
+and stage 2's exact table by call count is: 2 calls 3887–3959 (n=7), 3 calls
+6022–6792 (n=52), 4 calls 8181–9220 (n=13), 5 calls 11081 (n=1). The 6000
+ceiling sits entirely above every two-call turn and entirely below every
+three-call turn — between the shape M02 measured and the shape that has run
+since M06b, so every sample at the mandated three-call count is over it and so
+is every four-call turn, and the axis cannot tell the two apart.
+
+ADR-073 decision 2 pre-registered two outcomes and the rule that picks between
+them, and the census picked **B**. The three statements below are the ones
+ADR-073 amendment 2 §5 pre-registered for this amendment, verbatim:
+
+1. **Not-A on the evidence admitted.** *"Outcome B is not-A on the evidence admitted: no sample over the ceiling at its mandated call count carries removable content in the three categories the rule admits — replayed rows the answer never cited, text sent twice in one request, tools the manifest does not declare. The census does not say the context cannot be reduced: 422–537 tokens of a 1859–1974 per-call base are unattributed, the same size with one tool offered as with two (`residual-differential.json`), and the measurement that attributes them is M09 PR 1's."*
+2. **The re-derivation trigger.** *"The ceiling is re-derived for the shape as measured, a quarter of whose per-call base is unattributed; if that residual is later attributed to content the agent sends and can stop sending, the ceiling is re-derived by this same rule in the milestone that removes it, downward, on the same keys."*
+3. **What the axis discriminates.** *"At any number in [7170, 8180] the `budget` axis discriminates call count ≥ 4, not calls above the case's mandate: the ceiling is uniform and the mandate is per case. Nineteen answered stage-2 samples ran three calls against a two-call mandate — `brand-021` s1; `edge-025` s1, s2; `entitlement-012` s2, s3; `grounded-017` s1–s3; `grounded-018` s1; `grounded-019` s2; `headroom-005` s1–s3; `headroom-026` s1–s3; `recommend-015` s1–s3 (6022–6792) — and every one passes it. What it catches is every 4- and 5-call turn: fourteen samples on seven cases."*
+
+### The rule, written before the number
+
+The M02 amendment states no point rule. It records where a round number landed
+— *"1.22× the observed maximum"* — and the two reasons for the headroom, twenty
+unmeasured cases and an unfinalised prompt, both of which are spent: every case
+is measured in stage 2, and SPEC/08 constraint 5 freezes the prompt. Its prose
+and its artifact also disagree on the multiple: the text says 4927 over thirteen
+answered samples, `milestones/M02/loop-shape.json` says 4834 over ten, and the
+census records the applied multiple as 1.241
+(`ceiling_derivation.ceiling_over_measured_max`). A multiple that reads 1.22 in
+one place and 1.241 in another is a description of a choice, not the rule that
+made it. The discrepancy is recorded here and not repaired; the M02 amendment
+stands as written.
+
+What ADR-014 does pin is the band and the placement, in
+`tests/test_budget_derivation.py`: `tokens_in` sits within 1.15–1.60× the
+measured maximum of the shape, and below the next call count, because *a loop
+that starts iterating more than the measured shape is the runaway generation
+case*. From the census record, and from nothing else:
+
+| | read from | value |
+|---|---|---|
+| mandated-shape maximum | `8_decision_rule.mandated_shape_tokens_in.max` | 6235 |
+| minimum four-call turn | `1_by_milestone.m07-stage2.by_calls.4.min` | 8181 |
+| band floor | 1.15 × 6235 | 7170.25 |
+| band roof | min(1.60 × 6235 = 9976, 8181 − 1) | 8180 |
+
+The exact floor is 7170.25, so the integer band is **[7171, 8180]**; ADR-073
+wrote it as [7170, 8180], and 7170 itself would fail the pin.
+
+**The point rule, pre-registered in M08 PR 3's plan before the number was
+named: the midpoint of the band, rounded to the nearest hundred for
+legibility.** It adds no constant beyond the two the pinned rule already
+carries — the 1.15 floor and the next call count. It sits equidistant from the
+two failure modes the derivation test names in words: under the floor, a prompt
+edit or an unmeasured sample breaches the ceiling for no reason worth reporting;
+at or above the four-call minimum, a runaway turn passes and the ceiling catches
+nothing. Rounding to the hundred is this ADR's own *"rounded for legibility"* at
+the grain every ceiling in the file already has. The rule cites no case and no
+count.
+
+**The number: (7170.25 + 8180) / 2 = 7675.125, rounded to the nearest hundred —
+`tokens_in: 7700`.** Checks: 7700 ≥ 7170.25; 7700 ≤ 9976; 7700 < 8181. It is
+1.235× the mandated-shape maximum, 1465 tokens above it, 481 below the minimum
+four-call turn, 530 above the band floor and 480 below its roof.
+
+*Corroboration, not the rule:* this ADR's own applied multiple as the census
+records it, 1.241 × 6235 = 7737.6, rounds to the same hundred. The prose's 1.22
+would give 7606.7 and round to 7600 — one more reason the multiple is a
+description. The midpoint between the two shapes, (6235 + 8181) / 2 = 7208, sits
+38 tokens above the floor the test names as the noise edge; the geometric mean
+of the two shapes, 7142, is under the floor; rounding to the thousand gives
+8000, 181 under the four-call minimum, which is the placement the M02 amendment
+refused when it left roughly 600 under ~6600. None of those was the rule and
+none is the number.
+
+### What moves, and what does not
+
+- **The 25 case budgets:** `tokens_in: 6000` → `7700`, one value per case and
+  nothing else in `cases.yaml`. `tokens_out`, `max_ms` and every output tier
+  stay where the M02 amendment and the original derivation put them, for the
+  reason the M02 amendment gave — the tiered output ceilings were derived from
+  the answer the viewer sees, which a tool loop does not change — and because
+  SPEC/08 constraint 4 keeps them there.
+- **The manifest's `max_tokens_in`: 6500 → 8200**, the per-case ceiling plus
+  the margin the pair has always had (1500/2000, 6000/6500; ADR-073 decision 3).
+  It is a **declaration bound, not a scoring value**: nothing in `pave/` or
+  `evals/` scores a case against it, `tests/test_contracts.py` only requires
+  every per-case budget to sit under it, and the derivation test pins it. It
+  sits above the four-call minimum, which is why the placement is asserted on
+  the per-case ceiling and not on the manifest: **the new test fails any case
+  at or above 8181.**
+- **`tests/test_budget_derivation.py`** is re-pointed: the `tokens_in` half of
+  the headroom test reads the census's mandated-shape maximum, `BANDS`
+  unchanged; the `max_ms` half still reads M02's artifact, because the hang
+  guard did not move. A new test asserts every case's `tokens_in` is under the
+  census's minimum four-call turn — the placement this ADR stated twice in prose
+  and never pinned; the band's roof at 1.60× (9976) is past the four-call
+  minimum, so a ceiling could clear the band and pass every runaway turn.
+  Mutation audit, each restored from a scratchpad copy: 7100 planted, red on the
+  floor; 8181 planted, red on the new test only, the roof silent; 10000, red on
+  the roof; 6500 or 7600 in the manifest, red on the pin; the new test
+  re-pointed at the three-call maximum, red; the new test deleted with 8181
+  planted, nothing red — which is what makes it load-bearing.
+- **`gates.budgets.p95_ms` is not touched** and stays breached at 2500 ms, a
+  standing finding for M08 (ADR-073 amendment 2 §4); the rule that derives a
+  suite p95 is owed at M09 PR 1.
+- **The template does not move.** `templates/agent-tools/evals/golden/cases.yaml.tmpl`
+  and `pave.manifest.yaml.tmpl` still carry 6000 and 6500. They are ADR-047's
+  four-seat path, no test couples their values to the service's, and a
+  scaffolded service's ceiling is its own derivation from its own measurement —
+  a number copied from another service's census is a number, not a derivation.
+  Named here so it is dated, by M08 PR 5's journal, rather than discovered.
+- **Records.** The census record and `residual-differential.json` carry
+  whole-file provenance digests of `cases.yaml` (both) and of the manifest (the
+  census). Every measured figure in both is byte-identical before and after this
+  amendment; only those three digest lines move. Both records are re-produced
+  by their own readers in this PR and committed with those digests moved, so
+  `--check` is green on the result; the diff to each record is its provenance
+  lines and nothing else, shown key by key in the PR body. SPEC/08 constraint 3
+  names `milestones/M07/`, which is untouched; the M08 records digest the file
+  this PR exists to move, so `--check` could not have stayed green across PR 3
+  as the spec assumed, and that is recorded here rather than worked around. The
+  history-entry field `cases_sha256` (`evals/judged.py`) digests `cases.yaml`
+  too, so PR 4's entry will carry a new value; nothing in `evals/history/` is
+  edited here.
+
+### Obligations this amendment dates
+
+| debt | owed to | date |
+|---|---|---|
+| `BANDS` in `tests/test_budget_derivation.py` is guarded by the two-key rule on its file and by no test: the mutation audit lowered the `tokens_in` floor to 1.00 with 7100 planted and nothing went red. A pin that plants a constant and expects the band to refuse it | AI Quality with Platform Engineering | **M09 PR 1** |
+| The template's 6000 and 6500 (`templates/agent-tools/`), named above as not moving | Platform Engineering, ADR-047's four seats | **dated by M08 PR 5's journal** |
+
+### Why the order matters more than the number, again
+
+The M02 amendment's sentence holds unchanged: this edit changes 25 golden cases,
+CLAUDE.md forbids editing a case to make a run pass, and the distinction is
+entirely one of sequence. The census was run and committed at `dd4a5f0` before
+any number was proposed; the band follows from the census by a rule pinned two
+milestones ago; the point rule was pre-registered in the PR plan before the
+number was named; the reader prints no pass count at any ceiling but 6000, and
+this amendment prints none at any ceiling. The first count at 7700 is M08 PR 4's,
+on the committed stage-2 files, read against the census's per-sample call
+counts. What PR 4 can find, this amendment does not know.
+
+**At scale, replace with:** the same rule, run by the census on every change to
+the prompt architecture — a tool added to `toolConfig`, a schema grown — with
+the loop bound enforced by the tool plane and the next call count's minimum read
+from the run rather than from a milestone's record. The interface already
+matches: the manifest declares the ceiling, the runner reports the measurement,
+and the census reads both.

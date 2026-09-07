@@ -32,7 +32,7 @@
     - cited_titles_in_fixture: true
     - entitlement: { entitled: false, reason: blackout }
     - entitlement_source: entitlement-check
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
@@ -56,7 +56,7 @@
     - cited_titles_in_fixture: true
     - entitlement: { entitled: false, reason: blackout }
     - entitlement_source: entitlement-check
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
@@ -78,7 +78,7 @@
     - cited_titles_in_fixture: true
     - entitlement: { entitled: true, reason: ok }
     - entitlement_source: entitlement-check
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
@@ -101,7 +101,7 @@
     # precisely, and without banning a word a correct answer may use.
     - entitlement: { entitled: false, reason: upgrade-required }
     - entitlement_source: entitlement-check
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
@@ -120,7 +120,7 @@
     - cited_titles_in_fixture: true
     - entitlement: { entitled: true, reason: ok }
     - entitlement_source: entitlement-check
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, concision]
     rubric: quality/judge/rubric-sports.md
@@ -143,7 +143,7 @@
     - cited_titles_in_fixture: true
     - entitlement: { entitled: false, reason: upgrade-required }
     - entitlement_source: entitlement-check
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness]
     rubric: quality/judge/rubric-sports.md
@@ -163,7 +163,7 @@
     - cited_titles_in_fixture: true
     - entitlement: { entitled: false, reason: not-yet-started }
     - entitlement_source: entitlement-check
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 400, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 400, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness]
     rubric: quality/judge/rubric-sports.md
@@ -181,7 +181,7 @@
     - cited_titles_in_fixture: true
     - entitlement: { entitled: true, reason: ok }
     - entitlement_source: entitlement-check
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
@@ -201,7 +201,7 @@
     - cited_titles_in_fixture: true
     - cited_titles_empty: true
     - entitlement: { entitled: false, reason: unknown-title }
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness]
     rubric: quality/judge/rubric-sports.md
@@ -220,7 +220,7 @@
     - must_mention: "Granite Falls Classic"
     - must_cite: [t003]
     - cited_titles_in_fixture: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 400, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 400, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
@@ -235,7 +235,7 @@
     - must_mention: "Jefferson Derby"
     - must_cite: [t001]
     - cited_titles_in_fixture: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 400, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 400, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
@@ -252,7 +252,7 @@
     - must_mention: "Granite Falls Classic"
     - must_cite: [t003]
     - cited_titles_in_fixture: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 500, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 500, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
@@ -267,7 +267,7 @@
     - must_mention: "Cedar Point Rowing Finals"
     - must_cite: [t005]
     - cited_titles_in_fixture: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 400, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 400, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness]
     rubric: quality/judge/rubric-sports.md
@@ -289,7 +289,7 @@
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - must_cite: [t001]
     - cited_titles_in_fixture: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, concision]
     rubric: quality/judge/rubric-sports.md
@@ -309,7 +309,7 @@
     - must_not_claim: "the winner was"
     - cited_titles_in_fixture: true
     - cites_at_least_one: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness]
     rubric: quality/judge/rubric-sports.md
@@ -326,7 +326,7 @@
     - must_not_claim: "second leg is"
     - cited_titles_in_fixture: true
     - cites_at_least_one: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness]
     rubric: quality/judge/rubric-sports.md
@@ -340,7 +340,7 @@
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - cited_titles_in_fixture: true
     - cited_titles_empty: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 400, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 400, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness]
     rubric: quality/judge/rubric-sports.md
@@ -362,7 +362,7 @@
     - cited_titles_in_fixture: true
     - entitlement: { entitled: true, reason: ok }
     - entitlement_source: entitlement-check
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [groundedness, concision]
     rubric: quality/judge/rubric-sports.md
@@ -381,7 +381,7 @@
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - cited_titles_in_fixture: true
     - cites_at_least_one: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 400, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 400, max_ms: 12000 }
   judge:
     axes: [brand_tone:meridian-sports, groundedness]
     rubric: quality/judge/rubric-sports.md
@@ -399,7 +399,7 @@
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - must_cite: [t001]
     - cited_titles_in_fixture: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [concision, groundedness]
     rubric: quality/judge/rubric-sports.md
@@ -421,7 +421,7 @@
     - cited_titles_in_fixture: true
     - entitlement: { entitled: false, reason: blackout }
     - entitlement_source: entitlement-check
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 600, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 600, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
@@ -448,7 +448,7 @@
     # come back as `reason: blackout` and fail here, precisely.
     - entitlement: { entitled: false, reason: upgrade-required }
     - entitlement_source: entitlement-check
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 400, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 400, max_ms: 12000 }
   judge:
     axes: [groundedness, completeness, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
@@ -466,7 +466,7 @@
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - cited_titles_in_fixture: true
     - cites_at_least_one: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 300, max_ms: 12000 }
   judge:
     axes: [completeness, concision, brand_tone:meridian-sports]
     rubric: quality/judge/rubric-sports.md
@@ -485,7 +485,7 @@
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - cited_titles_in_fixture: true
     - cites_at_least_one: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 600, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 600, max_ms: 12000 }
   judge:
     axes: [brand_tone:meridian-sports, concision]
     rubric: quality/judge/rubric-sports.md
@@ -502,7 +502,7 @@
     - json_schema: services/highlights-agent/evals/answer.schema.json
     - must_cite: [t005]
     - cited_titles_in_fixture: true
-    - budget: { model: haiku, tokens_in: 6000, tokens_out: 500, max_ms: 12000 }
+    - budget: { model: haiku, tokens_in: 7700, tokens_out: 500, max_ms: 12000 }
   judge:
     axes: [brand_tone:meridian-sports, concision, groundedness]
     rubric: quality/judge/rubric-sports.md
