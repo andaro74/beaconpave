@@ -693,6 +693,40 @@ def test_the_calibration_call_sends_the_tool_arms_system_block_and_no_tools_key(
     assert set(run_keys) - {"tools"} == set(keys), "the two events differ by more than `tools`"
 
 
+def test_the_calibration_record_carries_usage_and_digests_and_never_the_answer():
+    """What `calibrate()` WRITES, pinned beside what it sends (Security and
+    Platform Engineering seats, round 1: the docstring's *never the answer* was
+    a comment). The record's keys are exactly these; no value reads the
+    response's answer, the record's withheld fingerprint, or a trajectory; and
+    the audit record is fetched from the deployed lake and no other bucket."""
+    tree = ast.parse(TOOL_ARM.read_text(encoding="utf-8"))
+    calibrate = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "calibrate")
+    payloads = [n for n in ast.walk(calibrate) if isinstance(n, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == "payload" for t in n.targets)]
+    assert len(payloads) == 1 and isinstance(payloads[0].value, ast.Dict)
+    written = {k.value: ast.unparse(v) for k, v in zip(payloads[0].value.keys, payloads[0].value.values,
+                                                       strict=True)}
+    assert set(written) == {"_what_this_is", "_preflight", "case", "request_id", "tools", "decision",
+                            "mechanism", "record_id", "record_resolved", "usage", "record_usage",
+                            "system_sha256", "text_sha256"}, sorted(written)
+    assert written["tools"] == "'absent'"
+    assert written["usage"] == "response.get('usage')"
+    assert written["record_usage"] == "(record or {}).get('usage')"
+    for node in ast.walk(calibrate):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            assert node.value not in {"answer", "withheld", "trajectory", "output", "content"}, (
+                f"calibrate() names {node.value!r}: a model-text channel into the calibration record")
+    fetches = [n for n in ast.walk(calibrate) if isinstance(n, ast.Call)
+               and ast.unparse(n.func) == "gw.fetch_record"]
+    assert len(fetches) == 1 and ast.unparse(fetches[0].args[0]) == "deployed['AuditLakeBucket']", (
+        "the calibration record must be fetched from the deployed lake, not a bucket named here")
+    # the `payload` dict is written once, to the path the operator named, and
+    # nothing is appended to it between the literal and the write
+    stores = [n for n in ast.walk(calibrate) if isinstance(n, ast.Subscript)
+              and isinstance(n.ctx, ast.Store) and ast.unparse(n.value) == "payload"]
+    assert not stores, "payload is widened after the literal"
+
+
 def test_the_tool_arm_refuses_to_write_a_run_in_which_nothing_was_authorized():
     """The harness half of the finding Platform Engineering raised.
 

@@ -189,6 +189,14 @@ ADR043_SEATS = {
     # by any seat — ADR-037's finding one scorer over. Measured on 4d6e451:
     # `two-key: not required`.
     "evals/deterministic.py": {"ai-quality", "platform-eng"},
+    # M08b PR 2, round 1. The operator's held-text readings decide F against G
+    # and which seat the answer-channel question bills (Legal/S&P); the refusal
+    # estimator every sidecar's census is computed by (Legal/S&P); the planted
+    # run and the reader tests the three-key readers are proved against (AI
+    # Quality, Security, Platform Engineering).
+    "milestones/M08b/withheld-grants.json": {"security", "legal-sp", "ai-quality"},
+    "evals/refusals.py": {"security", "ai-quality"},
+    "tests/test_m08b_fresh_join.py": {"ai-quality", "platform-eng", "security"},
 }
 
 
@@ -253,11 +261,14 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           # M08 PR 3, ADR-014 amendment 2
                                           "the M08 census",
                                           # M08b PR 2, ADR-074 amendment 1 fact 3
-                                          "the goldens scorer"))]
-    assert len(added) == 22, (
+                                          "the goldens scorer",
+                                          # M08b PR 2, seat round 1
+                                          "the held-text readings",
+                                          "the refusal estimator"))]
+    assert len(added) == 24, (
         f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one, "
         f"ADR-049's three, ADR-052's two, ADR-053's two, ADR-072's one, SPEC/08's "
-        f"two, ADR-014 amendment 2's one and M08b PR 2's one, found "
+        f"two, ADR-014 amendment 2's one and M08b PR 2's three, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -364,13 +375,22 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                            "milestones/M08b/answer_channel.py",
                            "milestones/M08b/answer-channel.json",
                            "milestones/M08b/calibration.json",
-                           # the operator's reading of the held texts — grant or
-                           # not, per refused sample — decides F, and so takes the
-                           # rule; the M07 prior's file too
-                           "milestones/M08b/withheld-grants.json",
-                           "milestones/M08b/prior-withheld-grants.json"],
+                           # round 1: a reader not written yet lands on the rule
+                           # the day it is; the planted run, its builder and the
+                           # reader tests are the evidence the readers work
+                           "milestones/M08b/a_reader_not_written_yet.py",
+                           "tests/test_m08b_fresh_join.py",
+                           "tests/test_m08b_a_test_not_written_yet.py",
+                           "tests/fixtures/m08b/build_planted.py",
+                           "tests/fixtures/m08b/planted/fresh-join.json",
+                           "tests/fixtures/m08b/planted/goldens-run-1.json"],
         # M08b PR 2. One file: the scorer every goldens verdict comes from.
         "the goldens scorer": ["evals/deterministic.py"],
+        # M08b PR 2, round 1 (Legal/S&P). Both grants files, member by member,
+        # and the estimator.
+        "the held-text readings": ["milestones/M08b/withheld-grants.json",
+                                   "milestones/M08b/prior-withheld-grants.json"],
+        "the refusal estimator": ["evals/refusals.py"],
         # ADR-052. Enumerated here because the audit measured both narrowings
         # silent otherwise: deleting the three pin entries below left 173 passed,
         # and dropping `pave/tests/test_twokey.py` from the alternation was caught
@@ -416,12 +436,14 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # 57 -> 58 at ADR-072: the instrument registry's one path. 58 -> 65 at M08
     # PR 2: the goldens producer's two and the topic baseline's five. 65 -> 69 at
     # M08 PR 3: the M08 census's four. 69 -> 71 at M08 PR 4: the re-score join
-    # and its record, on the census's rule. 71 -> 81 at M08b PR 2: M08b's three
-    # readers, three records, the calibration record and the two grants files on
-    # the census's rule, and the goldens scorer on its own.
-    assert total == 81, (
+    # and its record, on the census's rule. 71 -> 88 at M08b PR 2: M08b's three
+    # readers, three records, the calibration record, a reader-shape path, the
+    # planted run's builder and two files, and two reader-test paths on the
+    # census's rule (13); the goldens scorer (1); the two grants files on the
+    # held-text readings rule and the estimator on its own (3).
+    assert total == 88, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "81. Deleting a required path in the same diff that "
+        "88. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -604,12 +626,47 @@ def test_the_fresh_runs_readers_records_and_calibration_collect_the_census_seats
     reading are prose, and the answer files are the goldens evidence rule's."""
     for name in ("fresh_join.py", "fresh-join.json", "residual_attribution.py",
                  "residual-attribution.json", "answer_channel.py", "answer-channel.json",
-                 "calibration.json", "withheld-grants.json", "prior-withheld-grants.json"):
+                 "calibration.json", "a_reader_not_written_yet.py"):
         _blocked_for([f"milestones/M08b/{name}"], {"ai-quality", "platform-eng", "security"})
+    # round 1 (AI Quality, Security, Platform Engineering): the evidence the
+    # readers work — the planted run, its builder, the reader tests — on the
+    # same three keys. Measured on 8ab0a9a: every one `two-key: not required`.
+    for path in ("tests/test_m08b_fresh_join.py", "tests/test_m08b_residual.py",
+                 "tests/test_m08b_answer_channel.py", "tests/test_m08b_fixtures.py",
+                 "tests/fixtures/m08b/build_planted.py", "tests/fixtures/m08b/planted/fresh-join.json",
+                 "tests/fixtures/m08b/planted/withheld-grants.json",
+                 "tests/fixtures/m08b/planted/per-sample.txt"):
+        _blocked_for([path], {"ai-quality", "platform-eng", "security"})
+    # the rule stays narrow: the run's transcripts and the withheld reading are
+    # prose, and the answer files are the goldens evidence rule's. The count N
+    # is read from `goldens-score.txt` and reconciled against the transcript's
+    # own rows, which are reconciled against the answer files, so a one-key
+    # transcript cannot move N alone.
     for transcript in ("per-sample.txt", "goldens-score.txt", "withheld-read.txt",
                        "README.md"):
         assert _seats_for(f"milestones/M08b/{transcript}") == set()
     assert _seats_for("milestones/M08b/goldens-run-1.json") == {"ai-quality", "platform-eng"}
+
+
+def test_the_held_text_readings_collect_the_two_seats_the_reading_bills_and_a_third():
+    """Measured on 8ab0a9a by the Legal/S&P seat: both grants files collected
+    the census rule's three seats — G9's letter, because Security was not
+    alone, and not its substance, because the F = G branch of ADR-074 decision
+    3 §3 bills the core rule with Legal/S&P and Legal/S&P held no key on the
+    file that decides which branch fires. Security and Legal/S&P feel the
+    reading's pain from opposite sides; AI Quality feels neither."""
+    for name in ("withheld-grants.json", "prior-withheld-grants.json"):
+        _blocked_for([f"milestones/M08b/{name}"], {"security", "legal-sp", "ai-quality"})
+        assert "platform-eng" not in _seats_for(f"milestones/M08b/{name}")
+
+
+def test_the_refusal_estimator_collects_security_and_ai_quality():
+    """Measured on 8ab0a9a by the Legal/S&P seat: `evals/refusals.py` on no rule,
+    and this file's own line pinned the absence with a sentence that stated the
+    status quo rather than a reason. The producer that calls
+    `census_from_samples` has taken two keys since M08 PR 2; the estimator now
+    takes the same two."""
+    _blocked_for(["evals/refusals.py"], {"security", "ai-quality"})
 
 
 def test_the_goldens_scorer_collects_ai_quality_and_platform_eng():
@@ -621,10 +678,8 @@ def test_the_goldens_scorer_collects_ai_quality_and_platform_eng():
     key. The derivation pin's pair, because a verdict's meaning is AI Quality's
     and the mechanism that produces it is Platform Engineering's."""
     _blocked_for(["evals/deterministic.py"], {"ai-quality", "platform-eng"})
-    # narrow: the recorders keep their own three-seat rule, and the judge and
-    # refusal modules beside the scorer stay where they were
+    # narrow: the recorders keep their own three-seat rule
     assert _seats_for("evals/run_evals.py") == {"ai-quality", "security", "platform-eng"}
-    assert _seats_for("evals/refusals.py") == set()
 
 
 def test_a_forged_permit_from_the_generator_collects_four_seats():

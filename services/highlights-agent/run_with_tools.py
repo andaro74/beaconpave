@@ -345,7 +345,10 @@ def calibrate(case: dict, deployed: dict, header: dict, tag: str, path: pathlib.
         "record_resolved": record is not None,
         "usage": response.get("usage"),
         "record_usage": (record or {}).get("usage"),
-        "trajectory": response.get("trajectory") or [],
+        # No `trajectory`, no `answer`, no `withheld`: a tools-absent turn has
+        # no trajectory worth a field, and each of the other two is model text
+        # or its fingerprint — channels this record must not open (Security
+        # and Platform Engineering seats, round 1). The written keys are pinned.
         "system_sha256": _sha256(system.encode("utf-8")),
         "text_sha256": _sha256(text.encode("utf-8")),
     }

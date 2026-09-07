@@ -74,7 +74,11 @@ STAGE2 = "m07-stage2"
 PER_SAMPLE = "2_stage2_per_sample (exact + replayed)"
 
 #: ADR-014's budget band and point rule, as `tests/test_budget_derivation.py`
-#: executes them. The same two constants; a change there is red there.
+#: executes them. The same two constants, pinned literally in
+#: `tests/test_m08b_fresh_join.py` beside that file's own pin: on M08's record
+#: the roof is clamped by the four-call minimum, so a roof moved here was
+#: silent (AI Quality seat, round 1) — and on a fresh run with no four-call
+#: sample it is the roof alone that places the re-derived point.
 BAND = (1.15, 1.60)
 
 #: ADR-074 decision 3 §2: the count band and its prediction; the refusal band.
@@ -317,8 +321,10 @@ def per_sample_rows(run_dir: pathlib.Path, cases: dict, blocks: list[dict], ceil
                 raise SystemExit(f"{case_id} sample {n}: usage.calls has {calls} rounds and the trajectory "
                                  f"implies {rounds + 1}; a planted call count")
             tokens_in = usage.get("tokens_in")
-            if tokens_in != sum(c.get("tokens_in", 0) for c in per_call):
-                raise SystemExit(f"{case_id} sample {n}: tokens_in {tokens_in} is not the sum over usage.calls")
+            for key in ("tokens_in", "tokens_out", "latency_ms"):
+                if usage.get(key) != sum(c.get(key, 0) for c in per_call):
+                    raise SystemExit(f"{case_id} sample {n}: {key} {usage.get(key)} is not the sum "
+                                     "over usage.calls")
             axes = budget_axes(scored["asserts"].get("budget"))
             printed_calls = budget_calls(scored["asserts"].get("budget"))
             if "tokens_in" in axes:
@@ -387,7 +393,11 @@ def claim(rows: list[dict], ceiling: int, ref: dict) -> dict:
     }
 
 
-def fresh_band(rows: list[dict], ref: dict, ceiling: int) -> dict:
+def fresh_band(rows: list[dict], ref: dict, ceiling: int, holds: bool) -> dict:
+    """The band ADR-014's rule re-derives from the fresh run, and whether the
+    ceiling sits in it. The reading is written in the claim's frame: when the
+    claim is falsified the band's sentence says so first, because *the number
+    holds* beside a falsifier reads as its opposite (AI Quality seat, round 1)."""
     answered = [r for r in rows if r["answered"]]
     at_mandate = [r["tokens_in"] for r in answered if r["at_mandate"]]
     beyond = [r["tokens_in"] for r in answered if r["calls"] > ref["mandated_calls_max"]]
@@ -395,12 +405,14 @@ def fresh_band(rows: list[dict], ref: dict, ceiling: int) -> dict:
         return {"available": False}
     band = band_from(max(at_mandate), min(beyond) if beyond else None)
     inside = (not band["empty"]) and band["floor"] <= ceiling <= band["roof"]
+    number = "the number holds" if holds else "the claim is falsified (see claim.falsifiers)"
     return {"available": True, **band, "point_inside": inside,
-            "reading": ("the rule has no solution for this shape" if band["empty"]
-                        else "the number holds and the rule re-derives to it" if band["point"] == ceiling
-                        else "the number holds inside the fresh band and the rule re-derives elsewhere"
-                        if inside else "the number holds and the rule does not: 7700 is outside the "
-                                       "band re-derived from the fresh run"),
+            "reading": (f"{number}; the rule has no solution for this shape" if band["empty"]
+                        else f"{number}; the rule re-derives to {ceiling}" if band["point"] == ceiling
+                        else f"{number}; {ceiling} is inside the fresh band and the rule re-derives to "
+                             f"{band['point']}"
+                        if inside else f"{number}; the rule does not: {ceiling} is outside the band "
+                                       "re-derived from the fresh run"),
             "note": "recorded, not ruled on: 7700 stands; a ceiling moved on a fresh run's band is a "
                     "re-derivation, and that is a census milestone"}
 
@@ -409,6 +421,18 @@ def count(blocks: list[dict], rows: list[dict], m08: dict) -> dict:
     k3 = next((b for b in blocks if b["sample"] is None), None)
     if k3 is None or k3["count"] is None:
         raise SystemExit("goldens-score.txt carries no k=3 block with a count line")
+    # N is read from the count line and reconciled against the transcript's own
+    # rows, because a count line that disagrees with the rows under it by
+    # thirteen was recorded without a word (AI Quality seat, round 1).
+    by_result = {r: sum(1 for s in k3["cases"].values() if s["result"] == r)
+                 for r in ("PASS", "FAIL", "INFRA")}
+    printed = k3["count"]
+    if (printed["passed"], printed["failed"], printed["infra"], printed["total"]) != \
+            (by_result["PASS"], by_result["FAIL"], by_result["INFRA"], len(k3["cases"])):
+        raise SystemExit(f"goldens-score.txt's count line says {printed} and its own rows say "
+                         f"{by_result} over {len(k3['cases'])} cases; a planted count")
+    if len(k3["cases"]) != len({r["case"] for r in rows}):
+        raise SystemExit("the k=3 transcript and the answer files name different case sets")
     m08_cases = {c["case"]: c for c in m08.get("per_case") or []}
     per_case, regressed, flipped = {}, [], []
     for case_id, scored in sorted(k3["cases"].items()):
@@ -517,6 +541,7 @@ def join(run_dir: pathlib.Path) -> dict:
     rows = per_sample_rows(run_dir, cases, per_sample_blocks, ceiling, ref, sidecar)
     manifest = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
     inputs = needed + [CASES, CENSUS, M08_JOIN, MANIFEST, CATALOG]
+    verdict = claim(rows, ceiling, ref)
     return {
         "_what_this_is": (
             "SPEC/08b's one claim, read per sample from the fresh run by milestones/M08b/fresh_join.py: "
@@ -529,8 +554,8 @@ def join(run_dir: pathlib.Path) -> dict:
         "ceiling": ceiling,
         "m08_reference": ref,
         "grain": [ref["unrounded_midpoint"], ceiling],
-        "claim": claim(rows, ceiling, ref),
-        "fresh_band": fresh_band(rows, ref, ceiling),
+        "claim": verdict,
+        "fresh_band": fresh_band(rows, ref, ceiling, verdict["holds"]),
         "count": count(k3_blocks, rows, _load(M08_JOIN)),
         "refusals": refusals(sidecar),
         "p95": p95s(rows, k3_blocks, manifest["gates"]["budgets"]["p95_ms"]),

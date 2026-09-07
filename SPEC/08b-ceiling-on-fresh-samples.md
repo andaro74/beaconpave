@@ -206,7 +206,7 @@ which the fresh number does not exist.
 
 | The claim needs | Provided by | Verified |
 |---|---|---|
-| Per-call `inputTokens` in the answer file, so the join reads the run and not a census | `core/toolloop.py` records each round's usage beside the totals it already sums; `handler.py` returns it; `run_with_tools.py` writes it under `usage.calls`; `audit.schema.json` admits it | PR 2: the totals equal the sum of the per-call values by test; the round-1 pin (the first request is `system`, the viewer turn verbatim, and `toolConfig`, nothing else) by a **behavioural** test that drives the handler with a client double and asserts the three kwargs the client received — `run_turn` does not assemble the request, `handler.py::_converse` does, so a source-reading test over the loop reads the wrong file and a source-reading test at all is M06b's finding 7; M07's committed files, which carry no per-call usage, still score 12/25 with the join byte-identical to `rescore-join.json` (the absence path; the presence path is proved on planted files until PR 3) |
+| Per-call `inputTokens` in the answer file, so the join reads the run and not a census | `core/toolloop.py` records each round's usage beside the totals it already sums; `handler.py` returns it; `run_with_tools.py` writes it under `usage.calls`; `audit.schema.json` admits it | PR 2: the totals equal the sum of the per-call values by test; the round-1 pin (the first request is `system`, the viewer turn verbatim, and `toolConfig`, nothing else) in two halves — **behavioural on the loop** (`tests/test_tool_loop.py`: the first transcript `converse` receives is the caller's `messages`, deep-equal) and **structural on the handler** (`tests/test_handler_wiring.py` reads `handler.py` as a tree, never as text: `messages` bound once from the event, never touched after the bind, the model call's literal exactly `modelId`, `messages=transcript`, `inferenceConfig` plus the pinned `system`/`toolConfig`, and `kwargs` never read back). `run_turn` does not assemble the request, `handler.py::_converse` does; the handler holds boto3 and G8 forbids a hermetic test from importing it, so there is no client double to drive (ADR-074 amendment 2 §3 corrects amendment 1's ask). M07's committed files, which carry no per-call usage, still score 12/25 with the join byte-identical to `rescore-join.json` (the absence path; the presence path is proved on planted files until PR 3) |
 | The call count in the budget verdict, so *"tokens_in=8181 over 7700"* says it was a four-call turn | `evals/deterministic.py` names `calls` when `usage.calls` is present and omits it when it is not | PR 2: a planted three-call and four-call usage each name their count; M07's files produce the same verdict strings they produce today. **The scorer is on no `pave/twokey.py` rule today** and joins one in the diff that changes it — AI Quality with Platform Engineering, the derivation pin's pair — with a `_blocked_for` plant |
 | A latency ceiling derived before the run, from the shape and not from the run | ADR-014 amendment 3, in the wording ADR-074 decision 3 §5 pre-registers; `gates.budgets.p95_ms` in the manifest; the derivation test extended to `p95_ms` | PR 2: the test computes the mandated-shape p95 from the M07 files joined to the census's `mandated_calls`, the band, and the point by the pinned rule, and asserts the manifest carries **5200**; every constant planted is red; the census record re-produced with its manifest digest line moved and nothing else, on three keys; the two-milestone refusal test replaced by the pin |
 | The run, on the real path | `run_with_tools.py` k=3 through the deployed gateway at the pre-flight SPEC/07 fixed; the refusals sidecar; `topic_baseline.py --all` | PR 3: committed under `milestones/M08b/` as `goldens-run-{1,2,3}.json`, their trajectories, `goldens-run-refusals.json`, `topic-baseline.json`, `goldens-score.txt`; the pre-flight header names the deployed function, both guardrail versions and bundle digests equal to the tree at PR 2's merge |
@@ -305,9 +305,10 @@ put on a two-key rule in the same diff; the `p95_ms` rule executed in
 `tests/test_budget_derivation.py` and the manifest gate moved to 5200, the
 two-milestone refusal test replaced by the pin, the census record re-produced
 with its manifest digest line moved, with ADR-014 amendment 3 in the
-pre-registered wording; the direct `BANDS` pin; the round-1 pin as a
-behavioural test on the handler's client kwargs, in `tests/test_handler_wiring.py`
-so it sits on the handler's rule; `residual_attribution.py`, `fresh_join.py`
+pre-registered wording; the direct `BANDS` pin; the round-1 pin in two
+halves — behavioural on the loop in `tests/test_tool_loop.py`, structural on
+the handler in `tests/test_handler_wiring.py` (G8 forbids importing it), on
+the handler's rule; `residual_attribution.py`, `fresh_join.py`
 and the F/G reader written and tested on planted answer files under `tests/`
 before any real one exists, the F/G reader reproducing G = 8, F = 1 from
 M07's files; the census rule widened over `milestones/M08b/` readers, records
@@ -341,7 +342,9 @@ copy of a committed evidence file hashes to the committed pin); the
 templates' condition — a scaffolded service that offers a second tool cannot
 keep the one-tool `tokens_in` silently, stated in the template and refused by
 `pave verify` on a manifest that offers two tools with the template's number
-verbatim; a check that every ADR under `docs/adr/` has an index row and that
+verbatim, and the same condition on the template's `p95_ms: 2500`, which PR 2
+derived to 5200 for the reference service and left in the template (Platform
+Engineering seat, round 1); a check that every ADR under `docs/adr/` has an index row and that
 an ADR carrying an `## Amendment` heading has a row that names it; the
 cited-commit decision — `close-milestone` step 7 says the cited commits are
 tagged before the merge, and `tests/test_cited_commits_resolve.py` counts a
@@ -391,7 +394,7 @@ any ceiling but 7700.**
 | The calibration call's producer and its refused-turn fallback | Platform Engineering + AI Quality | **PR 2** (the flag), **PR 3** (the call) |
 | `tests/test_g4_capture_boundary.py` vacuous under a `.claude/` checkout | Security + Platform Engineering | **PR 4** (moved from PR 2 by ADR-074 amendment 1 §3) |
 | `.gitattributes` on no `pave/twokey.py` rule; 191 CRLF files in the working tree against an LF index | Platform Engineering | **PR 4** |
-| `templates/agent-tools/` carries 6000/6500, correct for one tool and wrong the moment a second is offered | ADR-047's four seats | **PR 4** |
+| `templates/agent-tools/` carries 6000/6500 and `p95_ms: 2500`, correct for one tool and wrong the moment a second is offered | ADR-047's four seats | **PR 4** |
 | The ADR index enforced by nobody | PM | **PR 4** |
 | A document citing its own branch commits is a citation with a fuse; `make check` green on stale remote-tracking refs (47 today by `git remote prune --dry-run origin`) | Platform Engineering + PM | **PR 4** |
 | The DMA rename (SPEC/06b A21), slid from M07 to the SPEC/08 PR to M09 PR 1 to this milestone's PR 5 | Legal/S&P + Data Governance | **M09 PR 1, by name** — the fallback taken at PR 1b when the cap was reached before PR 5 (ADR-074 decision 4; amendment 1 §6); the fourth slide, and the only one pre-authorised |
@@ -453,7 +456,7 @@ no file under `milestones/M08b/` exists.
 | 3 | Refused by majority 0–2 | `evals.refusals --sidecar` | PR 3 |
 | 4 | `recommend-003`: F and G read by the rule; the reading named | the F/G reader over the sidecar, the answer files and `withheld-read.txt` (`read_withheld.py --show`); the reader reproduces G = 8, F = 1 from M07's files as its test | PR 2 (reader), PR 3 |
 | 5 | The residual: D and F from A, B, E, S, with signs; the trigger's state | `calibration.json` from the `--calibrate` producer, round-1 usage, `residual_attribution.py`, its pin; E by named key; the refused-turn fallback named | PR 2 (producer, reader, rule), PR 3 |
-| 6 | The round-1 request is `system`, the viewer turn verbatim and `toolConfig`, nothing else | a behavioural test driving `handler.py` with a client double and asserting the three kwargs it received, in `tests/test_handler_wiring.py`; not a source-reading test | PR 2 |
+| 6 | The round-1 request is `system`, the viewer turn verbatim and `toolConfig`, nothing else | behavioural on the loop (`tests/test_tool_loop.py`) and structural on the handler (`tests/test_handler_wiring.py`, a tree and never text; G8 forbids driving the handler) — ADR-074 amendment 2 §3 | PR 2 |
 | 7 | Per-call usage sums to the totals; no committed verdict moves | a test; the M07 re-score's join byte-identical to `rescore-join.json` (the absence path; the presence path on planted files until PR 3) | PR 2 |
 | 8 | `calls` in the verdict when per-call usage exists, absent when it does not | a test with a planted usage each way; M07's verdict strings unchanged; the scorer on a rule with a plant | PR 2 |
 | 9 | The `p95_ms` rule yields 5200 from the mandated shape and ADR-014's constants | the derivation test: n = 40, p95 3769, band, point; every constant planted red; the refusal test replaced; the census record's digest line re-produced | PR 2 |

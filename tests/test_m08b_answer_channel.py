@@ -128,6 +128,10 @@ def test_a_refusal_on_another_channel_does_not_count_toward_f(reader, planted):
     def move(sidecar):
         sidecar["refusals"]["recommend-003"]["s3"]["channels"] = ["tool_output"]
     _rewrite(planted / "goldens-run-refusals.json", move)
+    # ...and with it the grants entry for that sample, which the shape check
+    # would otherwise refuse first as a reading of a sample not refused on the
+    # answer channel — the right refusal, and not the one under test here.
+    _rewrite(planted / "withheld-grants.json", lambda g: g["grants"]["recommend-003"].pop("s3"))
     rec = reader.record(planted)
     assert rec["per_case"]["recommend-003"]["refused_on_answer_by_entitlement_topic"] == [1]
     assert rec["per_case"]["recommend-003"]["held_grants"] == 1
@@ -179,6 +183,8 @@ def test_the_real_directory_has_no_run_yet(reader):
 
 
 def test_the_reader_imports_no_network_module_and_opens_no_store():
+    from test_m08b_fresh_join import store_reach
+
     tree = ast.parse(READER.read_text(encoding="utf-8"))
     imported = set()
     for node in ast.walk(tree):
@@ -189,8 +195,64 @@ def test_the_reader_imports_no_network_module_and_opens_no_store():
     assert not imported & NETWORK_MODULES
     # Structural, not textual: the first version of this assertion searched the
     # source for the store reader's name and went red on the docstring saying why
-    # it must not be called (M06b's finding 7). What is pinned is that the module
-    # imports neither the store's module nor the reader, and that every file it
-    # opens is opened by name from the run directory or the repository.
+    # it must not be called (M06b's finding 7). Then the Security seat walked
+    # through `importlib.import_module("core.withheld")` with the suite green
+    # (round 1); the vocabulary check now refuses the dynamic-import door too.
     assert "withheld" not in imported and "read_withheld" not in imported
     assert "core" not in imported and "gateway_client" not in imported
+    assert store_reach(tree) == [], f"the reader can reach the refused-content store: {store_reach(tree)}"
+
+
+def test_the_prior_grants_file_is_pinned_byte_for_byte():
+    """Legal/S&P seat, round 1: the prior was self-enforcing — the file and
+    `PRIOR` could move together on the file's keys. The file's digest is a
+    constant here, so the M07 reading is append-only in a second place."""
+    import hashlib
+    digest = hashlib.sha256(PRIOR_GRANTS.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+    assert digest == "092b66aa555a5d33385cc217b8b1184cb16ad0b386039c0791743c4094b2c697", (
+        "milestones/M08b/prior-withheld-grants.json moved; the M07 reading is a record, "
+        "and a correction to it is an ADR-074 amendment, not an edit")
+
+
+# --- the grants file's vocabulary (Security seat, round 1) ---------------------------
+
+def _grants_plant(planted, fn):
+    _rewrite(planted / "withheld-grants.json", fn)
+
+
+@pytest.mark.parametrize("label,mutate,expect", [
+    ("held text beside the grant",
+     lambda g: g["grants"]["recommend-003"]["s1"].update(text="the viewer can watch it now"),
+     "must carry exactly"),
+    ("the held text as the grant's value",
+     lambda g: g["grants"]["recommend-003"]["s1"].update(grant="the viewer can watch it now"),
+     "not a boolean; a string there is text"),
+    ("the string 'false' as a grant",
+     lambda g: g["grants"]["recommend-003"]["s3"].update(grant="false"),
+     "not a boolean"),
+    ("DEC-001 on a case never refused on the answer channel",
+     lambda g: g["grants"].update({"blackout-001": {"s1": {"grant": False, "dec001_shape": True}}}),
+     "not refused is refused"),
+    ("a fabricated case",
+     lambda g: g["grants"].update({"nonesuch-099": {"s1": {"grant": True, "dec001_shape": False}}}),
+     "not refused is refused"),
+    ("a sample never refused",
+     lambda g: g["grants"]["recommend-003"].update({"s2": {"grant": True, "dec001_shape": False}}),
+     "not refused is refused"),
+    ("a missing key",
+     lambda g: g["grants"]["recommend-003"]["s1"].pop("dec001_shape"),
+     "must carry exactly"),
+    ("a key outside the file's vocabulary",
+     lambda g: g.update(notes="the texts read: ..."),
+     "keys outside"),
+], ids=lambda x: x if isinstance(x, str) and " " in x else None)
+def test_the_grants_file_admits_two_booleans_per_refused_sample_and_nothing_else(
+        reader, planted, label, mutate, expect):
+    """Every value the reading uses is a boolean on a sample the sidecar says
+    was refused on the answer channel by the entitlement topic. A string where
+    a boolean belongs is refused before it can be truthy, so the file cannot
+    carry held text as data and a `"false"` cannot count as a grant; an entry
+    for a sample never refused is refused, not ignored."""
+    _grants_plant(planted, mutate)
+    with pytest.raises(SystemExit, match=expect):
+        reader.record(planted)

@@ -100,6 +100,15 @@ def read_b(calibration: dict) -> tuple[int | None, str]:
         raise SystemExit("calibration.json does not say tools were absent; a calibration "
                          "turn that offered tools measured A twice and called it B")
     b = _round1(calibration.get("usage"))
+    from_record = _round1(calibration.get("record_usage"))
+    # The producer writes that the response's usage and the record's must
+    # agree; this is where that sentence is a check rather than a comment
+    # (Platform Engineering seat, round 1). The record is the independent
+    # witness that the turn happened as described, so a disagreement is not a
+    # number to pick between — it is a B nobody can read.
+    if b and from_record and b != from_record:
+        raise SystemExit(f"calibration.json's response usage says round 1 cost {b} and its audit "
+                         f"record says {from_record}; the two must agree before B is readable")
     if b:
         return b, "usage.calls[0].tokens_in"
     b = _round1(calibration.get("record_usage"))

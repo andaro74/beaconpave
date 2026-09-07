@@ -86,6 +86,58 @@ def _grants_answer(entry: dict) -> bool:
     return isinstance(verdict, dict) and verdict.get("entitled") is True
 
 
+#: The grants file's whole vocabulary. Every entry is exactly these two keys,
+#: each a real boolean; the file's top level is exactly these four; and every
+#: entry names a sample the sidecar says was refused on the `answer` channel by
+#: the entitlement topic. Nothing else is read, and nothing else is admitted —
+#: a string where a boolean belongs is refused before it can be truthy, so held
+#: text cannot enter this file as data and a `"false"` cannot count as a grant
+#: (Security seat, round 1).
+GRANT_KEYS = frozenset({"grant", "dec001_shape"})
+GRANTS_FILE_KEYS = frozenset({"_what_this_is", "read_on", "source", "grants"})
+
+
+def _on_answer_by_topic(detail: dict) -> bool:
+    return ((detail.get("channels") or []) == [ANSWER_CHANNEL]
+            and ENTITLEMENT_TOPIC in (detail.get("assessed") or []))
+
+
+def validate_grants(document: dict, sidecar: dict) -> dict:
+    """The grants mapping, or a refusal naming the first thing outside the
+    vocabulary. The whole document is checked, not the entries the reading
+    happens to look up, so an entry for a case never refused — or a sample
+    never refused on the answer channel — is refused rather than ignored."""
+    if not isinstance(document, dict) or not set(document) <= GRANTS_FILE_KEYS:
+        raise SystemExit(f"the grants file carries keys outside {sorted(GRANTS_FILE_KEYS)}: "
+                         f"{sorted(set(document) - GRANTS_FILE_KEYS) if isinstance(document, dict) else document!r}")
+    for key in GRANTS_FILE_KEYS - {"grants"}:
+        if key in document and not isinstance(document[key], str):
+            raise SystemExit(f"the grants file's {key!r} is not a string")
+    grants = document.get("grants")
+    if not isinstance(grants, dict):
+        raise SystemExit("the grants file carries no `grants` mapping")
+    refusal_detail = sidecar.get("refusals") or {}
+    for case, samples in grants.items():
+        if not isinstance(samples, dict):
+            raise SystemExit(f"the grants file's entry for {case!r} is not a mapping of samples")
+        refused_here = {s for s, d in (refusal_detail.get(case) or {}).items()
+                        if isinstance(d, dict) and _on_answer_by_topic(d)}
+        for sample, read in samples.items():
+            if sample not in refused_here:
+                raise SystemExit(f"the grants file reads {case} {sample}, which the sidecar does not "
+                                 "record as refused on the answer channel by the entitlement topic; "
+                                 "a reading of a sample that was not refused is refused")
+            if not isinstance(read, dict) or set(read) != GRANT_KEYS:
+                raise SystemExit(f"the grants file's entry for {case} {sample} must carry exactly "
+                                 f"{sorted(GRANT_KEYS)}; it carries "
+                                 f"{sorted(read) if isinstance(read, dict) else read!r}")
+            for key in GRANT_KEYS:
+                if not isinstance(read[key], bool):
+                    raise SystemExit(f"the grants file's {case} {sample} {key} is {read[key]!r}, not a "
+                                     "boolean; a string there is text, and text is refused")
+    return grants
+
+
 def reading(answer_files: list[pathlib.Path], sidecar: dict, grants: dict) -> dict:
     """F against G over one k-sample run. Pure: files in, record out."""
     runs = [_load(p) for p in answer_files]
@@ -103,9 +155,7 @@ def reading(answer_files: list[pathlib.Path], sidecar: dict, grants: dict) -> di
         on_answer_by_topic, held_grants, dec001 = [], 0, []
         for n in refused_samples:
             detail = (refusal_detail.get(case) or {}).get(f"s{n}") or {}
-            channels = detail.get("channels") or []
-            assessed = detail.get("assessed") or []
-            if channels == [ANSWER_CHANNEL] and ENTITLEMENT_TOPIC in assessed:
+            if _on_answer_by_topic(detail):
                 on_answer_by_topic.append(n)
                 read = (grants.get(case) or {}).get(f"s{n}")
                 if not isinstance(read, dict) or "grant" not in read:
@@ -176,8 +226,8 @@ def record(run_dir: pathlib.Path) -> dict:
             raise SystemExit(f"{path.relative_to(ROOT) if path.is_relative_to(ROOT) else path} "
                              "does not exist; the run has not been committed, or the held "
                              "texts have not been read")
-    grants = _load(grants_path)
-    result = reading(answer_files, _load(sidecar_path), grants.get("grants") or {})
+    sidecar = _load(sidecar_path)
+    result = reading(answer_files, sidecar, validate_grants(_load(grants_path), sidecar))
     return {
         "_what_this_is": (
             "ADR-074 decision 3 §3: the recommend-003 reading, F against G, produced by "

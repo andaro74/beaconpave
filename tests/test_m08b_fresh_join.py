@@ -36,6 +36,31 @@ PLANTED = ROOT / "tests" / "fixtures" / "m08b" / "planted"
 RECORD = PLANTED / "fresh-join.json"
 
 NETWORK_MODULES = {"boto3", "botocore", "urllib", "urllib3", "requests", "socket", "http", "httpx"}
+STORE_WORDS = {"core.withheld", "read_withheld", "held_object", "fetch_held", "withheld",
+               "WITHHELD_STORE"}
+
+
+def store_reach(tree: ast.Module) -> list[str]:
+    """The G4 boundary's own vocabulary check, plus the dynamic-import door the
+    Security seat walked through in round 1: `importlib.import_module` and
+    `__import__` are refused outright in a reader, whatever they name."""
+    found = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            found += [a.name for a in node.names if a.name.split(".")[0] in {"core", "boto3"}
+                      or a.name.endswith("withheld")]
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if module.split(".")[0] in {"core", "read_withheld"} or module.endswith("withheld"):
+                found.append(f"from {module}")
+            found += [a.name for a in node.names if a.name in STORE_WORDS]
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value in STORE_WORDS:
+            found.append(f"the string {node.value!r}")
+        elif isinstance(node, (ast.Name, ast.Attribute)):
+            label = node.id if isinstance(node, ast.Name) else node.attr
+            if label in STORE_WORDS or label in {"import_module", "__import__"}:
+                found.append(label)
+    return found
 
 
 @pytest.fixture(scope="module")
@@ -106,6 +131,40 @@ def test_the_reader_imports_no_network_module_and_takes_no_ceiling():
     assert options == {"--dir", "--check"}, (
         f"the reader takes {sorted(options)}; a ceiling argument would let a sample be read "
         "at a number the rule did not produce")
+    assert store_reach(tree) == [], (
+        f"the reader can reach the refused-content store: {store_reach(tree)} (G4, ADR-071)")
+
+
+def test_the_repository_scans_reach_the_readers():
+    """Security and Platform Engineering seats, round 1: the G4 store-boundary
+    scan and the hermeticity scan each stopped at roots that did not include
+    `milestones/`, so a store import or an SDK import planted in a reader
+    survived the whole suite. Both roots now include it, and this is the pin
+    that a root dropped again is red here and not only silent there."""
+    import test_g4_capture_boundary as boundary
+    import test_hermeticity as hermeticity
+
+    readers = {ROOT / "milestones" / "M08b" / name
+               for name in ("fresh_join.py", "residual_attribution.py", "answer_channel.py")}
+    scanned = set(boundary._sources(*boundary.SCORER_ROOTS))
+    assert readers <= scanned, f"the store-boundary scan misses {sorted(p.name for p in readers - scanned)}"
+    hermetic = set(hermeticity.hermetic_sources())
+    assert readers <= hermetic, f"the hermeticity scan misses {sorted(p.name for p in readers - hermetic)}"
+
+
+def test_the_band_constants_are_the_derivation_tests_and_place_an_unclamped_roof(reader):
+    """AI Quality seat, round 1: the roof half of `BAND` was silent because
+    M08's record clamps it by the four-call minimum — and on a fresh run with
+    no four-call sample the roof alone places the re-derived point, which PR 3
+    records into ADR-074. Pinned literally, beside `tests/test_budget_derivation.py`'s
+    own pin of the same two constants, and exercised unclamped."""
+    assert reader.BAND == (1.15, 1.60)
+    unclamped = reader.band_from(6230, None)
+    assert unclamped["floor"] == 7164.5 and unclamped["roof"] == 9968.0
+    assert unclamped["integer_band"] == [7165, 9968] and unclamped["point"] == 8600
+    assert not unclamped["empty"]
+    clamped = reader.band_from(6230, 8181)
+    assert clamped["roof"] == 8180 and clamped["point"] == 7700
 
 
 # --- what the planted run says ----------------------------------------------------
@@ -146,7 +205,7 @@ def test_the_fresh_band_is_re_derived_from_the_fresh_run(reader):
     assert b["available"] and not b["empty"]
     assert b["mandated_shape_max"] == 6230 and b["four_call_min"] == 8181
     assert b["integer_band"] == [7165, 8180] and b["point"] == 7700 and b["point_inside"]
-    assert b["reading"].startswith("the number holds and the rule re-derives to it")
+    assert b["reading"] == "the number holds; the rule re-derives to 7700"
 
 
 def test_the_count_refusals_p95s_and_triggers_are_read_from_the_rows(reader):
@@ -217,7 +276,31 @@ def test_a_falsifying_sample_is_recorded_with_its_row_and_the_band_it_empties(re
                          "row": reader.ROW_RULE_AT_MANDATE}
     band = rec["fresh_band"]
     assert band["empty"] and band["mandated_shape_max"] == 7720 and band["integer_band"] is None
-    assert band["reading"].startswith("the rule has no solution")
+    # The band's sentence is written in the claim's frame (AI Quality seat,
+    # round 1): a red close must not carry "the number holds" beside a falsifier.
+    assert band["reading"].startswith("the claim is falsified (see claim.falsifiers); the rule has no solution")
+    assert "the number holds" not in band["reading"]
+
+
+def test_a_count_line_that_disagrees_with_its_own_rows_is_refused(reader, planted):
+    """AI Quality seat, round 1: N was read from one transcript line and a line
+    saying 9/25 over twenty-two PASS rows was recorded without a word."""
+    _edit(planted / "goldens-score.txt",
+          lambda t: t.replace("22/25 passed (3 failed, 0 infra)", "9/25 passed (16 failed, 0 infra)"))
+    with pytest.raises(SystemExit, match="a planted count"):
+        reader.join(planted)
+
+
+def test_every_total_is_held_to_the_rounds_not_only_tokens_in(reader, planted):
+    """Platform Engineering seat, round 1: the sum check covered `tokens_in`
+    alone; `tokens_out` and `latency_ms` are the same list's other columns."""
+    def bend(text):
+        answers = json.loads(text)
+        answers["edge-024"]["usage"]["latency_ms"] += 1
+        return json.dumps(answers, indent=2, ensure_ascii=False)
+    _edit(planted / "goldens-run-2.json", bend)
+    with pytest.raises(SystemExit, match="latency_ms .* is not the sum over usage.calls"):
+        reader.join(planted)
 
 
 # --- the plants: what the reader refuses ---------------------------------------------

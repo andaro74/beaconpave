@@ -354,6 +354,42 @@ def test_a_budget_failure_names_the_call_count_when_the_usage_carries_one(scorer
     detail = next(a.detail for a in scorer.score_case(CASES["blackout-001"], three, CATALOG).failures
                   if a.kind == "budget")
     assert detail.endswith("(calls=3)"), detail
+    # The count is the list's length and cannot be a function of the totals:
+    # 8181 over two rounds and 7701 over five (Platform Engineering seat,
+    # round 1: `1 + tokens_in // 2727` satisfied the two cases above).
+    two = answer()
+    two["usage"]["tokens_in"] = 8181
+    two["usage"]["calls"] = [_round(4000), _round(4181)]
+    assert next(a.detail for a in scorer.score_case(CASES["blackout-001"], two, CATALOG).failures
+                if a.kind == "budget").endswith("(calls=2)")
+    five = answer()
+    five["usage"]["tokens_in"] = 7701
+    five["usage"]["calls"] = [_round(1540)] * 5
+    assert next(a.detail for a in scorer.score_case(CASES["blackout-001"], five, CATALOG).failures
+                if a.kind == "budget").endswith("(calls=5)")
+
+
+def test_the_budget_comparison_is_strictly_over(scorer):
+    """SPEC/08b's falsifier is written in this comparison — `got > limit`, so a
+    sample at exactly the ceiling passes — and the AI Quality seat inverted it
+    to `>=` with the suite green (round 1). Pinned at the boundary on every
+    axis the budget scores: at the ceiling passes, one over fails."""
+    for key, limit in (("tokens_in", 7700), ("tokens_out", 300)):
+        at = answer()
+        at["usage"][key] = limit
+        assert scorer.score_case(CASES["blackout-001"], at, CATALOG).result == det.PASS, key
+        over = answer()
+        over["usage"][key] = limit + 1
+        failure = next(a for a in scorer.score_case(CASES["blackout-001"], over, CATALOG).failures
+                       if a.kind == "budget")
+        assert f"{key}={limit + 1} over {limit}" in failure.detail
+    at_ms = answer()
+    at_ms["usage"]["latency_ms"] = 12000
+    assert scorer.score_case(CASES["blackout-001"], at_ms, CATALOG).result == det.PASS
+    over_ms = answer()
+    over_ms["usage"]["latency_ms"] = 12001
+    assert "stalled" in next(a.detail for a in scorer.score_case(CASES["blackout-001"], over_ms,
+                                                                  CATALOG).failures if a.kind == "budget")
 
 
 def test_a_budget_verdict_without_per_call_usage_reads_as_it_always_did(scorer):

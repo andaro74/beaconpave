@@ -1221,6 +1221,18 @@ def test_the_first_model_request_is_the_system_block_the_viewer_turn_verbatim_an
     handed = {kw.arg: ast.unparse(kw.value) for kw in run.keywords}
     assert handed["messages"] == "messages"
     assert handed["converse"] == "_converse(system, tool_config(offered))"
+    # **After the bind (Platform Engineering seat, round 1).** `messages.append(...)`
+    # between the literal and `run_turn` satisfied every assertion above: the
+    # bind was verbatim and the name was handed over. So the name `messages`
+    # occurs in `handler` exactly twice — the bind and the hand-over — and is
+    # never the object of an attribute or a subscript.
+    uses = [n for n in ast.walk(handler) if isinstance(n, ast.Name) and n.id == "messages"]
+    assert len(uses) == 2 and {type(n.ctx).__name__ for n in uses} == {"Store", "Load"}, (
+        f"`messages` is used {len(uses)} times in handler(); once to bind and once to hand over")
+    for node in ast.walk(handler):
+        if isinstance(node, (ast.Attribute, ast.Subscript)):
+            assert ast.unparse(node.value) != "messages", (
+                f"handler touches messages after the bind: {ast.unparse(node)}")
 
     converse = _function(tree, "_converse")
     kwargs = _binds(converse, "kwargs")
@@ -1233,13 +1245,28 @@ def test_the_first_model_request_is_the_system_block_the_viewer_turn_verbatim_an
     inner = next(n for n in ast.walk(converse)
                  if isinstance(n, ast.FunctionDef) and n.name == "converse")
     assert [a.arg for a in inner.args.args] == ["transcript"]
+    transcript_loads = 0
     for node in ast.walk(inner):
         if isinstance(node, ast.Name) and node.id == "transcript":
             assert isinstance(node.ctx, ast.Load), "`transcript` is stored into inside converse"
+            transcript_loads += 1
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-            assert ast.unparse(node.func.value) != "transcript", (
-                f"converse calls transcript.{node.func.attr}(...); the loop's transcript "
-                "must reach the client untouched")
+            assert ast.unparse(node.func.value) not in {"transcript", "kwargs"} and \
+                not ast.unparse(node.func.value).startswith("kwargs["), (
+                    f"converse calls {ast.unparse(node.func)}(...); the loop's transcript and the "
+                    "model call must reach the client untouched")
+    assert transcript_loads == 1, "the transcript is read more than once inside converse"
+    # `kwargs` is loaded only as the object of the two pinned subscript stores
+    # and as `**kwargs` on the one `_bedrock.converse` call; a
+    # `kwargs['messages'].append(...)` before the call is a Load of a subscript,
+    # and there are none.
+    for node in ast.walk(inner):
+        if isinstance(node, ast.Subscript) and ast.unparse(node.value) == "kwargs":
+            assert isinstance(node.ctx, ast.Store), (
+                f"converse reads {ast.unparse(node)}; the model call is assembled, never read back")
+    calls = [n for n in ast.walk(inner) if isinstance(n, ast.Call)
+             and any(kw.arg is None and ast.unparse(kw.value) == "kwargs" for kw in n.keywords)]
+    assert len(calls) == 1 and ast.unparse(calls[0].func) == "_bedrock.converse"
 
 
 def _function(tree, name):

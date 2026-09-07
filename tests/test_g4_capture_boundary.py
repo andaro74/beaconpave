@@ -439,7 +439,12 @@ def test_verify_ties_a_store_object_to_its_record_and_names_each_way_it_can_fail
 STORE_MODULES = {"core.withheld", "withheld", "read_withheld"}
 STORE_WORDS = {withheld.STORE_OUTPUT, withheld.STORE_ENV, "WITHHELD_STORE", "core.withheld",
                "read_withheld", "held_object", "fetch_held", "withheld"}
-SCORER_ROOTS = ("evals", "pave", "tools")
+#: `milestones` joined at M08b PR 2 (Security seat, round 1): the three readers
+#: that decide the milestone's claim, the residual and the answer-channel
+#: reading live there, and a store import planted into two of them survived
+#: the whole suite because no root reached them. A reader that can name the
+#: store can read it one line later, wherever it sits.
+SCORER_ROOTS = ("evals", "pave", "tools", "milestones")
 SKIP_DIRS = {"__pycache__", "node_modules", "cdk.out", ".claude", ".venv", ".git"}
 
 
@@ -497,7 +502,8 @@ def test_the_store_has_exactly_two_callers_in_the_repository():
     goldens harness copying text into a sidecar, say — is the reader escaping
     the file the rule was drawn around."""
     importers = set()
-    for path in _sources("platform", "services", "evals", "pave", "tools", "templates"):
+    for path in _sources("platform", "services", "evals", "pave", "tools", "templates",
+                         "milestones"):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             names = ([a.name for a in node.names] if isinstance(node, (ast.Import, ast.ImportFrom))

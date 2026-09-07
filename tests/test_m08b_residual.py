@@ -151,7 +151,9 @@ def test_a_planted_estimate_moves_the_record(reader, planted, tmp_path, monkeypa
     assert after["residual_A_minus_E_minus_S"] == before["residual_A_minus_E_minus_S"] - 100
 
 
-def test_the_reader_imports_no_network_module():
+def test_the_reader_imports_no_network_module_and_cannot_reach_the_store():
+    from test_m08b_fresh_join import store_reach
+
     tree = ast.parse(READER.read_text(encoding="utf-8"))
     imported = set()
     for node in ast.walk(tree):
@@ -160,6 +162,40 @@ def test_the_reader_imports_no_network_module():
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module.split(".")[0])
     assert not imported & NETWORK_MODULES
+    # Security seat, round 1: a `from core import withheld` planted here
+    # survived the whole suite, because no G4 root reached `milestones/`.
+    assert store_reach(tree) == [], f"the reader can reach the refused-content store: {store_reach(tree)}"
+
+
+def test_the_share_threshold_is_the_pre_registered_seventy_percent(reader):
+    """AI Quality seat, round 1: `SHARE_NAMES` moved to 0.51 with the suite
+    green, because the planted shares are 0.872 and 0.128. Pinned literally and
+    exercised at the boundary: 70 of 100 names density, 69 names both, and a
+    negative component's share is of its magnitude."""
+    assert reader.SHARE_NAMES == 0.70
+    est = {"E": 800, "S": 600}
+    # A = 1500 + ...: choose A and B so D and F land where the case needs them.
+    density = reader.attribute([1570] * 3, 870, est)      # D = 70, F = 100 - ... recomputed below
+    assert density["D"] == 70 and density["F"] == 100 and density["reading"].startswith("both")
+    exact = reader.attribute([1500] * 3, 870, est)        # D = 70, F = 30
+    assert exact["D"] == 70 and exact["F"] == 30 and exact["reading"].startswith("tokeniser density")
+    just_under = reader.attribute([1500] * 3, 869, est)   # D = 69, F = 31
+    assert just_under["D"] == 69 and just_under["F"] == 31 and just_under["reading"].startswith("both")
+    negative = reader.attribute([1330] * 3, 870, est)     # D = 70, F = -140
+    assert negative["F"] == -140 and negative["F_sign"] == "negative"
+    assert negative["shares_of_abs"] == {"D": 0.333, "F": 0.667} and negative["reading"].startswith("both")
+    framing = reader.attribute([1300] * 3, 800, est)      # D = 0, F = -100
+    assert framing["reading"].startswith("provider-side framing")
+
+
+def test_a_response_usage_that_disagrees_with_the_record_is_refused(reader, planted):
+    """Platform Engineering seat, round 1: the producer writes that the two
+    must agree, and nothing compared them — a 400-token disagreement was
+    returned silently as B on a residual bounded at 422–537."""
+    _rewrite(planted / "calibration.json",
+             lambda c: c["record_usage"]["calls"][0].update(tokens_in=1870))
+    with pytest.raises(SystemExit, match="the two must agree before B is readable"):
+        reader.record(planted)
 
 
 def test_the_real_directory_has_no_calibration_yet(reader):
