@@ -194,9 +194,11 @@ ADR043_SEATS = {
     # estimator every sidecar's census is computed by (Legal/S&P); the planted
     # run and the reader tests the three-key readers are proved against (AI
     # Quality, Security, Platform Engineering).
-    "milestones/M08b/withheld-grants.json": {"security", "legal-sp", "ai-quality"},
+    "milestones/M08b/withheld-grants.json": {"security", "legal-sp", "platform-eng", "ai-quality"},
     "evals/refusals.py": {"security", "ai-quality"},
     "tests/test_m08b_fresh_join.py": {"ai-quality", "platform-eng", "security"},
+    # round 2 (AI Quality): the scorer's own test, on the scorer's rule
+    "tests/test_deterministic_runner.py": {"ai-quality", "platform-eng"},
 }
 
 
@@ -379,13 +381,20 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                            # the day it is; the planted run, its builder and the
                            # reader tests are the evidence the readers work
                            "milestones/M08b/a_reader_not_written_yet.py",
+                           # round 2 (Security): a name with a digit — the p95
+                           # reader this milestone is likeliest to add — matched
+                           # nothing under `[a-z_]+`, and the round-1 pin's shape
+                           # path was shaped to match
+                           "milestones/M08b/p95_join.py",
                            "tests/test_m08b_fresh_join.py",
                            "tests/test_m08b_a_test_not_written_yet.py",
+                           "tests/test_m08b_p95.py",
                            "tests/fixtures/m08b/build_planted.py",
                            "tests/fixtures/m08b/planted/fresh-join.json",
                            "tests/fixtures/m08b/planted/goldens-run-1.json"],
-        # M08b PR 2. One file: the scorer every goldens verdict comes from.
-        "the goldens scorer": ["evals/deterministic.py"],
+        # M08b PR 2. The scorer every goldens verdict comes from, and (round 2)
+        # the test that pins its comparison.
+        "the goldens scorer": ["evals/deterministic.py", "tests/test_deterministic_runner.py"],
         # M08b PR 2, round 1 (Legal/S&P). Both grants files, member by member,
         # and the estimator.
         "the held-text readings": ["milestones/M08b/withheld-grants.json",
@@ -440,10 +449,12 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # readers, three records, the calibration record, a reader-shape path, the
     # planted run's builder and two files, and two reader-test paths on the
     # census's rule (13); the goldens scorer (1); the two grants files on the
-    # held-text readings rule and the estimator on its own (3).
-    assert total == 88, (
+    # held-text readings rule and the estimator on its own (3). 88 -> 91 at
+    # round 2: two digit-bearing shape paths on the census rule and the
+    # scorer's test on the scorer's.
+    assert total == 91, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "88. Deleting a required path in the same diff that "
+        "91. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -626,8 +637,9 @@ def test_the_fresh_runs_readers_records_and_calibration_collect_the_census_seats
     reading are prose, and the answer files are the goldens evidence rule's."""
     for name in ("fresh_join.py", "fresh-join.json", "residual_attribution.py",
                  "residual-attribution.json", "answer_channel.py", "answer-channel.json",
-                 "calibration.json", "a_reader_not_written_yet.py"):
+                 "calibration.json", "a_reader_not_written_yet.py", "p95_join.py", "m08b_join.py"):
         _blocked_for([f"milestones/M08b/{name}"], {"ai-quality", "platform-eng", "security"})
+    _blocked_for(["tests/test_m08b_p95.py"], {"ai-quality", "platform-eng", "security"})
     # round 1 (AI Quality, Security, Platform Engineering): the evidence the
     # readers work — the planted run, its builder, the reader tests — on the
     # same three keys. Measured on 8ab0a9a: every one `two-key: not required`.
@@ -656,8 +668,11 @@ def test_the_held_text_readings_collect_the_two_seats_the_reading_bills_and_a_th
     file that decides which branch fires. Security and Legal/S&P feel the
     reading's pain from opposite sides; AI Quality feels neither."""
     for name in ("withheld-grants.json", "prior-withheld-grants.json"):
-        _blocked_for([f"milestones/M08b/{name}"], {"security", "legal-sp", "ai-quality"})
-        assert "platform-eng" not in _seats_for(f"milestones/M08b/{name}")
+        # round 2 (Legal/S&P): Platform Engineering joined — the F = G branch
+        # bills the core rule and DEC-001's shape re-opens ADR-068, both its.
+        _blocked_for([f"milestones/M08b/{name}"],
+                     {"security", "legal-sp", "platform-eng", "ai-quality"})
+        assert "tool-owner" not in _seats_for(f"milestones/M08b/{name}")
 
 
 def test_the_refusal_estimator_collects_security_and_ai_quality():
@@ -678,6 +693,9 @@ def test_the_goldens_scorer_collects_ai_quality_and_platform_eng():
     key. The derivation pin's pair, because a verdict's meaning is AI Quality's
     and the mechanism that produces it is Platform Engineering's."""
     _blocked_for(["evals/deterministic.py"], {"ai-quality", "platform-eng"})
+    # round 2 (AI Quality): the scorer's test, measured on 6863f7e `two-key:
+    # not required` while the scorer took two — the thermometer unkeyed
+    _blocked_for(["tests/test_deterministic_runner.py"], {"ai-quality", "platform-eng"})
     # narrow: the recorders keep their own three-seat rule
     assert _seats_for("evals/run_evals.py") == {"ai-quality", "security", "platform-eng"}
 

@@ -551,9 +551,9 @@ RULES: tuple[Rule, ...] = (
         re.compile(r"^(milestones/M08/(context_census\.py|context-census\.json"
                    r"|residual_differential\.py|residual-differential\.json"
                    r"|rescore_join\.py|rescore-join\.json)"
-                   r"|milestones/M08b/([a-z_]+\.py|fresh-join\.json"
+                   r"|milestones/M08b/([a-z0-9_]+\.py|fresh-join\.json"
                    r"|residual-attribution\.json|answer-channel\.json|calibration\.json)"
-                   r"|tests/test_m08b_[a-z_]+\.py|tests/fixtures/m08b/.+)$"),
+                   r"|tests/test_m08b_[a-z0-9_]+\.py|tests/fixtures/m08b/.+)$"),
         ("ai-quality", "platform-eng", "security"),
     ),
     Rule(
@@ -562,14 +562,19 @@ RULES: tuple[Rule, ...] = (
         # written by the operator after `read_withheld.py --show`, and the input
         # that moves F and G both. Its four outcomes bill different seats: a
         # topic question is Security's calibration on the corpus, an answer-policy
-        # question the core rule's with Legal/S&P. So the two seats that feel the
-        # reading's pain from opposite sides each hold a key, and AI Quality — who
-        # feels neither — is the third. The census rule's three seats were G9's
-        # letter and not its substance: Legal/S&P, the seat the F = G branch
-        # bills, held none.
+        # question the core rule's — Platform Engineering and Security — with
+        # Legal/S&P, and DEC-001's shape re-opens ADR-068, which Security and
+        # Platform Engineering own. So every seat a branch bills holds a key —
+        # Security, Legal/S&P and Platform Engineering (round 2: the first
+        # version omitted Platform Engineering and pinned the absence without a
+        # reason, which was round one's finding with a seat's name changed) —
+        # and AI Quality is the fourth, not because it feels neither (Tool Owner
+        # and Service Team feel neither too) but because it already holds the key
+        # on the answer files G is summed from. The census rule's three seats
+        # were G9's letter and not its substance.
         "the held-text readings — the operator's grant booleans that decide F against G",
         re.compile(r"^milestones/M08b/(prior-)?withheld-grants\.json$"),
-        ("security", "legal-sp", "ai-quality"),
+        ("security", "legal-sp", "platform-eng", "ai-quality"),
     ),
     Rule(
         # **The refusal estimator (M08b PR 2, Legal/S&P seat, round 1).**
@@ -593,8 +598,12 @@ RULES: tuple[Rule, ...] = (
         # that changes it (the `calls` suffix in the budget verdict), on the
         # derivation pin's pair: AI Quality owns what a verdict means, Platform
         # Engineering the mechanism that produces it.
+        # **And its test (round 2, AI Quality).** The only test pinning the
+        # comparison SPEC/08b's falsifier is written in collected nothing while
+        # the scorer took two keys: ADR-035's thermometer and thermostat, the
+        # shape the round-1 fix closed for the M08b readers and missed here.
         "the goldens scorer — the deterministic verdicts every recorded goldens count is summed from",
-        re.compile(r"^evals/deterministic\.py$"),
+        re.compile(r"^(evals/deterministic\.py|tests/test_deterministic_runner\.py)$"),
         ("ai-quality", "platform-eng"),
     ),
     Rule(

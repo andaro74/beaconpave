@@ -38,12 +38,28 @@ RECORD = PLANTED / "fresh-join.json"
 NETWORK_MODULES = {"boto3", "botocore", "urllib", "urllib3", "requests", "socket", "http", "httpx"}
 STORE_WORDS = {"core.withheld", "read_withheld", "held_object", "fetch_held", "withheld",
                "WITHHELD_STORE"}
+#: A closed set, not a vocabulary (Security seat, round 2): `import_module` and
+#: `__import__` were refused by name and `getattr`, `sys.modules`,
+#: `__builtins__`, `__dict__` and `"co" + "re"` walked past them. The readers
+#: are JSON in, record out; none of these names has a use in one.
+REFLECTION = {"getattr", "setattr", "delattr", "globals", "locals", "vars", "eval", "exec",
+              "__import__", "import_module", "__builtins__", "__dict__", "__loader__",
+              "__spec__", "modules", "__getattribute__", "__subclasses__"}
+
+
+def _all_string_literals(node) -> bool:
+    if isinstance(node, ast.Constant):
+        return isinstance(node.value, str)
+    return (isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add)
+            and _all_string_literals(node.left) and _all_string_literals(node.right))
 
 
 def store_reach(tree: ast.Module) -> list[str]:
-    """The G4 boundary's own vocabulary check, plus the dynamic-import door the
-    Security seat walked through in round 1: `importlib.import_module` and
-    `__import__` are refused outright in a reader, whatever they name."""
+    """The G4 boundary's own vocabulary check, the reflection door closed, and
+    a name assembled from string literals refused (adjacent literals fold at
+    parse time and are caught; `"co" + "re"` is a BinOp and was not — a
+    literal joined to a computed value, `json.dumps(...) + "\\n"`, is not a
+    name and is not flagged)."""
     found = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -58,9 +74,32 @@ def store_reach(tree: ast.Module) -> list[str]:
             found.append(f"the string {node.value!r}")
         elif isinstance(node, (ast.Name, ast.Attribute)):
             label = node.id if isinstance(node, ast.Name) else node.attr
-            if label in STORE_WORDS or label in {"import_module", "__import__"}:
+            if label in STORE_WORDS or label in REFLECTION:
                 found.append(label)
+        elif isinstance(node, ast.BinOp) and _all_string_literals(node):
+            found.append(f"a name assembled from literals: {ast.unparse(node)[:40]}")
     return found
+
+
+def imported_roots(tree: ast.Module) -> set[str]:
+    roots = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            roots |= {alias.name.split(".")[0] for alias in node.names}
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            roots.add(node.module.split(".")[0])
+    return roots
+
+
+#: What each reader may import, and no other module (Security seat, round 2:
+#: an allowlist, because a denylist of doors is the shape that was walked
+#: around twice).
+ALLOWED_IMPORTS = {
+    "fresh_join": {"__future__", "argparse", "hashlib", "importlib", "json", "pathlib", "re", "sys",
+                   "yaml", "evals", "jsonschema"},
+    "residual_attribution": {"__future__", "argparse", "hashlib", "importlib", "json", "pathlib", "yaml"},
+    "answer_channel": {"__future__", "argparse", "hashlib", "json", "pathlib", "re"},
+}
 
 
 @pytest.fixture(scope="module")
@@ -133,6 +172,29 @@ def test_the_reader_imports_no_network_module_and_takes_no_ceiling():
         "at a number the rule did not produce")
     assert store_reach(tree) == [], (
         f"the reader can reach the refused-content store: {store_reach(tree)} (G4, ADR-071)")
+    assert imported_roots(tree) <= ALLOWED_IMPORTS["fresh_join"], (
+        f"the reader imports {sorted(imported_roots(tree) - ALLOWED_IMPORTS['fresh_join'])} outside its allowlist")
+
+
+def test_the_store_guard_refuses_the_reflection_doors():
+    """The round-2 plants that walked past the round-1 guard, each refused by
+    the closed set rather than by name."""
+    # One door per plant, so that closing one cannot be masked by another
+    # (the deletability audit found each two-door plant surviving the loss of
+    # either door).
+    for source in ('import sys\n_m = sys.modules.get(name)\n',
+                   'def f(x, name):\n    return getattr(x, name)\n',
+                   'x = globals()\n',
+                   'x = obj.__builtins__\n',
+                   'x = obj.__dict__\n',
+                   'name = "co" + "re.with" + "held"\n',
+                   'name = "fetch" + "_held"\n',
+                   'import importlib\n_s = importlib.import_module(name)\n',
+                   'x = __import__(name)\n',
+                   'from core import withheld\n'):
+        assert store_reach(ast.parse(source)), f"the guard admits: {source!r}"
+    assert store_reach(ast.parse('import json\nx = json.loads("{}")\nname = f"{x}-{1}"\n'
+                                 'text = json.dumps(x) + "\\n"\nimport re\np = re.compile("a")\n')) == []
 
 
 def test_the_repository_scans_reach_the_readers():
@@ -223,7 +285,7 @@ def test_the_count_refusals_p95s_and_triggers_are_read_from_the_rows(reader):
     assert p["ceiling_ms"] == 5200 and p["costs_a_case"] is False
     assert p["pooled"] == {"n": 72, "p95": 6000, "verdict": "OVER"}
     assert p["mandated_shape"] == {"n": 63, "p95": 3500, "verdict": "within"}
-    assert p["transcript_line"] == {"verdict": "OVER", "p95": 6000}
+    assert p["transcript_line"] == {"verdict": "OVER", "p95": 6000, "ceiling": 5200}
     assert p["reading"].startswith("share:")
     t = rec["triggers"]
     assert t["browse_gap"]["persists"] and t["browse_gap"]["cases"] == ["grounded-019", "recommend-003",
@@ -268,6 +330,152 @@ def test_the_browse_gap_reads_executed_searches_before_the_verdict(reader):
     after = reader.search_shape([_step(1, cs), _step(2, ec), _step(3, cs)])
     assert after == {"searches_attempted": 2, "searches_executed": 2,
                      "searches_executed_before_verdict": 1, "beyond_mandate_before_verdict": False}
+    # Tool Owner seat, round 2: a search that RAN and had its result rejected
+    # on the output contract carries `executed: true` with a denied decision
+    # (the loop's own tested shape) — it browsed, and it counts. And an
+    # entitlement check that never ran closes no window, whatever was decided.
+    suppressed = reader.search_shape([_step(1, cs), _step(2, cs, decision="denied", executed=True), _step(3, ec)])
+    assert suppressed["searches_executed"] == 2 and suppressed["beyond_mandate_before_verdict"]
+    check_denied = reader.search_shape([_step(1, cs), _step(2, ec, decision="denied", executed=False),
+                                        _step(3, cs)])
+    assert check_denied["searches_executed_before_verdict"] == 2 and check_denied["beyond_mandate_before_verdict"]
+    check_ran_then_rejected = reader.search_shape([_step(1, cs), _step(2, ec, decision="denied", executed=True),
+                                                   _step(3, cs)])
+    assert check_ran_then_rejected["beyond_mandate_before_verdict"] is False
+
+
+def test_a_suppressed_second_search_still_persists_the_browse_gap(reader, planted):
+    """The round-2 plant: `recommend-013`'s extra searches marked denied on the
+    output contract but executed — three authorized, executed searches read as
+    one on 6863f7e, and the case left every column."""
+    def suppress(text):
+        trajectories = json.loads(text)
+        for step in trajectories["recommend-013"]["trajectory"][1:]:
+            step.update(decision="denied", mechanism="schema", executed=True)
+        return json.dumps(trajectories, indent=2, ensure_ascii=False)
+    for n in (1, 2, 3):
+        _edit(planted / f"goldens-run-{n}-trajectory.json", suppress)
+    gap = reader.join(planted)["triggers"]["browse_gap"]
+    assert "recommend-013" in gap["cases"]
+
+
+def test_a_step_with_no_round_or_no_decision_is_refused(reader, planted):
+    """Platform Engineering and Tool Owner seats, round 2: a step with no
+    `round` vanished from the growth replay and read as 100% unexplained; a
+    step with no `decision` read as never executed; `round: 0` sorted before
+    everything. The envelope is on a contract now."""
+    for mutate, expect in (
+        (lambda s: s.pop("round"), "'round' is a required property"),
+        (lambda s: s.pop("decision"), "'decision' is a required property"),
+        (lambda s: s.update(round=0), "less than the minimum"),
+        (lambda s: s.update(executed="yes"), "not of type 'boolean'"),
+        (lambda s: s.update(extra=1), "Additional properties"),
+    ):
+        copy = planted / f"env-{abs(hash(expect))}"
+        shutil.copytree(planted, copy)
+
+        def bend(text, mutate=mutate):
+            trajectories = json.loads(text)
+            mutate(trajectories["blackout-001"]["trajectory"][0])
+            return json.dumps(trajectories, indent=2, ensure_ascii=False)
+        _edit(copy / "goldens-run-1-trajectory.json", bend)
+        with pytest.raises(SystemExit, match="outside the loop's shape"):
+            reader.join(copy)
+
+
+def test_the_k3_rows_are_reconciled_against_the_per_sample_rows(reader, planted):
+    """AI Quality seat, round 2: rows and count line moved together — eight
+    PASS cases read as FAIL, N from outside the band to inside it — and the
+    count-line check was satisfied. The bracket is the per-sample results."""
+    _edit(planted / "goldens-score.txt", lambda t: re.sub(
+        r"^(entitlement-002\s+)PASS\s+\[PASS PASS PASS\]\s*$", r"\1FAIL  [FAIL FAIL FAIL]", t, flags=re.M
+    ).replace("22/25 passed (3 failed, 0 infra)", "21/25 passed (4 failed, 0 infra)"))
+    with pytest.raises(SystemExit, match="a planted row"):
+        reader.join(planted)
+
+
+def test_a_bracket_that_disagrees_with_the_rows_under_a_matching_result_is_refused(reader, planted):
+    """The bracket check alone: the result still matches the rows' majority."""
+    _edit(planted / "goldens-score.txt", lambda t: re.sub(
+        r"^(entitlement-002\s+PASS\s+)\[PASS PASS PASS\]\s*$", r"\1[FAIL PASS PASS]", t, flags=re.M))
+    with pytest.raises(SystemExit, match="is not the per-sample transcripts'"):
+        reader.join(planted)
+
+
+def test_a_result_that_disagrees_with_a_matching_bracket_is_refused(reader, planted):
+    """The majority check alone: the bracket is the rows' and the result is not
+    its majority."""
+    _edit(planted / "goldens-score.txt", lambda t: re.sub(
+        r"^(entitlement-002\s+)PASS(\s+\[PASS PASS PASS\])\s*$", r"\1FAIL\2", t, flags=re.M
+    ).replace("22/25 passed (3 failed, 0 infra)", "21/25 passed (4 failed, 0 infra)"))
+    with pytest.raises(SystemExit, match="over a bracket whose majority is PASS"):
+        reader.join(planted)
+
+
+def test_a_latency_line_from_another_ceiling_is_refused(reader, planted):
+    """AI Quality seat, round 2: `OK p95=6000ms within 7500ms` was recorded
+    beside a pooled OVER; the line's ceiling and verdict are held to the
+    manifest and the pooled verdict the way `tokens_in` is held to the file."""
+    _edit(planted / "goldens-score.txt",
+          lambda t: t.replace("suite latency  OVER p95=6000ms over 5200ms",
+                              "suite latency  OK   p95=6000ms within 7500ms"))
+    with pytest.raises(SystemExit, match="a transcript from another ceiling"):
+        reader.join(planted)
+
+
+def test_a_latency_line_with_the_right_verdict_and_another_ceiling_is_refused(reader, planted):
+    """The ceiling half alone: the verdict agrees and the number does not."""
+    _edit(planted / "goldens-score.txt",
+          lambda t: t.replace("suite latency  OVER p95=6000ms over 5200ms",
+                              "suite latency  OVER p95=6000ms over 5000ms"))
+    with pytest.raises(SystemExit, match="a transcript from another ceiling"):
+        reader.join(planted)
+
+
+def test_a_search_mandate_that_is_not_the_cases_is_refused(reader, planted, monkeypatch):
+    """The cross-check is what makes `MANDATED_SEARCHES` the case's rather than
+    a constant: moved to 2, the join refuses before a row is read."""
+    monkeypatch.setattr(reader, "MANDATED_SEARCHES", 2)
+    with pytest.raises(SystemExit, match="the search mandate is not the case's"):
+        reader.join(planted)
+
+
+def test_the_p95_readings_are_all_reachable(reader):
+    """AI Quality seat, round 2: the drift branch was deletable. Synthetic
+    rows, each reading by name."""
+    def row(latency, at_mandate):
+        return {"answered": True, "latency_ms": latency, "at_mandate": at_mandate}
+    drift = reader.p95s([row(6000, True)] * 20, [], 5200)
+    assert drift["mandated_shape"]["verdict"] == "OVER" and drift["reading"].startswith("drift")
+    share = reader.p95s([row(3500, True)] * 19 + [row(6000, False)] * 5, [], 5200)
+    assert share["pooled"]["verdict"] == "OVER" and share["mandated_shape"]["verdict"] == "within"
+    assert share["reading"].startswith("share")
+    within = reader.p95s([row(3500, True)] * 20, [], 5200)
+    assert within["reading"].startswith("within")
+
+
+def test_the_fresh_band_readings_are_all_reachable(reader):
+    """AI Quality seat, round 2: `point_inside` was never false in any test, and
+    the two middle branches of the reading were dead. Synthetic rows through
+    the real function, with the claim holding."""
+    ref = reader.m08_reference(json.loads(reader.CENSUS.read_text(encoding="utf-8")))
+
+    def rows(mandated_max, four_call_min=None):
+        out = [{"answered": True, "at_mandate": True, "calls": 3, "tokens_in": mandated_max}]
+        if four_call_min:
+            out.append({"answered": True, "at_mandate": False, "calls": 4, "tokens_in": four_call_min})
+        return out
+    outside = reader.fresh_band(rows(6900), ref, 7700, holds=True)
+    assert outside["integer_band"] == [7935, 11040] and outside["point"] == 9500
+    assert outside["point_inside"] is False
+    assert outside["reading"] == "the number holds; the rule does not: 7700 is outside the band re-derived from the fresh run"
+    elsewhere = reader.fresh_band(rows(6400, 8181), ref, 7700, holds=True)
+    assert elsewhere["point_inside"] and elsewhere["point"] == 7800
+    assert elsewhere["reading"] == "the number holds; 7700 is inside the fresh band and the rule re-derives to 7800"
+    same = reader.fresh_band(rows(6235, 8181), ref, 7700, holds=True)
+    assert same["reading"] == "the number holds; the rule re-derives to 7700"
+    empty = reader.fresh_band(rows(7720, 8181), ref, 7700, holds=False)
+    assert empty["empty"] and empty["reading"].startswith("the claim is falsified")
 
 
 def test_a_denied_second_search_does_not_persist_the_browse_gap(reader, planted):
@@ -396,6 +604,10 @@ def test_a_falsifying_sample_is_recorded_with_its_row_and_the_band_it_empties(re
         r"^(blackout-008\s+)PASS\s*$",
         r"\1FAIL\n                     - budget: tokens_in=7720 over 7700 (calls=3)",
         t, count=1, flags=re.M))
+    # ...and the k=3 bracket with it, which the rows are reconciled against;
+    # the case still passes by majority, so the count line stands.
+    _edit(planted / "goldens-score.txt", lambda t: re.sub(
+        r"^(blackout-008\s+PASS\s+)\[PASS PASS PASS\]", r"\1[FAIL PASS PASS]", t, flags=re.M))
     rec = reader.join(planted)
     assert not rec["claim"]["holds"]
     assert rec["claim"]["3_call_or_fewer_samples_over"] == ["blackout-008 s1"]

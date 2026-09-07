@@ -54,7 +54,6 @@ import hashlib
 import importlib.util
 import json
 import pathlib
-import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 HERE = ROOT / "milestones" / "M08b"
@@ -73,7 +72,6 @@ UNEXPLAINED_QUARTER = 0.25
 def _census_module():
     spec = importlib.util.spec_from_file_location("context_census", CENSUS_READER)
     module = importlib.util.module_from_spec(spec)
-    sys.modules.setdefault("context_census", module)
     spec.loader.exec_module(module)
     return module
 
@@ -110,6 +108,13 @@ def read_b(calibration: dict) -> tuple[int | None, str]:
         if isinstance(rounds, list) and len(rounds) > 1:
             raise SystemExit(f"calibration.json's {copy} carries {len(rounds)} rounds; a tools-absent "
                              "turn is one round, and a second means the model was offered a tool")
+    # The audit record is the independent witness that the turn happened as
+    # described, and the producer swallows a fetch error into
+    # `record_resolved: false` (Platform Engineering seat, round 2). B is not
+    # readable without the witness, whatever the response says.
+    if calibration.get("record_resolved") is not True or not isinstance(calibration.get("record_usage"), dict):
+        raise SystemExit("calibration.json's audit record was not fetched (record_resolved is not true); "
+                         "B has no independent witness and the record must be fetched before it is read")
     b = _round1(calibration.get("usage"))
     from_record = _round1(calibration.get("record_usage"))
     # The producer writes that the response's usage and the record's must
@@ -168,7 +173,10 @@ def attribute(a_values: list[int | None], b: int, est: dict) -> dict:
     e, s = est["E"], est["S"]
     d, f = b - e, a - b - s
     residual = a - e - s
-    assert d + f == residual, "the identity A - E - S = D + F failed; the arithmetic is wrong"
+    # The identity is arithmetic and holds by construction; the field records
+    # it as a computed comparison, never an `assert` (stripped under -O) and
+    # never a literal (Platform Engineering seat, round 2).
+    identity_holds = (d + f) == residual
     magnitude = abs(d) + abs(f)
     shares = {"D": (abs(d) / magnitude) if magnitude else None,
               "F": (abs(f) / magnitude) if magnitude else None}
@@ -185,7 +193,7 @@ def attribute(a_values: list[int | None], b: int, est: dict) -> dict:
         "D": d, "D_sign": "negative (the estimate over-counts)" if d < 0 else "non-negative",
         "F": f, "F_sign": "negative" if f < 0 else "non-negative",
         "residual_A_minus_E_minus_S": residual,
-        "identity_holds": True,
+        "identity_holds": identity_holds,
         "shares_of_abs": {k: (round(v, 3) if v is not None else None) for k, v in shares.items()},
         "reading": reading,
         "removable_by_the_agent": "neither D nor F is content the agent can stop sending",

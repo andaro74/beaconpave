@@ -136,7 +136,7 @@ def test_a_calibration_with_two_rounds_is_refused(reader, planted):
 def test_b_unreadable_from_either_copy_is_refused(reader, planted):
     def gone(c):
         c["usage"] = {"tokens_in": 0, "tokens_out": 0, "latency_ms": None}
-        c["record_usage"] = None
+        c["record_usage"] = {"tokens_in": 0, "tokens_out": 0, "latency_ms": None}
     _rewrite(planted / "calibration.json", gone)
     with pytest.raises(SystemExit, match="B is unreadable"):
         reader.record(planted)
@@ -171,19 +171,37 @@ def test_a_planted_estimate_moves_the_record(reader, planted, tmp_path, monkeypa
 
 
 def test_the_reader_imports_no_network_module_and_cannot_reach_the_store():
-    from test_m08b_fresh_join import store_reach
+    from test_m08b_fresh_join import ALLOWED_IMPORTS, imported_roots, store_reach
 
     tree = ast.parse(READER.read_text(encoding="utf-8"))
-    imported = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imported |= {alias.name.split(".")[0] for alias in node.names}
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            imported.add(node.module.split(".")[0])
+    imported = imported_roots(tree)
     assert not imported & NETWORK_MODULES
     # Security seat, round 1: a `from core import withheld` planted here
     # survived the whole suite, because no G4 root reached `milestones/`.
+    # Round 2: the reflection doors, and an import allowlist.
     assert store_reach(tree) == [], f"the reader can reach the refused-content store: {store_reach(tree)}"
+    assert imported <= ALLOWED_IMPORTS["residual_attribution"], sorted(imported)
+
+
+def test_a_calibration_whose_audit_record_was_not_fetched_is_refused(reader, planted):
+    """Platform Engineering seat, round 2: the producer swallows a fetch error
+    into `record_resolved: false` and B was read from the response alone, with
+    the reading printed and no mention that the witness was absent."""
+    def unresolved(c):
+        c["record_resolved"] = False
+        c["record_usage"] = None
+    _rewrite(planted / "calibration.json", unresolved)
+    with pytest.raises(SystemExit, match="audit record was not fetched"):
+        reader.record(planted)
+
+
+def test_the_identity_field_is_computed_not_literal(reader):
+    est = {"E": 800, "S": 600}
+    assert reader.attribute([1500] * 3, 870, est)["identity_holds"] is True
+    import re
+    source = READER.read_text(encoding="utf-8")
+    assert not re.search(r"identity_holds\s*[=:]\s*True", source), "the identity is a literal"
+    assert "assert d + f" not in source, "the identity is an assert, stripped under -O"
 
 
 def test_the_share_threshold_is_the_pre_registered_seventy_percent(reader):

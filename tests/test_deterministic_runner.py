@@ -369,6 +369,44 @@ def test_a_budget_failure_names_the_call_count_when_the_usage_carries_one(scorer
                 if a.kind == "budget").endswith("(calls=5)")
 
 
+def test_the_suite_p95_comparison_is_at_most_the_ceiling():
+    """AI Quality seat, round 2: `p95 <= ceiling_ms` widened by 250 left the
+    suite green and the M07 re-score printing `OK p95=5431ms within 5200ms`.
+    The derivation test exercises the no-ceiling path; this is the boundary
+    on the comparison PR 3 reads the fresh run against, twice."""
+    def suite(p95, ceiling):
+        answers = {f"c{i}": {"usage": {"latency_ms": p95}} for i in range(20)}
+        return det.suite_latency(answers, ceiling)
+    assert suite(5200, 5200).passed and "within 5200ms" in suite(5200, 5200).detail
+    assert not suite(5201, 5200).passed and "p95=5201ms over 5200ms" in suite(5201, 5200).detail
+    assert not suite(5431, 5200).passed
+
+
+def test_only_the_scorer_names_the_per_round_list_and_only_the_scorer_and_recorder_name_usage():
+    """SPEC/08b constraint 8: *the usage field is read by no scorer but
+    `budget`.* Security seat, round 2: a `usage.calls` read planted into
+    `evals/judge.py` left the suite green, and the same plant in
+    `evals/adversarial.py` was caught only because that file's digest moved.
+    A closed set, as text the AST carries: `calls` is a string constant in
+    `evals/deterministic.py` and nowhere else under `evals/`; `usage` in the
+    scorer and the recorder that loads answer files, and nowhere else."""
+    import ast
+    import pathlib
+
+    evals_dir = pathlib.Path(det.__file__).resolve().parent
+    names = {}
+    for path in sorted(evals_dir.glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        literals = {n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)}
+        attrs = {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+        names[path.name] = {"calls": "calls" in literals or "calls" in attrs,
+                            "usage": "usage" in literals or "usage" in attrs}
+    assert {n for n, v in names.items() if v["calls"]} == {"deterministic.py"}, names
+    # Measured: the recorder loads answer files whole and never names the
+    # field; only the scorer does.
+    assert {n for n, v in names.items() if v["usage"]} == {"deterministic.py"}, names
+
+
 def test_the_budget_comparison_is_strictly_over(scorer):
     """SPEC/08b's falsifier is written in this comparison — `got > limit`, so a
     sample at exactly the ceiling passes — and the AI Quality seat inverted it

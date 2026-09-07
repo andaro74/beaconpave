@@ -227,9 +227,15 @@ def build(out: pathlib.Path) -> None:
     }
     (out / "calibration.json").write_text(json.dumps(calibration, indent=2), encoding="utf-8", newline="")
     (out / "withheld-grants.json").write_text(json.dumps({
-        "_what_this_is": "PLANTED: the grants file the operator writes after read_withheld.py --show; "
-                         "one entry per refused sample on the answer channel. No text.",
-        "grants": GRANTS}, indent=2), encoding="utf-8", newline="")
+        # The one sentence `answer_channel.validate_grants` admits, verbatim;
+        # the file's shape is the reader's, planted or real.
+        "_what_this_is": (
+            "ADR-074 decision 3 §3: one reading per sample refused on the answer channel by the "
+            "entitlement topic — grant or not, DEC-001's shape or not — written after "
+            "read_withheld.py --show. No held text is here or may be."),
+        "read_on": "2026-09-07",
+        "source": "tests/fixtures/m08b/build_planted.py",
+        "grants": GRANTS}, indent=2, ensure_ascii=False), encoding="utf-8", newline="")
 
     # Relative to the repository when the output is inside it (the committed
     # fixture), absolute otherwise (the drift test rebuilds into a temporary

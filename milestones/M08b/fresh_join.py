@@ -130,7 +130,8 @@ ASSERT_RE = re.compile(r"^\s+- (?P<kind>[a-z_]+): (?P<detail>.*)$")
 BUDGET_RE = re.compile(r"(?P<axis>tokens_in|tokens_out)=(?P<value>\d+) over (?P<ceiling>\d+)")
 CALLS_RE = re.compile(r"\(calls=(?P<calls>\d+)\)")
 COUNT_RE = re.compile(r"^(?P<passed>\d+)/(?P<total>\d+) passed \((?P<failed>\d+) failed, (?P<infra>\d+) infra\)")
-LATENCY_RE = re.compile(r"^suite latency\s+(?P<verdict>OK|OVER)\s+p95=(?P<p95>\d+)ms")
+LATENCY_RE = re.compile(r"^suite latency\s+(?P<verdict>OK|OVER)\s+p95=(?P<p95>\d+)ms "
+                        r"(?P<relation>over|within) (?P<ceiling>\d+)ms")
 
 
 def _sha256(path: pathlib.Path) -> str:
@@ -149,9 +150,29 @@ def _rel(path: pathlib.Path) -> str:
 def _census_module():
     spec = importlib.util.spec_from_file_location("context_census", CENSUS_READER)
     module = importlib.util.module_from_spec(spec)
-    sys.modules.setdefault("context_census", module)
     spec.loader.exec_module(module)
     return module
+
+
+#: A trajectory step's envelope — the fields the browse-gap trigger reads —
+#: held to a contract the way its `args` are held to the tool's (Tool Owner
+#: and Platform Engineering seats, round 2: a step with no `round`, or no
+#: `decision`, or `round: 0`, was accepted and read three different ways).
+STEP_SCHEMA = {
+    "type": "object",
+    "required": ["round", "seq", "tool", "args", "decision", "executed"],
+    "additionalProperties": False,
+    "properties": {
+        "round": {"type": "integer", "minimum": 1},
+        "seq": {"type": "integer", "minimum": 1},
+        "tool": {"type": "string"},
+        "args": {"type": "object"},
+        "decision": {"enum": ["allowed", "denied"]},
+        "mechanism": {"type": "string"},
+        "reasons": {"type": "array"},
+        "executed": {"type": "boolean"},
+    },
+}
 
 
 # --- the transcripts ----------------------------------------------------------------
@@ -191,7 +212,8 @@ def parse_transcript(text: str) -> list[dict]:
             continue
         m = LATENCY_RE.match(line)
         if m:
-            block["latency"] = {"verdict": m.group("verdict"), "p95": int(m.group("p95"))}
+            block["latency"] = {"verdict": m.group("verdict"), "p95": int(m.group("p95")),
+                                "ceiling": int(m.group("ceiling"))}
     return blocks
 
 
@@ -293,6 +315,11 @@ def validate_steps(case_id: str, n: int, steps: list[dict], contracts: dict) -> 
     import jsonschema  # noqa: PLC0415 — the scorer's own dependency
 
     for step in steps:
+        try:
+            jsonschema.validate(step, STEP_SCHEMA)
+        except jsonschema.ValidationError as exc:
+            raise SystemExit(f"{case_id} sample {n}: a trajectory step's envelope is outside the "
+                             f"loop's shape ({exc.message}); not a replayable step") from exc
         tool = step.get("tool")
         if tool not in contracts:
             raise SystemExit(f"{case_id} sample {n}: trajectory step {step.get('seq')} names {tool!r}, "
@@ -306,14 +333,18 @@ def validate_steps(case_id: str, n: int, steps: list[dict], contracts: dict) -> 
 
 def search_shape(steps: list[dict]) -> dict:
     """What the trajectory says about `catalog-search`, in ADR-074 decision 2's
-    words: a search *executed* (authorized and reached — a Cedar denial or an
-    unreachable tool retrieved nothing and is not a browse), and *beyond the
-    mandate before `entitlement-check` or the answer* (a search after the
-    entitlement check is a different shape and is not counted)."""
-    executed = [s for s in steps if s.get("tool") == "catalog-search"
-                and s.get("decision") == "allowed" and s.get("executed", True)]
+    words: a search *executed* — read off the loop's `executed` flag alone,
+    which is set when the tool function was reached and never cleared by a
+    later output-contract rejection, so a search that ran and had its result
+    suppressed still ran (Tool Owner seat, round 2; the loop's own tested
+    contract), while a Cedar denial or an unreachable tool retrieved nothing
+    and is not a browse — and *beyond the mandate before `entitlement-check`
+    or the answer*: the window closes at the first `entitlement-check` that
+    ran, whatever was decided about its result afterwards, and a check that
+    never ran closes nothing."""
+    executed = [s for s in steps if s.get("tool") == "catalog-search" and s.get("executed") is True]
     verdict_rounds = [s.get("round", 0) for s in steps if s.get("tool") == "entitlement-check"
-                      and s.get("decision") == "allowed" and s.get("executed", True)]
+                      and s.get("executed") is True]
     before_verdict = [s for s in executed
                       if not verdict_rounds or s.get("round", 0) < min(verdict_rounds)]
     return {
@@ -367,6 +398,15 @@ def per_sample_rows(run_dir: pathlib.Path, cases: dict, blocks: list[dict], ceil
                 raise SystemExit(f"{case_id}: the live cases file mandates {mandate} calls and the census "
                                  f"record says {census_mandate[case_id]}; the mandate moved since the "
                                  "census, and the p95 population and this join would read different shapes")
+            # The search mandate, derived from the case rather than assumed
+            # (Tool Owner seat, round 2): the mandated calls are one search, the
+            # entitlement check the case expects, and the answer; what is left
+            # for searches must be the constant the trigger reads.
+            expects_check = (case.get("trajectory") or {}).get("expect_tool_before_answer") == "entitlement-check"
+            if mandate - 1 - (1 if expects_check else 0) != MANDATED_SEARCHES:
+                raise SystemExit(f"{case_id}: the case's mandate leaves {mandate - 1 - (1 if expects_check else 0)} "
+                                 f"search(es) and the trigger reads {MANDATED_SEARCHES}; the search mandate "
+                                 "is not the case's")
             row = {"case": case_id, "sample": n, "mandated_calls": mandate,
                    "sample_result": scored["result"],
                    "other_failing_asserts": sorted(k for k in scored["asserts"] if k != "budget"),
@@ -517,6 +557,23 @@ def count(blocks: list[dict], rows: list[dict], m08: dict) -> dict:
                          f"{by_result} over {len(k3['cases'])} cases; a planted count")
     if len(k3["cases"]) != len({r["case"] for r in rows}):
         raise SystemExit("the k=3 transcript and the answer files name different case sets")
+    # And the k=3 rows against the per-sample rows this reader already holds
+    # (AI Quality seat, round 2: rows and count line moved together, eight
+    # PASS cases read as FAIL, N moved from outside the band to inside it).
+    # The bracket is the per-sample results in order, and the majority result
+    # is the bracket's majority.
+    by_case: dict[str, list] = {}
+    for r in rows:
+        by_case.setdefault(r["case"], []).append(r)
+    for case_id, scored in k3["cases"].items():
+        expected = [r["sample_result"] for r in sorted(by_case.get(case_id, []), key=lambda r: r["sample"])]
+        if scored["samples"] != expected:
+            raise SystemExit(f"{case_id}: the k=3 transcript's bracket {scored['samples']} is not the "
+                             f"per-sample transcripts' {expected}; a planted row")
+        majority = "PASS" if expected.count("PASS") * 2 > len(expected) else "FAIL"
+        if scored["result"] != majority and scored["result"] != "INFRA":
+            raise SystemExit(f"{case_id}: the k=3 transcript says {scored['result']} over a bracket whose "
+                             f"majority is {majority}; a planted row")
     m08_cases = {c["case"]: c for c in m08.get("per_case") or []}
     per_case, regressed, flipped = {}, [], []
     for case_id, scored in sorted(k3["cases"].items()):
@@ -565,6 +622,15 @@ def p95s(rows: list[dict], blocks: list[dict], ceiling_ms: int) -> dict:
     if printed and printed["p95"] != pooled["p95"]:
         raise SystemExit(f"goldens-score.txt prints p95={printed['p95']} and the answer files pool to "
                          f"{pooled['p95']}")
+    # The latency line's ceiling and verdict are held to the manifest and the
+    # pooled verdict the way `tokens_in` is held to the live ceiling (AI
+    # Quality seat, round 2: a line scored at 7500 was recorded beside a
+    # pooled OVER without a word).
+    if printed and (printed["ceiling"] != ceiling_ms
+                    or (printed["verdict"] == "OVER") != (pooled["verdict"] == "OVER")):
+        raise SystemExit(f"goldens-score.txt's latency line reads {printed} against a manifest ceiling of "
+                         f"{ceiling_ms} and a pooled verdict of {pooled['verdict']}; a transcript from "
+                         "another ceiling")
     if mandated["verdict"] == "OVER":
         reading = ("drift: the mandated shape's own tail is over the ceiling — a dated finding for "
                    "Platform Engineering, and the rule's premise (the mandated shape's tail is "
@@ -594,6 +660,12 @@ def triggers(rows: list[dict]) -> dict:
     seat would pull."""
     gap = [r for r in rows if r["answered"] and r["search"]["beyond_mandate_before_verdict"]]
     at_threshold = [r for r in gap if r["calls"] >= BROWSE_GAP_CALLS]
+    # A refused sample carries no call count and is outside decision 2's
+    # words; its trajectory can still show the shape, and `recommend-003` is
+    # both the refused case and one of the seven (Platform Engineering seat,
+    # round 2). Surfaced, not counted.
+    refused_with_shape = [f"{r['case']} s{r['sample']}" for r in rows
+                          if r["refused"] and r["search"]["beyond_mandate_before_verdict"]]
     on_seven = [r for r in at_threshold if r["case"] in BROWSE_GAP_SEVEN]
     elsewhere = sorted({r["case"] for r in at_threshold if r["case"] not in BROWSE_GAP_SEVEN})
     under = [r for r in gap if r["calls"] < BROWSE_GAP_CALLS]
@@ -616,6 +688,7 @@ def triggers(rows: list[dict]) -> dict:
             "cases": sorted({r["case"] for r in on_seven}),
             "m08_count": {"samples": 14, "cases": 7},
             "four_call_samples_outside_the_seven": elsewhere,
+            "refused_samples_with_the_shape": refused_with_shape,
             "beyond_mandate_under_the_threshold": {
                 "samples": [f"{r['case']} s{r['sample']} ({r['calls']} calls)" for r in under],
                 "cases": sorted({r["case"] for r in under}),

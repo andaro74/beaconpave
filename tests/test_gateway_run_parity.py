@@ -691,6 +691,17 @@ def test_the_calibration_call_sends_the_tool_arms_system_block_and_no_tools_key(
     run_keys = {k.value: ast.unparse(v) for k, v in zip(run[0].keys, run[0].values, strict=True)}
     assert run_keys["tools"] == "True"
     assert set(run_keys) - {"tools"} == set(keys), "the two events differ by more than `tools`"
+    # The VALUES too (Security seat, round 2): `classification: "sensitive"` on
+    # the calibration event passed a key-set comparison, and classification is
+    # G5's router. The calibration event is the run's event minus `tools` and
+    # plus its own request id, value for value.
+    for key in ("text", "system", "service", "classification"):
+        assert values[key] == run_keys[key], f"the calibration event's {key} differs from the run's"
+    assert values["classification"] == "'internal'"
+    assert values["request_id"] == "request_id"
+    bound = [n for n in ast.walk(functions["calibrate"]) if isinstance(n, ast.Assign)
+             and any(isinstance(t, ast.Name) and t.id == "request_id" for t in n.targets)]
+    assert len(bound) == 1 and ast.unparse(bound[0].value) == 'f"{case[\'id\']}-{tag}-{CALIBRATION_SAMPLE}"'
 
 
 def test_the_calibration_record_carries_usage_and_digests_and_never_the_answer():
@@ -725,6 +736,14 @@ def test_the_calibration_record_carries_usage_and_digests_and_never_the_answer()
     stores = [n for n in ast.walk(calibrate) if isinstance(n, ast.Subscript)
               and isinstance(n.ctx, ast.Store) and ast.unparse(n.value) == "payload"]
     assert not stores, "payload is widened after the literal"
+    # ...and not by a method either (Platform Engineering seat, round 2:
+    # `payload.update({...})` wrote the audit record and the response whole).
+    # `payload` is bound once and loaded once, into the write.
+    uses = [n for n in ast.walk(calibrate) if isinstance(n, ast.Name) and n.id == "payload"]
+    assert [type(n.ctx).__name__ for n in uses] == ["Store", "Load"], (
+        f"`payload` is used {len(uses)} times in calibrate(); once to bind, once to write")
+    assert not any(isinstance(n, ast.Attribute) and ast.unparse(n.value) == "payload"
+                   for n in ast.walk(calibrate)), "calibrate() calls a method on payload"
 
 
 def test_the_tool_arm_refuses_to_write_a_run_in_which_nothing_was_authorized():

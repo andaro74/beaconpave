@@ -1233,8 +1233,34 @@ def test_the_first_model_request_is_the_system_block_the_viewer_turn_verbatim_an
         if isinstance(node, (ast.Attribute, ast.Subscript)):
             assert ast.unparse(node.value) != "messages", (
                 f"handler touches messages after the bind: {ast.unparse(node)}")
+    # **The other two inputs to the first request (Platform Engineering seat,
+    # round 2).** `offered = offered + [...]` after its bind doubled the tool
+    # specs on round one and `F = A - B - S` absorbed it as framing; `offered`
+    # is bound once and read once, inside `tool_config(offered)` on the
+    # hand-over, and is never the object of an attribute or a subscript.
+    offered_uses = [n for n in ast.walk(handler) if isinstance(n, ast.Name) and n.id == "offered"]
+    assert [type(n.ctx).__name__ for n in offered_uses] == ["Store", "Load"], (
+        f"`offered` is used {len(offered_uses)} times in handler(); once to bind, once inside "
+        "tool_config(offered) on the hand-over")
+    assert all(ast.unparse(n.value) != "offered" for n in ast.walk(handler)
+               if isinstance(n, (ast.Attribute, ast.Subscript)))
+    assert not any(isinstance(n, ast.AugAssign) and ast.unparse(n.target) in {"offered", "messages", "system"}
+                   for n in ast.walk(handler))
 
     converse = _function(tree, "_converse")
+    # `_converse`'s own body is the closure and its return, and nothing else:
+    # a `system = system + ...` or a `tools["tools"] = ...` between the
+    # signature and the closure rewrote every governed call's system block
+    # with the pin green (Platform Engineering seat, round 2).
+    body_kinds = [type(stmt).__name__ for stmt in converse.body]
+    assert body_kinds == ["Expr", "FunctionDef", "Return"], (
+        f"_converse's body is {body_kinds}; it must be the docstring, the closure and the return")
+    for node in ast.walk(converse):
+        if isinstance(node, ast.Name) and node.id in {"system", "tools"}:
+            assert isinstance(node.ctx, ast.Load), f"_converse stores into `{node.id}`"
+        if isinstance(node, (ast.Subscript, ast.Attribute)) and isinstance(node.ctx, ast.Store):
+            assert ast.unparse(node.value) not in {"system", "tools"}, (
+                f"_converse writes into {ast.unparse(node)}")
     kwargs = _binds(converse, "kwargs")
     assert len(kwargs) == 1
     literal = {kw.arg: ast.unparse(kw.value) for kw in kwargs[0].value.keywords}

@@ -214,6 +214,21 @@ def test_each_round_is_recorded_beside_the_totals_and_sums_to_them():
     assert not any("guard_ms" in e or "tool_ms" in e for e in rounds)
 
 
+def test_the_rounds_are_recorded_in_the_order_they_were_paid_for():
+    """Platform Engineering seat, round 2: `.append` swapped for `.insert(0, ...)`
+    left this file green, because every fixture round carried the same usage
+    and order was unobservable — and A is `usage.calls[0]`, the first round.
+    Three rounds with distinct figures, in the order the model was called."""
+    first, second, third = tool_use(), tool_use(use_id="tu-2"), final()
+    first["usage"] = {"inputTokens": 1980, "outputTokens": 40}
+    second["usage"] = {"inputTokens": 2100, "outputTokens": 55}
+    third["usage"] = {"inputTokens": 2150, "outputTokens": 120}
+    outcome = run(Converse(first, second, third), Tool())
+    assert [e["tokens_in"] for e in outcome.usage["calls"]] == [1980, 2100, 2150]
+    assert [e["tokens_out"] for e in outcome.usage["calls"]] == [40, 55, 120]
+    assert outcome.usage["tokens_in"] == 6230 and outcome.usage["tokens_out"] == 215
+
+
 def test_a_turn_blocked_before_its_first_model_call_records_no_rounds():
     """The schema's own sentence: the token keys are what say a model call
     happened, and `calls` is present exactly when one did. A block on the

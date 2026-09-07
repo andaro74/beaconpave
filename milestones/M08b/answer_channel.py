@@ -50,6 +50,7 @@ import argparse
 import hashlib
 import json
 import pathlib
+import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 HERE = ROOT / "milestones" / "M08b"
@@ -95,10 +96,34 @@ def _grants_answer(entry: dict) -> bool:
 #: (Security seat, round 1).
 GRANT_KEYS = frozenset({"grant", "dec001_shape"})
 GRANTS_FILE_KEYS = frozenset({"_what_this_is", "read_on", "source", "grants"})
+#: The three metadata strings have shapes, not just types (Legal/S&P seat,
+#: round 2: the vocabulary check refused text in the values and admitted it
+#: beside them, while three docstrings said no held text could be here).
+#: `_what_this_is` is this sentence and no other; `read_on` is a date;
+#: `source` is a short list of paths and ADR ids. None can carry a held text.
+GRANTS_WHAT_THIS_IS = (
+    "ADR-074 decision 3 §3: one reading per sample refused on the answer channel by the "
+    "entitlement topic — grant or not, DEC-001's shape or not — written after "
+    "read_withheld.py --show. No held text is here or may be.")
+GRANTS_READ_ON = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+#: `source` is a `;`-separated list of references — a repository path, or an
+#: ADR id with an optional amendment — and nothing with a space in it beyond
+#: that. Prose has spaces; a path does not.
+GRANTS_SOURCE_ITEM = re.compile(r"^(?:[A-Za-z0-9_./\-]{1,80}|ADR-\d{3}(?: amendment \d+)?)$")
+
+
+def _source_is_references(source: str) -> bool:
+    items = [item.strip() for item in source.split(";")]
+    return 0 < len(items) <= 6 and all(GRANTS_SOURCE_ITEM.match(item) for item in items)
 
 
 def _on_answer_by_topic(detail: dict) -> bool:
-    return ((detail.get("channels") or []) == [ANSWER_CHANNEL]
+    """Refused on the `answer` channel by the entitlement topic — membership,
+    not equality (Security seat, round 2): `channels` is a tuple because both
+    sides can fire on one turn, and a stricter block must not read as no
+    answer-channel block at all. A multi-channel record is surfaced beside
+    the reading as well."""
+    return (ANSWER_CHANNEL in (detail.get("channels") or [])
             and ENTITLEMENT_TOPIC in (detail.get("assessed") or []))
 
 
@@ -113,6 +138,14 @@ def validate_grants(document: dict, sidecar: dict) -> dict:
     for key in GRANTS_FILE_KEYS - {"grants"}:
         if key in document and not isinstance(document[key], str):
             raise SystemExit(f"the grants file's {key!r} is not a string")
+    if document.get("_what_this_is") != GRANTS_WHAT_THIS_IS:
+        raise SystemExit("the grants file's `_what_this_is` is not the one sentence this reader "
+                         "admits; the field carries no other text")
+    if "read_on" in document and not GRANTS_READ_ON.match(document["read_on"]):
+        raise SystemExit(f"the grants file's `read_on` {document['read_on']!r} is not a date")
+    if "source" in document and not _source_is_references(document["source"]):
+        raise SystemExit("the grants file's `source` is not a short list of paths and ADR ids "
+                         "(`;`-separated, at most six, no prose); it carries no other text")
     grants = document.get("grants")
     if not isinstance(grants, dict):
         raise SystemExit("the grants file carries no `grants` mapping")
@@ -148,6 +181,7 @@ def reading(answer_files: list[pathlib.Path], sidecar: dict, grants: dict) -> di
 
     per_case = {}
     missing = []
+    multi_channel = []
     for case in case_ids:
         entries = [run.get(case) for run in runs]
         answered_grants = sum(1 for e in entries if _grants_answer(e))
@@ -155,6 +189,8 @@ def reading(answer_files: list[pathlib.Path], sidecar: dict, grants: dict) -> di
         on_answer_by_topic, held_grants, dec001 = [], 0, []
         for n in refused_samples:
             detail = (refusal_detail.get(case) or {}).get(f"s{n}") or {}
+            if len(detail.get("channels") or []) > 1:
+                multi_channel.append(f"{case} s{n} {list(detail['channels'])}")
             if _on_answer_by_topic(detail):
                 on_answer_by_topic.append(n)
                 read = (grants.get(case) or {}).get(f"s{n}")
@@ -212,6 +248,7 @@ def reading(answer_files: list[pathlib.Path], sidecar: dict, grants: dict) -> di
         "reading": verdict,
         "mixed_grants_not_counted": sorted(c for c, r in per_case.items()
                                            if r["mixed_grants_not_counted"]),
+        "multi_channel_refusals": multi_channel,
         "per_case": per_case,
     }
 

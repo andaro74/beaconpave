@@ -5,7 +5,7 @@
     "tests/fixtures/m08b/planted/goldens-run-2.json": "27af4e2c24255d2a02252e9f2a82a063078a0b8e2f9cf0a72d5bfcb10d9b56ca",
     "tests/fixtures/m08b/planted/goldens-run-3.json": "cbfcb3fc37beb01e7e70533f88b9c7b21eb4c1f9da6ec434d01d23e899eb9cd9",
     "tests/fixtures/m08b/planted/goldens-run-refusals.json": "5bf64dd92a8b10484da46e32edd2caeacf8d094d52ba4f5c45960fb5c2fcfa4c",
-    "tests/fixtures/m08b/planted/withheld-grants.json": "6e783ea7d3421265dd789b41e2cf4e7d2948d9aa09ecca2f817fc087af3d9c3a"
+    "tests/fixtures/m08b/planted/withheld-grants.json": "f0517e9b09d0be7e3235094a59fd7f1a7980f5321d5a9228cfeb037c177ba1e5"
   },
   "prior_m07": {
     "G": 8,
@@ -30,6 +30,7 @@
   "dec001_cases": [],
   "reading": "topic question",
   "mixed_grants_not_counted": [],
+  "multi_channel_refusals": [],
   "per_case": {
     "blackout-001": {
       "answered_grants": 0,

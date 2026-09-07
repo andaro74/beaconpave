@@ -120,6 +120,41 @@ def test_dec001s_shape_reads_as_neither_and_re_opens_adr_068(reader, planted):
     assert rec["F"] == 0 and rec["reading"] == "not reproduced"
 
 
+def test_a_refusal_on_two_channels_still_counts_as_the_answer_channel(reader, planted):
+    """Security seat, round 2: exact list equality read a two-channel block —
+    the reason `channels` is a tuple — as no answer-channel block, and a
+    stricter refusal turned the reading into *not reproduced*. Membership,
+    and the multi-channel record surfaced beside the reading."""
+    def widen(sidecar):
+        sidecar["refusals"]["recommend-003"]["s3"]["channels"] = ["answer", "tool_output"]
+    _rewrite(planted / "goldens-run-refusals.json", widen)
+    rec = reader.record(planted)
+    assert rec["F"] == 1 and rec["F_cases"] == ["recommend-003"] and rec["reading"] == "topic question"
+    assert rec["multi_channel_refusals"] == ["recommend-003 s3 ['answer', 'tool_output']"]
+
+
+@pytest.mark.parametrize("label,mutate,expect", [
+    ("held text in _what_this_is", lambda g: g.update(_what_this_is="the viewer can watch it now: ..."),
+     "not the one sentence"),
+    ("held text in source", lambda g: g.update(source="the texts read: the viewer can watch the cited replay"),
+     "not a short list of paths"),
+    ("a source item over 80 characters", lambda g: g.update(source="milestones/M08/" + "a" * 80),
+     "not a short list of paths"),
+    ("seven sources", lambda g: g.update(source="; ".join(["ADR-074"] * 7)),
+     "not a short list of paths"),
+    ("read_on not a date", lambda g: g.update(read_on="read on the sixth; the texts said the viewer may watch"),
+     "not a date"),
+], ids=lambda x: x if isinstance(x, str) and " " in x else None)
+def test_the_grants_files_metadata_carries_no_text(reader, planted, label, mutate, expect):
+    """Legal/S&P seat, round 2: the vocabulary check refused text in the values
+    and admitted it beside them, in three strings bounded by nothing while
+    three docstrings said no held text could be here. `_what_this_is` is one
+    sentence, `read_on` a date, `source` a short list of paths and ADR ids."""
+    _rewrite(planted / "withheld-grants.json", mutate)
+    with pytest.raises(SystemExit, match=expect):
+        reader.record(planted)
+
+
 def test_a_refusal_on_another_channel_does_not_count_toward_f(reader, planted):
     """F is refusals on the `answer` channel by the entitlement topic and no
     other: move one of `recommend-003`'s two refusals to `tool_output` and the
@@ -164,7 +199,8 @@ def test_no_majority_grant_anywhere_is_unreadable(reader, tmp_path):
             encoding="utf-8")
     (run / "goldens-run-refusals.json").write_text(json.dumps({"refusals": {}, "per_sample_refused": {}}),
                                                    encoding="utf-8")
-    (run / "withheld-grants.json").write_text(json.dumps({"grants": {}}), encoding="utf-8")
+    (run / "withheld-grants.json").write_text(
+        json.dumps({"_what_this_is": reader.GRANTS_WHAT_THIS_IS, "grants": {}}), encoding="utf-8")
     rec = reader.record(run)
     assert rec["G"] == 0 and rec["reading"].startswith("unreadable: G = 0")
 
@@ -183,16 +219,12 @@ def test_the_real_directory_has_no_run_yet(reader):
 
 
 def test_the_reader_imports_no_network_module_and_opens_no_store():
-    from test_m08b_fresh_join import store_reach
+    from test_m08b_fresh_join import ALLOWED_IMPORTS, imported_roots, store_reach
 
     tree = ast.parse(READER.read_text(encoding="utf-8"))
-    imported = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imported |= {alias.name.split(".")[0] for alias in node.names}
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            imported.add(node.module.split(".")[0])
+    imported = imported_roots(tree)
     assert not imported & NETWORK_MODULES
+    assert imported <= ALLOWED_IMPORTS["answer_channel"], sorted(imported)
     # Structural, not textual: the first version of this assertion searched the
     # source for the store reader's name and went red on the docstring saying why
     # it must not be called (M06b's finding 7). Then the Security seat walked
@@ -209,7 +241,7 @@ def test_the_prior_grants_file_is_pinned_byte_for_byte():
     constant here, so the M07 reading is append-only in a second place."""
     import hashlib
     digest = hashlib.sha256(PRIOR_GRANTS.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
-    assert digest == "092b66aa555a5d33385cc217b8b1184cb16ad0b386039c0791743c4094b2c697", (
+    assert digest == "b3cb400ed088d58c5481b4eb7b767932b82e52cef8ae3c5f50bd992d551486df", (
         "milestones/M08b/prior-withheld-grants.json moved; the M07 reading is a record, "
         "and a correction to it is an ADR-074 amendment, not an edit")
 

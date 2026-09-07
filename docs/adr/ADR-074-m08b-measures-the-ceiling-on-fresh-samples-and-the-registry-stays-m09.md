@@ -746,3 +746,385 @@ rule and its prior. The residual's four numbers and two identities. The
 `p95_ms` rule, its population, and the number 5200. The order of the debts
 against the run. The cap — six, and spent by §6. Constraints 1–10. Decision
 2. Outcome B where ADR-073 decision 2 left it.
+
+## Amendment 2 — what PR 2 carried, and what the seats found on it
+
+**Written 2026-09-07, in M08b PR 2. Zero model calls; no deploy. Nothing
+under `milestones/M07/` moved; no case, tier, prompt, tool spec, topic,
+guardrail or catalog moved; every committed M07 verdict string is what it
+was.** Amendment 1's ten asks, each paid here or named as not; two
+corrections the build made to amendment 1's own record; the register; the
+seat rounds.
+
+### 1. What the run will record
+
+`core/toolloop.py::_accumulate` keeps `usage.calls`, one entry per model
+round with `tokens_in`, `tokens_out` and `latency_ms`, beside the totals it
+has always summed; the totals are computed exactly as before and the sum over
+the list equals them by test (`test_each_round_is_recorded_beside_the_totals_and_sums_to_them`).
+A turn blocked before its first model call carries no list; a turn blocked at
+round three carries three. `audit.schema.json` admits the list with exactly
+those three keys per entry and `additionalProperties: false`, so a per-round
+currency figure or a guardrail text-unit count cannot ride in under a new
+name. `handler.py` needed no change: it returns `outcome.usage` whole and
+already offers tools only on `event.get("tools")`, which is the calibration
+call's path. `run_with_tools.py` writes the list into the answer file where it
+wrote the totals, and gains `--calibrate CASE`: one turn on the case's viewer
+turn with **no `tools` key** and the same `system`, written to `--out` with
+the response's `usage`, the audit record's `usage`, the record id and the
+digests of the two texts sent — never the answer. `evals/deterministic.py`
+names `(calls=N)` on a budget failure when the list is present and prints
+what it always printed when it is not, so every committed verdict string is
+unchanged; the scorer joins a two-key rule (§4).
+
+### 2. What the run is compared to
+
+`gates.budgets.p95_ms` 2500 → **5200**, by decision 3 §5's rule executed in
+`tests/test_budget_derivation.py`: forty answered M07 stage-2 samples at
+their mandate, p95 3769 (maximum 3934), floor 4334.35, roof 6030.4, midpoint
+5182.375, rounded to the hundred. The percentile is read out of
+`evals/deterministic.py::suite_latency` itself, so the rule and the gate
+cannot disagree about what a p95 is. The test that refused a raise for two
+milestones, `test_the_suite_percentile_budget_was_not_raised`, is the test
+the pin replaces, and the replacement's docstring carries the rule and the
+reason the refusal ends: the number is derived, not raised. `BANDS` is pinned
+directly, with `p95_ms` on the budget band and not the hang guard's. ADR-014
+amendment 3 carries the figures in the pre-registered words, the two
+populations not taken (as-run three-call 5004 → 6900; pooled 5431 → 7500,
+under both of which M07 would read within), and what PR 3 reads: two numbers.
+Re-scoring M07's files at the new gate prints 12/25 and
+`suite latency  OVER p95=5431ms over 5200ms`; the join is byte-identical.
+
+### 3. Two corrections to amendment 1's record
+
+- **Fact 1 said one M08 record moves; two do.** The census record digests the
+  manifest, and `rescore-join.json` digests the census record, so the manifest
+  move cascades one step: `milestones/M08/context-census.json` re-produced
+  with its manifest digest line moved, then `rescore-join.json` re-produced
+  with its census digest line moved. One line each, shown key by key in the
+  PR body, on the census rule's three keys.
+- **The round-1 pin cannot be behavioural on the handler.** Amendment 1 §2
+  row 6 asked for a test that drives the handler with a client double and
+  asserts the kwargs it received, and said that if the wiring test's double
+  could not capture kwargs, adding one was PR 2's first task. There is no
+  double to extend: `handler.py` holds the boto3 clients and
+  `tests/test_hermeticity.py` forbids any hermetic test from importing it
+  (G8). So the pin is in two halves, each behavioural where the code is
+  hermetic and structural where it is not: `test_tool_loop.py` drives the loop
+  and asserts the first transcript `converse` receives is the caller's
+  `messages`, deep-equal, with nothing declared untrusted prepended;
+  `test_handler_wiring.py` reads the handler as a tree — never as text, which
+  is M06b's finding 7 — and pins that `text` and `messages` are bound once
+  from the event and wrap it verbatim, that the model call's literal carries
+  `modelId`, `messages=transcript` and `inferenceConfig` and the two pinned
+  conditional keys and no other, and that the inner closure neither stores
+  into the transcript nor calls anything on it. The structural half is
+  equivalent to a behavioural one here because the literal is the whole
+  assembly.
+
+### 4. The register
+
+`pave/twokey.py`: the census rule widened over `milestones/M08b/` —
+`fresh_join.py`, `residual_attribution.py`, `answer_channel.py`, their three
+records, `calibration.json`, `withheld-grants.json` and
+`prior-withheld-grants.json` — in the diff that creates them (ADR-060's
+precedent; measured on `4d6e451` before the widening, every one `two-key: not
+required`); and a new rule, **the goldens scorer**, over
+`evals/deterministic.py` on AI Quality with Platform Engineering, the
+derivation pin's pair (measured on `4d6e451`: `two-key: not required`, the
+file every recorded goldens count is summed from, on no rule since M00b —
+ADR-037's shape one scorer over). Pinned in `tests/test_twokey_seats.py`:
+the ratchet 21 → 22, `required` 71 → 81, two `ADR043_SEATS` entries, two
+`_blocked_for` plants. The adversarial instrument **m04-I** registered beside
+m04-H in `quality/adversarial/instruments.json`: `guardrail_sha256` digests
+`core/toolloop.py` whole, so the per-round list moves it though no adversarial
+scorer reads `usage` and no probe runs in M08b; the other six digests hold.
+PR 2's diff triggers: the gateway decision path (Platform Engineering,
+Security), the goldens producer (Platform Engineering, AI Quality), the
+derivation pin (AI Quality, Platform Engineering), the manifest (AI Quality,
+Tool Owner), the census rule (AI Quality, Platform Engineering, Security),
+the goldens scorer (new), the record-and-refusal instruments and the
+audit-record shape (Platform Engineering, Security), the adversarial corpus
+and instrument registry (Security, AI Quality, with an ADR), `pave/twokey.py`
+(AI Quality, Legal/S&P, Platform Engineering, Security) and its seat pin
+(those plus Tool Owner). All five enforced seats attest.
+
+### 5. The readers, on a planted run
+
+`tests/fixtures/m08b/planted/` is a twenty-five-case k=3 run built by
+`build_planted.py` from the live cases file — every answer satisfying its own
+asserts, so the count is high and the planted rows are the interesting ones:
+an above-mandate three-call sample, two four-call turns (one at exactly
+8181), a three-call sample at 7690 inside the grain, `recommend-003` refused
+twice on the `answer` channel by the entitlement topic and granting once,
+`brand-020` refused once, `blackout-001` over its `tokens_out` tier, a
+calibration record on `blackout-008`. Its transcripts are the real scorer's
+output over those files, and `tests/test_m08b_fixtures.py` rebuilds
+everything into a temporary directory and refuses drift. On it:
+
+- `fresh_join.py` reads the claim as holding with one grain near miss
+  (`headroom-005` s2, 14.875 over the unrounded midpoint), the fresh band
+  [7165, 8180] with 7700 inside and re-deriving to itself, N = 22 outside
+  [7, 14] and recorded as such, one refusal by majority, the pooled p95 6000
+  OVER against the mandated shape's 3500 within (the share reading), both
+  triggers persisting. A `blackout-008` s1 planted at 7720 at its mandate is
+  recorded with the first row of SPEC/08b's table and an empty fresh band.
+  It refuses a transcript verdict that disagrees with the file either way, a
+  transcript from another ceiling, a call count the trajectory contradicts,
+  a total that is not the sum over the rounds, a sidecar census that
+  disagrees with its own column, a sample without the list, and a live
+  ceiling the point rule did not produce.
+- `residual_attribution.py` reads A = 1980 (three samples agreeing), B =
+  1470, E = 834 [830, 835] by key, S = 603 [600, 604]; D = 636, F = −93, the
+  identity holding; shares of |D| + |F| 0.872 and 0.128; the reading
+  *tokeniser density*, with the sign recorded. It refuses a calibration that
+  offered tools or sat on any case but `blackout-008` or the fallback,
+  reads B from the record's copy when the turn was refused, and reads A from
+  `entitlement-010` when the fallback was taken.
+- `answer_channel.py` reproduces the prior from M07's files through the same
+  code path: **G = 8 on the eight cases decision 3 §3 named, F = 1, a topic
+  question** — the hand count and the reader agree. On the planted run G = 5,
+  F = 1. It refuses a refused sample the grants file has not read, reads
+  DEC-001's shape as neither and lists it, and counts toward F only a refusal
+  on the `answer` channel by the entitlement topic. A mixed case — grants
+  reaching a majority only across answered and held samples — is surfaced and
+  not counted, because the rule says *majority answer, or majority held text*.
+
+### 6. The deletability audit
+
+Thirty-nine mutations, each applied to a working copy backed up to a
+temporary directory and restored from it, never with `git checkout`. Thirty-
+three red on the first pass. Five silent, each closed with a test before the
+first commit: the schema's per-round entry admitting any key
+(`test_a_per_round_entry_carries_three_keys_and_no_other`); a transcript
+value that disagrees with the file (the audit's planted-verdict mutation had
+been hitting the other branch); a live ceiling the point rule did not
+produce; DEC-001's exclusion from G (silent because one held grant leaves G
+regardless — `brand-020`, in G by two answered grants, is the case that shows
+the check bites); the `answer` channel in F (every refusal in the fixture was
+on it). One mutation too weak rather than a silent check: moving one `5200`
+in ADR-014 amendment 3 leaves others; moving every one is red. Five of
+thirty-nine silent is under this repository's historical rate of four in ten.
+
+### 7. The seat rounds
+
+Two rounds, as SPEC/08b constraint 7 planned after amendment 1 §3: five seats
+in isolated worktrees, each at the head commit, told what to plant and not
+what to read. Round one ran against `8ab0a9a`, the first commit; round two
+against `6863f7e`, the commit carrying every round-one fix. Every finding
+below was made by a mutation applied and run; the four seats with code to
+attack reported **nine surviving plants** between them on round one, and the
+narrow Legal/S&P review one blocking finding on the rule set. Each is closed
+here by a check that is red when deleted (twenty-five checks in the first
+fix, ten in the second; every one measured).
+
+**AI Quality, round one.** `evals/deterministic.py::budget`'s `got > limit`
+— the comparison SPEC/08b's falsifier is written in — inverted to `>=` with
+the suite green; pinned at the boundary on every axis
+(`test_the_budget_comparison_is_strictly_over`). `fresh_join.BAND`'s roof
+raised to 1.90 with the suite green, because M08's record clamps the roof by
+the four-call minimum and a fresh run with no four-call sample would let the
+roof alone place the re-derived point; pinned literally and exercised
+unclamped. `residual_attribution.SHARE_NAMES` moved to 0.51 with the suite
+green, the planted shares being 0.872 and 0.128; pinned and exercised at 70
+of 100. N read verbatim from the k=3 count line and a line saying 9/25 over
+twenty-two PASS rows recorded without a word; reconciled against the
+transcript's own rows. And the fresh band's sentence — *the number holds* —
+printed beside a falsifier; now written in the claim's frame. Two notes
+carried: no budget in the repository is per model, so a model swap re-points
+every derived number without re-deriving one (AI Quality's charter, item 6,
+a standing observation); and the round-1 pin ships structural where the spec
+pre-registered behavioural — §3 above, and the spec corrected.
+
+**Platform Engineering, round one.** `messages.append(...)` after the bind
+and `kwargs["messages"].append(...)` before the model call both satisfied the
+round-1 pin — the bind was verbatim and the name was handed over; the pin now
+allows `messages` exactly two uses in `handler()` and refuses any read of
+`kwargs` back. `(calls=N)` computed from the totals satisfied both unit cases;
+a two-round 8181 and a five-round 7701 added. The calibration record's *never
+the answer* was a docstring; the written keys are pinned as a tree, the
+bucket is pinned to the deployed lake, and the `trajectory` field is gone.
+The producer wrote that the response's usage and the record's must agree and
+nothing compared them; a disagreement now refuses B. `tests/test_hermeticity.py`'s
+roots did not include `milestones/`, so a fourth reader got neither guard;
+the directory is the surface now. The template's `p95_ms: 2500` is named in
+PR 4's debt beside its 6000/6500. A note carried: the audit schema cannot
+hold `calls` to the totals — a JSON schema cannot express a sum — and the
+property lives in the loop test and the join, which is where it can.
+
+**Security, round one.** The G4 store-reach scan's roots did not include
+`milestones/`: a `from core import withheld` planted into two of the three
+readers survived the whole suite. `milestones` joined `SCORER_ROOTS` and the
+importers scan, each reader test runs the boundary's own vocabulary check
+plus a refusal of `importlib.import_module` and `__import__` (the door the
+seat walked through in `answer_channel.py`), and a test pins that both scans
+reach the readers. The grants file that decides F had no shape: held text
+beside the grant, held text as the grant's value, and the string `"false"`
+were all accepted as grants, and a `dec001_shape` on a case never refused was
+ignored. `validate_grants` now admits exactly two real booleans per sample the
+sidecar records as refused on the answer channel by the entitlement topic,
+under exactly four top-level keys, and refuses everything else. The
+calibration record accepted the model's answer and the withheld fingerprint
+and could be fetched from any bucket; both pinned. The readers' fixture and
+tests were on no rule while the readers took three keys; on the census rule
+now. Two probes are owed to the corpus and not built here (constraint 8): that
+a `--calibrate` event cannot cause tool offering, and a `tool_request`-channel
+probe on the calibration `request_id` shape — dated to M09 PR 1 for Security.
+
+**Tool Owner, round one.** The browse-gap trigger counted a Cedar-denied or
+unreached `catalog-search` as a browse, and ignored decision 2's *before
+`entitlement-check` or the answer*; `search_shape` now reads executed
+searches before the verdict against the case's own mandate. The seat's first
+finding was about the pre-registration: decision 2's *four calls or more*
+threshold reads the global mandate, so a mandate-2 case must run two extra
+rounds before the trigger sees it, and four M07 samples of the seven sat at
+three calls and were outside M08's fourteen by that threshold. **The
+threshold is kept as written** — a rule reopened in the PR that executes it
+is the failure this milestone was opened to avoid — and the same shape at any
+call count is recorded beside the trigger as
+`beyond_mandate_under_the_threshold`, so a `persists: false` is read beside
+that column and never as *not reproduced* on its own; PR 3 says which it is
+reading. `replay()` degraded a step the tool's contract refuses to fifteen
+characters and the join recorded it as growth; every step is validated
+against the committed contract now, and an unknown tool or a refused argument
+is a refusal. The live mandate and the census record's are cross-checked per
+case. The `tokens_out` verdict is held to the file and the tier as `tokens_in`
+is to the file and the ceiling, and the five's trigger gains its
+outside-the-five column. The residual reader refuses a calibration carrying a
+trajectory or a second round, because `tools: absent` is a literal the
+producer writes and the turn's shape is what cannot lie. Two notes carried:
+`pave verify` is a presence check and says nothing about `p95_ms` at any
+value — `make core` runs the verifier and not the gate, and what stands
+between a wrong number and a deploy is that `main` is green by policy; and
+the derivation test reads the census record's mandate while the join reads
+the live file's, which the cross-check now ties.
+
+**Legal/S&P, round one.** The grants files — the operator's booleans that
+move F and G both and decide whether the `recommend-003` question bills
+Security's calibration on the corpus or the core rule with Legal/S&P — sat on
+the census rule's three seats, G9's letter and not its substance: the seat
+the F = G branch bills held no key. **A rule of their own**, on Security,
+Legal/S&P and AI Quality — the two seats that feel the reading's pain from
+opposite sides, and one that feels neither. `evals/refusals.py`, ADR-035's
+majority estimator and SPEC/01's band, was on no rule while the producer that
+calls it took two and `answer_channel.py`'s copy of the same arithmetic took
+three; on Security and AI Quality now. The widening's citation did not reach
+the grants files; their rule's comment does. The prior's file was
+self-enforcing through its keys alone; pinned by digest.
+
+**Round two, on `6863f7e`.** Every seat replayed its own round-one survivors
+first: all twenty-nine red, by name. Then each planted afresh against the
+fixes, and the shape-over — a fix written against the plant it was shown —
+was found by four seats. Every survivor below is closed by a check that is
+red when deleted (thirty-one measured).
+
+- **AI Quality.** The k=3 rows were reconciled against their own count line
+  and nothing else: eight PASS cases rewritten as FAIL with the line moved to
+  match took N from outside [7, 14] to inside it, unrefused. The bracket is
+  now held to the per-sample rows the reader already carried, and the
+  majority result to the bracket. `tests/test_deterministic_runner.py` — the
+  only test pinning `got > limit` — collected no key while the scorer took
+  two; on the scorer's rule. The suite p95's `<=` could be widened by 250 with
+  the M07 re-score printing `OK … within` and the suite green; pinned at the
+  boundary. The latency line's ceiling was never captured, so a line scored at
+  7500 was recorded beside a pooled OVER; the line is held to the manifest
+  and the pooled verdict. The p95 drift reading and `fresh_band`'s two middle
+  branches and its `point_inside: false` ran in no test; each reading now
+  reached by name on synthetic rows. A note carried: the manifest number
+  takes AI Quality and Tool Owner while the rule deriving it takes AI Quality
+  and Platform Engineering, so the seat a drift reading bills holds no key on
+  the number itself.
+- **Platform Engineering.** The round-1 pin read `messages` and the closure
+  and nothing else: `offered = offered + [...]` after its bind doubled the
+  tool specs on round one, and `F = A − B − S` absorbed it as framing;
+  `system = system + ...` in `_converse`'s own body rewrote every governed
+  call's system block. `offered` is bound once and read once inside
+  `tool_config(offered)`; `_converse`'s body is its docstring, the closure and
+  the return, storing into nothing. `usage.calls`'s order was guarded only by
+  an instrument digest this PR re-pins; a test with three distinct rounds.
+  `payload.update({...})` widened the calibration record past the subscript
+  pin; `payload` is bound once and loaded once. A step with no `round`
+  vanished from the growth replay and read as wholly unexplained; the
+  envelope is on a contract (below). B was readable from a calibration whose
+  audit record was never fetched — the producer swallows the error into
+  `record_resolved: false` — and the reader now refuses B without the witness.
+  The identity field was an `assert` and a literal; computed. A note carried:
+  a sample refused on the answer channel after four tool rounds is outside
+  decision 2's words and invisible to the trigger; surfaced as
+  `refused_samples_with_the_shape`, not counted.
+- **Security.** Exact list equality read a two-channel guardrail block as no
+  answer-channel block, and a stricter refusal turned the reading into *not
+  reproduced*; membership, with the multi-channel record surfaced. The store
+  guard refused `import_module` and `__import__` by name and `getattr`,
+  `sys.modules`, `__builtins__`, `__dict__` and `"co" + "re"` walked past; a
+  closed set of reflection names, a refusal of any name assembled from
+  literals, and an import allowlist per reader. The reader pattern
+  `[a-z_]+` excluded every digit, so the p95 reader this milestone is
+  likeliest to add next would have landed on no rule; digits admitted, and
+  the pin's shape path carries one. The calibration event's `classification`
+  value was unpinned; the event's values are the run's, value for value. And
+  SPEC/08b constraint 8 — *the usage field is read by no scorer but `budget`*
+  — had a digest for one scorer and nothing for the other; a closed-set test
+  now says `calls` and `usage` are named by `evals/deterministic.py` alone.
+  Two things carried and not built: the same seat's round-one probes for the
+  corpus, and — found beside the plants — `platform/gateway/core/classify.py`,
+  G5's router, on no rule, Data Governance's and dated to M09 PR 1. On the
+  grants file's metadata strings the seat read them as a prose channel every
+  `.md` already is; Legal/S&P read them as the one committed file an operator
+  hand-writes after reading the store, and that reading won (below).
+- **Tool Owner.** `search_shape` read *executed* off the final decision, and
+  the loop's own tested contract is that a search which ran and had its
+  result rejected on the output contract carries `executed: true` with a
+  denied decision; three authorized, executed searches read as one and the
+  case left every column. The flag alone is read now, and an entitlement
+  check that never ran closes no window. The step's envelope — `round`,
+  `seq`, `decision`, `executed` — was held to nothing while its `args` were
+  held to the tool's contract; a contract for the envelope, refusing a
+  missing field, `round: 0`, or a key outside the loop's shape. The search
+  mandate was a module constant; it is cross-checked per case against what
+  the call mandate leaves for searches. The seat accepted the disposition on
+  decision 2's threshold and on `pave verify`, and named `p95_ms` for the
+  verifier's *not checked, by name* list in PR 4.
+- **Legal/S&P.** All six round-one replays red, and two new findings. The
+  grants file's three metadata strings were unbounded, so held text could sit
+  beside the booleans while three docstrings said it could not — CLAUDE.md's
+  stated-and-absent shape in the one committed file an operator writes after
+  `read_withheld.py --show`. `_what_this_is` is one sentence and no other,
+  `read_on` a date, `source` a short list of paths and ADR ids with no prose.
+  And the held-text rule's seat set omitted Platform Engineering while two of
+  the reading's four outcomes — `F = G` on the core rule, DEC-001's shape
+  re-opening ADR-068 — bill it, and pinned the absence without a reason:
+  round one's finding with a seat's name changed. Four seats now, with the
+  reason for each written, and AI Quality's reason the one that discriminates
+  (it holds the key on the answer files G is summed from, which Tool Owner
+  and Service Team, who also feel neither outcome, do not). SPEC/08b's
+  obligation row named the `F = G` bill short and had no DEC-001 row; both
+  corrected.
+
+Round two found no plant surviving that round one had closed, and every
+seat confirmed by running that the M07 re-score prints 12/25 with the
+predicted latency line, that both M08 records regenerate byte-identically,
+and that nothing under `milestones/M07/`, the golden cases, the catalog, the
+policy or the infra moved. Three seats noted that the baseline in a
+`.claude/` worktree is three failures, not two: the round-one pin that both
+repository scans reach the readers is red there for PR 4's `SKIP_DIRS`
+reason, so PR 4's fix clears three checks, and until it lands no seat
+reviewing in a worktree can verify the store-boundary root by running it.
+The Security seat asked that the `SKIP_DIRS` fix move into this PR; it stays
+in PR 4 as SPEC/08b dates it, recorded here as the cost.
+
+**The rounds' arithmetic.** Round one: nine surviving plants across four
+seats and one rule-set finding; thirty-five checks added, every one red when
+deleted. Round two: eleven surviving plants across four seats and two
+rule-set findings; thirty-one checks added, every one red when deleted. A
+third round was not run: constraint 7 planned two, and the second's
+survivors were each the shape-over of a first-round fix rather than a new
+class — which is the signal the rounds were for.
+
+### What this amendment does not change
+
+The claim, 7700, the band, the placement. The count and refusal bands. The
+`recommend-003` rule and its prior, now reproduced. The residual's identities.
+The `p95_ms` rule; the number it produces is executed and pinned here, not
+chosen. Decisions 2 and 4; the cap, spent. Constraints 1–10. PR 3 reads two
+p95 numbers, both against 5200, and the gate costs no case either way.

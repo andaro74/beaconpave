@@ -605,7 +605,8 @@
     },
     "transcript_line": {
       "verdict": "OVER",
-      "p95": 6000
+      "p95": 6000,
+      "ceiling": 5200
     },
     "reading": "share: the pooled tail is over the ceiling and the mandated shape's is not — the browse gap's, ADR-074 decision 2's",
     "costs_a_case": false
@@ -631,6 +632,10 @@
         "cases": 7
       },
       "four_call_samples_outside_the_seven": [],
+      "refused_samples_with_the_shape": [
+        "recommend-003 s1",
+        "recommend-003 s3"
+      ],
       "beyond_mandate_under_the_threshold": {
         "samples": [
           "recommend-015 s1 (3 calls)",

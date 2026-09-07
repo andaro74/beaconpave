@@ -311,10 +311,14 @@ the handler in `tests/test_handler_wiring.py` (G8 forbids importing it), on
 the handler's rule; `residual_attribution.py`, `fresh_join.py`
 and the F/G reader written and tested on planted answer files under `tests/`
 before any real one exists, the F/G reader reproducing G = 8, F = 1 from
-M07's files; the census rule widened over `milestones/M08b/` readers, records
-and `calibration.json` in the same diff, with a `_blocked_for` plant each.
-Hermetic; no deploy. One question for the seats: *does the instrument record
-what the run does, and move nothing about what the run is?*
+M07's files; the census rule widened over `milestones/M08b/` readers, records,
+`calibration.json`, the planted run and the reader tests in the same diff,
+with a `_blocked_for` plant each; and two rules the seat rounds added — *the
+held-text readings* (the grants files, on Security, Legal/S&P, Platform
+Engineering and AI Quality) and *the refusal estimator* (`evals/refusals.py`,
+on Security and AI Quality) — with the goldens scorer's test on the scorer's
+rule. Hermetic; no deploy. One question for the seats: *does the instrument
+record what the run does, and move nothing about what the run is?*
 
 **PR 3 — the run.** `make core`; the pre-flight; the calibration call; the
 k=3 run; `topic_baseline.py --all`; the entry recorded on three keys with
@@ -344,7 +348,9 @@ keep the one-tool `tokens_in` silently, stated in the template and refused by
 `pave verify` on a manifest that offers two tools with the template's number
 verbatim, and the same condition on the template's `p95_ms: 2500`, which PR 2
 derived to 5200 for the reference service and left in the template (Platform
-Engineering seat, round 1); a check that every ADR under `docs/adr/` has an index row and that
+Engineering seat, round 1), with `p95_ms` named in `pave verify`'s
+*not checked, by name* list, because the verifier is a shape check and the
+derived pin lives in the gate (Tool Owner seat, rounds 1 and 2); a check that every ADR under `docs/adr/` has an index row and that
 an ADR carrying an `## Amendment` heading has a row that names it; the
 cited-commit decision — `close-milestone` step 7 says the cited commits are
 tagged before the merge, and `tests/test_cited_commits_resolve.py` counts a
@@ -390,7 +396,8 @@ any ceiling but 7700.**
 | `milestones/M08b/` readers, records and `calibration.json` on no rule; the claim's reader editable on one key | AI Quality + Platform Engineering + Security | **PR 2**, the census rule widened in the diff that creates them |
 | The rule that derives a suite `p95_ms`, written before the run and applied after | AI Quality + Platform Engineering | **PR 1** (the rule), **PR 2** (executed, 5200), **PR 3** (applied, two numbers) |
 | `BANDS` in `tests/test_budget_derivation.py` on no direct pin | AI Quality + Platform Engineering | **PR 2** |
-| `recommend-003`'s answer-channel refusal, read by the pre-registered rule through a reader | Security (with Legal/S&P if it reads as answer policy) | **PR 2** (the reader, reproducing G = 8, F = 1), **PR 3** (the reading) |
+| `recommend-003`'s answer-channel refusal, read by the pre-registered rule through a reader | Security (a topic question); the core rule — Platform Engineering and Security — with Legal/S&P (an answer-policy question); Security and Platform Engineering (DEC-001's shape re-opening ADR-068) | **PR 2** (the reader, reproducing G = 8, F = 1), **PR 3** (the reading) |
+| The held-text readings — the operator's booleans that decide F against G — on no rule of their own | Security + Legal/S&P + Platform Engineering + AI Quality | **PR 2**, the rule `the held-text readings` (seat round 1, Legal/S&P; round 2 adds Platform Engineering) |
 | The calibration call's producer and its refused-turn fallback | Platform Engineering + AI Quality | **PR 2** (the flag), **PR 3** (the call) |
 | `tests/test_g4_capture_boundary.py` vacuous under a `.claude/` checkout | Security + Platform Engineering | **PR 4** (moved from PR 2 by ADR-074 amendment 1 §3) |
 | `.gitattributes` on no `pave/twokey.py` rule; 191 CRLF files in the working tree against an LF index | Platform Engineering | **PR 4** |
