@@ -43,7 +43,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 06c | The instrument, repaired ❅ | three PRs ❅ | `m06c` | not re-scored ❅ | – | n/a ❅ | ✅ |
 | 06d | The instrument, readable ❈ | three PRs ❈ | `m06d` | not re-scored ❈ | – | n/a ❈ | ✅ |
 | 07 | The guardrail, applied per channel by the gateway ✚ | six PRs ✚ | `m07` | **2/25** ✚ | not judged ✧ | 7/11, not recorded ✚ | ✅ |
-| 08 | The tools arm's budget: the context or the ceiling ✜ | `m08-budget` | `m08` | –/25 | – | – | ⬜ |
+| 08 | The tools arm's budget: the context or the ceiling ✜ | six PRs ✜ | `m08` | **12/25** ✜ | not judged ✧ | not run ✜ | ✅ |
 | 09 | Rules registry + regdelta loop | `m09-rules` | `m09` | –/25 | – | – | ⬜ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
@@ -449,7 +449,36 @@ on a zero-call census of the committed stage-2 trajectories
 agent carries context it does not need, or 6000 is the wrong ceiling for a
 two-tool loop — with the rule that picks between them written before the
 number was read. The census picked the second; `SPEC/08-budget-context-or-ceiling.md`
-carries the claim, the band and the falsifier. Numbers arrive at close.
+carries the claim, the band and the falsifier.
+
+✜ **Closed 2026-09-07 at six PRs, on the cap. The bold 12/25 is a RE-READING of
+the run the `m07` row publishes at 2/25 — the same three committed answer files,
+the same 75 samples, no fresh run and no changed service.** M08 made zero model
+calls and no deploy end to end; no prompt, tool spec, tool result, topic or
+gateway code moved, and nothing under `milestones/M07/` was touched. What moved
+is one number: `tokens_in` 6000 → **7700**, re-derived by ADR-014's pinned rule
+from the census — inside 1.15–1.60× the mandated-shape maximum of 6235 and placed
+below the minimum four-call turn of 8181 — because the ceiling had been derived
+for a two-call turn and the loop became a three-call turn at M06b, when
+`entitlement-check` became a second sequential tool round. **The claim is per
+sample, not the count**: every one of the 59 answered samples at three calls or
+fewer passes `tokens_in`, and every one of the 14 at four or more fails it
+(`milestones/M08/rescore-join.json`, pinned). Ten cases flipped from FAIL, exactly
+the ten pre-registered before the number existed; five could not, on `tokens_out`
+at unchanged tiers; none regressed. **Read from the record and not predicted: at
+7700, striking the `tokens_in` half of `budget` would move no case** — the axis
+costs the suite nothing and now discriminates call count ≥ 4, which is
+`catalog-search`'s browse gap wearing a budget number on seven cases handed to the
+Tool Owner seat for M10. The entry is
+[`m08-tools-reread-goldens.json`](evals/history/m08-tools-reread-goldens.json), the
+first row of a new kind: it names the run it re-reads, the threshold it re-reads it
+at and the golden file it was scored against, cites exactly M07's evidence, and
+carries none of the run's own measurements (ADR-073 amendment 4). Both rows stay
+published, and `pave/history.py` is red if either stops. `suite latency OVER` at
+5431 ms against 2500 is unchanged and recorded as a **standing finding** — the
+census puts model time alone at 3606 ms on a three-call turn, so the gate is
+breached by the shape, and the rule that derives a suite p95 is owed to M09 PR 1.
+Adversarial not run: no corpus edit, no probe run, no digest moved.
 
 ## What part one produced
 
