@@ -140,7 +140,33 @@ EVIDENCE_REVISIONS: dict[str, list[tuple[str, str, str]]] = {
 #: not a loosening: top-level `required` is untouched at five, nothing optional
 #: became required for a committed entry (none carries `scores.refused`), and
 #: `test_the_committed_entries_still_validate` holds that line. Three keys.
-SCHEMA_DIGEST = "0ca86f58643fac7e2956a048dff3f919cd98b3ff8c6dc008931eedf0bde95a61"
+#:
+#: **Moved again at M08 PR 5 (ADR-073 amendment 4)**, which adds the optional
+#: `rereads` object and one `if/then`: a row carrying it names the run it
+#: re-reads, carries `tag`, `arm`, `k`, `cases` and `samples_from`, and carries
+#: none of the nine fields in `REREADING_MAY_NOT_CARRY`. An addition and a
+#: tightening, and vacuous on every committed entry -- none carries `rereads` --
+#: so top-level `required` is untouched at five and
+#: `test_the_committed_entries_still_validate` holds. Three keys.
+SCHEMA_DIGEST = "48360fc95cf968c329e4961889bda16625080632d3e45be05a57e7197decd129"
+
+#: The keys a `rereads` object carries, all three required (ADR-073 amendment 4).
+#: `evals/history/schema.json` says the same; this says it again for a row that
+#: reached the directory some other way than through the recorder, which is the
+#: only way any row in here is supposed to arrive.
+REREADS_KEYS = ("entry", "threshold", "cases_file")
+
+#: What a re-reading may not carry. Every one of these describes the RUN, or the
+#: instrument that produced it, and the row `rereads.entry` names already records
+#: it; a re-reading records only what re-reading produced. `supersedes` is on the
+#: list for a second reason: it is the one field that turns "one run is one row"
+#: off, and the new kind must not reach that exemption through the correction
+#: door. Adding a name here is a tightening; removing one is a three-key decision
+#: with a sentence saying which measurement a re-reading now takes.
+REREADING_MAY_NOT_CARRY = (
+    "tokens_in", "tokens_out", "cost_usd", "instrument", "judge_axes",
+    "judge_agreement", "guardrail_refusals", "tool_surface", "supersedes",
+)
 
 #: README progression rows tied to a goldens entry, by tag (ADR-042 decision 2).
 #: Pinned per tag because `m00b` has two goldens entries and `m02` two arms, so
@@ -153,6 +179,12 @@ README_GOLDENS = {
     # The arm is in the name because the recorder puts it there (`m02-tools`
     # set the precedent); M07 ran the tools arm alone and recorded it at close.
     "m07": "m07-tools-goldens.json",
+    # **A re-reading, not a run** (ADR-073 amendment 4). The same 75 samples the
+    # `m07` row publishes at 2/25, read again at a `tokens_in` ceiling M08
+    # re-derived. Both rows stay pinned: `check_readme` is red if the row a
+    # re-reading re-reads stops publishing, because a reader of this cell alone
+    # would take a moved ceiling for an improved service.
+    "m08": "m08-tools-reread-goldens.json",
 }
 
 
@@ -638,7 +670,20 @@ def check_evidence(history: pathlib.Path = HISTORY, root: pathlib.Path = ROOT) -
     file legitimately revised after it was digested. Plus the cheap narrowings:
     the path sits under the entry's own milestone directory, an adversarial
     row's evidence is the `probes-run.json` the two-key rule names, and no two
-    non-correction rows cite the same file."""
+    non-correction rows cite the same file.
+
+    **A re-reading steps out of two of those narrowings and into tighter ones
+    (ADR-073 amendment 4).** A row carrying `rereads` names a run another row
+    already recorded and reads it again at a moved threshold, so it cites
+    evidence outside its own milestone directory by construction, and the row
+    it re-reads cites the same files. Neither narrowing is WIDENED for it:
+    `check_rereadings` requires its `samples_from` to equal the re-read entry's
+    exactly -- same paths, same order, same recorded digests -- which is
+    strictly narrower than "somewhere under my own milestone", and holds it to
+    one re-reading per (entry, threshold, value) in place of one row per run. A
+    row WITHOUT `rereads` meets both of the rules below exactly as it did
+    before; the plant that proves so is
+    `test_a_row_citing_another_milestones_files_without_rereads_is_still_refused`."""
     entries = _entries(history)
     problems = []
     cited: dict[str, str] = {}
@@ -650,7 +695,8 @@ def check_evidence(history: pathlib.Path = HISTORY, root: pathlib.Path = ROOT) -
             problems.append(f"{name} carries no samples_from. Every row beyond the legacy eight "
                             "names the committed evidence it was summarised from.")
             continue
-        mdir = _milestone_dir(entry.get("tag"))
+        reread = entry.get("rereads")
+        mdir = None if reread else _milestone_dir(entry.get("tag"))
         for i, src in enumerate(sources):
             path = src.get("path", "")
             if mdir and not path.startswith(f"milestones/{mdir}/"):
@@ -659,7 +705,7 @@ def check_evidence(history: pathlib.Path = HISTORY, root: pathlib.Path = ROOT) -
             if entry.get("suite") == "adversarial" and not re.fullmatch(r"milestones/[^/]+/probes-run\.json", path):
                 problems.append(f"{name}: adversarial evidence must be milestones/<M>/probes-run.json "
                                 f"(the file the two-key rule names), not {path}.")
-            if "supersedes" not in entry:
+            if "supersedes" not in entry and not reread:
                 if path in cited:
                     problems.append(f"{name} and {cited[path]} both cite {path}. One run is one row.")
                 cited[path] = name
@@ -685,6 +731,149 @@ def check_evidence(history: pathlib.Path = HISTORY, root: pathlib.Path = ROOT) -
                     f"digests to {entry_digest(text)[:12]}.... The evidence moved under a recorded "
                     "number. If that was a legitimate revision, record it in EVIDENCE_REVISIONS "
                     "with its PR and reason (three keys).")
+    return problems
+
+
+def assert_values(cases: list, dotted: str) -> set:
+    """Every value of one dotted assert across a golden file, as a set.
+
+    `budget.tokens_in` -> the `tokens_in` of each case's `budget` assert. A case
+    that does not carry the assert contributes nothing; a file where the value is
+    not uniform gives a set with more than one member, and the caller refuses
+    that rather than picking one."""
+    head, _, tail = dotted.partition(".")
+    values = set()
+    for case in cases or []:
+        for item in case.get("asserts") or []:
+            if isinstance(item, dict) and head in item:
+                body = item[head]
+                if tail:
+                    if isinstance(body, dict) and tail in body:
+                        values.add(body[tail])
+                else:
+                    values.add(body if not isinstance(body, (dict, list)) else str(body))
+    return values
+
+
+def check_rereadings(history: pathlib.Path = HISTORY, cwd: pathlib.Path = ROOT) -> list[str]:
+    """ADR-073 amendment 4: what a row carrying `rereads` must be, and what it
+    may not be.
+
+    A re-reading reads a run another row already recorded, at a threshold that
+    moved between two commits. It exists because the register had no shape for
+    one: M08 re-scored M07's three committed stage-2 answer files at a ceiling
+    M08 derived, and every honest way to record that was refused three ways
+    (ADR-073 amendment 3 section 5) -- the evidence is outside M08's milestone
+    directory, `m07-tools-goldens.json` already cites it, and README's row was
+    pinned to nothing. `--supersedes` was the wrong verb: it means the earlier
+    row was WRONG, and M07's 2/25 was a correct reading of the same samples at
+    the ceiling of its day (ADR-027).
+
+    **The two narrowings it steps out of are replaced by narrower ones, never
+    widened.** In place of "the evidence sits under my own milestone directory"
+    it may cite exactly one set of files -- the re-read entry's, path for path,
+    digest for digest, in order -- which no fresh row is held to. In place of
+    "one run is one row" it is one re-reading per (entry, assert, value), and
+    the threshold must have actually moved: every case carries `from` at the
+    re-read entry's commit and `to` at this row's, read out of `git show` at
+    both, and the golden file's digest must differ between them. A row that
+    re-reads at the number it was already read at is refused, and so is a second
+    re-reading of one run at one number.
+
+    **And it carries no fresh run's fields.** `REREADING_MAY_NOT_CARRY` is the
+    list: each of those describes the run, or the instrument that produced it,
+    which the re-read row already records. A re-reading that carries them is
+    claiming a measurement it did not take -- and `supersedes` among them is
+    what stops the new kind from reaching "one run is one row"'s exemption
+    through the correction door.
+
+    The entry's own `sha` is **the commit the reading was taken at**, not the
+    commit that produced the answers -- a departure from `evals/run_evals.py`'s
+    rule for every other row, recorded as one in ADR-073 amendment 4 and forced
+    by SPEC/08 constraint 8. It is also the reading that makes the rest of this
+    module correct on such a row: `check_case_ids` then reads the golden file
+    that was actually scored. The producing commit is one hop away, in the row
+    `rereads.entry` names."""
+    entries = _entries(history)
+    problems = []
+    seen: dict[tuple, str] = {}
+    for name, entry in sorted(entries.items()):
+        reread = entry.get("rereads")
+        if not reread:
+            continue
+        if entry.get("suite") != "goldens":
+            problems.append(f"{name} carries `rereads` on a {entry.get('suite')!r} entry. A "
+                            "re-reading is defined for the goldens suite; what re-reading an "
+                            "adversarial run at a moved threshold would mean is undecided, and an "
+                            "undecided shape is not a shape.")
+            continue
+        missing = [k for k in REREADS_KEYS if k not in reread]
+        if missing:
+            problems.append(f"{name}: rereads omits {', '.join(missing)}. A re-reading names the row "
+                            "it re-reads, the threshold it re-reads it at, and the golden file it "
+                            "was scored against; without all three it is a number with a tag on it.")
+            continue
+        for field in REREADING_MAY_NOT_CARRY:
+            if field in entry:
+                problems.append(f"{name} carries `{field}` beside `rereads`. That field describes the "
+                                f"run, or the instrument that produced it, and {reread['entry']} "
+                                "already records it. A re-reading records only what re-reading "
+                                "produced.")
+        source = entries.get(reread["entry"])
+        if source is None:
+            problems.append(f"{name}: rereads.entry is {reread['entry']!r}, which is not an entry on "
+                            "disk. A re-reading names the row whose run it re-reads.")
+            continue
+        for field in ("suite", "arm", "target", "k"):
+            if entry.get(field) != source.get(field):
+                problems.append(f"{name}: {field} is {entry.get(field)!r} against "
+                                f"{reread['entry']}'s {source.get(field)!r}. A re-reading of a run is "
+                                "the same run: same suite, same arm, same target, same k.")
+        if entry.get("sha") == source.get("sha"):
+            problems.append(f"{name} re-reads {reread['entry']} at the same commit. A re-reading is "
+                            "read at a commit where the threshold has moved; at one commit there is "
+                            "one reading.")
+        if entry.get("samples_from") != source.get("samples_from"):
+            problems.append(f"{name}: samples_from is not {reread['entry']}'s, path for path and "
+                            "digest for digest, in order. A re-reading may cite exactly the evidence "
+                            "of the run it names -- which is why it is not held to citing its own "
+                            "milestone's, and it may not choose anything else instead.")
+        threshold = reread["threshold"]
+        key = (reread["entry"], threshold.get("assert"), threshold.get("to"))
+        if key in seen:
+            problems.append(f"{name} and {seen[key]} both re-read {key[0]} at {key[1]}={key[2]!r}. "
+                            "One run is one row, and one re-reading of a run at one value is one row.")
+        seen[key] = name
+        cases_file = reread["cases_file"]
+        path = cases_file.get("path", "")
+        here, there = {}, {}
+        for label, sha, into in (("this row", entry.get("sha"), here),
+                                 (reread["entry"], source.get("sha"), there)):
+            proc = _git("show", f"{sha}:{path}", cwd=cwd)
+            if proc.returncode != 0:
+                raise Refusal(f"{name}: `git show {str(sha)[:7]}:{path}` failed; the golden file at "
+                              f"{label}'s commit is unreachable, so whether the threshold moved "
+                              "cannot be read. That is a refusal, not a pass.")
+            text = _out(proc)
+            into["digest"] = entry_digest(text)
+            import yaml
+            into["values"] = assert_values(yaml.safe_load(normalised(text)), threshold.get("assert", ""))
+        if cases_file.get("sha256") != here["digest"]:
+            problems.append(f"{name}: rereads.cases_file records {str(cases_file.get('sha256'))[:12]}"
+                            f"... for {path}, which at {str(entry.get('sha'))[:7]} digests to "
+                            f"{here['digest'][:12]}.... A re-reading names the golden file it was "
+                            "scored against, at its own commit.")
+        if here["digest"] == there["digest"]:
+            problems.append(f"{name}: {path} is the same file at {str(entry.get('sha'))[:7]} and at "
+                            f"{reread['entry']}'s commit. Nothing moved, so this is the same reading "
+                            "recorded twice.")
+        for label, side, want in (("to", here, threshold.get("to")),
+                                  ("from", there, threshold.get("from"))):
+            if side["values"] != {want}:
+                problems.append(f"{name}: rereads.threshold.{label} is {want!r}, but "
+                                f"{threshold.get('assert')} reads {sorted(side['values'])!r} in "
+                                f"{path} at that commit. The threshold a re-reading claims to have "
+                                "moved is read from the two commits, never taken on the row's word.")
     return problems
 
 
@@ -939,6 +1128,22 @@ def check_readme(history: pathlib.Path = HISTORY, readme: pathlib.Path | None = 
         claim = f"**{entry['scores']['passed']}/{entry['scores']['total']}**"
         if claim not in goldens_cell(row):
             problems.append(f"README's {tag} row does not carry {claim}, which {name} records.")
+        # **A re-reading is published BESIDE what it re-reads, never instead of
+        # it (ADR-073 amendment 4).** M08's row publishes 12/25 and M07's
+        # publishes 2/25 over the same 75 samples; a reader who sees only the
+        # second number reads a moved ceiling as an improved service. So the row
+        # a re-reading re-reads stays pinned to the entry it re-reads, and
+        # un-pinning it to leave the re-reading standing alone is red here.
+        reread = entry.get("rereads") or {}
+        if reread:
+            source = entries.get(reread.get("entry")) or {}
+            source_tag = source.get("tag")
+            if README_GOLDENS.get(source_tag) != reread.get("entry"):
+                problems.append(
+                    f"README's {tag} row is pinned to {name}, which re-reads {reread.get('entry')} -- "
+                    f"and {source_tag!r}'s row is not pinned to that entry. A re-reading publishes "
+                    "beside the reading it re-reads, because the two are one run read twice and only "
+                    "the pair says so.")
     tagged = {e.get("tag") for e in entries.values() if e.get("suite") == "goldens"}
     for tag in sorted((tagged & set(rows)) - set(README_GOLDENS)):
         problems.append(f"{tag} has a goldens entry on disk and README's {tag} row is pinned to none. "
@@ -1021,6 +1226,7 @@ def run_all(base: str | None, history: pathlib.Path = HISTORY,
     for check in (lambda: check_modes(cwd),
                   lambda: check_reachable(history, cwd),
                   lambda: check_case_ids(history, cwd),
+                  lambda: check_rereadings(history, cwd),
                   lambda: check_registry(history, cwd, with_base()),
                   lambda: check_tool_surface(history, cwd),
                   lambda: append_only_violations(with_base(), cwd)):

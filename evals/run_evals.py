@@ -214,6 +214,62 @@ def _load_superseded(history_dir: pathlib.Path, name: str, suite: str) -> dict:
     return old
 
 
+def _rereads(history_dir: pathlib.Path, name: str, dotted: str, sha: str) -> tuple[dict, dict]:
+    """Resolve `--rereads <filename> --rereads-assert <dotted>` into the row being
+    re-read and the `rereads` object that names it (ADR-073 amendment 4).
+
+    A re-reading reads a run another row already recorded, at a threshold that
+    moved between two commits: M08 re-scored M07's three committed stage-2 answer
+    files at the ceiling M08 derived. Nothing here is taken on the operator's
+    word. The two values are read out of `git show <sha>:cases.yaml` at this
+    row's commit and at the re-read row's, they must each be uniform across
+    every case that carries the assert, and they must differ -- a re-reading at
+    the number the run was already read at is the same reading recorded twice.
+
+    `pave/history.py::check_rereadings` asserts all of that again over the
+    committed directory, because a recorder that can write a row the checks
+    refuse is a check made optional in code."""
+    from pave import history
+    target = history_dir / name
+    if "/" in name or "\\" in name or not target.is_file():
+        raise SystemExit(f"error: --rereads {name!r} is not an entry in {history_dir}. A re-reading "
+                         "names the filename of the row whose run it re-reads.")
+    old = json.loads(target.read_text(encoding="utf-8"))
+    if old.get("suite") != "goldens":
+        raise SystemExit(f"error: --rereads {name} is a {old.get('suite')} entry; a re-reading is "
+                         "defined for the goldens suite.")
+    if old.get("sha") == sha:
+        raise SystemExit(f"error: --rereads {name} was recorded at {str(sha)[:7]}, the commit this "
+                         "reading is being recorded at. At one commit there is one reading; pass "
+                         "--sha for the commit whose threshold this run was re-scored against.")
+    import subprocess
+    values = {}
+    for label, at in (("to", sha), ("from", old.get("sha"))):
+        proc = subprocess.run(["git", "show", f"{at}:{history.GOLDEN_CASES}"], cwd=ROOT,
+                              capture_output=True, check=False)
+        if proc.returncode != 0:
+            raise SystemExit(f"error: `git show {str(at)[:7]}:{history.GOLDEN_CASES}` failed, so "
+                             f"whether {dotted} moved cannot be read. A re-reading is not recorded "
+                             "on the claim that it did.")
+        text = proc.stdout.decode("utf-8", errors="replace")
+        seen = history.assert_values(yaml.safe_load(history.normalised(text)), dotted)
+        if len(seen) != 1:
+            raise SystemExit(f"error: {dotted} reads {sorted(seen)!r} in {history.GOLDEN_CASES} at "
+                             f"{str(at)[:7]}. A re-reading moves one threshold for every case; a "
+                             "file where it is not uniform is not one threshold.")
+        values[label] = seen.pop()
+        if label == "to":
+            values["digest"] = history.entry_digest(text)
+    if values["from"] == values["to"]:
+        raise SystemExit(f"error: {dotted} is {values['to']!r} at both commits. Nothing moved, so "
+                         f"this is the reading {name} already records.")
+    return old, {
+        "entry": name,
+        "threshold": {"assert": dotted, "from": values["from"], "to": values["to"]},
+        "cases_file": {"path": history.GOLDEN_CASES, "sha256": values["digest"]},
+    }
+
+
 def _correction_stem(history_dir: pathlib.Path, target: str, suite: str) -> str:
     """`{stem}-correction{N}-{suite}.json`, where N counts corrections of the
     ORIGINAL stem. Correcting a correction must not nest
@@ -753,12 +809,38 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None,
     # row recorded against the WRONG commit (ADR-041's B-0 shape), and the
     # different-sha row is then not "a second row under one sha".
     sha = getattr(args, "sha", None) or (superseded["sha"] if superseded else _git_sha())
-    if getattr(args, "sha", None) and not judged and not superseded:
+    rereads_name = getattr(args, "rereads", None)
+    if rereads_name and supersedes:
+        raise SystemExit(
+            "error: --rereads and --supersedes are different claims and cannot both be made. "
+            "`supersedes` says the earlier row was WRONG; a re-reading says it was right and is "
+            "being read again at a threshold that moved (ADR-027, ADR-073 amendment 4)."
+        )
+    if getattr(args, "sha", None) and not judged and not superseded and not rereads_name:
         raise SystemExit(
             "error: --sha overrides the commit a score is recorded against, and is only "
             "meaningful for a re-reading of committed answers or a correction. A fresh run "
-            "records the commit it ran at. Pass --judged or --supersedes, or drop --sha."
+            "records the commit it ran at. Pass --judged, --rereads or --supersedes, or drop --sha."
         )
+    # **A re-reading's `sha` is the commit the READING was taken at**, not the
+    # commit that produced the answers -- the one departure from the rule above,
+    # forced by SPEC/08 constraint 8 and recorded as a departure in ADR-073
+    # amendment 4. The producing commit is one hop away, in the row `--rereads`
+    # names, and reading it this way is also what makes `check_case_ids` read the
+    # golden file the reading was actually scored against.
+    reread_source, rereads = (None, None)
+    if rereads_name:
+        if not getattr(args, "sha", None):
+            raise SystemExit(
+                "error: --rereads needs --sha: the commit whose threshold these committed answers "
+                "were re-scored against. Defaulting to HEAD would record the close branch as the "
+                "commit that was read."
+            )
+        if not getattr(args, "rereads_assert", None):
+            raise SystemExit("error: --rereads needs --rereads-assert, the dotted assert whose value "
+                             "moved (for example `budget.tokens_in`). A re-reading that does not say "
+                             "what it re-read at is a second number under a second tag.")
+        reread_source, rereads = _rereads(HISTORY, rereads_name, args.rereads_assert, sha)
     entry = {
         "sha": sha,
         "suite": "goldens",
@@ -785,7 +867,13 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None,
     # **Not under `instrument`.** That key already means the JUDGE instrument on a
     # golden entry (ADR-032), and two different objects sharing one key across
     # entry kinds is the substitution the registry exists to prevent.
-    surface = tool_surface(ROOT)
+    # **Not on a re-reading.** `tool_surface` says what the gateway routed WHEN
+    # THE RUN WAS TAKEN, and a re-reading routed nothing; the row it names
+    # records it. The same reasoning takes the token totals and every judge field
+    # off the row below -- `pave/history.py::REREADING_MAY_NOT_CARRY` is the list,
+    # and `check_rereadings` refuses a row that carries one, so this branch and
+    # that check fail together rather than one covering for the other.
+    surface = None if rereads else tool_surface(ROOT)
     if surface is not None:
         entry["tool_surface"] = surface
     if k > 1:
@@ -812,9 +900,34 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None,
         entry["guardrail_refusals"] = judged["guardrail_refusals"]
     if args.tag:
         entry["tag"] = args.tag
+    if rereads:
+        entry["rereads"] = rereads
+        for field in ("tag", "arm"):
+            if not entry.get(field):
+                raise SystemExit(f"error: --rereads needs --{field}: a re-reading is published beside "
+                                 "the reading it re-reads, and the README tie is by tag.")
+        for field in ("suite", "arm", "target", "k"):
+            if entry.get(field) != reread_source.get(field):
+                raise SystemExit(
+                    f"error: {field} is {entry.get(field)!r} against {rereads_name}'s "
+                    f"{reread_source.get(field)!r}. A re-reading of a run is the same run: same "
+                    "suite, same arm, same target, same k."
+                )
+        if entry.get("samples_from") != reread_source.get("samples_from"):
+            raise SystemExit(
+                f"error: the answer files passed are not {rereads_name}'s, path for path and digest "
+                "for digest, in order. A re-reading reads the run it names and no other; that is "
+                "what it has instead of the rule that evidence sits under its own milestone."
+            )
     for key in ("tokens_in", "tokens_out"):
         value = getattr(args, key)
         if value is not None:
+            if rereads:
+                raise SystemExit(
+                    f"error: --{key.replace('_', '-')} is a measurement of the run, which "
+                    f"{rereads_name} already records. A re-reading records only what re-reading "
+                    "produced (ADR-073 amendment 4)."
+                )
             entry[key] = value
     if superseded:
         entry["supersedes"] = supersedes
@@ -850,6 +963,11 @@ def record(results, scores, args, k=1, samples=None, sources=None, judged=None,
     stem = f"{args.tag or sha[:7]}" + (f"-{args.arm}" if args.arm else "")
     if judged:
         stem += f"-judged-{judged['instrument']['name']}"
+    if rereads:
+        # ADR-027 rule 3 again: the component that differs is the thing that
+        # differs, and what differs here is that this row is a reading of a run
+        # another row recorded -- not a second tools run at this tag.
+        stem += "-reread"
     if superseded:
         # ADR-027 rule 3: the component that differs is the thing that differs,
         # and what differs here is that this row is a correction.
@@ -923,6 +1041,16 @@ def main(argv=None) -> int:
                    help="record this as a CORRECTION of an entry in evals/history/, named by "
                         "filename (ADR-027: the earlier entry was wrong). Copies its sha and "
                         "lands under a -correctionN- filename; never edits it.")
+    p.add_argument("--rereads", metavar="ENTRY",
+                   help="record this as a RE-READING of the run an entry in evals/history/ "
+                        "recorded, named by filename, at a threshold that moved since (ADR-073 "
+                        "amendment 4: the earlier entry was RIGHT, and is being read again). Needs "
+                        "--sha, the commit whose threshold was scored, and --rereads-assert. Cites "
+                        "exactly that entry's evidence and carries none of the run's own fields.")
+    p.add_argument("--rereads-assert", dest="rereads_assert", metavar="DOTTED",
+                   help="the dotted assert whose value moved, e.g. budget.tokens_in. Its value is "
+                        "read out of the golden file at both commits and must be uniform at each "
+                        "and different between them.")
     p.add_argument("--tag", help="milestone tag, e.g. m00b")
     p.add_argument("--target", default="baseline", help="baseline | <service-name>")
     p.add_argument("--out", help="write a gate verdict record here")

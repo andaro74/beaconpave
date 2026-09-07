@@ -179,6 +179,73 @@
           }
         }
       }
+    },
+    {
+      "title": "a re-reading names the run it re-reads and carries no fresh run's measurement",
+      "description": "ADR-073 amendment 4. A row carrying `rereads` reads a recorded run again at a moved threshold. It must say which run, at k, on which arm, from which evidence -- and it may carry none of the fields that describe the run or the instrument that produced it, because the row it names already records those and a re-reading did not measure them. `supersedes` is refused here too: it is the field that turns off `check_evidence`'s 'one run is one row', and the new kind may not reach that exemption through the correction door. Vacuous on every entry recorded before the field existed, which is the only way a requirement may join this schema (decision 7).",
+      "if": {
+        "required": [
+          "rereads"
+        ]
+      },
+      "then": {
+        "required": [
+          "tag",
+          "arm",
+          "k",
+          "cases",
+          "samples_from"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "tokens_in"
+              ]
+            },
+            {
+              "required": [
+                "tokens_out"
+              ]
+            },
+            {
+              "required": [
+                "cost_usd"
+              ]
+            },
+            {
+              "required": [
+                "instrument"
+              ]
+            },
+            {
+              "required": [
+                "judge_axes"
+              ]
+            },
+            {
+              "required": [
+                "judge_agreement"
+              ]
+            },
+            {
+              "required": [
+                "guardrail_refusals"
+              ]
+            },
+            {
+              "required": [
+                "tool_surface"
+              ]
+            },
+            {
+              "required": [
+                "supersedes"
+              ]
+            }
+          ]
+        }
+      }
     }
   ],
   "properties": {
@@ -317,6 +384,65 @@
         }
       },
       "description": "The answer files this entry was summarised from, with a sha256 of each. It exists because `k` is otherwise the number of files the operator chose to pass, not the number of runs that happened \u2014 running five and passing the best three produced an entry byte-indistinguishable from an honest one, and nothing tied a recorded score to a committed run file. `close-milestone` checks that the named files are committed and that their hashes still match."
+    },
+    "rereads": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry",
+        "threshold",
+        "cases_file"
+      ],
+      "properties": {
+        "entry": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*\\.json$",
+          "description": "FILENAME of the entry whose run this row reads again. That row's `sha` is the commit that PRODUCED the answers; this row's `sha` is the commit the reading was taken at, which is the one departure a re-reading makes from the rule every other row follows (ADR-073 amendment 4, SPEC/08 constraint 8). Not `supersedes`: that verb means the earlier row was wrong, and a correct reading of the same samples at the threshold of its day is not wrong (ADR-027)."
+        },
+        "threshold": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "assert",
+            "from",
+            "to"
+          ],
+          "properties": {
+            "assert": {
+              "type": "string",
+              "description": "The dotted assert whose value moved, e.g. `budget.tokens_in`."
+            },
+            "from": {
+              "type": "number",
+              "description": "Its value at the re-read entry's commit. Read out of `git show <sha>:cases.yaml` by `pave/history.py::check_rereadings` and never taken on the row's word."
+            },
+            "to": {
+              "type": "number",
+              "description": "Its value at THIS row's commit. Must differ, and every case must carry it: a re-reading at the number the run was already read at is the same reading recorded twice."
+            }
+          },
+          "description": "Which threshold moved, and between which two values. It is what makes this row a second READING rather than a second CLAIM on one run: `12/25` and `2/25` over the same 75 samples are both true, and only this field says why."
+        },
+        "cases_file": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string",
+              "description": "The golden file at THIS row's commit, digested the way `samples_from` digests evidence -- sha256 over LF-normalised text, not `git hash-object`, whose value depends on how the tree was checked out."
+            }
+          },
+          "description": "The golden file this reading was scored against, named and digested. `instrument.deterministic.cases_sha256` is a JUDGED entry's field and an unjudged goldens row has no such key, which is how ADR-014 amendment 2 came to name a field this entry shape does not have (ADR-073 amendment 3 section 5)."
+        }
+      },
+      "description": "Present when this row RE-READS a run another row recorded, at a threshold that moved between two commits -- the ADR-012 'two readings of one commit' case in the deterministic shape. It exists because the register had no shape for one: M08 re-scored M07's three committed stage-2 answer files at a ceiling M08 derived, and `pave/history.py` refused every honest way to record it three ways over (ADR-073 amendment 3 section 5). The shape answers each refusal with a NARROWER rule rather than a wider one: `samples_from` must equal the re-read entry's exactly, one re-reading exists per (entry, assert, value), the threshold must be shown to have moved at both commits, and README publishes the two readings side by side. See `pave/history.py::check_rereadings`."
     },
     "arm": {
       "type": "string",

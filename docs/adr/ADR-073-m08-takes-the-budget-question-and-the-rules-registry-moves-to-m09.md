@@ -893,3 +893,245 @@ tool, topic or assert; nothing under `milestones/M07/`; nothing in
 template's 6000/6500, the `test_g4_capture_boundary.py` vacuity defect, and
 §3's struck-axis fact; the register's re-reading shape, the entry and the
 row (§5); the progression row; tag `m08`.
+
+## Amendment 4 — the register's re-reading shape, the entry, and the row
+
+**Written 2026-09-07, in M08 PR 5, the close. Zero model calls; no deploy; no
+seat round; no run of any arm. Nothing under `milestones/M07/` or
+`milestones/M08/` moved but the journal; no case, ceiling, manifest, comparator,
+transcript or instrument digest moved.** Amendment 3 §5 dated the register's
+re-reading shape here, with M09 PR 1 as the fallback and a condition on taking
+it. The shape is carried; the condition held; the entry is
+`evals/history/m08-tools-reread-goldens.json` and the row publishes **12/25**.
+
+### 1. What the register refused, and why widening it was not available
+
+A row tagged `m08` citing M07's three committed answer files is refused three
+ways by `pave/history.py` (amendment 3 §5, simulated in a scratch copy before
+PR 4 opened):
+
+1. `check_evidence` — *an entry cites its own milestone's evidence*: the files
+   sit under `milestones/M07/`.
+2. `check_evidence` — *one run is one row*: `m07-tools-goldens.json` already
+   cites them.
+3. `check_readme` — *`m08` has a goldens entry on disk and README's `m08` row is
+   pinned to none*.
+
+Each exists for a reason a re-reading does not dissolve. The first stops a row
+borrowing another milestone's run and presenting it as its own measurement. The
+second stops two rows each claiming one run — the shape that lets a milestone
+take a second bite at the same evidence. The third stops a recorded row and a
+published row contradicting each other. **So none of the three is widened.** The
+new kind steps out of the first two into rules that are strictly narrower, and
+satisfies the third rather than being exempted from it.
+
+`--supersedes` was refused as the verb before any of this: it means *the earlier
+row was wrong*, and M07's 2/25 is a correct reading of these samples at the
+ceiling of its day (ADR-027). It is now refused in code as well — see §2's field
+list, and the reason.
+
+### 2. The shape
+
+A goldens row may carry `rereads`:
+
+```json
+"rereads": {
+  "entry": "m07-tools-goldens.json",
+  "threshold": { "assert": "budget.tokens_in", "from": 6000, "to": 7700 },
+  "cases_file": {
+    "path": "services/highlights-agent/evals/golden/cases.yaml",
+    "sha256": "f59f4a39..."
+  }
+}
+```
+
+and `pave/history.py::check_rereadings` holds it to the following. Each is a
+replacement for something it stepped out of, or a new narrowing that the new kind
+needs and no fresh row does.
+
+| the refusal | what the shape puts in its place |
+|---|---|
+| evidence under its own milestone directory | **`samples_from` equals the re-read row's exactly** — same paths, same order, same recorded digests — plus `suite`, `arm`, `target` and `k` equal to it. A fresh row may cite any file under `milestones/<its own>/`; a re-reading may cite one committed set and has no choice about which. Narrower, not wider. |
+| one run is one row | **One re-reading per `(entry, threshold.assert, threshold.to)`**, `sha` different from the re-read row's, and the threshold shown to have moved: every case carries `from` at the re-read row's commit and `to` at this row's, read out of `git show` at both, and the golden file's digest must differ between them. A re-reading at the number the run was already read at is refused; a second re-reading of one run at one number is refused. The rule for rows without `rereads` is untouched. |
+| README's row pinned to none | **Satisfied**: `README_GOLDENS` pins `m08` and the row publishes 12/25. Plus a new rule — the row a re-reading re-reads stays pinned to the row it re-reads, so `m07` keeps publishing **2/25** beside it. A reader of the `m08` cell alone would take a moved ceiling for an improved service; the pair is what says otherwise. |
+
+**And a re-reading carries none of the run's own fields:** `tokens_in`,
+`tokens_out`, `cost_usd`, `instrument`, `judge_axes`, `judge_agreement`,
+`guardrail_refusals`, `tool_surface`, `supersedes`
+(`REREADING_MAY_NOT_CARRY`). Every one describes the run, or the instrument that
+produced it, and the row named by `rereads.entry` already records it; a
+re-reading records only what re-reading produced — `scores`, `cases`, `k`,
+`samples_from`. `supersedes` is on the list for a second reason: it is the one
+field that turns `check_evidence`'s *one run is one row* off, and the new kind
+must not reach that exemption through the correction door.
+
+**The `sha` is the commit the READING was taken at**, not the commit that
+produced the answers — `17c3630`, PR 3's merge, as SPEC/08 constraint 8
+pre-registered. This is a departure from `evals/run_evals.py::record`'s rule for
+every other row, and it is recorded here as a departure rather than left for a
+reader to discover: the producing commit is `095f7a3`, one hop away in the row
+`rereads.entry` names and pinned by that row's digest in `pins.json`. It is also
+the reading that keeps the rest of the module correct on such a row —
+`check_case_ids` then reads the golden file the reading was actually scored
+against, which at `095f7a3` it would not.
+
+`evals/history/schema.json` gains the `rereads` sub-schema
+(`additionalProperties: false`, all three keys required) and one `if/then`: a row
+carrying it requires `tag`, `arm`, `k`, `cases` and `samples_from`, and forbids
+the nine fields above. Top-level `required` stays the pinned five and the block
+is vacuous on every committed entry, which is the only way a requirement may join
+this schema (ADR-042 decision 7). `SCHEMA_DIGEST` re-pinned in the same diff, as
+ADR-061 and ADR-069 D5 cut 1 each did.
+
+`evals/run_evals.py` gains `--rereads ENTRY --rereads-assert DOTTED`, admits
+`--sha` beside them as it already does beside `--judged` and `--supersedes`,
+derives the threshold and the golden-file digest itself from the two commits, and
+suppresses `tool_surface` and the token totals. The entry is written by the
+recorder and never by hand — `close-milestone` step 2's rule, and the reason
+`write_pin` sits beside the writer. M07 PR 6 changed the same file at its own
+close for the same kind of reason; the change is write-side and moves no verdict,
+so amendment 3 §6's rule that M08 moves no instrument holds
+(`evals/deterministic.py`, the scorer, is untouched).
+
+### 3. The condition on writing the entry at all, and the audit
+
+The operator's instruction when this PR was approved: **if a row citing M07's
+files WITHOUT `rereads` ever passes, the shape has bought its admission by
+loosening the rule it claimed to step around, and the entry comes out of the
+register** — the progression cell then reads *re-read: 12/25 by transcript, not
+entered*, with the debt dated M09 PR 1. That plant is
+`test_a_row_citing_another_milestones_files_without_rereads_is_still_refused`,
+and it is red on both halves: the milestone-directory rule and the citation map.
+Its mirror,
+`test_the_citation_map_still_catches_two_fresh_rows_on_one_run`, plants two fresh
+rows on one file and is red too. The condition held, so the entry is written.
+
+**Nineteen mutations, each applied to a working copy backed up to a temp
+directory and restored from it — never `git checkout`, which would delete the
+uncommitted change an audit exists to test.** Every check added here was deleted
+or neutered in turn and the suite re-run. **Fifteen went red on the first pass;
+four were silent**, and each was closed with a test before the entry was
+recorded:
+
+- `check_rereadings` removed from `run_all` — so `pave gate history`, the
+  instance that DECIDES, would not run it and only this file's tests would. The
+  ADR-042 shape exactly: a check that exists and is not in the deciding path.
+- All three recorder guards on `--rereads`: every test planted a *row* and none
+  drove the *producer*.
+
+Closing the third of those surfaced a fourth, older one: the guard refusing
+`--sha` without `--judged` or `--supersedes` — which this amendment extends with
+`--rereads` — was itself never planted against, and removing it whole left 128
+tests green. It has a test now. Four of nineteen silent is this repository's
+historical rate (ADR-042: six of ten weakenings survived the first registered
+commit; M06d's audit: four of ten checks silent).
+
+### 4. The entry, and the row
+
+`evals/history/m08-tools-reread-goldens.json`, written by
+`python -m evals.run_evals --arm tools --target highlights-agent` over M07's
+three committed answer files and sidecar, `--record --tag m08 --sha 17c3630...
+--rereads m07-tools-goldens.json --rereads-assert budget.tokens_in`, pinned at
+`f1c101d6...`:
+
+**12/25** — `total` 25, `passed` 12, `failed` 13, `infra` 0, `pass_rate` 0.48,
+`pooled_pass_rate` 0.44 (33 of 75), `refused` **1**, `answered` **12**, every key
+derived from the row's own cases, `refused` on all 25 (ADR-069 D5 cut 1). The one
+refused case is `recommend-003`, on two of three samples. `k` 3, per-sample
+verdicts on every case, `samples_from` the three M07 files at the digests M07
+recorded, `arm` tools, `tag` m08, `rereads` as above — and no `tokens_in`,
+`tokens_out`, `tool_surface` or instrument field.
+
+The row is derived a second way in the test file, from M07's row,
+`rescore-join.json` and the golden file at the two commits, and
+`test_the_recorded_entry_is_the_row_the_committed_inputs_produce` asserts the two
+agree field for field but `recorded_at`. A hand-edited row is then a diff between
+two derivations rather than a row nobody re-derived.
+
+README's progression row: **12/25**, six PRs, tag `m08`, ✅, with the footnote
+saying in its first sentence that this is a re-reading of the run the `m07` row
+publishes at 2/25 — the same 75 samples, no fresh run, no changed service.
+
+### 5. What this close carries, from amendment 3's list
+
+The journal (`milestones/M08/README.md`) carries the residual as a dated debt,
+the `p95_ms` standing finding, the two step-6b triggers PR 2 recorded (the
+probes' re-opening condition; the store's retention), the template's 6000/6500,
+the `test_g4_capture_boundary.py` vacuity defect, §3's struck-axis fact — *at
+7700, striking the `tokens_in` half of `budget` would move no case* — and two
+findings this PR made: `.gitattributes` declares `eol=lf` while 191 tracked files
+are CRLF in the working tree and LF in the index, and `.gitattributes` is on no
+`pave/twokey.py` rule; and the four silent checks above. `docs/adr/README.md`'s
+index rows for ADR-014 and ADR-073 name their amendments, which is the sweep PR 3
+dated here — and **no check reads that index**, so the clause that an amended ADR
+shows where it was corrected is enforced by nobody; dated M09 PR 1 to the PM
+seat.
+
+Step 6b is read from M07's committed refusal census, the last governed golden run
+and the run this milestone re-read, on M06d's precedent for a milestone that
+records none of its own: `enforcement-probing`'s footprint **0 of 25**,
+`blackout-009` refused **0 of 3**, neither trigger fires; `ATK-003` still 0 of 3,
+dispositioned at M07 as a scale cut. No baseline run: M08 moved no guardrail,
+policy or topic wording and made zero model calls.
+
+### 6. The gate went red on a citation the squash-merge dissolved
+
+**Found by CI on this PR, not by `make check`, and it is amendment 3's text
+rather than this one's.** Amendment 3 §7 records PR 4's work as *"Two
+transcripts, raw stdout, run once (`f8e3bd3`)"* and *"The join reader and its
+record ... (`1492358`)"* — its own branch commits, which were true and reachable
+while `m08-pr4-rescore` existed. GitHub deleted that branch on the squash-merge,
+`906d74e` carries no parent link to either, and both became reachable from no
+branch or tag `origin` publishes. `tests/test_cited_commits_resolve.py` went red
+in four parametrisations and `pave gate decide` blocked the contract lane.
+
+**The check is correct and is late by one PR, by construction.** The defect is
+created by a *merge* — nothing in PR 4's own tree was wrong, and its gate was
+green because the branch it names still existed while it ran. The first fresh
+clone taken after the merge is the next PR's, so a citation with this fuse in it
+always detonates in somebody else's diff. That is the structural half, and it is
+owed below rather than fixed here.
+
+**`make check` was green locally at 3051 passed, and that is the same defect
+wearing the reviewer's clothes.** This clone still holds a stale
+remote-tracking ref, `origin/m08-pr4-rescore`, so `for-each-ref --contains`
+found it and the citation resolved — in the author's checkout and in no fresh
+clone. `tests/test_cited_commits_resolve.py`'s own docstring opens on that
+sentence, written after ADR-042 and SPEC/05 were found citing commits that
+resolved only where they were written; it has now caught the shape it was built
+for, one milestone later, in the tree of the person running it.
+`git remote prune --dry-run origin` names **52** such refs here against 33
+branches `origin` actually publishes, so the blind spot is wide and not specific
+to this milestone.
+
+**The remedy is the repository's own convention, applied twice.** Annotated tags
+`cited-f8e3bd3` and `cited-1492358` on the two commits, message *"Cited by
+ADR-073 amendment 3; unreachable after squash-merge"* — the same shape as
+`cited-a0a63d1` and `cited-a5a8077` (ADR-035) and `cited-e6589ae` (ADR-036),
+which is the third and fourth time this has been paid by hand. Measured against
+the ref set a fresh clone gets — `refs/heads/*` and `refs/tags/*` as `origin`
+publishes them, `refs/pull/*` excluded because `actions/checkout` does not fetch
+them — all 76 distinct citations in `docs/` and `SPEC/` resolve once the two tags
+are pushed, and two do not without them. **No document's text is edited**: the
+sentences amendment 3 wrote are true, and a citation is repaired by making the
+commit reachable, never by quietly renaming it to the merge sha that replaced it.
+
+**The root cause is a setting, and it contradicts a stated rule.**
+`.claude/skills/close-milestone` step 7 says *"Do not delete the merged branch —
+the branch list is a visible progress ledger."* GitHub's *automatically delete
+head branches* is on, so every squash-merge has been deleting one: 33 branches
+published against 85 this clone remembers. A rule stated in the checklist and
+enforced by nobody is CLAUDE.md's *stated and absent* shape, and turning the
+setting off is where the next one is prevented rather than tagged after the
+fact. The operator's, recorded here with the two debts it leaves.
+
+### 7. What this amendment does not change
+
+The claim, the band, the placement, the number, the rule and its outcome.
+Constraints 1–8 — including constraint 8, which is why the entry's `sha` is PR 3's
+merge and not M07's run commit. Outcome A stays where decision 2 put it. No case,
+prompt, tool, topic, guardrail or assert; nothing under `milestones/M07/`; no
+committed history entry edited, and no baseline reset. The three keys this PR
+collects are the directory's own — AI Quality, Security, Platform Engineering —
+on `pave/history.py`, `evals/history/`, `evals/run_evals.py` and
+`tests/test_history_append_only.py`.

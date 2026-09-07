@@ -16,6 +16,7 @@ Owning seats: AI Quality · Security / Red Team · Platform Engineering.
 """
 from __future__ import annotations
 
+import copy
 import json
 import os
 import pathlib
@@ -30,6 +31,8 @@ from pave import history, twokey
 from pave.history import (
     EVIDENCE_REVISIONS,
     LEGACY_ENTRIES,
+    REREADING_MAY_NOT_CARRY,
+    REREADS_KEYS,
     Refusal,
     append_only_violations,
     check_case_ids,
@@ -38,6 +41,7 @@ from pave.history import (
     check_pins,
     check_readme,
     check_registry,
+    check_rereadings,
     check_schema,
     check_second_rows,
     entry_digest,
@@ -103,6 +107,7 @@ def test_the_git_resolving_checks_pass_and_never_skip():
     try:
         assert check_case_ids() == []
         assert check_registry() == []
+        assert check_rereadings() == []
         base = resolve_base(env=_env_without_conftest_reach())
         assert append_only_violations(base) == []
     except Refusal as exc:
@@ -1212,3 +1217,549 @@ def test_no_recorded_number_moved():
     m01 = json.loads((HISTORY / "m01-goldens.json").read_text(encoding="utf-8"))
     assert m01["scores"]["passed"] == 19
     assert "**19/25**" in (ROOT / "README.md").read_text(encoding="utf-8")
+
+
+# --- ADR-073 amendment 4: what a RE-READING may claim, and what it may not -----
+#
+# A re-reading reads a run another row already recorded, at a threshold that
+# moved between two commits. M08 re-scored M07's three committed stage-2 answer
+# files at the ceiling M08 derived, and the register had no shape for that:
+# simulated in a scratch copy before PR 4 opened, a row tagged `m08` citing M07's
+# files was refused three ways (ADR-073 amendment 3 section 5) -- the evidence
+# sits outside `milestones/M08/`; `m07-tools-goldens.json` already cites it, and
+# one run is one row; and README's `m08` row was pinned to no entry.
+#
+# **Each is answered by a NARROWER rule, never a wider one**, and this section is
+# where that claim is tested rather than asserted. The first two are replaced by
+# `check_rereadings`: a re-reading cites EXACTLY the re-read row's evidence, and
+# there is one re-reading per (entry, assert, value) with the threshold shown to
+# have moved at both commits. The third is answered by satisfying it -- README's
+# `m08` row publishes 12/25 and is pinned -- plus a new rule that the re-read row
+# stays published beside it, so a moved ceiling cannot be read as an improved
+# service by a reader of one cell.
+#
+# **The rule that was NOT weakened has its own plant**: a row citing M07's files
+# WITHOUT `rereads` is still refused both ways. If
+# `test_a_row_citing_another_milestones_files_without_rereads_is_still_refused`
+# ever goes green, the shape bought its admission by loosening `check_evidence`
+# for every row, and the entry comes out of the register.
+
+JOIN = ROOT / "milestones" / "M08" / "rescore-join.json"
+SOURCE = "m07-tools-goldens.json"
+REREAD = "m08-tools-reread-goldens.json"
+
+#: PR 3's merge, the commit whose `tokens_in` the re-score was scored against
+#: (SPEC/08 constraint 8), and M07's run commit.
+CEILING_SHA = "17c363088746ec017739f69b5bb918fb88cc50a8"
+RUN_SHA = "095f7a388ba579d97afed528f70fb29d25f07523"
+
+
+def _cases_digest(sha: str) -> str:
+    proc = history._git("show", f"{sha}:{history.GOLDEN_CASES}")
+    assert proc.returncode == 0, f"git show {sha[:7]} failed"
+    return history.entry_digest(history._out(proc))
+
+
+def _built_row() -> dict:
+    """The honest re-reading, built here from the committed inputs rather than
+    read off the entry -- M07's row for the evidence and the run's shape,
+    `milestones/M08/rescore-join.json` for the per-case verdicts, and the golden
+    file at the two commits for the threshold.
+
+    Built rather than copied on purpose:
+    `test_the_recorded_entry_is_the_row_the_committed_inputs_produce` compares it
+    to what the recorder wrote, so the entry has a second derivation standing
+    beside it and a hand-edited row is a diff between two readings rather than a
+    row nobody re-derived."""
+    source = json.loads((HISTORY / SOURCE).read_text(encoding="utf-8"))
+    join = json.loads(JOIN.read_text(encoding="utf-8"))
+    cases = []
+    for case in join["per_case"]:
+        samples = case["rescore_samples"]
+        refused_samples = sum(1 for r in join["per_sample"]
+                              if r["case"] == case["case"] and not r["answered"])
+        cases.append({
+            "id": case["case"],
+            "result": case["rescore_result"],
+            # The per-case majority that produced `result` (SPEC/06d, ADR-069 D1).
+            "refused": refused_samples * 2 > len(samples),
+            "samples": samples,
+        })
+    row = {
+        "sha": CEILING_SHA,
+        "suite": "goldens",
+        "target": source["target"],
+        "recorded_at": "PLACEHOLDER",
+        "scores": {},
+        "cases": cases,
+        "k": source["k"],
+        "samples_from": copy.deepcopy(source["samples_from"]),
+        "rereads": {
+            "entry": SOURCE,
+            "threshold": {"assert": "budget.tokens_in", "from": 6000, "to": 7700},
+            "cases_file": {"path": history.GOLDEN_CASES, "sha256": _cases_digest(CEILING_SHA)},
+        },
+        "arm": source["arm"],
+        "tag": "m08",
+    }
+    row["scores"] = history.derive_scores(row)
+    return row
+
+
+def _plant(h: pathlib.Path, row: dict, name: str = REREAD) -> None:
+    (h / name).write_text(json.dumps(row, indent=2) + "\n", encoding="utf-8")
+
+
+def _reread_named(problems: list, name: str = REREAD) -> list:
+    return [p for p in problems if p.startswith(name)]
+
+
+# --- the honest row -----------------------------------------------------------
+
+def test_the_built_row_is_the_count_the_re_score_printed():
+    """12/25, one refused, twelve answered and scored wrong -- the transcript's
+    three numbers, derived here from the join record's per-case verdicts."""
+    row = _built_row()
+    assert row["scores"]["passed"] == 12
+    assert row["scores"]["total"] == 25
+    assert row["scores"]["failed"] == 13
+    assert row["scores"]["refused"] == 1
+    assert row["scores"]["answered"] == 12
+    assert row["scores"]["pooled_pass_rate"] == 0.44
+    assert [c["id"] for c in row["cases"] if c["refused"]] == ["recommend-003"]
+    text = (ROOT / "milestones" / "M08" / "goldens-rescore.txt").read_text(encoding="utf-8")
+    assert "12/25 passed (13 failed, 0 infra)" in text
+    assert "1 were refused before scoring, 12 answered and scored wrong" in text
+
+
+def test_the_honest_re_reading_passes_every_check(tmp_path):
+    h = _copy_history(tmp_path)
+    _plant(h, _built_row())
+    assert check_rereadings(h) == []
+    assert check_evidence(h) == []
+    assert check_schema(h) == []
+
+
+# --- what a re-reading must name ----------------------------------------------
+
+@pytest.mark.parametrize("key", REREADS_KEYS)
+def test_a_re_reading_that_omits_a_rereads_key_is_red(tmp_path, key):
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    del row["rereads"][key]
+    _plant(h, row)
+    assert any(f"rereads omits {key}" in p for p in _reread_named(check_rereadings(h)))
+    assert check_schema(h), "the schema takes the same three as required"
+
+
+def test_a_re_reading_naming_an_entry_that_is_not_on_disk_is_red(tmp_path):
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    row["rereads"]["entry"] = "m99-tools-goldens.json"
+    _plant(h, row)
+    assert any("is not an entry on disk" in p for p in _reread_named(check_rereadings(h)))
+
+
+@pytest.mark.parametrize("field,value", [("arm", "control"), ("target", "baseline"), ("k", 2)])
+def test_a_re_reading_of_a_different_run_shape_is_red(tmp_path, field, value):
+    """A re-reading of a run is the same run. `k=2` over three samples also moves
+    `check_derivable`; this asserts the re-reading check names it too, so the
+    property is not resting on a neighbour."""
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    row[field] = value
+    _plant(h, row)
+    assert any("the same run" in p for p in _reread_named(check_rereadings(h)))
+
+
+def test_a_re_reading_at_the_re_read_rows_own_commit_is_red(tmp_path):
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    row["sha"] = RUN_SHA
+    row["rereads"]["cases_file"]["sha256"] = _cases_digest(RUN_SHA)
+    _plant(h, row)
+    problems = _reread_named(check_rereadings(h))
+    assert any("at one commit there is one reading" in p.lower() for p in problems), problems
+
+
+# --- the evidence: exactly the re-read row's, and nothing else ------------------
+
+@pytest.mark.parametrize("mutate", ["drop", "digest", "foreign", "reorder"])
+def test_a_re_reading_that_cites_anything_but_the_re_read_rows_evidence_is_red(tmp_path, mutate):
+    """This is what a re-reading has INSTEAD of `check_evidence`'s rule that the
+    evidence sits under its own milestone directory -- strictly narrower: a fresh
+    row may cite any file under `milestones/<its own>/`, a re-reading may cite one
+    committed set and has no choice about which."""
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    if mutate == "drop":
+        row["samples_from"] = row["samples_from"][:2]
+    elif mutate == "digest":
+        row["samples_from"][0]["sha256"] = "0" * 64
+    elif mutate == "foreign":
+        row["samples_from"].append({"path": "milestones/M06b/goldens-run-1.json",
+                                    "sha256": "0" * 64})
+    else:
+        row["samples_from"].reverse()
+    _plant(h, row)
+    assert any("path for path and digest for digest" in p for p in _reread_named(check_rereadings(h)))
+
+
+def test_two_re_readings_of_one_run_at_one_value_are_red(tmp_path):
+    """One run is one row; one re-reading of a run at one value is one row. The
+    second copy is what a milestone would append to publish the same number
+    twice, or to try two numbers and keep the flattering one."""
+    h = _copy_history(tmp_path)
+    _plant(h, _built_row())
+    second = _built_row()
+    second["tag"] = "m09"
+    _plant(h, second, "m09-tools-reread-goldens.json")
+    problems = check_rereadings(h)
+    assert any("one re-reading of a run at one value is one row" in p for p in problems), problems
+
+
+# --- the threshold moved, read from both commits -------------------------------
+
+def test_a_re_reading_that_misstates_the_threshold_is_red(tmp_path):
+    """`from` and `to` are read out of `git show` at the two commits and never
+    taken on the row's word: the whole warrant for a second number over one run
+    is that the threshold moved."""
+    h = _copy_history(tmp_path)
+    for field, wrong in (("from", 5000), ("to", 8000)):
+        row = _built_row()
+        row["rereads"]["threshold"][field] = wrong
+        _plant(h, row)
+        problems = _reread_named(check_rereadings(h))
+        assert any(f"rereads.threshold.{field} is {wrong}" in p for p in problems), problems
+
+
+def test_a_re_reading_naming_an_assert_that_did_not_move_is_red(tmp_path):
+    """`tokens_out` is 300 at both commits -- SPEC/08 constraint 4 kept it where
+    ADR-014 put it. A re-reading claiming it moved is refused on the read, not on
+    the claim."""
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    row["rereads"]["threshold"] = {"assert": "budget.tokens_out", "from": 300, "to": 350}
+    _plant(h, row)
+    problems = _reread_named(check_rereadings(h))
+    assert any("budget.tokens_out reads" in p for p in problems), problems
+
+
+def test_a_re_reading_at_a_commit_where_nothing_moved_is_red(tmp_path):
+    """The case the two value reads cannot see: a DIFFERENT commit whose golden
+    file is the same file. `dc3a319` is PR 2's merge, three commits after M07's
+    run and before the ceiling moved, so `budget.tokens_in` is 6000 at both ends
+    and a row claiming `from` 6000 `to` 6000 passes every other check here. What
+    catches it is the golden file's own digest, which is why that comparison is a
+    check and not a restatement of the two reads."""
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    row["sha"] = history._out(history._git("rev-parse", "dc3a319")).strip()
+    row["rereads"]["threshold"] = {"assert": "budget.tokens_in", "from": 6000, "to": 6000}
+    row["rereads"]["cases_file"]["sha256"] = _cases_digest("dc3a319")
+    _plant(h, row)
+    problems = _reread_named(check_rereadings(h))
+    assert any("Nothing moved" in p for p in problems), problems
+
+
+def test_a_re_reading_that_misstates_the_golden_file_is_red(tmp_path):
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    row["rereads"]["cases_file"]["sha256"] = _cases_digest(RUN_SHA)
+    _plant(h, row)
+    problems = _reread_named(check_rereadings(h))
+    assert any("rereads.cases_file records" in p for p in problems), problems
+
+
+def test_the_golden_file_at_a_missing_commit_is_a_refusal_not_a_pass(tmp_path):
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    row["sha"] = "0" * 40
+    _plant(h, row)
+    with pytest.raises(Refusal) as exc:
+        check_rereadings(h)
+    assert "That is a refusal, not a pass." in str(exc.value)
+
+
+# --- and no fresh run's fields -------------------------------------------------
+
+@pytest.mark.parametrize("field", REREADING_MAY_NOT_CARRY)
+def test_a_re_reading_carrying_a_fresh_runs_field_is_red(tmp_path, field):
+    """Each of these describes the run, or the instrument that produced it, and
+    `m07-tools-goldens.json` already records it. `supersedes` is on the list for a
+    second reason: it is the one field that turns `check_evidence`'s "one run is
+    one row" off, and the new kind must not reach that exemption through the
+    correction door."""
+    h = _copy_history(tmp_path)
+    source = json.loads((HISTORY / SOURCE).read_text(encoding="utf-8"))
+    row = _built_row()
+    row[field] = source.get(field, SOURCE if field == "supersedes" else 1)
+    _plant(h, row)
+    assert any(f"carries `{field}` beside `rereads`" in p for p in _reread_named(check_rereadings(h)))
+    assert check_schema(h), f"the schema refuses {field} beside rereads too"
+
+
+def test_supersedes_beside_rereads_does_not_buy_the_one_run_one_row_exemption(tmp_path):
+    """The specific route: `supersedes` is what makes `check_evidence` skip the
+    citation map, so a row carrying both would be a re-reading that also claims
+    the correction's exemption. Refused by name, and by the schema."""
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    row["supersedes"] = SOURCE
+    _plant(h, row)
+    assert any("carries `supersedes` beside `rereads`" in p for p in _reread_named(check_rereadings(h)))
+
+
+def test_a_re_reading_on_the_adversarial_suite_is_red(tmp_path):
+    """Undecided is not a shape. What re-reading an adversarial run at a moved
+    threshold would mean -- G4's pass semantics are not a threshold -- is not
+    decided here, so the field is refused there rather than tolerated."""
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    row["suite"] = "adversarial"
+    _plant(h, row)
+    assert any("re-reading is defined for the goldens suite" in p for p in _reread_named(check_rereadings(h)))
+
+
+# --- the rule that was NOT weakened -------------------------------------------
+
+def test_a_row_citing_another_milestones_files_without_rereads_is_still_refused(tmp_path):
+    """**The load-bearing one.** The shape's whole defence is that it steps out
+    of two rules into narrower ones rather than widening them. If this goes
+    green, `rereads` bought its admission by loosening `check_evidence` for every
+    row, and the entry comes out of the register (the operator's instruction when
+    this PR was approved).
+    """
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    del row["rereads"]
+    _plant(h, row, "mzz-tools-goldens.json")
+    problems = _reread_named(check_evidence(h), "mzz-tools-goldens.json")
+    assert any("outside milestones/M08/" in p for p in problems), problems
+    assert any("One run is one row." in p for p in check_evidence(h)), "the citation map"
+
+
+def test_the_citation_map_still_catches_two_fresh_rows_on_one_run(tmp_path):
+    """The same rule from the other side: two rows with no `rereads` between them,
+    citing one file. Nothing about the new kind may make this reachable."""
+    h = _copy_history(tmp_path)
+    row = json.loads((HISTORY / SOURCE).read_text(encoding="utf-8"))
+    row["tag"] = "m07"
+    _plant(h, row, "m07-tools-goldens-copy.json")
+    assert any("One run is one row." in p for p in check_evidence(h))
+
+
+# --- README: published beside, never instead of --------------------------------
+
+def _readme_publishing_m08(tmp_path: pathlib.Path) -> pathlib.Path:
+    """The committed README with the `m08` row's goldens cell reading **12/25**.
+
+    Built rather than assumed so this test says the same thing before the row is
+    filled in and after -- `check_readme`'s injectable `readme` exists for
+    exactly this, and a test that only works on the tree that ships it is a test
+    that stops being a check the moment the tree moves."""
+    lines = (ROOT / "README.md").read_text(encoding="utf-8").splitlines()
+    for i, line in enumerate(lines):
+        cells = line.split("|")
+        if len(cells) > 6 and cells[4].strip() == "`m08`":
+            cells[5] = " **12/25** "
+            lines[i] = "|".join(cells)
+            break
+    else:
+        raise AssertionError("no m08 progression row in README.md")
+    out = tmp_path / "README.md"
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return out
+
+
+def test_the_re_reading_and_the_reading_it_re_reads_are_both_published(tmp_path, monkeypatch):
+    """A reader of the `m08` cell alone sees 12/25 where M07 published 2/25 over
+    the same 75 samples, and reads a moved ceiling as an improved service. The
+    pair is what says otherwise, so un-pinning `m07` while the re-reading stands
+    is red."""
+    h = _copy_history(tmp_path)
+    _plant(h, _built_row())
+    readme = _readme_publishing_m08(tmp_path)
+    pinned = {**history.README_GOLDENS, "m08": REREAD}
+    monkeypatch.setattr(history, "README_GOLDENS", pinned)
+    assert check_readme(h, readme=readme) == []
+    monkeypatch.setattr(history, "README_GOLDENS", {k: v for k, v in pinned.items() if k != "m07"})
+    problems = check_readme(h, readme=readme)
+    assert any("publishes beside the reading it re-reads" in p for p in problems), problems
+
+
+def test_an_unpinned_re_reading_is_still_the_row_pinned_to_none(tmp_path, monkeypatch):
+    """`check_readme`'s third refusal, unchanged for the new kind: a goldens entry
+    on disk under a tag whose row is pinned to nothing."""
+    h = _copy_history(tmp_path)
+    _plant(h, _built_row())
+    monkeypatch.setattr(history, "README_GOLDENS",
+                        {k: v for k, v in history.README_GOLDENS.items() if k != "m08"})
+    assert any("m08 has a goldens entry on disk" in p for p in check_readme(h))
+
+
+def test_run_all_runs_the_re_reading_check(tmp_path):
+    """**The deciding instance is `run_all`**, which `pave gate history` calls
+    from the workflow; a check that exists and is called only by this file is a
+    check the gate does not make. Found by the deletability audit: removing
+    `check_rereadings` from `run_all` left every test in this section green.
+    """
+    h = _copy_history(tmp_path)
+    row = _built_row()
+    row["samples_from"][0]["sha256"] = "0" * 64
+    _plant(h, row)
+    problems, refusals = history.run_all(None, h, ROOT)
+    assert any("path for path and digest for digest" in p for p in problems), (problems, refusals)
+
+
+# --- the recorder writes it, and nothing else does ----------------------------
+#
+# `close-milestone` step 2's rule: an entry is written by `--record` and never by
+# hand, which is what `write_pin` beside it is for. So the recorder's own guards
+# on `--rereads` are load-bearing, and the deletability audit found all three of
+# them silent -- every test above plants a ROW, and no test drove the producer.
+
+class _RereadArgs:
+    tag = "m08"
+    target = "highlights-agent"
+    arm = "tools"
+    sha = CEILING_SHA
+    tokens_in = None
+    tokens_out = None
+    supersedes = None
+    rereads = SOURCE
+    rereads_assert = "budget.tokens_in"
+
+
+class _R:
+    def __init__(self, id, result):
+        self.id, self.result, self.unearned, self.unearned_reason = id, result, False, None
+
+
+def _reread_call(h, monkeypatch, **overrides):
+    """Drive `run_evals.record` as a re-reading of M07's row, from that row's own
+    evidence and cases, with `overrides` applied to the arguments."""
+    from evals import run_evals
+    monkeypatch.setattr(run_evals, "HISTORY", h)
+    # The copy carries the committed re-reading, and the recorder is append-only
+    # by FILENAME (ADR-027 rule 3) -- so recording into the copy means recording
+    # into a directory that does not already hold this row.
+    (h / REREAD).unlink(missing_ok=True)
+    source = json.loads((h / SOURCE).read_text(encoding="utf-8"))
+    args = _RereadArgs()
+    for key, value in overrides.items():
+        setattr(args, key, value)
+    results = [_R(c["id"], c["result"]) for c in source["cases"]]
+    refused = {c["id"] for c in source["cases"] if c.get("refused")}
+    scores = history.derive_scores({"suite": "goldens", "cases": [
+        {"id": r.id, "result": r.result, "refused": r.id in refused} for r in results]})
+    return run_evals.record(results, scores, args, k=source["k"],
+                            sources=copy.deepcopy(source["samples_from"]), refused=refused)
+
+
+def test_the_recorder_refuses_a_re_reading_that_does_not_say_what_it_re_read_at(tmp_path, monkeypatch):
+    """`--sha` without a reason is refused for every other row and would default
+    to HEAD here -- recording the close branch as the commit that was read. And a
+    re-reading that does not name the assert is a second number under a second
+    tag."""
+    h = _copy_history(tmp_path)
+    with pytest.raises(SystemExit, match="--rereads needs --sha"):
+        _reread_call(h, monkeypatch, sha=None)
+    with pytest.raises(SystemExit, match="--rereads needs --rereads-assert"):
+        _reread_call(h, monkeypatch, rereads_assert=None)
+    with pytest.raises(SystemExit, match="reads .* at"):
+        _reread_call(h, monkeypatch, rereads_assert="budget.tokens_out")
+
+
+def test_the_recorder_refuses_rereads_beside_supersedes(tmp_path, monkeypatch):
+    """The two are different claims: `supersedes` says the earlier row was WRONG,
+    a re-reading says it was right and is being read again. Carrying both would
+    also buy `check_evidence`'s one-run-one-row exemption through the correction
+    door."""
+    h = _copy_history(tmp_path)
+    with pytest.raises(SystemExit, match="cannot both be made"):
+        _reread_call(h, monkeypatch, supersedes=SOURCE)
+
+
+def test_the_recorder_refuses_a_re_reading_carrying_the_runs_own_numbers(tmp_path, monkeypatch):
+    h = _copy_history(tmp_path)
+    with pytest.raises(SystemExit, match="already records"):
+        _reread_call(h, monkeypatch, tokens_in=471637)
+
+
+def test_the_recorder_refuses_evidence_that_is_not_the_re_read_rows(tmp_path, monkeypatch):
+    from evals import run_evals
+    h = _copy_history(tmp_path)
+    monkeypatch.setattr(run_evals, "HISTORY", h)
+    source = json.loads((h / SOURCE).read_text(encoding="utf-8"))
+    sources = copy.deepcopy(source["samples_from"])[:2]
+    results = [_R(c["id"], c["result"]) for c in source["cases"]]
+    refused = {c["id"] for c in source["cases"] if c.get("refused")}
+    scores = history.derive_scores({"suite": "goldens", "cases": [
+        {"id": r.id, "result": r.result, "refused": r.id in refused} for r in results]})
+    with pytest.raises(SystemExit, match="path for path and digest for digest"):
+        run_evals.record(results, scores, _RereadArgs(), k=3, sources=sources, refused=refused)
+
+
+def test_a_recorded_re_reading_carries_no_tool_surface_and_names_itself_one(tmp_path, monkeypatch):
+    """`tool_surface` says what the gateway routed WHEN THE RUN WAS TAKEN; a
+    re-reading routed nothing, and `m07-tools-goldens.json` records it. The
+    filename says the row is a re-reading for ADR-027 rule 3's reason: the
+    append-only guard keys on it, and the component that differs is the thing
+    that differs."""
+    h = _copy_history(tmp_path)
+    path = _reread_call(h, monkeypatch)
+    assert path.name == REREAD
+    written = json.loads(path.read_text(encoding="utf-8"))
+    for field in REREADING_MAY_NOT_CARRY:
+        assert field not in written, field
+    assert written["rereads"]["threshold"] == {"assert": "budget.tokens_in", "from": 6000, "to": 7700}
+    assert written["rereads"]["cases_file"]["sha256"] == _cases_digest(CEILING_SHA)
+    assert written["sha"] == CEILING_SHA and written["samples_from"] == json.loads(
+        (h / SOURCE).read_text(encoding="utf-8"))["samples_from"]
+    assert check_rereadings(h, ROOT) == []
+    assert check_evidence(h, ROOT) == []
+    assert check_pins(h) == []
+
+
+def test_a_bare_sha_is_still_refused_and_rereads_is_the_third_reason(tmp_path, monkeypatch):
+    """`--sha` overrides the commit a score is recorded against, so it is refused
+    unless the row is a re-reading of committed answers or a correction. This
+    close adds `--rereads` as a third admissible companion, and **the guard was
+    silent** -- the deletability audit removed it whole and 128 tests stayed
+    green, which means the two companions it already allowed were resting on
+    nobody planting against it. Both halves are asserted here: the bare form
+    refused, and the re-reading allowed."""
+    from evals import run_evals
+    h = _copy_history(tmp_path)
+    monkeypatch.setattr(run_evals, "HISTORY", h)
+    (h / REREAD).unlink(missing_ok=True)
+    source = json.loads((h / SOURCE).read_text(encoding="utf-8"))
+    results = [_R(c["id"], c["result"]) for c in source["cases"]]
+    refused = {c["id"] for c in source["cases"] if c.get("refused")}
+    scores = history.derive_scores({"suite": "goldens", "cases": [
+        {"id": r.id, "result": r.result, "refused": r.id in refused} for r in results]})
+
+    class Bare(_RereadArgs):
+        rereads = None
+        rereads_assert = None
+
+    with pytest.raises(SystemExit, match="Pass --judged, --rereads or --supersedes"):
+        run_evals.record(results, scores, Bare(), k=3,
+                         sources=copy.deepcopy(source["samples_from"]), refused=refused)
+    assert not list(h.glob("m08-*.json")), "nothing was written before the refusal"
+    assert _reread_call(h, monkeypatch).name == REREAD
+
+
+def test_the_recorded_entry_is_the_row_the_committed_inputs_produce():
+    """**The entry has a second derivation standing beside it.** `_built_row`
+    assembles the re-reading from M07's row, `rescore-join.json` and the golden
+    file at the two commits, by a different route than
+    `evals/run_evals.py --record` took; a hand-edited row is then a diff between
+    two readings rather than a row nobody re-derived. `recorded_at` is the one
+    field that cannot agree, because it is when the recorder ran."""
+    written = json.loads((HISTORY / REREAD).read_text(encoding="utf-8"))
+    built = _built_row()
+    built["recorded_at"] = written["recorded_at"]
+    assert written == built
+    assert written["scores"]["passed"] == 12 and written["scores"]["refused"] == 1
