@@ -356,3 +356,393 @@ already declares, the runner already reports per turn, and the join reader
 becomes a column in the recorder. Owned-and-unscheduled debts become a
 backlog register with triggers the next run evaluates, which is what
 `close-milestone` step 6b already does for guardrail holes.
+
+## Amendment 1 — a cold read of SPEC/08b before PR 2, five questions answered
+
+**Written 2026-09-07, after PR 1 merged (`8c7a428`) and before PR 2 opened.
+Zero model calls; no deploy; no seat round. Every number below is read from
+`milestones/M08/context-census.json`, the three M07 answer files,
+`milestones/M08/rescore-join.json`, `pave/twokey.py`, `pave/history.py`,
+`evals/deterministic.py`, `tests/test_budget_derivation.py`,
+`platform/gateway/core/toolloop.py`, `platform/gateway/handler.py` and the three
+journals.** The reader did not write SPEC/08b. Nothing in the plan is changed
+by this amendment; it names what PR 2 and the spec must change, and the
+operator disposes.
+
+**Operator's disposition, 2026-09-07: accepted in full, all ten asks.**
+Committed in its own zero-call PR — PR 1b — before PR 2 cut from `main`, with
+the spec corrections it names in the same diff, and §4's population table and
+§5's six-row reading carried into the spec rather than left here. **This PR is
+the milestone's sixth slot spent, and the cap's pre-registered fallback fires
+on it** (§6): the DMA rename gives way to M09 PR 1 by name, and there is no
+PR 5.
+
+Four facts this reading established by running the code, on which the answers
+below turn. Each is a check a seat can repeat.
+
+1. **The census record digests the manifest.** `context-census.json`
+   `inputs_sha256` carries `services/highlights-agent/pave.manifest.yaml`, and
+   `tests/test_m08_census.py::test_the_record_is_what_the_committed_inputs_produce`
+   regenerates the record from the live tree and compares byte for byte. PR 2
+   moves `gates.budgets.p95_ms` in that file. So PR 2 re-produces
+   `milestones/M08/context-census.json` with one digest line moved, on the
+   census rule's three keys (AI Quality, Platform Engineering, Security), or
+   `make check` is red. SPEC/08b's Definition of done says *"Nothing under
+   `milestones/M07/` or `milestones/M08/` changed but the records PR 5
+   re-produces."* That clause is unreachable as written.
+2. **The register refuses an entry whose README row is pinned to none.**
+   `pave/history.py::check_readme`'s last loop: a tag with a goldens entry on
+   disk and a README row not in `README_GOLDENS` is a problem, and
+   `run_all` runs it in `pave gate history`. SPEC/08b records the entry at PR 3
+   and gives `README_GOLDENS` its `m08b` row at PR 6. PR 3's gate is red as
+   planned. This is the refusal M08's amendment 3 §5 simulated and met.
+3. **Three files that decide the claim sit on no two-key rule.**
+   `pave/twokey.py` run over PR 2's file list: `evals/deterministic.py` — the
+   scorer every goldens verdict comes from, which PR 2 changes to name `calls`
+   — matches **no rule**. `milestones/M08b/fresh_join.py` and
+   `residual_attribution.py`, which decide the claim and the residual reading,
+   match **no rule**; the census rule is `^milestones/M08/` by name.
+   `milestones/M08b/calibration.json`, the evidence for B, matches no rule; the
+   goldens evidence rule names `goldens-run*.json` only.
+4. **The calibration call has no producer.** `run_with_tools.py` sends
+   `"tools": True` with `gw.build_tool_prompt()` and offers no flag to omit
+   tools; `run_via_gateway.py` sends `gw.build_prompt()`, the control arm's
+   catalog-inlined system block, which is not the same `system`. The handler's
+   tools-absent path exists (`offered = [...] if event.get("tools") else []`),
+   so B is reachable through the deployed gateway with the same `system` — but
+   nothing committed can send that event and write `calibration.json`.
+
+### 1. Is this M06b again?
+
+**Not on the dimension that broke M06b. Yes on two clauses, in M06c's shape,
+written by the seat that recorded that exact shape one milestone ago. And PR 4
+will meet M07's close-finds-an-owe shape on PR 3's own citations, which is
+predictable now.**
+
+| | M06b | M06c | M07 | SPEC/08b as written |
+|---|---|---|---|---|
+| PRs | 34, no bound that held | 3 of a cap of 6 | 6 of 6 | 6 planned of a cap of 6, no spare |
+| Runs through the gateway | one per hypothesis, four hypotheses | one | 216 turns, two stages | one: 75 turns, 1 calibration call, 75 headroom for one INFRA re-run |
+| When the answer was chosen | never; closed on a diagnosis | step 0, two PRs in | band pre-registered, read at PR 5 | claim, both falsifiers, two bands and four rules pre-registered at PR 1; the red close pre-registered |
+| Re-measurement door | after every negative result | none | none | one, bounded: an INFRA sample re-runs whole, once, the bad sample committed beside it |
+| What broke | the premise was unmeasurable on arrival; an unpriced investigation was adopted | the claim was unreachable by its own plan | 22/22 masked by refusals; the close found an owe the plan had not | two DoD clauses unreachable as written (facts 1 and 2); the claim's reader on one key (fact 3) |
+
+**What M06b did that SPEC/08b cannot.** M06b measured again after every
+negative result. SPEC/08b has one door back to the gateway — constraint 5's
+INFRA re-run, once, with the bad sample committed — and the claim's falsifier
+closes the milestone red rather than opening a hypothesis. The twelve-debt
+pile that D1 describes as the thing that grows by a third each time lands
+here as PR 4, four hermetic debts on their own rules with no seat round; it is
+bounded because it is named. The unbounded loop has no entry point.
+
+**What SPEC/08b does that M06c did, twice.** Fact 1 is ADR-014 amendment 2's
+own sentence one file over: *"the M08 records digest the file this PR exists
+to move, so `--check` could not have stayed green across PR 3 as the spec
+assumed."* That was `cases.yaml` at M08 PR 3; this is the manifest at M08b
+PR 2, and the record's `inputs_sha256` says so in plain text. Fact 2 is M08
+amendment 3 §5's simulation, which found the register refusing an entry three
+ways, one of them this one; the spec that was written after that finding
+schedules the row three PRs after the entry. Both are the M06c shape — a
+checkbox the plan beneath it cannot reach — and both were found by running
+the checks the spec names rather than reading it. **Both corrections land in
+the spec before PR 2 opens** (asks 1 and 2 below), because a DoD corrected
+after its PR prints is a checkbox rewritten to match the outcome.
+
+**What M07's close will look like here, named now.** M07's close found the
+`brand_tone` owe because flipping the row ran a check the plan had not read.
+M08's close went red on PR 4's branch-commit citations one PR after they were
+written. SPEC/08b PR 4 adds the rule that makes that structural: *a citation
+reachable only from a remote-tracking branch counts as unreachable.* In a
+fresh clone every branch `origin` publishes is a remote-tracking ref, so the
+rule means **cite only what `main` or a tag reaches**. PR 3's amendment to
+this ADR will cite the run commit and the calibration commit — its own branch
+commits — and PR 4 then opens red on PR 3's text, which is amendment 4 §6 one
+PR earlier and by design. Pre-registered here: PR 3 cites only commits
+reachable from `main` or from a `cited-*` tag pushed before its merge
+(`close-milestone` step 7), and PR 4's rule is run over PR 3's text before PR
+3 merges. If that is not done, the red at PR 4 is a finding about this
+paragraph, not about the rule.
+
+**One ambiguity that would re-slide the pile.** *"If it is falsified the
+milestone stops at PR 3, records the sample, and closes red at PR 6"* reads as
+PR 4 not happening. PR 4's four debts do not depend on the claim; dropping
+them on a red claim re-dates them to M09 PR 1, which is D1's shape.
+Pre-registered: **a red claim stops the claim's reading at PR 3; PRs 4 and 6
+proceed as planned** (PR 5 having given way to the cap, §6), and the red close
+is the row's ❌ with the sample named.
+
+### 2. Each claim, the measurement that proves it, and the PR
+
+The spec's own 24-row table is read beside this one; the rows below are the
+claims as the spec's prose makes them, which is not always the same list.
+
+| # | claim | measurement | PR |
+|---|---|---|---|
+| 1 | **The one claim**: every fresh answered sample at ≤3 calls passes `tokens_in` at 7700, every ≥4-call sample fails it, per sample | `fresh_join.py` over the three answer files' `usage.calls` and the three single-file transcripts; `fresh-join.json` pinned; both falsifiers read empty. `evals/deterministic.py::budget` compares `got > limit`, so a sample at exactly 7700 passes; the join must say which comparison it read | PR 3 |
+| 1a | …with per-call `inputTokens` and the call count in the answer file and the verdict | PR 2 by test on planted files; PR 3 by the files themselves — every answered sample carries `usage.calls` of length equal to its call count, and every `budget` failure names `calls` | PR 2, PR 3 |
+| 1b | …through the deployed gateway, on samples it was not derived from | the pre-flight header (function, both guardrail versions, bundle digests equal to the tree at PR 2's merge); the audit record ids | PR 3 |
+| 1c | …and no case, tier, ceiling, prompt, tool spec, topic, guardrail or catalog moved before the run | `git diff` of the named paths between PR 1's merge and PR 3's branch point, empty; the digest families; `context_census.py --check`. **The claim's own sentence says *no ceiling moved* and constraint 1 moves `p95_ms` in PR 2.** The claim must carve it out — *no token ceiling* — or the claim is false by its own plan on the day PR 2 merges | PR 3; the wording, PR 2 |
+| 2 | The count: 7 ≤ N ≤ 14, predicted 12; no 3-of-3 pass fails by majority; no 0-of-3 fail passes by majority | `goldens-score.txt`; the join's `per_case` against `rescore-join.json`'s. Derived from M08's margin cases and nothing else; a prediction, not a bound, and the spec says so | PR 3 |
+| 3 | Refused by majority 0–2 | `evals.refusals --sidecar` | PR 3 |
+| 4 | `recommend-003`: F and G by the rule; the reading named | **No reader.** The prior G = 8, F = 1 in D3 §3 is a hand count over M07's files, and the fresh count would be a second hand count compared to the first. A reader over the answer files, the sidecar and `withheld-read.txt`, written in PR 2 and tested by reproducing G = 8, F = 1 from M07's files, is the measurement; without it row 4 is prose | PR 2 (reader), PR 3 |
+| 5 | The residual: D = B − E, F = A − B − S; whichever is ≥70% named | `calibration.json`, round-1 usage, `residual_attribution.py`, its pin. **Three gaps.** (i) No producer for B (fact 4). (ii) If the calibration turn is refused on the `answer` channel the runner writes `tokens_in: 0` and B is lost; the fallback is unwritten. (iii) D can be negative — the estimate over-counting — and a 70% share of a signed sum is undefined; the rule needs signs and shares of |D| + |F|. (iv) E's key path is not named the way ADR-014 amendment 2 named the census keys; `4_by_component` carries `per_call_base_from_two_call_samples` and `calibration`, and the viewer-turn estimate must be read from a named key or computed by the census reader's own function, never re-estimated | PR 2 (producer, reader, rule), PR 3 |
+| 5a | A's three samples agree | the three round-1 values in the answer files; a disagreement is recorded as a finding | PR 3 |
+| 5b | Per-round growth against replayed transcript growth at the measured density; >25% unexplained is a dated finding | **No reader named.** `residual_attribution.py` reads A, B, E, S. Either `fresh_join.py` prints per-round growth per sample or the sentence comes out of D3 §4 | none as written |
+| 6 | The round-1 request is `system`, the viewer turn verbatim and `toolConfig`, nothing else | The spec says *a source-reading test over `handler.py` and `core/toolloop.py`*. **The loop does not assemble the request**: `run_turn` receives `messages` and calls `converse(transcript)`; `system` and `toolConfig` are attached in `handler.py::_converse`. A source-reading test is M06b's finding 7 — the check that went red on the comment explaining the pattern — and `test_handler_wiring.py` already reads `_converse` by AST for the guardrailConfig it must not carry. The pin should drive the handler with a client double and assert the kwargs the client received, exactly three keys. If the wiring test's double cannot capture kwargs, that is the first thing PR 2 adds | PR 2 |
+| 7 | Per-call usage sums to the totals; no committed verdict moves | a test; the M07 re-score's join byte-identical to `rescore-join.json`. **The M07 files carry no per-call usage, so byte-identity proves the absence path only**; the presence path is proved on planted files and on nothing real until PR 3 | PR 2 |
+| 8 | `calls` in the verdict when `usage.calls` exists, absent otherwise | a test each way; M07's verdict strings unchanged. **`evals/deterministic.py` is on no rule** (fact 3); the change lands on one key unless PR 2 puts the scorer on one | PR 2 |
+| 9 | The `p95_ms` rule yields one number from the mandated shape and ADR-014's constants | the derivation test: 40 samples, p95 3769, floor 4334.35, roof 6030.4, midpoint 5182.375, **5200**. Recomputed here from the committed inputs and matched exactly (§4). The test that refused a raise for two milestones, `test_the_suite_percentile_budget_was_not_raised`, is the one the pin replaces, and its replacement should carry the rule in its docstring | PR 2 |
+| 10 | The fresh p95 against 5200, OVER or within | `goldens-score.txt`'s latency line. **Uninterpretable alone**: the rule claims OVER means *the tail is no longer the mandated shape's*; that needs the fresh mandated-shape p95 beside the pooled one (§4) | PR 3 |
+| 11 | Browse gap persists or not | the trajectories joined to `usage.calls`; a ≥4-call sample on one of the seven with a `catalog-search` beyond the mandate. The mandate is `context_census.mandated_calls()` applied to the live cases file, reused, not re-derived | PR 3 |
+| 12 | `tokens_out` five persist or not | the transcript's `tokens_out` verdicts by majority | PR 3 |
+| 13 | Nothing else moved before the run | as 1c. `context_census.py --check` is green at PR 3 only because PR 2 re-produced the record (fact 1) | PR 3, with PR 2 named |
+| 14 | The deployed bundle equals the tree | the pre-flight header in the sidecar | PR 3 |
+| 15 | `BANDS` directly pinned | a test that plants each constant | PR 2 |
+| 16 | The G4 boundary test scans the tree under a `.claude/` checkout | `SKIP_DIRS` matched against the tree-relative path; the guard reads a real file count | PR 2 as planned; PR 4 recommended (§3) |
+| 17–20 | The four hermetic debts | as the spec's rows 17–20 | PR 4 |
+| 21 | The DMA rename moves every digest it must and nothing else | each reader re-produces its record; the judge re-frozen; the key-by-key diff | PR 5 |
+| 22 | Zero model calls outside PR 3; PR 3 within 151 turns | the PR bodies; no file under `milestones/M08b/` carrying `usage` outside PR 3. **PR 2's planted answer files must live under `tests/`, not `milestones/M08b/`, or row 22 fails on its own fixtures** | every PR |
+| 23 | The entry on three keys with `refused` per case; the row | `pave gate history`; `README_GOLDENS`. **`README_GOLDENS` and the row's bold `N/25` must land in PR 3 with the entry** (fact 2); the ✅ stays PR 6's. The entry cannot move to PR 6 instead: the recorder names `HEAD`, and at PR 6 `HEAD` is PR 5's merge, a tree whose catalog the rename has moved | PR 3; PR 6 for the ✅ |
+| 24 | `delete_branch_on_merge` is off | asserted from the API; no hermetic test | PR 1, recorded |
+| 25 | *The registry cannot start without the run* (the Why) | an argument, not a claim; nothing measures it and nothing should | none, correctly |
+| 26 | The rule's premise: the mandated shape's latency tail is stable across runs, so a share above it is the browse gap's | the fresh mandated-shape p95 against 5200 (§4). Not in the plan | none as written |
+
+Five rows have no measurement in the plan as written: 4, 5 (three gaps), 5b, 6
+(as specified), 26. Rows 4 and 5 are readers PR 2 can write; 6 is a test
+written the other way round; 5b and 26 are one column each in `fresh_join.py`.
+None is the claim. Rows 1c, 13, 22 and 23 are reachable only after the spec is
+corrected.
+
+### 3. Is M08b as specified one milestone, and is PR 2 M07 PR 4 again?
+
+**One milestone, yes. PR 2 is not M07 PR 4's shape and is M08 PR 3's shape
+on one axis.** M07 PR 4 carried five decisions on five subjects — a run, a
+probe suite, step 6b, a two-key disposition, a new rule — and the split moved
+the zero-call, deadline-bound ones to the PR already collecting their keys.
+M08 PR 3 carried the number plus four dispositions, and the fix was the same
+move. PR 2 here carries nine items on **one subject** — the instrument — and
+one question, and the question is the right one. Where it is M08 PR 3 again
+is the count of findings a round can produce on nine items: PR 3 took 17
+findings from four seats with fixes in the same PR, and a round on nine items
+should be planned as two rounds, the second on the first's fixes, before the
+PR opens.
+
+The nine, with the rule each file sits on and whether it must precede the run:
+
+| item | files | rule and seats | must precede the run | recommendation |
+|---|---|---|---|---|
+| per-call usage | `core/toolloop.py`, `handler.py`, `audit.schema.json` | gateway decision path (Platform Engineering, Security) | **yes** — it is what the run records | PR 2 |
+| the producer writing `usage.calls`; the calibration producer | `run_with_tools.py` | goldens producer (Platform Engineering, AI Quality) | **yes** | PR 2; the calibration flag is unlisted and must be added (fact 4) |
+| `calls` in the verdict | `evals/deterministic.py` | **none** | yes, if PR 3's transcript is to carry it and the demo line to be true | PR 2, and the scorer goes on a rule in the diff that changes it (ADR-060's precedent) — AI Quality with Platform Engineering, the derivation pin's pair. Otherwise the file ADR-037 would have named next stays on one key with a dated finding |
+| the `p95_ms` rule executed; the gate moved | `tests/test_budget_derivation.py`, `pave.manifest.yaml`, `context-census.json` (digest line) | derivation pin (AI Quality, Platform Engineering); manifest (AI Quality, Tool Owner); census (AI Quality, Platform Engineering, Security) | **yes** — it is what the run is compared to | PR 2; the census re-production is unlisted (fact 1) |
+| the `BANDS` pin | `tests/test_budget_derivation.py` | derivation pin | no | PR 2, because the file is open on the same two keys; it costs the round nothing and rides PR 4 on the same keys if the round needs shortening |
+| the round-1 pin | a new test over `handler.py` | none unless placed in `tests/test_handler_wiring.py` (Platform Engineering, Security) | **yes** — it arms or disarms ADR-014 amendment 2's trigger, and the code it pins is PR 2's | PR 2, in the wiring test's file so it sits on the handler's rule |
+| the G4 boundary guard | `tests/test_g4_capture_boundary.py` | audit record shape (Platform Engineering, Security) | **no** — it touches nothing the run records or is compared to | **PR 4.** Its keys are the file's and PR 4 collects attestations per rule; what it loses is a seat round on a `SKIP_DIRS` path fix, which the deletability audit covers |
+| `fresh_join.py` and its pin | `milestones/M08b/fresh_join.py`, `tests/test_m08b_fresh_join.py` | **none** | **yes** — it decides the claim and must exist before the data it reads | PR 2, with the census rule widened to `milestones/M08b/` readers and records in the same diff, which pulls `pave/twokey.py` (four seats) and `tests/test_twokey_seats.py` (five) into PR 2 |
+| `residual_attribution.py` and its pin | `milestones/M08b/residual_attribution.py`, `tests/test_m08b_residual.py`, `calibration.json` | **none** | yes for the reader; the evidence file needs a rule before PR 3 writes it | PR 2, under the same widening |
+
+**The answer to the question asked.** One item rides PR 4 without losing a
+key: the G4 boundary guard. One item could but should not: the `BANDS` pin,
+because its file is open in PR 2 anyway. Nothing else can move, because
+everything else either changes what the run records, changes what it is
+compared to, or decides what the run means — and the last category is on no
+rule today, which is a finding, not a scheduling question. **After the
+widening PR 2 collects all five enforced seats** (Platform Engineering,
+Security, AI Quality, Tool Owner, Legal/S&P on `pave/twokey.py`), which is M08
+PR 2's register shape and acceptable. The seats are told what to plant, not
+what to read: a per-call list whose sum disagrees with the total; a verdict
+that names `calls` from the total rather than the list; a foreign population
+in the p95 test; a `fresh_join.py` that reads the ceiling from the manifest
+rather than the cases file; a calibration event that carries `tools: True`.
+
+### 4. The manifest gate: printed from which population, and in which PR
+
+**The population is forty answered M07 stage-2 samples whose call count equals
+their case's mandate**, read from `2_stage2_per_sample` (`answered`, `calls ==
+mandated_calls`) joined to the three answer files' `usage.latency_ms`. The two
+refused samples carry `latency_ms: null` and are in no population.
+Recomputed here from those inputs, with `evals/deterministic.py`'s
+`samples[ceil(0.95 n) − 1]`:
+
+```
+pooled n 73 p95 5431
+mandated n 40 p95 3769 max 3934
+above-mandate 3-call n 19   four+ n 14   min four-call latency 3526
+floor 4334.35  roof 6030.4  midpoint 5182.375  rounded 5200
+3-call as-run p95 (n 59) 5004
+```
+
+Every figure in D3 §5 reproduces. **The number is 5200 and PR 2 chooses
+nothing**: the population, the percentile, the band and the point rule are all
+fixed in PR 1, and PR 2's test either prints 5200 from the committed inputs or
+is red.
+
+**Is 5431 the hazard ADR-073 amendment 1 refused?** That amendment refused
+*deriving a new rule in the PR that moves the number, with the number it will
+be applied to in view*. Two of those three conditions are not met here and
+one is met at PR 1, not PR 2. The rule is not derived in PR 2; it was written
+in PR 1 and adds no constant. The number it is applied to — the fresh run's
+p95 — is not in view at PR 2 and cannot be. What was in view when the rule
+was written, at PR 1, was M07's pooled 5431, and D3 §5 says so. What the
+spec should do with that is what pre-registration can still do after the
+fact: **name the populations the rule could have taken and the number each
+gives, so a seat can see the one taken is the one that fails the known run.**
+
+| population | p95 | band | point | M07's 5431 reads |
+|---|---|---|---|---|
+| mandated shape, n = 40 (**the rule**) | 3769 | 4334–6030 | **5200** | **OVER** |
+| as-run three-call, n = 59 | 5004 | 5755–8006 | 6900 | within |
+| pooled, n = 73 | 5431 | 6246–8690 | 7500 | within |
+
+The rule takes the only population under which the run in view fails the
+gate. That is the opposite of the flattering choice, and it is the one fact
+that makes the in-view hazard survivable. It belongs in the spec, not only
+here.
+
+**The gate moves in PR 2, and PR 3 would be the wrong PR.** The `tokens_in`
+sequence was: band pinned two milestones earlier, census committed at PR 1,
+number moved at PR 3, first count at PR 4. The latency sequence is: rule at
+PR 1, number executed and gate moved at PR 2, fresh run read at PR 3. Moving
+the gate in PR 3 puts the fresh p95 in view when the number lands, which is
+the hazard in its real form; PR 2 is the last PR at which the fresh number
+does not exist.
+
+**What the spec must say, in PR 2's diff.**
+
+1. The population by key and count, as ADR-014 amendment 2 named the census
+   keys: `2_stage2_per_sample`, `answered`, `calls == mandated_calls`, n = 40.
+2. The number, 5200, and the predicted line for M07's files at the new gate,
+   printed now so nobody reads it later as a surprise:
+   `suite latency  OVER p95=5431ms over 5200ms`. The M07 re-score at PR 2
+   prints that line and 12/25; the join is byte-identical because the join
+   reads token verdicts, not the latency line.
+3. The table above — the two populations not taken and the numbers they give.
+4. That PR 2 re-produces `milestones/M08/context-census.json` with its
+   manifest digest line moved and nothing else, shown key by key, on the
+   census rule's three keys; and the DoD's `milestones/M08/` clause amended to
+   name it.
+5. That `test_the_suite_percentile_budget_was_not_raised` is the test replaced,
+   and its replacement's docstring carries the rule and the reason the
+   two-milestone refusal ends: the number is derived, not raised.
+6. **What PR 3 reads: two numbers, not one.** The fresh pooled p95 against
+   5200 (OVER or within), and the fresh mandated-shape p95 against 5200
+   beside it. Pre-registered readings: pooled OVER with mandated-shape p95 ≤
+   5200 is the share the rule was written to report, the browse gap's, and
+   decision 2 owns it; mandated-shape p95 > 5200 is latency drift in the
+   shape itself, a dated finding for Platform Engineering, and the rule's
+   premise — that the mandated shape's tail is stable — is what failed. One
+   number cannot tell these apart; `fresh_join.py` prints both at zero cost.
+
+### 5. The near miss: what a sample at 7720 at three calls means, and is it pre-registered
+
+**The spec says a single sample either way falsifies the claim, and nothing
+else.** It does not say what the sample means, and a red close would record
+"the ceiling failed" for four different failures. The numbers the reading
+needs, all from M08's record: point **7700**; unrounded midpoint **7675.125**;
+band **[7171, 8180]**; the record's gap **(6792, 8181)** — 908 tokens (13.4%)
+above the as-run three-call maximum, 481 (5.9%) below the four-call minimum;
+mandated-shape maximum **6235**; the comparison `got > limit`.
+
+**7720 at three calls is not a grain event.** The rounding grain is the
+interval where the rounded and unrounded points disagree: **(7675.125, 7700]**.
+7720 is above both. It falsifies the number and the rule's own unrounded
+output alike, and the rounding is not implicated. What it is depends on the
+sample's mandate, and the reading forks there:
+
+| the falsifying sample | what moved | re-derived band | lesson recorded |
+|---|---|---|---|
+| ≤3 calls, **at mandate**, in (7700, 8180] | the mandated-shape maximum is now ≥ that value; floor 1.15 × 7720 = 8878 > 8180 | **empty** | **the rule failed**: no ceiling can sit 1.15× above this shape and below the next call count; a re-derivation by the same rule has no solution, and the census milestone needs a different rule (per-case, or a call-count gate) |
+| ≤3 calls, **above mandate**, in (7700, 8180] | nothing in the band's inputs; the browse gap's first extra call grew | unchanged, contains 7700 | **the point failed inside a band that still holds it**: the midpoint rule left 908 tokens over the as-run three-call maximum and that was not enough; statement 3's *discriminates call count ≥ 4* is the sentence that was wrong for this sample |
+| ≤3 calls, > 8180 | the shape overlaps the four-call shape | empty | the rule failed, as row 1 |
+| ≥4 calls, in [7171, 7700] | the four-call minimum moved under the point; roof = that value − 1 < 7700 | non-empty, **excludes 7700** | **the point failed and the rule survives**: the same rule re-derives lower (a four-call minimum of 7650 gives [7171, 7649], midpoint 7410, point 7400) |
+| ≥4 calls, < 7171 | roof < floor | empty | the rule failed |
+| either side, **inside (7675.125, 7700]** | — | — | **the grain**: a three-call sample here passed only because the midpoint rounded up, a near miss recorded and not a falsification; a four-call sample here passed for the same reason, and that IS a falsification the rounding caused, so the lesson is the grain and not the ceiling |
+
+**Pre-registered, so a red close records the right row:** `fresh_join.py`
+prints, for every answered sample, its distance to 7700, to 7675.125 and to
+the nearer band edge, and for the run as a whole the fresh mandated-shape
+maximum, the fresh four-call minimum, the band those two re-derive by
+ADR-014's pinned rule, and whether 7700 sits inside it. A falsifying sample
+is recorded with its row of the table above by name. This is arithmetic on
+numbers the join already carries, zero cost, and it is the difference between
+a red close that says *the ceiling failed* and one that says which of the
+point, the grain, the band or the rule did.
+
+**And when the claim holds, the same column is the finding for M09.** The
+claim can hold while the rule does not: a fresh three-call sample at mandate
+at 6900 passes 7700 and moves the floor to 7935, so the re-derived band
+[7935, 8180] no longer contains the number that held. *The number holds, the
+rule does not* is a sentence the spec cannot write today, and it is the one
+M09 needs before it puts a rules loop on this axis. The side-reading is
+pre-registered here as recorded, not ruled on: 7700 stands wherever the
+fresh band lands, because a ceiling moved on a fresh run's band is a
+re-derivation, and that is a census milestone.
+
+One more thing the falsifier's sentence should carry. The two tails are not
+the same distance away — 908 tokens on the three-call side, 481 on the
+four-call side — and the spec predicts neither. It should not predict a side;
+it should say the reading is side-specific, which the table above makes it.
+
+### 6. The cap, and the fallback it fires
+
+SPEC/08b caps M08b at six PRs and planned six — PR 1 through PR 6 — with no
+spare. This amendment is committed as a seventh, so the cap is reached before
+PR 5 and the spec's own sentence applies: *the DMA rename is the pre-registered
+item that gives way, by name, if the cap is reached before PR 5.* Decision 4
+pre-authorised exactly one slide, to **M09 PR 1** by name, because M09
+re-freezes the judge for the `brand_tone` widening anyway and two re-freezes
+become one. **Taken here, at PR 1b, not discovered at the close.** The six are
+PR 1, PR 1b, and PRs 2, 3, 4 and 6; PRs 2–6 keep their numbers so every
+reference in the spec and this ADR stays valid (ADR-073 amendment 1's
+precedent), and there is no PR 5. It is the fourth slide of that debt and the
+only one this milestone pre-authorised; any other slide is a finding. What it
+leaves: nothing under `milestones/M08/` moves in this milestone but the census
+record's manifest digest line (fact 1), and M09 PR 1 carries the rename beside
+its own re-freeze, in no PR with anything else. The alternative — folding this
+amendment into PR 2 to stay under the cap — was not taken, because a reading
+of the plan committed in the diff that acts on it is the pre-registration
+failure ADR-014 amendment 2 records, one PR over.
+
+### What this amendment asks PR 2 to carry, beyond what SPEC/08b lists
+
+1. **The spec's DoD corrected before PR 2 opens**, in its own zero-call diff:
+   the `milestones/M08/` clause names the census record's digest line;
+   `README_GOLDENS` and the bold goldens cell move to PR 3 beside the entry,
+   the ✅ stays PR 6; the claim's sentence says *no token ceiling* and carves
+   out `p95_ms`; *stops at PR 3* is reworded so PRs 4 and 6 proceed on a red
+   claim; the calibration call gains a producer and a fallback; PR 3's
+   citations are held to PR 4's rule before PR 3 merges; the DMA rename
+   re-dated by the fallback (§6).
+2. The census record re-produced with its manifest digest moved, key by key,
+   on three keys.
+3. The census rule widened over `milestones/M08b/` readers, records and
+   `calibration.json` in the diff that creates them, with a `_blocked_for`
+   plant each; `evals/deterministic.py` put on a rule in the diff that
+   changes it, or the finding dated with ADR-037's name.
+4. A calibration producer on `run_with_tools.py` — the same event with tools
+   absent, one case, `--out calibration.json` — tested hermetically; the
+   refused-turn fallback pre-registered: B is read from the audit record's
+   per-call usage if PR 2 puts it there, else the call is re-issued once on
+   the case with the next-highest mandated-shape `tokens_in` in the census,
+   **`entitlement-010`** (6229 against `blackout-008`'s 6235), with A read
+   from the same case and the substitution recorded.
+5. The round-1 pin as a behavioural test on the handler's client kwargs, in
+   the wiring test's file.
+6. An F/G reader tested by reproducing G = 8, F = 1 from M07's files.
+7. `fresh_join.py` printing, beside the join: the fresh mandated-shape p95
+   and the pooled p95; per-round growth per sample; the near-miss columns
+   and the re-derived band of §5.
+8. The residual rule with signs: shares of |D| + |F|, each sign reported; E
+   by named key.
+9. The p95 section of the spec carrying §4's six items, including the two
+   populations not taken and the predicted M07 line at 5200.
+10. The G4 boundary guard moved to PR 4; PR 2's seat round planned as two.
+
+### What this amendment does not change
+
+The claim. 7700, the band [7171, 8180], and the placement below 8181. The
+count band [7, 14] and its prediction. The refusal band. The `recommend-003`
+rule and its prior. The residual's four numbers and two identities. The
+`p95_ms` rule, its population, and the number 5200. The order of the debts
+against the run. The cap — six, and spent by §6. Constraints 1–10. Decision
+2. Outcome B where ADR-073 decision 2 left it.
