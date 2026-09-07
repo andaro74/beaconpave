@@ -514,12 +514,22 @@ RULES: tuple[Rule, ...] = (
         # The residual differential and its record ride the same rule: the same
         # reader module, the same inputs, the same pin shape.
         #
+        # **The re-score join and its record (M08 PR 4).** `rescore_join.py`
+        # reads the census's per-sample call counts and the transcripts PR 4 ran
+        # once, and writes the per-sample join SPEC/08's claim is read from --
+        # which samples the ceiling passes and fails, by call count. It is the
+        # reader that says whether the ceiling caught every runaway turn, so it
+        # decides the same thing the census does, one step later, and a trim in
+        # its `claim()` would report a holding claim over a broken join on one
+        # key. Widened in the diff that creates it, never in a follow-up.
+        #
         # AI Quality (the ceiling), Platform Engineering (the loop the census
         # describes), and Security -- because this record now decides what
         # "catches a runaway loop" means, which is the counterweight seat's object.
         "the M08 census — the reader and record the tokens_in ceiling is derived from",
         re.compile(r"^milestones/M08/(context_census\.py|context-census\.json"
-                   r"|residual_differential\.py|residual-differential\.json)$"),
+                   r"|residual_differential\.py|residual-differential\.json"
+                   r"|rescore_join\.py|rescore-join\.json)$"),
         ("ai-quality", "platform-eng", "security"),
     ),
     Rule(

@@ -692,3 +692,204 @@ its outcome. Constraints 1–8. The cap — six, and spent: PR 1, PR 1b, and PRs
 2–5. Outcome A stays where decision 2 put it. PR 3 is twenty-five identical
 line edits, one manifest value, one test re-pointed, one ADR amendment in the
 wording above, and one question for the seats.
+
+## Amendment 3 — PR 4's count, in the pre-registered words, and the join it is read beside
+
+**Written 2026-09-06, in M08 PR 4, after the re-score was run once and
+committed as-run (`f8e3bd3`) and before this text existed. Zero model calls;
+no deploy; no seat round; nothing under `milestones/M07/` touched; no case,
+prompt, tool, topic or other assert moved. Every number below is read from
+`milestones/M08/goldens-rescore.txt`, `milestones/M08/per-sample-at-7700.txt`
+and the join record `milestones/M08/rescore-join.json`, which
+`milestones/M08/rescore_join.py` produces from those two transcripts, PR 2's
+transcript at 6000, the census record, M07's history row and the live cases
+file, and which `tests/test_m08_rescore_join.py` pins byte for byte.** PR 4
+records the number; it does not explain it.
+
+### 1. The count
+
+The sentence amendment 2 §1 pre-registered, filled with the number and
+nothing else:
+
+**PR 4's re-score prints 12/25. The cases that flipped from FAIL are exactly
+the ten amendment 1 names and none of the five. The side-prediction held. The
+claim: every ≤3-call sample under 7700, every ≥4-call sample over it, by the
+join.**
+
+The k=3 transcript, verbatim:
+
+```
+12/25 passed (13 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 13 failed: 1 were refused before scoring, 12 answered and scored wrong
+refusals: 2/2 resolved to 1 (mechanism, assessed) pair — guardrail / TOPIC:entitlement-circumvention
+suite latency  OVER p95=5431ms over 2500ms
+channels: tool_request 0 · answer 2 · question 0 · tool_output 0
+```
+
+The refusal, channel and latency lines are byte-identical to M07's
+`goldens-score.txt`, as SPEC/08's demo block predicted. The three single-file
+runs print 13/25, 10/25 and 10/25 at 7700 against 3/25, 2/25 and 2/25 at
+6000 (`per-sample-at-7700.txt`, `per-sample-at-6000.txt`). N = 12 is the
+predicted value inside the bound [2, 12]; the flipped set is `entitlement-002`,
+`entitlement-010`, `entitlement-011`, `recommend-015`, `grounded-017`,
+`grounded-019`, `brand-020`, `edge-024`, `headroom-005`, `headroom-026`; no
+case regressed; `grounded-016` and `brand-021` still pass. The four
+falsifiers of the side-prediction each read empty from the record's
+`side_prediction.falsifiers`: no case flipped on a 4-call majority; no
+flipped case failed anything but `budget.tokens_in` at 6000 on the samples
+that pass now; none of the five flipped; none of the ten stayed.
+
+### 2. The join
+
+The claim is per sample, and the k=3 transcript cannot show it. The record's
+`per_sample` table has one row per committed stage-2 sample — 75 rows, 73
+answered, two refused — with the census's call count, the mandate, the
+`tokens_in` and `tokens_out` verdicts at 7700 read from the single-file
+transcripts, every other failing assert, and what the same sample failed on
+at 6000. `python milestones/M08/rescore_join.py --out <scratch>` renders it
+as a table; `--check` refuses drift from the committed inputs. The summary
+the claim turns on:
+
+| calls | answered samples | `tokens_in` verdict at 7700 | range |
+|---|---|---|---|
+| ≤ 3 | 59 | every one PASS | max 6792 (`headroom-005` s2) |
+| ≥ 4 | 14, on 7 cases | every one FAIL | min 8181 (`grounded-019` s3) |
+
+The fourteen: `recommend-003` s2; `recommend-013` s1–s3; `recommend-014`
+s1–s3; `grounded-018` s2, s3; `grounded-019` s3; `multi-023` s1–s3 (s3 at
+five calls, 11081); `edge-025` s3. Every one ran four or more calls against a
+two-call mandate except `multi-023`'s three, which ran four and five against
+three. The two refused samples, `recommend-003` s1 and s3, carry no budget
+verdict and are joined as refused. The claim's three falsifiers: the rule
+yielded a number (7700, PR 3); no ≤3-call sample is over it; no ≥4-call
+sample is under it. **The claim holds**, on the join and on nothing else.
+
+### 3. The thirteen that remain
+
+Read case by case from `per_case` and `per_sample`:
+
+- **Five on `tokens_out` at an unchanged tier**, the five amendment 1 said
+  could not flip: `blackout-001`, `blackout-007`, `blackout-008`,
+  `blackout-009` (s1 passes; s2, s3 over by 9 and 2), `concise-022`. Each
+  fails `budget.tokens_out` on a majority and every other assert passes on
+  that majority, except `blackout-001`, whose s2 and s3 also fail
+  `must_mention` and s2 `entitlement`.
+- **Six of the seven browse-gap cases**: `recommend-003`, `recommend-013`,
+  `recommend-014`, `grounded-018`, `multi-023`, `edge-025`. Each carries at
+  least one ≥4-call sample, and each also fails a grounding or citation
+  assert on every sample — `must_cite` and `must_mention` on the three
+  `recommend` cases and `multi-023`, `cites_at_least_one` on `edge-025` and
+  `grounded-018` (with `json_schema` and `must_not_claim`). The seventh
+  browse-gap case, `grounded-019`, passes on a 2-of-3 majority; its s3 is the
+  four-call turn at 8181.
+- **Two on content**: `blackout-006` (`must_mention: 'blackout'` absent on
+  all three samples, `tokens_out` over on all three) and `entitlement-012`
+  (`entitlement: answer carries no entitlement verdict` on s2 and s3,
+  `must_not_claim` on s3).
+
+**A fact read from the record, not predicted: at 7700, striking the
+`tokens_in` half of `budget` entirely would move no case.** Every one of the
+thirteen fails on a majority of samples for a reason other than `tokens_in`.
+One sample in the whole set fails on `tokens_in` alone, `grounded-019` s3,
+and its case passes. The axis discriminates exactly what ADR-014 amendment 2
+statement 3 says it discriminates — every 4- and 5-call turn, fourteen
+samples on seven cases — and today each of those turns is also a wrong or
+missing citation, so the ceiling catches the browse gap's *shape* on a sample
+the citation asserts already catch by *content*. That is what a ceiling
+placed below the next call count is for: the day a four-call turn cites
+correctly, `budget` is the only assert that still names it. It is recorded
+here because a reader of the count alone would take 12/25 as the budget axis
+costing thirteen cases; it costs none.
+
+### 4. The seven browse-gap cases, named as Tool Owner's M10 material
+
+SPEC/08's inherited obligations carry `catalog-search`'s browse gap as *"Tool
+Owner, no ADR — unchanged; the census names it as the source of every 4- and
+5-call turn."* The join names the cases: **`recommend-003`, `recommend-013`,
+`recommend-014`, `grounded-018`, `grounded-019`, `multi-023`, `edge-025`** —
+fourteen samples, every one a `catalog-search` call beyond the mandate before
+`entitlement-check` or the answer, every one failing `tokens_in` at 7700, and
+all but `grounded-019` failing a citation or grounding assert on the same
+sample. That is the material: the extra call and the wrong citation arrive
+together, on the same seven cases, in every committed stage-2 sample that
+ran long. It is handed to the Tool Owner seat for M10, no ADR here, and the
+per-case ceiling AI Quality raised on PR 3 (declined there as a new rule) is
+the same seat's material in the same milestone if the browse gap is not
+closed at the tool.
+
+### 5. Two findings the plan made before the run, recorded
+
+**The register has no shape for a re-reading of one run at a moved
+threshold.** SPEC/08's plan row said *"the entry, if recorded, on three
+keys"*, and ADR-014 amendment 2 said *"PR 4's entry will carry a new value."*
+Simulated before the run in a scratch copy of `evals/history/`, the way
+`tests/test_history_append_only.py` does: M07's row re-tagged `m08` and
+citing M07's three files is refused by `pave/history.py` three ways —
+decision 5's *"an entry cites its own milestone's evidence"* on each file,
+decision 5's *"one run is one row"* on each file because `m07-tools-goldens.json`
+already cites them, and decision 2's *"m08 has a goldens entry on disk and
+README's m08 row is pinned to none"*. Untagged, the first and third go away
+and *"one run is one row"* stays. `--supersedes` would say M07's 2/25 was
+wrong, and it was not (ADR-027); `--sha` is refused without `--judged` or
+`--supersedes`. **Operator's decision: no history entry in PR 4.** The
+register's re-reading shape — a row that names the run it re-reads and the
+threshold it re-reads it at, the ADR-012 *two readings of one commit* case
+in the deterministic shape — is dated to **PR 5, the close**, on the M07 PR 6
+precedent: three keys on the register (`pave/history.py`, the schema and its
+digest; AI Quality, Security, Platform Engineering), then the entry, then the
+README row. **M09 PR 1 is the fallback** if the close cannot carry it, and
+the progression row's cell then cites `goldens-rescore.txt` and this section
+as *why not*.
+
+**`cases_sha256` is not a field an unjudged goldens entry carries.** It is
+`instrument.deterministic.cases_sha256`, written by `evals/judged.py` for a
+judged reading only; `m07-tools-goldens.json` has no such key, so ADR-014
+amendment 2's *"PR 4's entry will carry a new value"* named a field this
+entry shape does not have. What did move at PR 3, and is shown in that PR
+and this one, is the census record's provenance digest of `cases.yaml`
+(`b0e874a8…` → `f59f4a39…`, the value the join record digests too) and the
+file's git blob (`git hash-object`: `b215ea7c…` → `898632a3…`). `quality/adversarial/instruments.json`
+and `quality/judge/frozen.json` are unchanged since before PR 3, by `git
+diff`. ADR-014 amendment 2 is not edited; this paragraph is the correction.
+
+### 6. The call count in the budget failure record — declined for M08, re-dated
+
+ADR-014 amendment 2 dated to PR 4 the decision whether to carry `calls` into
+the budget failure record, because *"tokens_in=8181 over 7700"* does not say
+it was a four-call turn. **Declined for M08.** `evals/deterministic.py` is an
+instrument, M08 moves none (amendment 2 §5's own rule for PR 3 and SPEC/08's
+*"a re-score is not a run"*), and the cost the obligation named — a hand-join
+to the trajectory — is paid once here: the join record carries `calls` and
+`mandated_calls` beside every verdict, pinned, on the census's rule. The
+producer change stays owed, **re-dated to M09 PR 1** beside the per-call
+`inputTokens` debt (amendment 2 §2) on the same seats, AI Quality with
+Platform Engineering, so the answer file and the failure record gain the
+call count in the same diff and the join reader retires.
+
+### 7. What PR 4 adds, and the register
+
+Two transcripts, raw stdout, run once (`f8e3bd3`). The join reader and its
+record, with a pin test that plants a verdict, a claim flag, a flip and a
+foreign ceiling and expects each to move the record or be refused
+(`1492358`). The census rule in `pave/twokey.py` widened over
+`rescore_join.py` and `rescore-join.json` in the diff that creates them —
+measured on `f8e3bd3` before the widening, both `two-key: not required`;
+after, AI Quality, Platform Engineering, Security — with the seat pin's
+`required` list at 69 → 71 and the four M08 transcripts asserted on no rule.
+One wart, as-run and not edited: the census's `--check` line in
+`goldens-rescore.txt` prints the record's absolute path in the Windows form,
+because that is what the reader prints. PR 4's diff triggers the census rule
+(three seats), `pave/twokey.py` (AI Quality, Legal/S&P, Platform Engineering,
+Security) and its seat pin (those plus Tool Owner); five enforced seats
+attest, the same five as PR 3.
+
+### What this amendment does not change
+
+The claim, the band, the placement, the number, the rule and its outcome.
+Constraints 1–8. Outcome A stays where decision 2 put it. No case, prompt,
+tool, topic or assert; nothing under `milestones/M07/`; nothing in
+`evals/history/`. PR 5 carries: the journal with the residual row, the
+`p95_ms` standing finding, the two step-6b triggers PR 2 recorded, the
+template's 6000/6500, the `test_g4_capture_boundary.py` vacuity defect, and
+§3's struck-axis fact; the register's re-reading shape, the entry and the
+row (§5); the progression row; tag `m08`.

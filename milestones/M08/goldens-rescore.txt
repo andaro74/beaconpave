@@ -1,0 +1,87 @@
+=== python milestones/M08/context_census.py --check
+OK: C:\Users\andar\code\beaconpave\milestones\M08\context-census.json is what the committed inputs produce
+exit 0
+
+=== python -m evals.run_evals --arm tools --answers milestones/M07/goldens-run-1.json --answers milestones/M07/goldens-run-2.json --answers milestones/M07/goldens-run-3.json --refusals milestones/M07/goldens-run-refusals.json
+summarised 3 samples by per-case majority (arm=tools)
+
+blackout-001     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_out=330 over 300
+blackout-006     FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'blackout' absent from answer
+                   - budget: tokens_out=313 over 300
+blackout-007     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_out=326 over 300
+blackout-008     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_out=341 over 300
+blackout-009     FAIL  [PASS FAIL FAIL]
+                   - budget: tokens_out=309 over 300
+entitlement-002  PASS  [PASS FAIL PASS]
+entitlement-010  PASS  [PASS PASS PASS]
+entitlement-011  PASS  [PASS PASS FAIL]
+entitlement-012  FAIL  [PASS FAIL FAIL]
+                   - entitlement: answer carries no entitlement verdict
+recommend-003    FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+recommend-013    FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'Jefferson Derby' absent from answer
+                   - must_cite: not cited: ['t001']
+                   - budget: tokens_in=8302 over 7700; tokens_out=411 over 400
+recommend-014    FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - budget: tokens_in=8309 over 7700
+recommend-015    PASS  [PASS PASS PASS]
+grounded-016     PASS  [PASS PASS PASS]
+grounded-017     PASS  [FAIL PASS PASS]
+grounded-018     FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_out=386 over 300
+grounded-019     PASS  [PASS PASS FAIL]
+brand-020        PASS  [PASS PASS PASS]
+brand-021        PASS  [PASS PASS PASS]
+concise-022      FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_out=312 over 300
+multi-023        FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - budget: tokens_in=9220 over 7700; tokens_out=607 over 600
+edge-024         PASS  [PASS PASS PASS]
+edge-025         FAIL  [FAIL FAIL FAIL]
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_out=313 over 300
+headroom-005     PASS  [PASS FAIL PASS]
+headroom-026     PASS  [PASS PASS PASS]
+
+12/25 passed (13 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 13 failed: 1 were refused before scoring, 12 answered and scored wrong
+refusals: 2/2 resolved to 1 (mechanism, assessed) pair — guardrail / TOPIC:entitlement-circumvention
+suite latency  OVER p95=5431ms over 2500ms
+deferred, evaluated but not scored: 23 assert(s) across ['entitlement_source', 'tool_before_answer']
+  entitlement_source: reads a self-report; verifiable only by M06's trajectory eval (ADR-016)
+  tool_before_answer: evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)
+exit 0
+
+=== python -m evals.refusals --sidecar milestones/M07/goldens-run-refusals.json
+refusals sidecar: milestones/M07/goldens-run-refusals.json  (reporting only; scores nothing)
+  gateway:               BeaconpaveGateway-GatewayFn1123A784-2LHF1oy9C98J
+  guardrail:             abayh4ye7f8o v4   tool-output guardrail: ggla7vqlfu7d v1
+  store:                 beaconpavegateway-withheldstore40f96f34-nyxllxnfiear
+  _inspection_text:      platform/gateway/core/toolloop.py  sha256 c9ecc03b9351d84fe201cbce28d47a8bef3205e9840695e2135d54acfb2a5fc3
+  probe comparison base: milestones/ADR-041/probes-and-controls-v4.json
+  tag: m07s2
+  guardrail versions observed: {'abayh4ye7f8o': ['4']}
+  refused by majority: 1/25   at least once: 1/25   unanimously: 0/25   (k=3, as written by the run)
+  channel × assessed over 2 refused sample(s):
+    answer TOPIC:entitlement-circumvention                         2
+  channel × guardrail:
+    answer abayh4ye7f8o/4                                          2
+channels: tool_request 0 · answer 2 · question 0 · tool_output 0
+tool_request share of refused samples: 0/2 = 0.000
+This scores nothing. The band and decision 4's rule are read by a person and recorded in the ADR.
+
+exit 0
+
