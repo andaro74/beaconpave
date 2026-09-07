@@ -1,0 +1,177 @@
+{
+  "_what_this_is": "M08's residual differential: the tools arm's per-call input at M02 (one tool offered) against M07 stage 2 (two tools), across one added tool spec of known size, read off the same committed runs the census reads through the census's own reader. Zero model calls. Produced by milestones/M08/residual_differential.py; tests/test_m08_residual_differential.py re-runs it and refuses drift. Narrows ADR-073 amendment 1's three explanations; pays nothing. Takes no ceiling and prints no pass count.",
+  "inputs_sha256": {
+    "data/catalog.json": "200a262fd5300c361c5bcbefa3240f642f655b5863ad4b75bd95f799ec921d6f",
+    "milestones/M02/runs/m02-tools-1-trajectory.json": "18cb69e6aea98f42ae3231d9b58e5e57ed1bdcb224121bea7757cee407c825a0",
+    "milestones/M02/runs/m02-tools-1.json": "29eb548a76353612c1e9bdea096fff10772fd91fad3b6403caa4353bfff083f6",
+    "milestones/M02/runs/m02-tools-2-trajectory.json": "7eda2e0b52358b2ee9797ef4b23d968a1b9e76f43c8b2c55618345785f1313cd",
+    "milestones/M02/runs/m02-tools-2.json": "fe201a3f7f8c7759926834715a33b1f53f837d6c3077bb27d8487aacdc2252f6",
+    "milestones/M02/runs/m02-tools-3-trajectory.json": "ebd7fdd0e2b518ff6f8634697bedcdff82ac3385cc8a06a16181232d2c822fe1",
+    "milestones/M02/runs/m02-tools-3.json": "66239ddb6dc453656af4853b94709d87b84387b1ebe70c2c16d4d8bf6b48aca4",
+    "milestones/M07/goldens-run-1-trajectory.json": "85646e602e6e1e96fef1fb9f54bae94e90ae7597a7dd3b9314b2c7b02c20e19b",
+    "milestones/M07/goldens-run-1.json": "f289ad8c658871f7a15250ba3745a80403de33cdd4e43034b56b80cea059410c",
+    "milestones/M07/goldens-run-2-trajectory.json": "5000ce0356342dbd96bdf5cb4f86043d449c13a1ccc4a06fbffc0b27c613860a",
+    "milestones/M07/goldens-run-2.json": "c44023b21f67bf1f186fe79f174bc5f75b3a6c0b41580b3c6efe817ae82de523",
+    "milestones/M07/goldens-run-3-trajectory.json": "d4b3aa126e943e1497bb63accc2d877b2c5c58264fef06e34245bd651fe5a4a8",
+    "milestones/M07/goldens-run-3.json": "9b281fc2d362368bd72c1f1e4cd8dabca9a40e23301e487c199a799c1d80401e",
+    "platform/gateway/policy/tools.contracts.json": "a0ad6eae3b8f4ada5e9e673368bf0970fa8bcec80dbe4ccfcc017d3d7742f9d7",
+    "services/highlights-agent/evals/answer.schema.json": "d4219cc724c5c17e94693d99992637de9c8f987e58632239ca2bbfccd0baa155",
+    "services/highlights-agent/evals/golden/cases.yaml": "b0e874a89f322865e2daeae68dbc3caa317f60bc24749c7665964693e5cfdf2c",
+    "services/highlights-agent/gateway_client.py": "4554dd284606139de8ece32efc09884c68e89c770e2c9bc18617469230dcd73c"
+  },
+  "m02_era_text": {
+    "commit": "4eda0d036884a2d536d757b60b78ff10ac7d91e8",
+    "committed": "2026-08-19",
+    "what": "the commit that committed milestones/M02/runs/",
+    "blobs": {
+      "services/highlights-agent/gateway_client.py": "8351db7a64ef27600b4002541b99d648bb91d275",
+      "services/highlights-agent/evals/answer.schema.json": "3c81d9e89e75ab00bcf3617f7b2d76c43c8eed4d",
+      "platform/gateway/policy/tools.contracts.json": "eb49fe418bc7373cdadb3fe68085e974088626f1"
+    },
+    "rebuilt_text_sha256_at_m02": {
+      "tool_system_prompt": "9ebd6e0725e914e492592c0f178dc09d97449c59d2072d618897dae43da238a4",
+      "catalog_search_toolspec": "c8c3bddb71174ae73e4de6d15fd1db7ed536ab75175770e6a3329b292db53986"
+    },
+    "clock_at_m02": "2026-09-13T18:00:00Z",
+    "rebuilt_text_sha256_at_head": {
+      "tool_system_prompt": "9ebd6e0725e914e492592c0f178dc09d97449c59d2072d618897dae43da238a4",
+      "catalog_search_toolspec": "c8c3bddb71174ae73e4de6d15fd1db7ed536ab75175770e6a3329b292db53986"
+    },
+    "identical_to_head": true
+  },
+  "added_spec": {
+    "tool": "entitlement-check",
+    "chars": 951,
+    "tokens_est": 282,
+    "tokens_est_band": [
+      281,
+      282
+    ],
+    "as_sent": "the toolSpec the gateway builds from the committed input contract"
+  },
+  "per_call_by_call_count (exact medians)": {
+    "2": {
+      "m02_one_tool": {
+        "n": 52,
+        "per_call_median": 1693
+      },
+      "m07_stage2_two_tools": {
+        "n": 7,
+        "per_call_median": 1974
+      },
+      "delta_per_call": 281,
+      "delta_minus_added_spec_est": -1
+    },
+    "3": {
+      "m02_one_tool": {
+        "n": 12,
+        "per_call_median": 1787
+      },
+      "m07_stage2_two_tools": {
+        "n": 52,
+        "per_call_median": 2057
+      },
+      "delta_per_call": 270,
+      "delta_minus_added_spec_est": -12
+    },
+    "4": {
+      "m02_one_tool": {
+        "n": 3,
+        "per_call_median": 1812
+      },
+      "m07_stage2_two_tools": {
+        "n": 13,
+        "per_call_median": 2100
+      },
+      "delta_per_call": 288,
+      "delta_minus_added_spec_est": 6
+    }
+  },
+  "modal_pair (exact medians)": {
+    "m02_one_tool": {
+      "modal_calls": 2,
+      "per_call_median": 1693
+    },
+    "m07_stage2_two_tools": {
+      "modal_calls": 3,
+      "per_call_median": 2057
+    },
+    "delta_per_call": 364,
+    "of_which_like_for_like_at_two_calls": 281,
+    "of_which_stage2s_third_call": 83,
+    "note": "the figures SPEC/08 names, 1693 against 2057, compare M02's 2-call mode with stage 2's 3-call mode; the third call carries the first tool round's output and result, which is call count, not the added spec. The like-for-like rows above hold call count fixed."
+  },
+  "per_call_base_and_residual (bounded from two-call samples; explained half estimated)": {
+    "m02-tools": {
+      "offered": [
+        "catalog-search"
+      ],
+      "two_call_samples": 52,
+      "per_call_base": {
+        "lower": 1564,
+        "upper": 1693
+      },
+      "explained_by_committed_text_est": 1155,
+      "residual_est": {
+        "lower": 409,
+        "upper": 538
+      }
+    },
+    "m07-stage2": {
+      "offered": [
+        "catalog-search",
+        "entitlement-check"
+      ],
+      "two_call_samples": 7,
+      "per_call_base": {
+        "lower": 1859,
+        "upper": 1974
+      },
+      "explained_by_committed_text_est": 1437,
+      "residual_est": {
+        "lower": 422,
+        "upper": 537
+      }
+    }
+  },
+  "residual_delta": {
+    "lower": 13,
+    "upper": -1,
+    "added_spec_tokens_est": 282,
+    "added_spec_tokens_est_band": [
+      281,
+      282
+    ]
+  },
+  "reading": {
+    "question": "does the residual grow with the added tool spec?",
+    "answer": "no",
+    "sentence": "At two calls the per-call input went from 1693 (one tool) to 1974 (two tools), a difference of 281 against an added spec estimated at 282 [281, 282]; the residual's upper bound is 538 at M02 and 537 at stage 2. The residual did not grow with the spec: it is a fixed cost that appears with toolConfig and does not scale with the number of tools offered.",
+    "rules_out": [
+      "per_tool_provider_framing",
+      "estimation_error_on_tool_spec_json"
+    ],
+    "rules_out_because": "a cost that scaled with the number of tools, or a tokeniser that counted the spec's JSON denser than the 3.37 chars/token the prose anchors gave, would each have moved the per-call figure by more than the spec's estimate; it moved by the estimate",
+    "cannot_separate": [
+      "provider_side_tool_use_framing",
+      "content_the_agent_sends_no_committed_text_shows"
+    ],
+    "cannot_separate_because": "both are fixed across the two runs: whatever the provider prepends when toolConfig is present was present in both, and nothing in the client changed between them, so a fixed agent-side cost is indistinguishable from a fixed provider-side one here",
+    "not_varied": [
+      "answer_schema_json_tokenisation"
+    ],
+    "not_varied_because": "the answer schema is the same bytes in both runs; that tool-spec JSON tokenised at the prose ratio weakens the estimation-error explanation for the schema's JSON too, but does not test it",
+    "paid_by": {
+      "owed_to": [
+        "platform-eng",
+        "ai-quality"
+      ],
+      "date": "M09 PR 1",
+      "by": [
+        "per-call inputTokens in the answer file (a run_with_tools.py / _accumulate change; SPEC/08 constraint 5 forbids it in M08)",
+        "one calibration call with tools offered and an empty turn (a model call; SPEC/08 constraint 6 forbids it in M08)"
+      ],
+      "what_each_settles": "per-call usage separates the first call's base from what later calls carry; the calibration call, against the same text with toolConfig present and absent, is the residual measured directly"
+    }
+  }
+}

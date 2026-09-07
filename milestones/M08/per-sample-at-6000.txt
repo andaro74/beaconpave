@@ -1,0 +1,219 @@
+=== python -m evals.run_evals --arm tools --answers milestones/M07/goldens-run-1.json --refusals milestones/M07/goldens-run-refusals.json
+blackout-001     FAIL
+                   - budget: tokens_in=6169 over 6000; tokens_out=330 over 300
+blackout-006     FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - budget: tokens_in=6149 over 6000; tokens_out=313 over 300
+blackout-007     FAIL
+                   - budget: tokens_in=6183 over 6000; tokens_out=326 over 300
+blackout-008     FAIL
+                   - budget: tokens_in=6235 over 6000; tokens_out=341 over 300
+blackout-009     FAIL
+                   - budget: tokens_in=6137 over 6000
+entitlement-002  FAIL
+                   - budget: tokens_in=6192 over 6000
+entitlement-010  FAIL
+                   - budget: tokens_in=6156 over 6000
+entitlement-011  FAIL
+                   - budget: tokens_in=6131 over 6000
+entitlement-012  PASS
+recommend-003    FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+recommend-013    FAIL
+                   - must_mention: 'Jefferson Derby' absent from answer
+                   - must_cite: not cited: ['t001']
+                   - budget: tokens_in=8302 over 6000; tokens_out=411 over 400
+recommend-014    FAIL
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - budget: tokens_in=8309 over 6000
+recommend-015    FAIL
+                   - budget: tokens_in=6153 over 6000
+grounded-016     PASS
+grounded-017     FAIL
+                   - budget: tokens_in=6088 over 6000; tokens_out=310 over 300
+grounded-018     FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_in=6265 over 6000; tokens_out=386 over 300
+grounded-019     PASS
+brand-020        FAIL
+                   - budget: tokens_in=6068 over 6000
+brand-021        FAIL
+                   - budget: tokens_in=6185 over 6000
+concise-022      FAIL
+                   - budget: tokens_in=6161 over 6000; tokens_out=312 over 300
+multi-023        FAIL
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - budget: tokens_in=9220 over 6000; tokens_out=607 over 600
+edge-024         FAIL
+                   - budget: tokens_in=6199 over 6000
+edge-025         FAIL
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_in=6042 over 6000; tokens_out=313 over 300
+headroom-005     FAIL
+                   - budget: tokens_in=6711 over 6000
+headroom-026     FAIL
+                   - budget: tokens_in=6191 over 6000
+
+3/25 passed (22 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 22 failed: 1 were refused before scoring, 21 answered and scored wrong
+refusals: 1/1 resolved to 1 (mechanism, assessed) pair — guardrail / TOPIC:entitlement-circumvention
+suite latency  OVER p95=5218ms over 2500ms
+deferred, evaluated but not scored: 23 assert(s) across ['entitlement_source', 'tool_before_answer']
+  entitlement_source: reads a self-report; verifiable only by M06's trajectory eval (ADR-016)
+  tool_before_answer: evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)
+exit 0
+
+=== python -m evals.run_evals --arm tools --answers milestones/M07/goldens-run-2.json --refusals milestones/M07/goldens-run-refusals.json
+blackout-001     FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - entitlement: reason='upgrade-required' (expected 'blackout')
+                   - budget: tokens_in=6218 over 6000; tokens_out=358 over 300
+blackout-006     FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - budget: tokens_in=6152 over 6000; tokens_out=302 over 300
+blackout-007     FAIL
+                   - budget: tokens_in=6188 over 6000; tokens_out=335 over 300
+blackout-008     FAIL
+                   - budget: tokens_in=6232 over 6000; tokens_out=335 over 300
+blackout-009     FAIL
+                   - budget: tokens_in=6172 over 6000; tokens_out=309 over 300
+entitlement-002  FAIL
+                   - budget: tokens_in=6212 over 6000; tokens_out=308 over 300
+entitlement-010  FAIL
+                   - budget: tokens_in=6229 over 6000
+entitlement-011  FAIL
+                   - budget: tokens_in=6120 over 6000
+entitlement-012  FAIL
+                   - entitlement: answer carries no entitlement verdict
+                   - budget: tokens_in=6022 over 6000
+recommend-003    FAIL
+                   - budget: tokens_in=8535 over 6000; tokens_out=466 over 400
+recommend-013    FAIL
+                   - must_mention: 'Jefferson Derby' absent from answer
+                   - must_cite: not cited: ['t001']
+                   - budget: tokens_in=8400 over 6000; tokens_out=423 over 400
+recommend-014    FAIL
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - budget: tokens_in=8352 over 6000
+recommend-015    FAIL
+                   - budget: tokens_in=6156 over 6000
+grounded-016     PASS
+grounded-017     FAIL
+                   - budget: tokens_in=6090 over 6000
+grounded-018     FAIL
+                   - must_not_claim: 'second leg is' present in answer
+                   - budget: tokens_in=8606 over 6000; tokens_out=382 over 300
+grounded-019     FAIL
+                   - budget: tokens_in=6022 over 6000
+brand-020        FAIL
+                   - budget: tokens_in=6069 over 6000
+brand-021        PASS
+concise-022      FAIL
+                   - budget: tokens_in=6154 over 6000; tokens_out=312 over 300
+multi-023        FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - entitlement: reason='upgrade-required' (expected 'blackout')
+                   - budget: tokens_in=8891 over 6000
+edge-024         FAIL
+                   - budget: tokens_in=6217 over 6000
+edge-025         FAIL
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_in=6324 over 6000; tokens_out=391 over 300
+headroom-005     FAIL
+                   - budget: tokens_in=6792 over 6000; tokens_out=628 over 600
+headroom-026     FAIL
+                   - budget: tokens_in=6155 over 6000
+
+2/25 passed (23 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 23 failed: 0 were refused before scoring, 23 answered and scored wrong
+refusals: 0/0 resolved to 0 (mechanism, assessed) pairs
+suite latency  OVER p95=5431ms over 2500ms
+deferred, evaluated but not scored: 23 assert(s) across ['entitlement_source', 'tool_before_answer']
+  entitlement_source: reads a self-report; verifiable only by M06's trajectory eval (ADR-016)
+  tool_before_answer: evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)
+exit 0
+
+=== python -m evals.run_evals --arm tools --answers milestones/M07/goldens-run-3.json --refusals milestones/M07/goldens-run-refusals.json
+blackout-001     FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - budget: tokens_in=6221 over 6000; tokens_out=338 over 300
+blackout-006     FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - budget: tokens_in=6186 over 6000; tokens_out=301 over 300
+blackout-007     FAIL
+                   - budget: tokens_in=6196 over 6000; tokens_out=321 over 300
+blackout-008     FAIL
+                   - budget: tokens_in=6225 over 6000; tokens_out=335 over 300
+blackout-009     FAIL
+                   - budget: tokens_in=6182 over 6000; tokens_out=302 over 300
+entitlement-002  FAIL
+                   - budget: tokens_in=6160 over 6000
+entitlement-010  FAIL
+                   - budget: tokens_in=6197 over 6000
+entitlement-011  FAIL
+                   - budget: tokens_in=6158 over 6000; tokens_out=315 over 300
+entitlement-012  FAIL
+                   - must_not_claim: 'Harbor Bay Invitational is' present in answer
+                   - entitlement: answer carries no entitlement verdict
+                   - budget: tokens_in=6040 over 6000
+recommend-003    FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+recommend-013    FAIL
+                   - must_mention: 'Jefferson Derby' absent from answer
+                   - must_cite: not cited: ['t001']
+                   - budget: tokens_in=8391 over 6000; tokens_out=426 over 400
+recommend-014    FAIL
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - budget: tokens_in=8892 over 6000; tokens_out=524 over 500
+recommend-015    FAIL
+                   - budget: tokens_in=6153 over 6000
+grounded-016     PASS
+grounded-017     FAIL
+                   - budget: tokens_in=6104 over 6000
+grounded-018     FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_in=8581 over 6000; tokens_out=399 over 300
+grounded-019     FAIL
+                   - budget: tokens_in=8181 over 6000
+brand-020        FAIL
+                   - budget: tokens_in=6069 over 6000
+brand-021        PASS
+concise-022      FAIL
+                   - budget: tokens_in=6159 over 6000; tokens_out=311 over 300
+multi-023        FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - entitlement: reason='upgrade-required' (expected 'blackout')
+                   - budget: tokens_in=11081 over 6000
+edge-024         FAIL
+                   - budget: tokens_in=6200 over 6000
+edge-025         FAIL
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_in=8293 over 6000; tokens_out=372 over 300
+headroom-005     FAIL
+                   - budget: tokens_in=6690 over 6000
+headroom-026     FAIL
+                   - budget: tokens_in=6187 over 6000
+
+2/25 passed (23 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 23 failed: 1 were refused before scoring, 22 answered and scored wrong
+refusals: 1/1 resolved to 1 (mechanism, assessed) pair — guardrail / TOPIC:entitlement-circumvention
+suite latency  OVER p95=5070ms over 2500ms
+deferred, evaluated but not scored: 23 assert(s) across ['entitlement_source', 'tool_before_answer']
+  entitlement_source: reads a self-report; verifiable only by M06's trajectory eval (ADR-016)
+  tool_before_answer: evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)
+exit 0
+

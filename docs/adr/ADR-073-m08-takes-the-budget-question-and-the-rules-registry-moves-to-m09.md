@@ -460,3 +460,235 @@ is what *"Seats review this PR and no other"* should be able to mean.
 
 The claim. The band [7170, 8180] and the placement below 8181. The rule and
 its outcome. Constraints 1–8. The cap. Outcome A stays where D2 put it.
+
+## Amendment 2 — what PR 2 carried, and the wording PR 3 may only fill a number into
+
+**Written 2026-09-06, in M08 PR 2. Zero model calls; no deploy; no seat round.
+Every number below is read from `milestones/M08/context-census.json`, the two
+records PR 2 adds beside it — `per-sample-at-6000.txt` and
+`residual-differential.json` — the M07 transcript, and `pave/twokey.py`.**
+Amendment 1's five asks, each paid here or dated, and three corrections the
+reading made to this ADR's own record.
+
+### 1. The side-prediction, restated, and the bound re-derived from a per-sample transcript
+
+SPEC/08's sentence as written: *"PR 4's re-score prints N/25 with 2 ≤ N ≤ 17,
+where the cases that flip from FAIL are exactly those M07 recorded as failing
+on `budget` alone whose majority sample ran at three calls or fewer."*
+Restated, before PR 3 opens: **N/25 with 2 ≤ N ≤ 12, where the cases that flip
+from FAIL are exactly those that fail `budget` on `tokens_in` alone at M07 and
+pass every other assert, `tokens_out` included, on the ≤3-call majority.**
+
+**How the bound was derived, and from what.** `run_evals` at k=3 prints one
+representative sample's failures per case — *"the first sample that agreed
+with the majority"* (`summarise`'s docstring) — so the M07 transcript cannot
+show a minority sample failing an assert the majority line does not name. The
+same command with one answers file prints that sample's every assert. Three
+such invocations at 6000, the committed ceiling, are
+`milestones/M08/per-sample-at-6000.txt` (3/25, 2/25, 2/25 by sample, the
+majority's 2/25). No flag was added and no number in the band was used;
+constraint 2 is untouched. Read with the census's per-sample call counts and
+`cases.yaml`'s tiers:
+
+- **Fifteen** cases fail on `budget` alone by majority (the transcript).
+- **Five cannot flip**: `tokens_out` over its tier on every sample —
+  `blackout-001` (330/358/338 over 300), `blackout-007`, `blackout-008`,
+  `concise-022` — or on two of three, `blackout-009` (294, 309, 302). The
+  per-sample transcript also shows `blackout-001` failing `must_mention` on
+  the two samples the majority line did not print.
+- **Ten flip**, each on a 2-of-3 or 3-of-3 majority of samples that fail on
+  `tokens_in` and nothing else: `entitlement-010`, `recommend-015`,
+  `brand-020`, `edge-024`, `headroom-026` (3 of 3); `entitlement-002`,
+  `entitlement-011`, `grounded-017`, `headroom-005` (2 of 3, the third over
+  its `tokens_out` tier by 8, 15, 10 and 28); `grounded-019` (sample 1 passes
+  at 2 calls, sample 2 fails on `tokens_in` alone at 3 calls, sample 3 is the
+  4-call turn at 8181 and fails at any number in the band).
+- `entitlement-012`, whose majority line names `entitlement` and `budget`,
+  fails `entitlement` on two samples and `must_not_claim` on one; it stays
+  FAIL for reasons other than `budget`, as the majority line said.
+- Every 3-call sample is ≤ 6792, below the band floor 7170; the largest
+  per-sample latency is 5994 ms against `max_ms` 12000.
+
+So the prediction is **N = 12** — `grounded-016` and `brand-021` plus the ten —
+and 2 ≤ N ≤ 12 is the bound. Amendment 1 said *"at most 12"*; the transcript
+makes it exact, and closes the caveat that a minority sample might fail an
+assert the majority line hid: none does, on any of the ten. Falsifiers, added
+to SPEC/08's: any of the five flipping; any of the ten not flipping. Both
+falsify the side-prediction and neither touches the claim: **N = 11 is a
+finding about the side-prediction** — PR 4 names the case and the assert that
+kept it — and the claim stands or falls on the per-sample join alone, every
+≤3-call sample under the number and every ≥4-call sample over it.
+
+### 2. The residual, as a dated debt, and the differential
+
+**The row** (SPEC/08 *Obligations inherited*): the 422–537 tokens per call the
+census cannot attribute — owed to **Platform Engineering with AI Quality**,
+dated **M09 PR 1**, paid by per-call `inputTokens` in the answer file (a
+`run_with_tools.py` / `_accumulate` change constraint 5 forbids here) and one
+calibration call with tools offered and an empty turn (a model call constraint
+6 forbids here). The first separates the first call's base from what later
+calls carry; the second is the residual measured directly, against the same
+text with `toolConfig` present and absent.
+
+**The differential, run in this diff at zero cost**
+(`milestones/M08/residual_differential.py`, record
+`residual-differential.json`, pinned by `tests/test_m08_residual_differential.py`
+the way the census is pinned). M02's tools arm offered one tool and stage 2
+two, on the same `gateway_client.py`, the same answer schema and the same
+`catalog-search` contract as sent — the blobs at M02's run commit `4eda0d0`
+are HEAD's, verified by `git show` when the record was produced and pinned on
+HEAD's side by the test — so the per-call difference is one added spec
+(`entitlement-check`, 951 chars, ≈282 tokens [281, 282]) and nothing else the
+repository controls. Exact medians, call count held fixed:
+
+| calls | M02, one tool | stage 2, two tools | Δ per call | Δ − spec |
+|---|---|---|---|---|
+| 2 | 1693 (n=52) | 1974 (n=7) | +281 | −1 |
+| 3 | 1787 (n=12) | 2057 (n=52) | +270 | −12 |
+| 4 | 1812 (n=3) | 2100 (n=13) | +288 | +6 |
+
+The figures SPEC/08 names — 1693 against 2057 — compare M02's 2-call mode with
+stage 2's 3-call mode; 83 of that 364 is stage 2's third call carrying the
+first round's output and result, which is call count, not the spec. Bounded
+from the 2-call samples the way the census bounds it: M02's per-call base is
+1564–1693 with ≈1155 explained, residual **409–538**; stage 2's is 1859–1974
+with ≈1437 explained, residual **422–537**. **The residual did not grow with
+the spec**: the added spec cost what its character count predicted, and the
+unexplained quarter is the same size with one tool as with two.
+
+What that separates, in amendment 1 §3's three explanations, stated in the
+record and pinned by the test so the differential cannot be read as having
+paid the debt:
+
+- **Ruled out**: a provider-side framing that scales with the number of tools
+  offered, and a tokeniser counting tool-spec JSON denser than the prose
+  anchors' 3.37 chars/token — either would have moved the per-call figure by
+  more than the spec's estimate, and it moved by the estimate.
+- **Cannot separate**: a fixed provider-side cost present whenever
+  `toolConfig` is sent, from fixed content the agent sends that no committed
+  text shows — both were the same in both runs, and nothing in the client
+  changed between them. One calibration call separates them; that is the
+  debt.
+- **Not varied**: the answer schema's own JSON, the same bytes in both runs.
+  That tool-spec JSON tokenised at the prose ratio weakens the
+  estimation-error explanation for the schema too, but does not test it.
+
+Amendment 1 wrote that a residual that grows with the spec *"points at the
+first two explanations, one that does not points at the third."* The reading
+is finer than the prediction: not growing rules out the *scaling* forms of the
+first two and leaves the fixed form of the second standing beside the third.
+Recorded so the record's reasoning is the record's and not the prediction's.
+
+### 3. Three dispositions, ridden here with their keys
+
+Each is written where the M07 close dated it, with the attestation block the
+PR body carries: Security's two `tool_request` probes and `recommend-003`'s
+held text in **ADR-070 amendment 8**; Data Governance's answer on decision 4
+in **ADR-071 amendment 1**. One line each of what was found. The probes credit
+nothing on every arm under ADR-041 decision 1 and are declined as corpus rows,
+the two loop tests standing as the observation. The held text is, on both
+samples, a schema-conforming **grant** carrying `entitlement-check`'s verdict
+into the final answer — not `DEC-001`'s refusal-plus-alternative — which is
+ADR-070 decision 2's defect on the `answer` channel; read only, not fixed,
+next read at M09 PR 1's fresh run. Decision 4 is upheld with no channel
+exemption; retention is the seat's open item, carried as a step-6b trigger.
+None needed a code change.
+
+### 4. `p95_ms` — a standing finding for M08
+
+In amendment 1 §4's words. The suite `p95_ms` gate at 2500 ms is **breached by
+the shape and not by a regression**: the census's latency table puts model
+time alone at 2289 ms at two calls and **3606 ms at three**, with the
+per-channel guardrail adding 770–1212 ms in its own key, so a three-call turn
+cannot sit under 2500 whatever the code does; M06's 2794 ms was the
+single-call arm and M06b's 11171 ms carried a different guardrail arrangement,
+so the direction of the number across milestones is the shape's, not a
+trend's. **The gate costs no case**: it is a suite statistic computed apart from
+case scoring (ADR-014's M02 amendment), so the breach hides no signal and
+moves no verdict. **The rule that derives a suite p95 is owed** to AI Quality
+with Platform Engineering at **M09 PR 1**, written before M09's fresh run and
+applied after it — a ceiling derived from a measurement the M07 journal
+recorded as *"wrong twice, not explained"* would be a number, not a
+derivation, and deriving a new rule in the PR that moves a number is the
+sequence constraint 1 refuses for `tokens_in`. **No manifest change**;
+`gates.budgets.p95_ms` stays 2500; the demo artifact's line stays
+`suite latency  OVER p95=5431ms over 2500ms`. The journal carries it at PR 5
+as a standing finding.
+
+### 5. ADR-014 amendment 2 — the wording, pre-registered
+
+PR 3 fills in the number and nothing else. The amendment carries these three
+statements, allowing only the number:
+
+1. **Not-A on the evidence admitted.** *"Outcome B is not-A on the evidence
+   admitted: no sample over the ceiling at its mandated call count carries
+   removable content in the three categories the rule admits — replayed rows
+   the answer never cited, text sent twice in one request, tools the manifest
+   does not declare. The census does not say the context cannot be reduced:
+   422–537 tokens of a 1859–1974 per-call base are unattributed, the same
+   size with one tool offered as with two (`residual-differential.json`), and
+   the measurement that attributes them is M09 PR 1's."*
+2. **The re-derivation trigger.** *"The ceiling is re-derived for the shape
+   as measured, a quarter of whose per-call base is unattributed; if that
+   residual is later attributed to content the agent sends and can stop
+   sending, the ceiling is re-derived by this same rule in the milestone that
+   removes it, downward, on the same keys."*
+3. **What the axis discriminates.** *"At any number in [7170, 8180] the
+   `budget` axis discriminates call count ≥ 4, not calls above the case's
+   mandate: the ceiling is uniform and the mandate is per case. Nineteen
+   answered stage-2 samples ran three calls against a two-call mandate —
+   `brand-021` s1; `edge-025` s1, s2; `entitlement-012` s2, s3;
+   `grounded-017` s1–s3; `grounded-018` s1; `grounded-019` s2;
+   `headroom-005` s1–s3; `headroom-026` s1–s3; `recommend-015` s1–s3
+   (6022–6792) — and every one passes it. What it catches is every 4- and
+   5-call turn: fourteen samples on seven cases."*
+
+And what the amendment may not do, written here so a seat can check it
+against the text: cite a case id in the derivation of the number (the ids in
+statement 3 are a consequence, not the derivation); cite a pass count at any
+ceiling; move `tokens_out`, `max_ms`, `p95_ms` or any tier; argue the number
+from anything but the census's 6235 and 8181 and ADR-014's own placement
+logic. The band [7170, 8180] and the placement below 8181 are unchanged.
+
+### 6. Three corrections to this record
+
+- **Decision 1** said the six *M08* sites *"sit on three two-key rules, one of
+  them four seats."* Five do — `pave/floors.py` and `tests/test_floors.py` on
+  the floors rule, `pave/manifest.py` on the verifier's, `pave/scaffold.py` and
+  `templates/agent-tools/README.md` on the scaffold's four seats — and
+  `pave/cli.py` has been on no rule since ADR-052 moved the gate out of it.
+  Corrected here; the sites now say *M10*.
+- **Amendment 1, row 12** named *"six 2-mandate cases"* and listed nine. Nine
+  cases, nineteen samples, as statement 3 above names them.
+- **Amendment 1, §3** predicted what growth of the residual would point at;
+  §2 above records that the reading is finer than the prediction.
+
+### The register, as collected
+
+`pave/twokey.py` gains two rules — `^services/[^/]+/run_with_tools\.py$`
+(Platform Engineering, AI Quality; the same seats as the evidence the file
+writes) and `^milestones/.*/topic-baseline\.json$` (Security, AI Quality; the
+same seats as its producer has carried since M06b) — pinned in
+`tests/test_twokey_seats.py` with a `_blocked_for` plant each, entries in
+`ADR043_SEATS`, keys in the ratchet (18 → 20) and seven paths in `required`
+(58 → 65), one of them a service that does not exist yet and one a milestone
+that has not opened. Measured on 895fdd7 before the rules: both files
+`two-key: not required`. Measured after, with each rule deleted in turn and
+each regex narrowed: red, and the PR body names the tests. The stage-1
+evidence test that asserted `topic-baseline.json` was on *no* rule since M07
+PR 3 — the gap recorded as a shape — now asserts the rule.
+
+PR 2's diff triggers five rules: the floors (Platform Engineering, AI Quality,
+Security), the manifest verifier (AI Quality, Security, Platform Engineering),
+the scaffold (Platform Engineering, AI Quality, Tool Owner, Security),
+`pave/twokey.py` (AI Quality, Legal/S&P, Platform Engineering, Security) and
+its seat pin (those plus Tool Owner). Five enforced seats attest; Data
+Governance's key is an attestation line on no rule.
+
+### What this amendment does not change
+
+The claim. The band [7170, 8180] and the placement below 8181. The rule and
+its outcome. Constraints 1–8. The cap — six, and spent: PR 1, PR 1b, and PRs
+2–5. Outcome A stays where decision 2 put it. PR 3 is twenty-five identical
+line edits, one manifest value, one test re-pointed, one ADR amendment in the
+wording above, and one question for the seats.
