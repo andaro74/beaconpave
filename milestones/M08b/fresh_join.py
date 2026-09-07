@@ -67,6 +67,19 @@ M08_JOIN = ROOT / "milestones" / "M08" / "rescore-join.json"
 CASES = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
 MANIFEST = ROOT / "services" / "highlights-agent" / "pave.manifest.yaml"
 CATALOG = ROOT / "data" / "catalog.json"
+#: The tools' committed input contracts, the schema every replayed step's
+#: `args` must satisfy (Tool Owner seat, round 1): a step the tool's own
+#: contract refuses is not a replayable step, and `replay()` alone degraded it
+#: to fifteen characters of empty result and recorded that as growth.
+CONTRACTS = ROOT / "platform" / "gateway" / "policy" / "tools.contracts.json"
+
+#: ADR-074 decision 2's browse-gap threshold, verbatim: "a sample at four calls
+#: or more". Kept as pre-registered; the wider column beside it (a search beyond
+#: the case's own mandate at any call count) is recorded, not triggering.
+BROWSE_GAP_CALLS = 4
+#: One `catalog-search` is every case's mandate on this arm (the census reader's
+#: `mandated_calls`: one search, one optional entitlement check, the answer).
+MANDATED_SEARCHES = 1
 
 DECISION_RULE = "8_decision_rule (pre-registered, SPEC/08)"
 BY_MILESTONE = "1_by_milestone (exact)"
@@ -272,13 +285,65 @@ def _refused(entry: dict) -> bool:
     return isinstance(answer, dict) and "refused_by_gateway" in answer
 
 
+def validate_steps(case_id: str, n: int, steps: list[dict], contracts: dict) -> None:
+    """Every trajectory step names a contracted tool and carries `args` its
+    input contract admits. Refused, never degraded: an unknown tool or a
+    refused argument is a trajectory this reader cannot replay, and a replay
+    that accepts anything is not a contract (Tool Owner seat, round 1)."""
+    import jsonschema  # noqa: PLC0415 — the scorer's own dependency
+
+    for step in steps:
+        tool = step.get("tool")
+        if tool not in contracts:
+            raise SystemExit(f"{case_id} sample {n}: trajectory step {step.get('seq')} names {tool!r}, "
+                             "which the committed contracts do not; not a replayable step")
+        try:
+            jsonschema.validate(step.get("args"), contracts[tool]["input"])
+        except jsonschema.ValidationError as exc:
+            raise SystemExit(f"{case_id} sample {n}: trajectory step {step.get('seq')} carries args "
+                             f"{tool}'s contract refuses ({exc.message}); not a replayable step") from exc
+
+
+def search_shape(steps: list[dict]) -> dict:
+    """What the trajectory says about `catalog-search`, in ADR-074 decision 2's
+    words: a search *executed* (authorized and reached — a Cedar denial or an
+    unreachable tool retrieved nothing and is not a browse), and *beyond the
+    mandate before `entitlement-check` or the answer* (a search after the
+    entitlement check is a different shape and is not counted)."""
+    executed = [s for s in steps if s.get("tool") == "catalog-search"
+                and s.get("decision") == "allowed" and s.get("executed", True)]
+    verdict_rounds = [s.get("round", 0) for s in steps if s.get("tool") == "entitlement-check"
+                      and s.get("decision") == "allowed" and s.get("executed", True)]
+    before_verdict = [s for s in executed
+                      if not verdict_rounds or s.get("round", 0) < min(verdict_rounds)]
+    return {
+        "searches_attempted": sum(1 for s in steps if s.get("tool") == "catalog-search"),
+        "searches_executed": len(executed),
+        "searches_executed_before_verdict": len(before_verdict),
+        "beyond_mandate_before_verdict": len(before_verdict) > MANDATED_SEARCHES,
+    }
+
+
 def per_sample_rows(run_dir: pathlib.Path, cases: dict, blocks: list[dict], ceiling: int,
                     ref: dict, sidecar: dict) -> list[dict]:
     reader = _census_module()
     catalog = _load(CATALOG)
+    contracts = _load(CONTRACTS)
     clock = reader.client_constants()["CLOCK"]
     by_sample = {b["sample"]: b for b in blocks if b["sample"] is not None}
     refused_column = sidecar.get("per_sample_refused") or {}
+    # The mandate two ways, required to agree (Tool Owner seat, round 1): the
+    # live cases file through the census reader's own function, and the census
+    # record's per-sample column the derivation test reads. A case whose
+    # mandate moved since the census would place the p95 population and this
+    # join on different shapes without either noticing.
+    census_mandate = {r["case"]: r["mandated_calls"] for r in _load(CENSUS)[PER_SAMPLE]
+                      if r.get("mandated_calls") is not None}
+    tiers = {}
+    for case_id, case in cases.items():
+        for assertion in case.get("asserts", []):
+            if "budget" in assertion:
+                tiers[case_id] = assertion["budget"].get("tokens_out")
     rows = []
     for n in (1, 2, 3):
         answers = _load(run_dir / f"goldens-run-{n}.json")
@@ -295,11 +360,17 @@ def per_sample_rows(run_dir: pathlib.Path, cases: dict, blocks: list[dict], ceil
             if scored is None:
                 raise SystemExit(f"{case_id} sample {n} is in the answer file and not in its transcript block")
             steps = (trajectories.get(case_id) or {}).get("trajectory") or []
+            validate_steps(case_id, n, steps, contracts)
             rounds = max((s.get("round", 0) for s in steps), default=0)
             mandate = reader.mandated_calls(case)
+            if case_id in census_mandate and census_mandate[case_id] != mandate:
+                raise SystemExit(f"{case_id}: the live cases file mandates {mandate} calls and the census "
+                                 f"record says {census_mandate[case_id]}; the mandate moved since the "
+                                 "census, and the p95 population and this join would read different shapes")
             row = {"case": case_id, "sample": n, "mandated_calls": mandate,
                    "sample_result": scored["result"],
-                   "other_failing_asserts": sorted(k for k in scored["asserts"] if k != "budget")}
+                   "other_failing_asserts": sorted(k for k in scored["asserts"] if k != "budget"),
+                   "search": search_shape(steps)}
             if _refused(entry):
                 if not (refused_column.get(case_id) or [None] * 3)[n - 1]:
                     raise SystemExit(f"{case_id} sample {n} is refused in the answer file and not in "
@@ -308,8 +379,7 @@ def per_sample_rows(run_dir: pathlib.Path, cases: dict, blocks: list[dict], ceil
                              "at_mandate": None, "tokens_in": None, "per_call_tokens_in": None,
                              "tokens_in_verdict": None, "tokens_out_verdict": None,
                              "latency_ms": None, "distance": None, "reading": "refused",
-                             "per_round_growth": [], "catalog_search_calls": sum(
-                                 1 for s in steps if s.get("tool") == "catalog-search")})
+                             "per_round_growth": []})
                 continue
             usage = entry.get("usage") or {}
             per_call = usage.get("calls")
@@ -344,15 +414,30 @@ def per_sample_rows(run_dir: pathlib.Path, cases: dict, blocks: list[dict], ceil
             if printed_calls is not None and printed_calls != calls:
                 raise SystemExit(f"{case_id} sample {n}: the transcript says calls={printed_calls} and "
                                  f"usage.calls has {calls}")
+            # The `tokens_out` verdict is held to the file and the tier the same
+            # way `tokens_in` is held to the file and the ceiling (Tool Owner
+            # seat, round 1: the five's trigger read a transcript nothing checked).
+            tier = tiers.get(case_id)
+            tokens_out = usage.get("tokens_out")
+            if "tokens_out" in axes:
+                if axes["tokens_out"]["value"] != tokens_out or axes["tokens_out"]["over"] != tier \
+                        or not tokens_out > tier:
+                    raise SystemExit(f"{case_id} sample {n}: the transcript says tokens_out="
+                                     f"{axes['tokens_out']['value']} over {axes['tokens_out']['over']} and "
+                                     f"the file says {tokens_out} against a tier of {tier}; a planted verdict")
+            elif tier is not None and tokens_out > tier:
+                raise SystemExit(f"{case_id} sample {n}: tokens_out {tokens_out} is over its tier {tier} and "
+                                 "the transcript printed no budget failure; a planted verdict")
             at_mandate = calls == mandate
             per_call_in = [c.get("tokens_in", 0) for c in per_call]
             growth = []
             for r in range(1, calls):
-                added = sum(reader.replay(s, catalog, clock)["chars"]
-                            for s in steps if s.get("round") == r)
+                replays = [reader.replay(s, catalog, clock) for s in steps if s.get("round") == r]
                 growth.append({"round": r + 1, "tokens_in": per_call_in[r],
                                "delta_tokens": per_call_in[r] - per_call_in[r - 1],
-                               "replayed_chars_added": added})
+                               "replayed_chars_added": sum(p["chars"] for p in replays),
+                               "steps_replayed": sum(1 for p in replays if p["replayed"]),
+                               "steps_not_replayed": sum(1 for p in replays if not p["replayed"])})
             rows.append({
                 **row, "answered": True, "refused": False, "calls": calls, "at_mandate": at_mandate,
                 "tokens_in": tokens_in, "per_call_tokens_in": per_call_in,
@@ -363,7 +448,6 @@ def per_sample_rows(run_dir: pathlib.Path, cases: dict, blocks: list[dict], ceil
                 "distance": distances(tokens_in, ref, ceiling),
                 "reading": reading_for(calls, tokens_in, at_mandate, ref, ceiling),
                 "per_round_growth": growth,
-                "catalog_search_calls": sum(1 for s in steps if s.get("tool") == "catalog-search"),
             })
     return rows
 
@@ -495,24 +579,55 @@ def p95s(rows: list[dict], blocks: list[dict], ceiling_ms: int) -> dict:
 
 
 def triggers(rows: list[dict]) -> dict:
-    max_mandate = max(r["mandated_calls"] for r in rows)
-    browse = [r for r in rows if r["answered"] and r["calls"] > max_mandate
-              and r["catalog_search_calls"] > 1]
-    on_seven = [r for r in browse if r["case"] in BROWSE_GAP_SEVEN]
-    elsewhere = sorted({r["case"] for r in browse if r["case"] not in BROWSE_GAP_SEVEN})
+    """ADR-074 decision 2's two triggers, read as pre-registered, each beside
+    the wider column the Tool Owner seat asked for in round 1.
+
+    The browse gap **persists** on a sample at four calls or more (the
+    decision's own threshold, kept) whose trajectory shows an executed
+    `catalog-search` beyond the case's mandate before `entitlement-check` or
+    the answer. Beside it, recorded and not triggering: the same shape at any
+    call count — four M07 samples of the seven sat at three calls and were
+    outside M08's fourteen by the same threshold — so a `persists: false`
+    reading can be read beside what the threshold left out, and PR 3 says
+    which it is reading. Denied or unreached searches count for nothing: they
+    retrieved nothing, and a Cedar `forbid` on a second search is the lever the
+    seat would pull."""
+    gap = [r for r in rows if r["answered"] and r["search"]["beyond_mandate_before_verdict"]]
+    at_threshold = [r for r in gap if r["calls"] >= BROWSE_GAP_CALLS]
+    on_seven = [r for r in at_threshold if r["case"] in BROWSE_GAP_SEVEN]
+    elsewhere = sorted({r["case"] for r in at_threshold if r["case"] not in BROWSE_GAP_SEVEN})
+    under = [r for r in gap if r["calls"] < BROWSE_GAP_CALLS]
     five = {}
     for case_id in TOKENS_OUT_FIVE:
         verdicts = [r["tokens_out_verdict"] for r in rows if r["case"] == case_id and r["answered"]]
         five[case_id] = {"tokens_out_verdicts": verdicts,
                          "fails_by_majority": sum(1 for v in verdicts if v == "FAIL") >= 2}
+    outside_five = sorted({
+        case for case in {r["case"] for r in rows} - set(TOKENS_OUT_FIVE)
+        if sum(1 for r in rows if r["case"] == case and r["answered"]
+               and r["tokens_out_verdict"] == "FAIL") >= 2})
     return {
-        "browse_gap": {"persists": bool(on_seven),
-                       "samples": [f"{r['case']} s{r['sample']}" for r in on_seven],
-                       "cases": sorted({r["case"] for r in on_seven}),
-                       "m08_count": {"samples": 14, "cases": 7},
-                       "four_call_samples_outside_the_seven": elsewhere},
+        "browse_gap": {
+            "rule": (f"a sample at {BROWSE_GAP_CALLS} calls or more with an executed catalog-search "
+                     "beyond the case's mandate before entitlement-check or the answer (ADR-074 "
+                     "decision 2)"),
+            "persists": bool(on_seven),
+            "samples": [f"{r['case']} s{r['sample']}" for r in on_seven],
+            "cases": sorted({r["case"] for r in on_seven}),
+            "m08_count": {"samples": 14, "cases": 7},
+            "four_call_samples_outside_the_seven": elsewhere,
+            "beyond_mandate_under_the_threshold": {
+                "samples": [f"{r['case']} s{r['sample']} ({r['calls']} calls)" for r in under],
+                "cases": sorted({r["case"] for r in under}),
+                "note": ("recorded, not triggering: the same shape below the decision's four-call "
+                         "threshold; four M07 samples of the seven sat at three calls and were outside "
+                         "M08's fourteen by the same threshold, so a persists:false reading is read "
+                         "beside this column, never as not reproduced on its own"),
+            },
+        },
         "tokens_out_five": {"persists": any(v["fails_by_majority"] for v in five.values()),
-                            "cases": five, "m08_count": 5},
+                            "cases": five, "m08_count": 5,
+                            "failing_by_majority_outside_the_five": outside_five},
         "note": "read, not diagnosed (SPEC/08b constraint 9)",
     }
 
@@ -540,7 +655,7 @@ def join(run_dir: pathlib.Path) -> dict:
     k3_blocks = parse_transcript((run_dir / "goldens-score.txt").read_text(encoding="utf-8"))
     rows = per_sample_rows(run_dir, cases, per_sample_blocks, ceiling, ref, sidecar)
     manifest = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
-    inputs = needed + [CASES, CENSUS, M08_JOIN, MANIFEST, CATALOG]
+    inputs = needed + [CASES, CENSUS, M08_JOIN, MANIFEST, CATALOG, CONTRACTS]
     verdict = claim(rows, ceiling, ref)
     return {
         "_what_this_is": (
@@ -587,7 +702,10 @@ def render(rec: dict) -> str:
                  f"mandated shape {p['mandated_shape']['p95']} ({p['mandated_shape']['verdict']}, n={p['mandated_shape']['n']}) — {p['reading']}")
     t = rec["triggers"]
     lines.append(f"browse gap persists: {t['browse_gap']['persists']} {t['browse_gap']['samples']}; "
-                 f"tokens_out five persist: {t['tokens_out_five']['persists']}")
+                 f"beyond mandate under the threshold: "
+                 f"{t['browse_gap']['beyond_mandate_under_the_threshold']['samples']}; "
+                 f"tokens_out five persist: {t['tokens_out_five']['persists']}; outside the five: "
+                 f"{t['tokens_out_five']['failing_by_majority_outside_the_five']}")
     return "\n".join(lines)
 
 

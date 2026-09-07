@@ -114,6 +114,25 @@ def test_b_falls_back_to_the_audit_records_copy_when_the_turn_was_refused(reader
     assert rec["attribution"]["B"] == 1470 and rec["calibration_decision"] == "blocked"
 
 
+def test_a_calibration_whose_shape_says_tools_were_offered_is_refused(reader, planted):
+    """Tool Owner seat, round 1: `tools: absent` is a literal the producer
+    writes, so the guard on it can never disagree with the producer. The turn's
+    shape can: a trajectory, or a second round, is proof the event carried tools."""
+    _rewrite(planted / "calibration.json",
+             lambda c: c.update(trajectory=[{"round": 1, "seq": 1, "tool": "catalog-search",
+                                             "args": {"query": "derby"}, "decision": "allowed",
+                                             "executed": True}]))
+    with pytest.raises(SystemExit, match="carries a trajectory"):
+        reader.record(planted)
+
+
+def test_a_calibration_with_two_rounds_is_refused(reader, planted):
+    _rewrite(planted / "calibration.json",
+             lambda c: c["usage"]["calls"].append({"tokens_in": 2000, "tokens_out": 50, "latency_ms": 900}))
+    with pytest.raises(SystemExit, match="a tools-absent turn is one round"):
+        reader.record(planted)
+
+
 def test_b_unreadable_from_either_copy_is_refused(reader, planted):
     def gone(c):
         c["usage"] = {"tokens_in": 0, "tokens_out": 0, "latency_ms": None}

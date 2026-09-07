@@ -229,9 +229,137 @@ def test_the_count_refusals_p95s_and_triggers_are_read_from_the_rows(reader):
     assert t["browse_gap"]["persists"] and t["browse_gap"]["cases"] == ["grounded-019", "recommend-003",
                                                                           "recommend-013"]
     assert t["browse_gap"]["four_call_samples_outside_the_seven"] == []
+    # recommend-015 is planted at three calls with two searches against a
+    # two-call mandate: the browse gap's shape under decision 2's threshold,
+    # recorded beside the trigger and not in it (Tool Owner seat, round 1).
+    under = t["browse_gap"]["beyond_mandate_under_the_threshold"]
+    assert under["cases"] == ["headroom-005", "recommend-015"]
+    assert "recommend-015 s1 (3 calls)" in under["samples"] and "headroom-005 s2 (3 calls)" in under["samples"]
     assert t["tokens_out_five"]["persists"]
     assert t["tokens_out_five"]["cases"]["blackout-001"]["fails_by_majority"]
     assert not t["tokens_out_five"]["cases"]["blackout-007"]["fails_by_majority"]
+    assert t["tokens_out_five"]["failing_by_majority_outside_the_five"] == []
+    shape = next(r for r in rec["per_sample"] if r["case"] == "recommend-013" and r["sample"] == 1)["search"]
+    assert shape == {"searches_attempted": 3, "searches_executed": 3,
+                     "searches_executed_before_verdict": 3, "beyond_mandate_before_verdict": True}
+
+
+# --- the browse gap's shape (Tool Owner seat, round 1) ------------------------------
+
+def _step(round_, tool, decision="allowed", executed=True):
+    return {"round": round_, "seq": round_, "tool": tool, "args": {}, "decision": decision,
+            "executed": executed}
+
+
+def test_the_browse_gap_reads_executed_searches_before_the_verdict(reader):
+    """ADR-074 decision 2's words, each clause load-bearing: a search DENIED by
+    Cedar or unreached retrieved nothing and is not a browse; a search AFTER
+    `entitlement-check` is a different shape; the mandate is one search."""
+    cs, ec = "catalog-search", "entitlement-check"
+    assert reader.search_shape([_step(1, cs), _step(2, ec)])["beyond_mandate_before_verdict"] is False
+    assert reader.search_shape([_step(1, cs), _step(2, cs), _step(3, ec)])["beyond_mandate_before_verdict"]
+    assert reader.search_shape([_step(1, cs), _step(2, cs)])["beyond_mandate_before_verdict"], (
+        "no entitlement check: every search is before the answer")
+    denied = reader.search_shape([_step(1, cs), _step(2, cs, decision="denied", executed=False), _step(3, ec)])
+    assert denied == {"searches_attempted": 2, "searches_executed": 1,
+                      "searches_executed_before_verdict": 1, "beyond_mandate_before_verdict": False}
+    unreached = reader.search_shape([_step(1, cs), _step(2, cs, executed=False)])
+    assert unreached["beyond_mandate_before_verdict"] is False
+    after = reader.search_shape([_step(1, cs), _step(2, ec), _step(3, cs)])
+    assert after == {"searches_attempted": 2, "searches_executed": 2,
+                     "searches_executed_before_verdict": 1, "beyond_mandate_before_verdict": False}
+
+
+def test_a_denied_second_search_does_not_persist_the_browse_gap(reader, planted):
+    """The plant that survived in round 1: `recommend-013`'s extra searches
+    marked denied and unexecuted left the trigger reading unchanged."""
+    def deny(text):
+        trajectories = json.loads(text)
+        for step in trajectories["recommend-013"]["trajectory"][1:]:
+            step.update(decision="denied", mechanism="policy", executed=False)
+        return json.dumps(trajectories, indent=2, ensure_ascii=False)
+    for n in (1, 2, 3):
+        _edit(planted / f"goldens-run-{n}-trajectory.json", deny)
+    gap = reader.join(planted)["triggers"]["browse_gap"]
+    assert "recommend-013" not in gap["cases"] and gap["cases"] == ["grounded-019", "recommend-003"]
+
+
+def test_a_trajectory_step_the_tools_contract_refuses_is_refused(reader, planted):
+    """`replay()` degraded a schema-refused step to fifteen characters and the
+    join recorded that as growth (Tool Owner seat, round 1)."""
+    for args, expect in (({"query": 12345}, "contract refuses"), ({"nonsense": True}, "contract refuses")):
+        copy = planted / f"case-{len(str(args))}"
+        shutil.copytree(planted, copy)
+
+        def bend(text, args=args):
+            trajectories = json.loads(text)
+            trajectories["recommend-013"]["trajectory"][0]["args"] = args
+            return json.dumps(trajectories, indent=2, ensure_ascii=False)
+        _edit(copy / "goldens-run-1-trajectory.json", bend)
+        with pytest.raises(SystemExit, match=expect):
+            reader.join(copy)
+    def unknown(text):
+        trajectories = json.loads(text)
+        trajectories["recommend-013"]["trajectory"][0]["tool"] = "catalog-purge"
+        return json.dumps(trajectories, indent=2, ensure_ascii=False)
+    _edit(planted / "goldens-run-1-trajectory.json", unknown)
+    with pytest.raises(SystemExit, match="which the committed contracts do not"):
+        reader.join(planted)
+
+
+def test_a_mandate_that_moved_since_the_census_is_refused(reader, planted, tmp_path, monkeypatch):
+    """The derivation test reads the census record's mandate and this join
+    reads the live cases file's; the two are required to agree (Tool Owner
+    seat, round 1: a mandate edit left the p95 population green and this join
+    on another shape)."""
+    import yaml
+    cases = yaml.safe_load(reader.CASES.read_text(encoding="utf-8"))
+    target = next(c for c in cases if c["id"] == "blackout-008")
+    assert target.pop("trajectory")["expect_tool_before_answer"] == "entitlement-check"
+    moved = tmp_path / "cases.yaml"
+    moved.write_text(yaml.safe_dump(cases, sort_keys=False), encoding="utf-8")
+    monkeypatch.setattr(reader, "CASES", moved)
+    with pytest.raises(SystemExit, match="the mandate moved since the census"):
+        reader.join(planted)
+
+
+def test_a_tokens_out_failure_outside_the_five_is_recorded_beside_the_trigger(reader, planted):
+    """The `tokens_out` counterpart of the browse gap's outside-the-seven
+    column (Tool Owner seat, round 1): `brand-021` over its tier on every
+    sample, in the files, both transcripts and the count line together."""
+    for n in (1, 2, 3):
+        def over(text):
+            answers = json.loads(text)
+            usage = answers["brand-021"]["usage"]
+            usage["calls"][-1]["tokens_out"] += 500 - usage["tokens_out"]
+            usage["tokens_out"] = 500
+            return json.dumps(answers, indent=2, ensure_ascii=False)
+        _edit(planted / f"goldens-run-{n}.json", over)
+    import yaml
+    case = next(c for c in yaml.safe_load(reader.CASES.read_text(encoding="utf-8")) if c["id"] == "brand-021")
+    tier = next(a["budget"]["tokens_out"] for a in case["asserts"] if "budget" in a)
+    _edit(planted / "per-sample.txt", lambda t: re.sub(
+        r"^(brand-021\s+)PASS\s*$",
+        rf"\1FAIL\n                     - budget: tokens_out=500 over {tier} (calls=2)", t, flags=re.M))
+    _edit(planted / "goldens-score.txt", lambda t: re.sub(
+        r"^(brand-021\s+)PASS\s+\[PASS PASS PASS\]\s*$",
+        rf"\1FAIL  [FAIL FAIL FAIL]\n                     - budget: tokens_out=500 over {tier} (calls=2)",
+        t, flags=re.M).replace("22/25 passed (3 failed, 0 infra)", "21/25 passed (4 failed, 0 infra)"))
+    five = reader.join(planted)["triggers"]["tokens_out_five"]
+    assert five["failing_by_majority_outside_the_five"] == ["brand-021"]
+    assert five["persists"] and "brand-021" not in five["cases"]
+
+
+def test_a_tokens_out_verdict_that_disagrees_with_the_file_is_refused(reader, planted):
+    def inflate(text):
+        answers = json.loads(text)
+        usage = answers["brand-021"]["usage"]
+        usage["calls"][-1]["tokens_out"] += 500 - usage["tokens_out"]
+        usage["tokens_out"] = 500
+        return json.dumps(answers, indent=2, ensure_ascii=False)
+    _edit(planted / "goldens-run-1.json", inflate)
+    with pytest.raises(SystemExit, match="tokens_out 500 is over its tier"):
+        reader.join(planted)
 
 
 # --- the six rows, and one falsifier through the whole pipeline ------------------------

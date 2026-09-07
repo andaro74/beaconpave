@@ -7,7 +7,7 @@
     "tests/fixtures/m08b/planted/goldens-run-1.json": "499669fd741fbe74f72097ca4d93f99a9476a607222167b66b6540b432fe491e",
     "tests/fixtures/m08b/planted/goldens-run-2.json": "27af4e2c24255d2a02252e9f2a82a063078a0b8e2f9cf0a72d5bfcb10d9b56ca",
     "tests/fixtures/m08b/planted/goldens-run-3.json": "cbfcb3fc37beb01e7e70533f88b9c7b21eb4c1f9da6ec434d01d23e899eb9cd9",
-    "tests/fixtures/m08b/planted/fresh-join.json": "ef32ecc66ddc58945a290b0d3b7b832b839e2407e0fb07bcac942b3c1375674f"
+    "tests/fixtures/m08b/planted/fresh-join.json": "65a5e11a8e064d59a304e75ddb86b5cc833d0f1ec1f9dd8ca015fde4b858f227"
   },
   "case": "blackout-008",
   "fallback_taken": false,

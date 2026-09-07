@@ -99,6 +99,17 @@ def read_b(calibration: dict) -> tuple[int | None, str]:
     if calibration.get("tools") != "absent":
         raise SystemExit("calibration.json does not say tools were absent; a calibration "
                          "turn that offered tools measured A twice and called it B")
+    # `tools: absent` is a literal the producer writes; what cannot lie is the
+    # turn's shape (Tool Owner seat, round 1). A tools-absent turn is one model
+    # round and no trajectory: either is proof the event carried tools.
+    if calibration.get("trajectory"):
+        raise SystemExit("calibration.json carries a trajectory; a tools-absent turn cannot call a "
+                         "tool, so the event carried tools and B is a second measurement of A")
+    for copy in ("usage", "record_usage"):
+        rounds = (calibration.get(copy) or {}).get("calls")
+        if isinstance(rounds, list) and len(rounds) > 1:
+            raise SystemExit(f"calibration.json's {copy} carries {len(rounds)} rounds; a tools-absent "
+                             "turn is one round, and a second means the model was offered a tool")
     b = _round1(calibration.get("usage"))
     from_record = _round1(calibration.get("record_usage"))
     # The producer writes that the response's usage and the record's must
