@@ -497,6 +497,32 @@ RULES: tuple[Rule, ...] = (
         ("security", "ai-quality"),
     ),
     Rule(
+        # **The M08 census -- the reader and the record the `tokens_in` ceiling is
+        # derived from (M08 PR 3, ADR-014 amendment 2).** `tests/test_budget_derivation.py`
+        # reads the ceiling's band and its runaway anchor -- the mandated-shape
+        # maximum and the minimum four-call turn -- out of `context-census.json`,
+        # and `tests/test_m08_census.py` pins that record byte for byte to what
+        # `context_census.py` produces. That pin re-runs the same reader, so the
+        # reader and the record move together by construction. Measured by the
+        # Security seat on 3efd5f6: a four-line trim in the reader's `by_calls()`,
+        # both records regenerated, every case at 8190 -- above the real four-call
+        # turn -- landed with 2944 tests green and `--check` OK, collecting
+        # AI Quality's key alone through `cases.yaml`. ADR-035's shape in the file
+        # ADR-035 was written to defend: the thermometer unkeyed while the cases,
+        # the derivation pin and the manifest each take two. Widened in the diff
+        # that creates the dependency (ADR-060's precedent), never in a follow-up.
+        # The residual differential and its record ride the same rule: the same
+        # reader module, the same inputs, the same pin shape.
+        #
+        # AI Quality (the ceiling), Platform Engineering (the loop the census
+        # describes), and Security -- because this record now decides what
+        # "catches a runaway loop" means, which is the counterweight seat's object.
+        "the M08 census — the reader and record the tokens_in ceiling is derived from",
+        re.compile(r"^milestones/M08/(context_census\.py|context-census\.json"
+                   r"|residual_differential\.py|residual-differential\.json)$"),
+        ("ai-quality", "platform-eng", "security"),
+    ),
+    Rule(
         # **ADR-049. The obligation register, and the check that reads it.** The
         # data half alone was SPEC/05's row; the test is here for ADR-043 decision
         # 1's reason -- an instrument and the thing it measures are weakened

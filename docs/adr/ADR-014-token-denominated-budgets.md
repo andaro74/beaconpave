@@ -450,7 +450,30 @@ none is the number.
   as the spec assumed, and that is recorded here rather than worked around. The
   history-entry field `cases_sha256` (`evals/judged.py`) digests `cases.yaml`
   too, so PR 4's entry will carry a new value; nothing in `evals/history/` is
-  edited here.
+  edited here. **And the reader and record are keyed in this diff**: the
+  Security seat moved the four-call anchor with a four-line trim in the reader,
+  regenerated both records, and landed a ceiling above a real four-call turn
+  with every test green on one key, because the record's pin re-runs the same
+  reader. `pave/twokey.py` gains a rule over `context_census.py`,
+  `context-census.json`, `residual_differential.py` and
+  `residual-differential.json` — AI Quality, Platform Engineering and Security,
+  the last because the record now decides what *catches a runaway loop* means
+  — pinned in `tests/test_twokey_seats.py` (ratchet 20 → 21, `required` 65 →
+  69, a `_blocked_for` plant on each of the four). Widened in the diff that
+  creates the dependency, ADR-060's precedent.
+- **`evals/comparators.json` does not move, and the L2 lane was run to know
+  it.** The required lane re-scores M02's committed answers against the live
+  cases file and fails `gate decide` on any deviation from the pinned 15 and
+  17. Run locally at a401040 before the PR opened: **`PASS - control_passed 17,
+  tools_passed 15`**. That is a count at 7700 on M02's one-tool evidence, and
+  it is not the count constraint 2 reserves for PR 4, which is the stage-2
+  join on M07's files. It is also not evidence for the claim: **the four-call
+  discrimination holds for the shape this ceiling was derived from — two
+  tools, a mandated three-call turn, stage 2's exact table — and not for M02's
+  one-tool evidence**, whose four-call turns (7146–7868 by the census) straddle
+  7700 because a one-tool call is cheaper. The comparator held because no M02
+  verdict turned on `tokens_in` alone in that range; that is a fact about M02's
+  answers, recorded here so nobody reads a green lane as the claim passing.
 
 ### Obligations this amendment dates
 
@@ -476,8 +499,8 @@ cases pass, and no seat computed a count at any ceiling but 6000.
 |---|---|---|
 | The point rule's *"pre-registered in PR 3's plan"* names an artifact that is not in the repository; every integer in the band was equally green | all four | **Fixed above** (*Where the rule was written*): the claim is withdrawn and the truth stated; the rule is now executable and pinned in the two-key derivation test; the record's gap (6792, 8181) means every value in the band produces the same join |
 | The band's input could be read as the as-run three-call maximum 6792, under which 7700 is below the floor | Tool Owner | **Declined, recorded above** (*Which maximum*): SPEC/08 pre-registered the mandated-shape maximum by name at PR 1; the as-run maximum includes the above-mandate samples statement 3 says the axis cannot discriminate |
-| `milestones/M08/context_census.py` and its record sit on no two-key rule; a four-line trim in the reader's `by_calls()`, both records regenerated, landed a ceiling at 8190 — above the real four-call turn — with 2944 tests green on AI Quality's key alone | Security (blocking) | **Operator's decision, pending.** The repository's own precedent (ADR-060) widens a rule in the diff that creates the dependency; a rule on the reader and record is a `pave/twokey.py` change on four seats, outside this PR's list |
-| The required L2 lane re-scores M02's committed answers against the live cases file at 7700 and compares to `evals/comparators.json`'s 15/25; if the tools arm's count moves, the comparator must move in its own three-key PR, and PR 3 — not PR 4 — prints the first count at the new ceiling on M02's answers | Security (blocking) | **Operator's decision, pending.** Not run locally: computing it is the count constraint 2 reserves. The census's M02 four-call samples span 7146–7868, so invariance is not structural |
+| `milestones/M08/context_census.py` and its record sit on no two-key rule; a four-line trim in the reader's `by_calls()`, both records regenerated, landed a ceiling at 8190 — above the real four-call turn — with 2944 tests green on AI Quality's key alone | Security (blocking) | **Fixed, operator's decision**: the rule widened in this PR over the reader, the record, the differential and its record — AI Quality, Platform Engineering, Security — pinned with a plant on each; the PR collects all five enforced seats (*Records* above) |
+| The required L2 lane re-scores M02's committed answers against the live cases file at 7700 and compares to `evals/comparators.json`'s pinned 15; if the tools arm's count moves, the comparator must move in its own three-key PR, and PR 3 — not PR 4 — prints the first count at the new ceiling on M02's answers | Security (blocking) | **Run, operator's decision**: `PASS - control_passed 17, tools_passed 15` at a401040; the comparator holds and does not move. The count is M02's one-tool evidence at 7700, not the stage-2 join PR 4 owns, and the four-call discrimination is claimed for the shape it was derived from and not for M02 (*Records* above) |
 | The four-call anchor was three unpinned string constants and a literal `"4"`; re-pointing at stage 1's or M06b's table survived | Security, AI Quality | **Fixed**: the call count is derived from the mandated shape, the minimum is read from the summary and folded from the samples, and the two must agree |
 | The placement test is vacuous on an empty budget set | Security | **Fixed**: every case carries a budget and the pack is at least the manifest's `eval_min_cases` |
 | The manifest's +500 margin and the below-next-call-count placement disagree for the first time, and the ADR carried the margin in without deciding | Tool Owner | **Fixed above**: the decision is written; the prose in `pave/manifest.py` and `tests/test_contracts.py` describing an enforcement that does not exist is recorded |

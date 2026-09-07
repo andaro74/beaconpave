@@ -168,6 +168,13 @@ ADR043_SEATS = {
     # both files on zero keys, `two-key: not required`.
     "services/highlights-agent/run_with_tools.py": {"platform-eng", "ai-quality"},
     "milestones/M07/topic-baseline.json": {"security", "ai-quality"},
+    # M08 PR 3 (ADR-014 amendment 2). The census reader and record the
+    # `tokens_in` ceiling's band and runaway anchor are read from. Measured on
+    # 3efd5f6 by the Security seat: both on zero keys, and a reader trim that
+    # moved the four-call minimum landed a ceiling above a real four-call turn
+    # with every test green on AI Quality's key alone.
+    "milestones/M08/context_census.py": {"ai-quality", "platform-eng", "security"},
+    "milestones/M08/context-census.json": {"ai-quality", "platform-eng", "security"},
 }
 
 
@@ -228,11 +235,13 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           "the instrument registry",
                                           # M08 PR 2, SPEC/08
                                           "the goldens producer",
-                                          "the topic baseline"))]
-    assert len(added) == 20, (
+                                          "the topic baseline",
+                                          # M08 PR 3, ADR-014 amendment 2
+                                          "the M08 census"))]
+    assert len(added) == 21, (
         f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one, "
-        f"ADR-049's three, ADR-052's two, ADR-053's two, ADR-072's one and SPEC/08's "
-        f"two, found "
+        f"ADR-049's three, ADR-052's two, ADR-053's two, ADR-072's one, SPEC/08's "
+        f"two and ADR-014 amendment 2's one, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -316,6 +325,13 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                "milestones/M07/topic-baseline.json",
                                "milestones/M07/stage1/topic-baseline.json",
                                "milestones/M09/topic-baseline.json"],
+        # M08 PR 3 (ADR-014 amendment 2). All four members, so the alternation
+        # cannot be narrowed to the census alone while the differential — the
+        # same reader module over the same inputs — drops off silently.
+        "the M08 census": ["milestones/M08/context_census.py",
+                           "milestones/M08/context-census.json",
+                           "milestones/M08/residual_differential.py",
+                           "milestones/M08/residual-differential.json"],
         # ADR-052. Enumerated here because the audit measured both narrowings
         # silent otherwise: deleting the three pin entries below left 173 passed,
         # and dropping `pave/tests/test_twokey.py` from the alternation was caught
@@ -359,10 +375,11 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # lists had no pin of their own.
     total = sum(len(v) for v in required.values())
     # 57 -> 58 at ADR-072: the instrument registry's one path. 58 -> 65 at M08
-    # PR 2: the goldens producer's two and the topic baseline's five.
-    assert total == 65, (
+    # PR 2: the goldens producer's two and the topic baseline's five. 65 -> 69 at
+    # M08 PR 3: the M08 census's four.
+    assert total == 69, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "65. Deleting a required path in the same diff that "
+        "69. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -511,6 +528,23 @@ def test_a_step_6b_record_collects_security_and_ai_quality():
     for path in ("milestones/M06b/topic-baseline.json", "milestones/M06d/topic-baseline.json",
                  "milestones/M07/topic-baseline.json", "milestones/M07/stage1/topic-baseline.json"):
         _blocked_for([path], {"security", "ai-quality"})
+
+
+def test_the_census_the_ceiling_is_derived_from_collects_three_seats():
+    """Measured on 3efd5f6 (M08 PR 3) by the Security seat: `context_census.py`
+    and `context-census.json` on zero keys, `two-key: not required`, while the
+    derivation test reads the ceiling's band and its four-call anchor out of the
+    record and the record's pin re-runs the same reader. A four-line trim in
+    `by_calls()`, both records regenerated, every case at 8190: 2944 passed,
+    `--check` OK, AI Quality's key alone. The differential rides the same rule —
+    same reader module, same inputs, same pin shape."""
+    for path in ("milestones/M08/context_census.py", "milestones/M08/context-census.json",
+                 "milestones/M08/residual_differential.py",
+                 "milestones/M08/residual-differential.json"):
+        _blocked_for([path], {"ai-quality", "platform-eng", "security"})
+    # the rule stays narrow: the other M08 records are prose and transcripts
+    assert _seats_for("milestones/M08/per-sample-at-6000.txt") == set()
+    assert _seats_for("milestones/M08/withheld-read.txt") == set()
 
 
 def test_a_forged_permit_from_the_generator_collects_four_seats():
