@@ -235,6 +235,16 @@ def test_a_response_usage_that_disagrees_with_the_record_is_refused(reader, plan
         reader.record(planted)
 
 
-def test_the_real_directory_has_no_calibration_yet(reader):
-    with pytest.raises(SystemExit, match="calibration call has not been made"):
-        reader.record(reader.HERE)
+def test_the_committed_record_is_what_the_calibration_and_the_run_produce(reader):
+    """PR 3's replacement for `test_the_real_directory_has_no_calibration_yet`,
+    which asserted the call had not been made. It has, on `blackout-008` with
+    tools absent, and the record it produces is pinned byte for byte.
+
+    A, B, E and S, the two identities and the signed shares are all in here, so
+    a moved estimate, a re-read calibration or a substituted case is red. The
+    fix is to find which input moved, never to edit the record to match."""
+    produced = json.dumps(reader.record(reader.HERE), indent=2, ensure_ascii=False) + "\n"
+    assert produced == (reader.HERE / "residual-attribution.json").read_text(encoding="utf-8"), (
+        "milestones/M08b/residual-attribution.json is not what the committed calibration and "
+        "run produce; re-run `python milestones/M08b/residual_attribution.py` and find which "
+        "input moved")
