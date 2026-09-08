@@ -1,0 +1,292 @@
+{
+  "sha": "90121eb6231beee877d03a9f2a494c8473965cf0",
+  "suite": "goldens",
+  "target": "highlights-agent",
+  "recorded_at": "2026-09-08T02:59:26+00:00",
+  "scores": {
+    "total": 25,
+    "passed": 10,
+    "failed": 15,
+    "infra": 0,
+    "pass_rate": 0.4,
+    "pooled_pass_rate": 0.4133,
+    "refused": 2,
+    "answered": 13
+  },
+  "cases": [
+    {
+      "id": "blackout-001",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "blackout-006",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "blackout-007",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "blackout-008",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "blackout-009",
+      "result": "FAIL",
+      "refused": true,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "entitlement-002",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "entitlement-010",
+      "result": "PASS",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "entitlement-011",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "entitlement-012",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "recommend-003",
+      "result": "FAIL",
+      "refused": true,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "recommend-013",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "recommend-014",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "recommend-015",
+      "result": "PASS",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "grounded-016",
+      "result": "PASS",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "grounded-017",
+      "result": "PASS",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "grounded-018",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "grounded-019",
+      "result": "PASS",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "FAIL",
+        "PASS"
+      ]
+    },
+    {
+      "id": "brand-020",
+      "result": "PASS",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "brand-021",
+      "result": "PASS",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "FAIL",
+        "PASS"
+      ]
+    },
+    {
+      "id": "concise-022",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "PASS"
+      ]
+    },
+    {
+      "id": "multi-023",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "edge-024",
+      "result": "PASS",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "edge-025",
+      "result": "FAIL",
+      "refused": false,
+      "samples": [
+        "FAIL",
+        "FAIL",
+        "FAIL"
+      ]
+    },
+    {
+      "id": "headroom-005",
+      "result": "PASS",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    },
+    {
+      "id": "headroom-026",
+      "result": "PASS",
+      "refused": false,
+      "samples": [
+        "PASS",
+        "PASS",
+        "PASS"
+      ]
+    }
+  ],
+  "tool_surface": {
+    "routed": [
+      "catalog-search",
+      "entitlement-check"
+    ],
+    "tool_specs_sha256": "6097664dba62dbff612b9551f2eed609f5926922179e46b4df01a1c851cf7b03"
+  },
+  "k": 3,
+  "samples_from": [
+    {
+      "path": "milestones/M08b/goldens-run-1.json",
+      "sha256": "324fae8ef6000bf68c6b20d9a2dfebf343bf3eff11bb50f1adcc4c9702f0a4da"
+    },
+    {
+      "path": "milestones/M08b/goldens-run-2.json",
+      "sha256": "8e1c7de22a224f9457cb85ca0e4c193100910e94fc7f953bee84949c80463af7"
+    },
+    {
+      "path": "milestones/M08b/goldens-run-3.json",
+      "sha256": "db587e201fca83eb95ef7d59f400149e35ba9f67660b808ab8cd733c36f0a1ee"
+    }
+  ],
+  "arm": "tools",
+  "tag": "m08b"
+}

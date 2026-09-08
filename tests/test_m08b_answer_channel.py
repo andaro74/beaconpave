@@ -213,9 +213,19 @@ def test_check_compares_and_writes_nothing(reader, planted):
     assert not (planted / "answer-channel.json").exists()
 
 
-def test_the_real_directory_has_no_run_yet(reader):
-    with pytest.raises(SystemExit, match="does not exist"):
-        reader.record(reader.HERE)
+def test_the_committed_record_is_what_the_run_and_the_grants_file_produce(reader):
+    """PR 3's replacement for `test_the_real_directory_has_no_run_yet`, which
+    asserted the run did not exist yet. It does, and the record the reader
+    produces over it and the operator's grants file is pinned byte for byte.
+
+    F, G, the per-case columns, the DEC-001 list and the reading are all in
+    here, so a grant flipped in `withheld-grants.json` after the reading moves
+    it and is red. The fix is to find which input moved, never to edit the
+    record to match."""
+    produced = json.dumps(reader.record(reader.HERE), indent=2, ensure_ascii=False) + "\n"
+    assert produced == (reader.HERE / "answer-channel.json").read_text(encoding="utf-8"), (
+        "milestones/M08b/answer-channel.json is not what the committed run and grants file "
+        "produce; re-run `python milestones/M08b/answer_channel.py` and find which input moved")
 
 
 def test_the_reader_imports_no_network_module_and_opens_no_store():

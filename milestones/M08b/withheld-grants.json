@@ -1,0 +1,31 @@
+{
+  "_what_this_is": "ADR-074 decision 3 §3: one reading per sample refused on the answer channel by the entitlement topic — grant or not, DEC-001's shape or not — written after read_withheld.py --show. No held text is here or may be.",
+  "read_on": "2026-09-08",
+  "source": "milestones/M08b/withheld-read.txt; ADR-070 amendment 8; ADR-074",
+  "grants": {
+    "blackout-009": {
+      "s1": {
+        "grant": true,
+        "dec001_shape": false
+      },
+      "s2": {
+        "grant": true,
+        "dec001_shape": false
+      },
+      "s3": {
+        "grant": true,
+        "dec001_shape": false
+      }
+    },
+    "recommend-003": {
+      "s1": {
+        "grant": true,
+        "dec001_shape": false
+      },
+      "s2": {
+        "grant": true,
+        "dec001_shape": false
+      }
+    }
+  }
+}

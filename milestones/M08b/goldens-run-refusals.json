@@ -1,0 +1,354 @@
+{
+  "_what_this_is": "Per-case, per-sample refusal detail for this arm, taken from the audit records fetched back out of the lake rather than from the gateway's response. The answer files carry what was answered; this carries WHY the rest was not, which `evals/run_evals.py` cannot express - it scores a refused case as a plain FAIL, indistinguishable from one that answered badly. `channel` says whether a guardrail block was a refusal of the viewer's question or of content the platform was about to put in the model's context (ADR-035).",
+  "_k": 3,
+  "samples": [
+    1,
+    2,
+    3
+  ],
+  "_preflight": {
+    "gateway_function": "BeaconpaveGateway-GatewayFn1123A784-2LHF1oy9C98J",
+    "function_last_modified": "2026-09-08T02:40:45.000+0000",
+    "guardrail": {
+      "id": "abayh4ye7f8o",
+      "version": "4"
+    },
+    "tool_output_guardrail": {
+      "id": "ggla7vqlfu7d",
+      "version": "1"
+    },
+    "withheld_store_bucket": "beaconpavegateway-withheldstore40f96f34-nyxllxnfiear",
+    "inspection_text": {
+      "path": "platform/gateway/core/toolloop.py",
+      "sha256": "13c87d5dc49212435774183b123f3d6eef4f15ba4a09b4b04970c14dd56ecabc"
+    },
+    "guardrail_policies": {
+      "main": {
+        "id": "abayh4ye7f8o",
+        "version": "4",
+        "name": "beaconpave-gateway",
+        "topics": [
+          "enforcement-probing",
+          "entitlement-circumvention",
+          "medical-advice"
+        ],
+        "filters": {
+          "VIOLENCE": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          },
+          "PROMPT_ATTACK": {
+            "input": "HIGH",
+            "output": "NONE"
+          },
+          "MISCONDUCT": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          },
+          "HATE": {
+            "input": "HIGH",
+            "output": "HIGH"
+          },
+          "SEXUAL": {
+            "input": "HIGH",
+            "output": "HIGH"
+          },
+          "INSULTS": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          }
+        },
+        "other_policies": [
+          "sensitiveInformationPolicy"
+        ]
+      },
+      "tool_output": {
+        "id": "ggla7vqlfu7d",
+        "version": "1",
+        "name": "beaconpave-tool-output",
+        "topics": [],
+        "filters": {
+          "VIOLENCE": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          },
+          "PROMPT_ATTACK": {
+            "input": "HIGH",
+            "output": "NONE"
+          },
+          "MISCONDUCT": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          },
+          "HATE": {
+            "input": "HIGH",
+            "output": "HIGH"
+          },
+          "SEXUAL": {
+            "input": "HIGH",
+            "output": "HIGH"
+          },
+          "INSULTS": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          }
+        },
+        "other_policies": [
+          "sensitiveInformationPolicy"
+        ]
+      }
+    },
+    "deployed_bundle": {
+      "code_sha256": "/O4tiCrf9UFu9GWGaL0n4YCjuGswLeHH9lcEHp1UVLc=",
+      "handler.py": "141d618ee64ce9cebc23e3728e4984f286b6e1d249122561fb1ac8da285403eb",
+      "core/toolloop.py": "13c87d5dc49212435774183b123f3d6eef4f15ba4a09b4b04970c14dd56ecabc"
+    },
+    "probe_comparison_baseline": "milestones/ADR-041/probes-and-controls-v4.json",
+    "tag": "m08b"
+  },
+  "_guardrail_versions": [
+    "4"
+  ],
+  "_guardrails_observed": {
+    "abayh4ye7f8o": [
+      "4"
+    ]
+  },
+  "census": {
+    "k": 3,
+    "n_cases": 25,
+    "refused_at_least_once": 2,
+    "refused_by_majority": 2,
+    "refused_unanimously": 1,
+    "cases_at_least_once": [
+      "blackout-009",
+      "recommend-003"
+    ],
+    "cases_by_majority": [
+      "blackout-009",
+      "recommend-003"
+    ],
+    "cases_separating_the_estimators": [],
+    "cases_with_missing_samples": [],
+    "estimator_for_adr_035": "refused_at_least_once"
+  },
+  "refusals": {
+    "blackout-009": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-08/highlights-agent/blackout-009-m08b-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-08/highlights-agent/blackout-009-m08b-2.json",
+        "record_resolved": true
+      },
+      "s3": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:enforcement-probing",
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-08/highlights-agent/blackout-009-m08b-3.json",
+        "record_resolved": true
+      }
+    },
+    "recommend-003": {
+      "s1": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-08/highlights-agent/recommend-003-m08b-1.json",
+        "record_resolved": true
+      },
+      "s2": {
+        "decision": "blocked",
+        "mechanism": "guardrail",
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ],
+        "channels": [
+          "answer"
+        ],
+        "guardrail": {
+          "id": "abayh4ye7f8o",
+          "version": "4"
+        },
+        "reasons": [],
+        "record_id": "2026-09-08/highlights-agent/recommend-003-m08b-2.json",
+        "record_resolved": true
+      }
+    }
+  },
+  "per_sample_refused": {
+    "blackout-001": [
+      false,
+      false,
+      false
+    ],
+    "blackout-006": [
+      false,
+      false,
+      false
+    ],
+    "blackout-007": [
+      false,
+      false,
+      false
+    ],
+    "blackout-008": [
+      false,
+      false,
+      false
+    ],
+    "blackout-009": [
+      true,
+      true,
+      true
+    ],
+    "entitlement-002": [
+      false,
+      false,
+      false
+    ],
+    "entitlement-010": [
+      false,
+      false,
+      false
+    ],
+    "entitlement-011": [
+      false,
+      false,
+      false
+    ],
+    "entitlement-012": [
+      false,
+      false,
+      false
+    ],
+    "recommend-003": [
+      true,
+      true,
+      false
+    ],
+    "recommend-013": [
+      false,
+      false,
+      false
+    ],
+    "recommend-014": [
+      false,
+      false,
+      false
+    ],
+    "recommend-015": [
+      false,
+      false,
+      false
+    ],
+    "grounded-016": [
+      false,
+      false,
+      false
+    ],
+    "grounded-017": [
+      false,
+      false,
+      false
+    ],
+    "grounded-018": [
+      false,
+      false,
+      false
+    ],
+    "grounded-019": [
+      false,
+      false,
+      false
+    ],
+    "brand-020": [
+      false,
+      false,
+      false
+    ],
+    "brand-021": [
+      false,
+      false,
+      false
+    ],
+    "concise-022": [
+      false,
+      false,
+      false
+    ],
+    "multi-023": [
+      false,
+      false,
+      false
+    ],
+    "edge-024": [
+      false,
+      false,
+      false
+    ],
+    "edge-025": [
+      false,
+      false,
+      false
+    ],
+    "headroom-005": [
+      false,
+      false,
+      false
+    ],
+    "headroom-026": [
+      false,
+      false,
+      false
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+=== python -m evals.run_evals --arm tools --answers milestones/M08b/goldens-run-1.json --answers milestones/M08b/goldens-run-2.json --answers milestones/M08b/goldens-run-3.json --refusals milestones/M08b/goldens-run-refusals.json
+summarised 3 samples by per-case majority (arm=tools)
+
+blackout-001     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_out=377 over 300 (calls=3)
+blackout-006     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_out=347 over 300 (calls=3)
+blackout-007     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_out=338 over 300 (calls=3)
+blackout-008     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_out=344 over 300 (calls=3)
+blackout-009     FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_cite: not cited: ['t001']
+                   - entitlement: answer carries no entitlement verdict
+entitlement-002  FAIL  [PASS FAIL FAIL]
+                   - budget: tokens_out=307 over 300 (calls=3)
+entitlement-010  PASS  [PASS PASS PASS]
+entitlement-011  FAIL  [PASS FAIL FAIL]
+                   - budget: tokens_out=308 over 300 (calls=3)
+entitlement-012  FAIL  [FAIL FAIL FAIL]
+                   - must_not_claim: 'Harbor Bay Invitational is' present in answer
+                   - entitlement: answer carries no entitlement verdict
+recommend-003    FAIL  [FAIL FAIL FAIL]
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+recommend-013    FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'Jefferson Derby' absent from answer
+                   - must_cite: not cited: ['t001']
+                   - budget: tokens_in=8351 over 7700; tokens_out=432 over 400 (calls=4)
+recommend-014    FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - budget: tokens_in=8369 over 7700 (calls=4)
+recommend-015    PASS  [PASS PASS PASS]
+grounded-016     PASS  [PASS PASS PASS]
+grounded-017     PASS  [PASS PASS PASS]
+grounded-018     FAIL  [FAIL FAIL FAIL]
+                   - budget: tokens_in=8574 over 7700; tokens_out=355 over 300 (calls=4)
+grounded-019     PASS  [PASS FAIL PASS]
+brand-020        PASS  [PASS PASS PASS]
+brand-021        PASS  [PASS FAIL PASS]
+concise-022      FAIL  [FAIL FAIL PASS]
+                   - budget: tokens_out=328 over 300 (calls=3)
+multi-023        FAIL  [FAIL FAIL FAIL]
+                   - must_mention: 'blackout' absent from answer
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - entitlement: reason='upgrade-required' (expected 'blackout')
+                   - budget: tokens_in=11127 over 7700; tokens_out=642 over 600 (calls=5)
+edge-024         PASS  [PASS PASS PASS]
+edge-025         FAIL  [FAIL FAIL FAIL]
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_out=459 over 300 (calls=3)
+headroom-005     PASS  [PASS PASS PASS]
+headroom-026     PASS  [PASS PASS PASS]
+
+10/25 passed (15 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 15 failed: 2 were refused before scoring, 13 answered and scored wrong
+accounting: passed 10 + failed 15 + infra 0 + advisory 0 = 25 of 25
+refusals: 5/5 resolved to 2 (mechanism, assessed) pairs — guardrail / TOPIC:enforcement-probing,TOPIC:entitlement-circumvention; guardrail / TOPIC:entitlement-circumvention
+  note: the refused set is not one control's footprint: 2 (mechanism, assessed) pairs -- guardrail / TOPIC:enforcement-probing,TOPIC:entitlement-circumvention; guardrail / TOPIC:entitlement-circumvention. A second topic, a second guardrail or a classification denial is a finding for its own seat (ADR-069 D4).
+suite latency  OVER p95=6633ms over 5200ms
+deferred, evaluated but not scored: 23 assert(s) across ['entitlement_source', 'tool_before_answer']
+  entitlement_source: reads a self-report; verifiable only by M06's trajectory eval (ADR-016)
+  tool_before_answer: evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)
+exit 0

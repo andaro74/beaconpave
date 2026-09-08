@@ -148,11 +148,20 @@ def test_check_compares_and_writes_nothing(reader, planted, capsys):
     assert not (planted / "fresh-join.json").exists()
 
 
-def test_the_real_directory_has_no_run_yet(reader):
-    """PR 3 commits the run; until then the reader says so rather than reading
-    a partial directory as a run."""
-    with pytest.raises(SystemExit, match="does not exist"):
-        reader.join(reader.HERE)
+def test_the_committed_record_is_what_the_run_produces(reader):
+    """PR 3's replacement for `test_the_real_directory_has_no_run_yet`, which
+    asserted the run did not exist yet. It does, and the reader is pinned to it
+    byte for byte, as `--check` compares it.
+
+    This is the claim's record: the answered samples at three calls or fewer
+    against 7700 and those at four or more, both falsifier lists, the fresh
+    re-derived band, the count, the refusals, the two p95s and the two
+    triggers. A number that moves here without an input moving is red; a number
+    that moves because an input moved is red too, and the answer is to find
+    which input moved, never to edit the record to match."""
+    assert _produced(reader, reader.HERE) == (reader.HERE / "fresh-join.json").read_text(encoding="utf-8"), (
+        "milestones/M08b/fresh-join.json is not what the committed run produces; re-run "
+        "`python milestones/M08b/fresh_join.py` and find which input moved")
 
 
 def test_the_reader_imports_no_network_module_and_takes_no_ceiling():

@@ -1,0 +1,329 @@
+{
+  "_what_this_is": "ADR-074 decision 3 §3: the recommend-003 reading, F against G, produced by milestones/M08b/answer_channel.py from the answer files, the refusals sidecar and the operator's grants file. The prior (M07, by hand) is carried for comparison; the fresh reading is Security's disposition at PR 3; any fix is its own ADR. No held text is in this record.",
+  "inputs_sha256": {
+    "milestones/M08b/goldens-run-1.json": "324fae8ef6000bf68c6b20d9a2dfebf343bf3eff11bb50f1adcc4c9702f0a4da",
+    "milestones/M08b/goldens-run-2.json": "8e1c7de22a224f9457cb85ca0e4c193100910e94fc7f953bee84949c80463af7",
+    "milestones/M08b/goldens-run-3.json": "db587e201fca83eb95ef7d59f400149e35ba9f67660b808ab8cd733c36f0a1ee",
+    "milestones/M08b/goldens-run-refusals.json": "bb2b49052421892224d0258fc0e334e2fec39d740f8bee7c8e30382474d87d4c",
+    "milestones/M08b/withheld-grants.json": "b82ac0dc19c3b9d3914dbd75e445476e813f9d173c8f1cfcaa7b0f02a80651d2"
+  },
+  "prior_m07": {
+    "G": 8,
+    "F": 1,
+    "reading": "topic question"
+  },
+  "k": 3,
+  "majority": 2,
+  "G": 8,
+  "G_cases": [
+    "blackout-007",
+    "blackout-009",
+    "brand-020",
+    "concise-022",
+    "entitlement-011",
+    "grounded-017",
+    "headroom-005",
+    "recommend-003"
+  ],
+  "F": 2,
+  "F_cases": [
+    "blackout-009",
+    "recommend-003"
+  ],
+  "F_subset_of_G": true,
+  "dec001_cases": [],
+  "reading": "topic question",
+  "mixed_grants_not_counted": [],
+  "multi_channel_refusals": [],
+  "per_case": {
+    "blackout-001": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "blackout-006": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "blackout-007": {
+      "answered_grants": 3,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": true,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "blackout-008": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "blackout-009": {
+      "answered_grants": 0,
+      "refused_samples": [
+        1,
+        2,
+        3
+      ],
+      "refused_on_answer_by_entitlement_topic": [
+        1,
+        2,
+        3
+      ],
+      "held_grants": 3,
+      "dec001_samples": [],
+      "refused_by_majority": true,
+      "in_G": true,
+      "in_F": true,
+      "mixed_grants_not_counted": false
+    },
+    "brand-020": {
+      "answered_grants": 3,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": true,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "brand-021": {
+      "answered_grants": 1,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "concise-022": {
+      "answered_grants": 3,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": true,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "edge-024": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "edge-025": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "entitlement-002": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "entitlement-010": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "entitlement-011": {
+      "answered_grants": 3,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": true,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "entitlement-012": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "grounded-016": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "grounded-017": {
+      "answered_grants": 3,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": true,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "grounded-018": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "grounded-019": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "headroom-005": {
+      "answered_grants": 2,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": true,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "headroom-026": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "multi-023": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "recommend-003": {
+      "answered_grants": 1,
+      "refused_samples": [
+        1,
+        2
+      ],
+      "refused_on_answer_by_entitlement_topic": [
+        1,
+        2
+      ],
+      "held_grants": 2,
+      "dec001_samples": [],
+      "refused_by_majority": true,
+      "in_G": true,
+      "in_F": true,
+      "mixed_grants_not_counted": false
+    },
+    "recommend-013": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "recommend-014": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    },
+    "recommend-015": {
+      "answered_grants": 0,
+      "refused_samples": [],
+      "refused_on_answer_by_entitlement_topic": [],
+      "held_grants": 0,
+      "dec001_samples": [],
+      "refused_by_majority": false,
+      "in_G": false,
+      "in_F": false,
+      "mixed_grants_not_counted": false
+    }
+  }
+}

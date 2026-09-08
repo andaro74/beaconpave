@@ -1,0 +1,138 @@
+{
+  "_what_this_is": "ADR-074 decision 3 §4: the calibration call. One gateway turn on this case's viewer turn with `tools` absent and the same system block the run sends, so the first round's tokens_in is the committed text as the model counts it (B). The answer is not recorded; nothing here is scored. `usage` is the response's, `record_usage` the audit record's, and the two must agree.",
+  "_preflight": {
+    "gateway_function": "BeaconpaveGateway-GatewayFn1123A784-2LHF1oy9C98J",
+    "function_last_modified": "2026-09-08T02:40:45.000+0000",
+    "guardrail": {
+      "id": "abayh4ye7f8o",
+      "version": "4"
+    },
+    "tool_output_guardrail": {
+      "id": "ggla7vqlfu7d",
+      "version": "1"
+    },
+    "withheld_store_bucket": "beaconpavegateway-withheldstore40f96f34-nyxllxnfiear",
+    "inspection_text": {
+      "path": "platform/gateway/core/toolloop.py",
+      "sha256": "13c87d5dc49212435774183b123f3d6eef4f15ba4a09b4b04970c14dd56ecabc"
+    },
+    "guardrail_policies": {
+      "main": {
+        "id": "abayh4ye7f8o",
+        "version": "4",
+        "name": "beaconpave-gateway",
+        "topics": [
+          "enforcement-probing",
+          "entitlement-circumvention",
+          "medical-advice"
+        ],
+        "filters": {
+          "VIOLENCE": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          },
+          "PROMPT_ATTACK": {
+            "input": "HIGH",
+            "output": "NONE"
+          },
+          "MISCONDUCT": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          },
+          "HATE": {
+            "input": "HIGH",
+            "output": "HIGH"
+          },
+          "SEXUAL": {
+            "input": "HIGH",
+            "output": "HIGH"
+          },
+          "INSULTS": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          }
+        },
+        "other_policies": [
+          "sensitiveInformationPolicy"
+        ]
+      },
+      "tool_output": {
+        "id": "ggla7vqlfu7d",
+        "version": "1",
+        "name": "beaconpave-tool-output",
+        "topics": [],
+        "filters": {
+          "VIOLENCE": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          },
+          "PROMPT_ATTACK": {
+            "input": "HIGH",
+            "output": "NONE"
+          },
+          "MISCONDUCT": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          },
+          "HATE": {
+            "input": "HIGH",
+            "output": "HIGH"
+          },
+          "SEXUAL": {
+            "input": "HIGH",
+            "output": "HIGH"
+          },
+          "INSULTS": {
+            "input": "MEDIUM",
+            "output": "MEDIUM"
+          }
+        },
+        "other_policies": [
+          "sensitiveInformationPolicy"
+        ]
+      }
+    },
+    "deployed_bundle": {
+      "code_sha256": "/O4tiCrf9UFu9GWGaL0n4YCjuGswLeHH9lcEHp1UVLc=",
+      "handler.py": "141d618ee64ce9cebc23e3728e4984f286b6e1d249122561fb1ac8da285403eb",
+      "core/toolloop.py": "13c87d5dc49212435774183b123f3d6eef4f15ba4a09b4b04970c14dd56ecabc"
+    },
+    "probe_comparison_baseline": "milestones/ADR-041/probes-and-controls-v4.json",
+    "tag": "m08b"
+  },
+  "case": "blackout-008",
+  "request_id": "blackout-008-m08b-calibration",
+  "tools": "absent",
+  "decision": "allowed",
+  "mechanism": null,
+  "record_id": "2026-09-08/highlights-agent/blackout-008-m08b-calibration.json",
+  "record_resolved": true,
+  "usage": {
+    "guard_ms": 375,
+    "tokens_in": 796,
+    "tokens_out": 354,
+    "latency_ms": 3319,
+    "calls": [
+      {
+        "tokens_in": 796,
+        "tokens_out": 354,
+        "latency_ms": 3319
+      }
+    ]
+  },
+  "record_usage": {
+    "guard_ms": 375,
+    "tokens_in": 796,
+    "tokens_out": 354,
+    "latency_ms": 3319,
+    "calls": [
+      {
+        "tokens_in": 796,
+        "tokens_out": 354,
+        "latency_ms": 3319
+      }
+    ]
+  },
+  "system_sha256": "9ebd6e0725e914e492592c0f178dc09d97449c59d2072d618897dae43da238a4",
+  "text_sha256": "3d96a1ac318c88718c212fac3f869e6dd0319b3cfad3c4f907846893bbc018f1"
+}

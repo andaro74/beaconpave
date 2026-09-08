@@ -44,7 +44,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 06d | The instrument, readable ❈ | three PRs ❈ | `m06d` | not re-scored ❈ | – | n/a ❈ | ✅ |
 | 07 | The guardrail, applied per channel by the gateway ✚ | six PRs ✚ | `m07` | **2/25** ✚ | not judged ✧ | 7/11, not recorded ✚ | ✅ |
 | 08 | The tools arm's budget: the context or the ceiling ✜ | six PRs ✜ | `m08` | **12/25** ✜ | not judged ✧ | not run ✜ | ✅ |
-| 08b | The ceiling, measured on samples it was not derived from ❁ | `m08b-fresh-run` | `m08b` | –/25 | – | – | ⬜ |
+| 08b | The ceiling, measured on samples it was not derived from ❁ | `m08b-fresh-run` | `m08b` | **10/25** ❁ | – | – | ⬜ |
 | 09 | Rules registry + regdelta loop | `m09-rules` | `m09` | –/25 | – | – | ⬜ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |

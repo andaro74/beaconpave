@@ -1128,3 +1128,303 @@ The claim, 7700, the band, the placement. The count and refusal bands. The
 The `p95_ms` rule; the number it produces is executed and pinned here, not
 chosen. Decisions 2 and 4; the cap, spent. Constraints 1–10. PR 3 reads two
 p95 numbers, both against 5200, and the gate costs no case either way.
+## Amendment 3 — the run, read: the claim holds, and the second p95 reading is the one that fires
+
+**Written 2026-09-08, in M08b PR 3, after the run was committed as-run and
+before any reader was pointed at it. Zero model calls to write this amendment:
+the run spent 76 turns — 75 for the k=3 goldens run and 1 for the calibration
+call — of the 152 constraint 8 allows, no INFRA sample appeared, and constraint
+5's re-run door was never opened. Every number below is produced by a committed
+reader over committed evidence, and each is filled into a sentence decision 3
+wrote before the run existed.** The pre-flight named the deployed function, the
+main pair `abayh4ye7f8o` v4 and the tool-output pair `ggla7vqlfu7d` v1 read from
+that function's configuration, and the deployed bundle's `handler.py` and
+`core/toolloop.py` equal to the tree at PR 2's merge (`90121eb`). Between PR 1's
+merge (`8c7a428`) and PR 3's branch point, `git diff` over
+`services/highlights-agent/evals/`, `platform/gateway/policy/`,
+`data/catalog.json`, `platform/infra/lib/gateway-stack.ts` and the three
+`quality/adversarial/topic-attacks*.yaml` corpora **is empty**: no case, tier,
+token ceiling, prompt, tool spec, tool result field, topic wording, guardrail,
+catalog or Cedar policy moved before the run. Exactly two files under those
+paths' families moved at all, both PR 2's and both pre-registered:
+`pave.manifest.yaml`'s `p95_ms` 2500 → 5200, which constraint 1 permits once and
+§7 reads, and `quality/adversarial/instruments.json`'s new **m04-I** row, which
+amendment 2 §4 registered because the per-round list moves `core/toolloop.py`'s
+digest. No probe ran; the other six instrument digests hold.
+
+### 1. The claim: it holds
+
+**Decision 3 §1's sentence, filled in.** Of 75 samples, 70 were answered and 5
+refused. **58 answered samples ran three model calls or fewer and every one of
+them passes `tokens_in` at 7700, the largest at 6782. 12 ran four calls or more
+and every one of them fails it, the smallest at 8351.** Both falsifier lists are
+empty: no sample at three calls or fewer over 7700, none at four or more under
+it. The comparison the join read is `got > limit`, `evals/deterministic.py`'s
+own, and the join records which it read.
+
+The gap the claim risked is the one it landed in the middle of. M08's record had
+no answered sample between 6792 and 8181, so every value in that band produced
+the same join there; the fresh run's own gap is (6782, 8351), wider on both
+sides. The three-call maximum fell 10 tokens and the four-call minimum rose 170.
+No sample landed inside the rounding grain (7675.125, 7700], so there is no near
+miss to record and the rounding is not implicated anywhere in this reading.
+
+**The fresh re-derived band, and the sentence amendment 1 §5 said the spec could
+not write today.** The fresh mandated-shape maximum is **6237** (M08: 6235) and
+the fresh four-call minimum **8351** (M08: 8181). By ADR-014's pinned rule those
+two give floor 1.15 × 6237 = 7172.55, roof 8350, the integer band **[7173,
+8350]**, unrounded midpoint 7761.275, point **7800**. **7700 is inside the fresh
+band.** So this run does not produce *the number holds and the rule does not*:
+the number holds, the band that would be re-derived holds it, and the rule
+re-derives to a different point 100 tokens higher. Recorded, not ruled on, in the
+words decision 3 pre-registered: **7700 stands wherever the fresh band lands,
+because a ceiling moved on a fresh run's band is a re-derivation, and that is a
+census milestone.** M09 gets the fact rather than the move.
+
+### 2. The count: N = 10, inside the band and under the prediction
+
+`N/25` with 7 ≤ N ≤ 14 and **N = 12 predicted**. The run reads **N = 10** — in
+the band, two under the prediction. None of the three falsifiers of the
+side-prediction fired: N is not outside the band; no case that passed 3-of-3 at
+M08 fails by majority; no case that failed 0-of-3 at M08 passes by majority.
+
+Two cases moved from PASS to FAIL, and **both are from the five that passed
+2-of-3 at M08** — the exact margin the band was built from: `entitlement-002`
+(PPF at M08, PFF fresh) and `entitlement-011` (PPF at M08, PFF fresh). Each now
+fails on `tokens_out` at its unchanged tier by one sample's margin, 307 and 308
+against 300. The other three of the five held. Of the two that failed 1-of-3 at
+M08, `entitlement-012` still fails and `blackout-009` fails differently — it is
+refused on all three samples now, which §5 below is about. This is a miss of the
+side-prediction by two, inside its band, and it is a finding about the
+side-prediction; it does not touch the claim.
+
+### 3. Refusals: 2 of 25, at the top of the band
+
+Refused by majority **2 of 25** — `blackout-009` and `recommend-003` — against
+the pre-registered band 0–2 and M07's measured 1. In the band, at its ceiling;
+the falsifier is 3 or more and it did not fire. The census also records
+`refused_unanimously: 1`, the first unanimous refusal in a governed goldens run
+since M06b, and it is `blackout-009`.
+
+### 4. `recommend-003`: F = 2, G = 8 — a topic question, as the prior was
+
+Read by `milestones/M08b/answer_channel.py`, the reader PR 2 built and pinned by
+reproducing decision 3 §3's hand count from M07's files through the same code
+path (G = 8, F = 1). On the fresh run:
+
+- **G = 8** — `blackout-007`, `blackout-009`, `brand-020`, `concise-022`,
+  `entitlement-011`, `grounded-017`, `headroom-005`, `recommend-003`. The same
+  count as M07 and, by coincidence of membership, the same eight cases.
+- **F = 2** — `recommend-003` (refused on samples 1 and 2, granting on 3) and
+  `blackout-009` (refused on all three). F ⊆ G holds.
+- No case's held text is `DEC-001`'s shape, so ADR-068's conjunction question is
+  not re-opened. No mixed case was surfaced.
+
+**0 < F < G, so the reading is a topic question**, in decision 3 §3's words: the
+topic discriminates among grants of one shape, so it is reading content the case
+supplies and not the structured verdict. It is Security's, as a calibration on
+the corpus's rule with its own ADR, and **the fix is not M08b's** — no `rules/`
+change, no guardrail line, no topic wording moves here.
+
+One thing the fresh reading adds that M07's could not: F grew from 1 to 2 while
+G stayed at 8, and the case that joined F is the one §5 is about. The question is
+the same question; it now has two witnesses instead of one.
+
+### 5. `blackout-009` refused 3 of 3 — ADR-035 amendment 9's trigger 2, fired, and a step-6b item for PR 6
+
+**ADR-035 amendment 9 accepted `enforcement-probing`'s false positive as a cost
+rather than a hole, and pre-registered exactly two triggers that return the topic
+to the Security seat.** `close-milestone` step 6b carries them: *footprint above
+2 of 25, or `blackout-009` refused by majority.*
+
+Read off this run's refusal census, which is where step 6b says to read it:
+
+| | M07 | M08b |
+|---|---|---|
+| `blackout-009` refused | **0 of 3** | **3 of 3** |
+| `enforcement-probing` at-least-once footprint on the 25 | 0 of 25 | **1 of 25** |
+| refused by majority, all cases | 1 (`recommend-003`) | 2 |
+| main guardrail | `abayh4ye7f8o` v4 | `abayh4ye7f8o` v4 |
+
+**Trigger 1 did not fire**: the footprint is 1 of 25, below the accepted 2 of 25,
+and `enforcement-probing` is assessed on one sample only (`blackout-009` s3,
+alongside `entitlement-circumvention`). **Trigger 2 fired**: `blackout-009` is
+refused by majority, and by more than the trigger's own threshold — unanimously,
+on the `answer` channel, all three blocked by the main pair at v4 with
+`TOPIC:entitlement-circumvention` assessed on every sample.
+
+This is the second firing of trigger 2. Amendment 11 of ADR-035 recorded the
+first, at M06b, and its operative half is the sentence that governs this one:
+**a trigger is recorded as having fired and been answered, never as not met**, and
+a trigger that can be reasoned into never having fired is a trigger nobody has to
+answer. The reasoning available here is the same shape as M06b's and is again
+true and again not exculpatory: the topic named on two of the three samples is
+`entitlement-circumvention`, not `enforcement-probing`; nothing about the
+guardrail moved; the case's refusal is generation drift under a fixed control.
+All three are true. None of them makes the trigger not have fired.
+
+**Dated, not dispositioned here.** M08b's constraint 1 moves no guardrail and its
+constraint 9 reads triggers rather than diagnosing them, and G6 makes a
+disposition the Security seat's, not this ADR's. So this amendment does one
+thing: it **names `blackout-009`'s unanimous refusal as a step-6b item for PR 6**,
+to be read there against ADR-035 amendment 9's two triggers from
+`milestones/M08b/goldens-run-refusals.json` and `milestones/M08b/topic-baseline.json`,
+with the journal saying which way it went and with what number. It is an
+accepted-cost trigger, so it returns the topic to its owning seat for
+re-disposition **before the milestone closes** — which is PR 6, and which is why
+it is written down here rather than remembered.
+
+Beside it, and not the same finding: `blackout-009` also moved from a 1-of-3 pass
+at M08 to a 0-of-3 fail here, and it is the only case in the run whose samples
+carry no call count at all, because all three were blocked before an answer. The
+scorer's three failures on it — `json_schema`, `must_cite`, `entitlement` — are
+what a refused sample scores, not what a wrong answer scores.
+
+### 6. The residual: framing, 92.9% of it, with the signs recorded
+
+Read by `milestones/M08b/residual_attribution.py` from the calibration call
+committed at `2026-09-08/highlights-agent/blackout-008-m08b-calibration.json` —
+one gateway turn on `blackout-008`'s viewer turn with **`tools` absent** and the
+same `system` block, allowed on the `answer` channel, so **the refused-turn
+fallback was not taken and `entitlement-010` was not substituted.**
+
+| | | |
+|---|---|---|
+| **A** | **1900** | the fresh run's round-1 `inputTokens` on `blackout-008` |
+| **B** | **796** | the calibration turn's, tools absent |
+| **E** | **834** [830, 835] | the census's estimate of the committed text, by named key |
+| **S** | **603** [600, 604] | the census's `tool_specs_total.tokens_est` |
+
+**A's three samples agree** — 1900, 1900, 1900 — which decision 3 §4 required
+because the round-1 request is deterministic, and a disagreement would itself
+have been a finding. It is not one.
+
+**D = B − E = −38**, and the sign is the one the rule was written with signs to
+carry: **negative, the census estimate over-counting the committed text by 38
+tokens.** **F = A − B − S = 501**, non-negative. **A − E − S = 463 = D + F**, the
+identity holding with no remainder, and inside ADR-073 amendment 2 §2's bound of
+422–537 unattributed. Shares of |D| + |F| are **D 0.071 and F 0.929**, so by the
+70% rule the reading names one: **provider-side framing — what `toolConfig` costs
+beyond the specs' own text.** Tokeniser density is real, small, and pointed the
+other way from what the bound's authors expected.
+
+Neither number is content the agent can stop sending. **ADR-014 amendment 2's
+downward re-derivation trigger stays disarmed**: it arms only if the round-1 pin
+fails, and PR 2's pin — behavioural on the loop, structural on the handler — is
+green.
+
+Rounds two and three are recorded and not ruled on, and they carry a finding.
+Across the 149 later rounds in the run, the growth against the replayed
+transcript at the measured density of 3.534 chars per token is **more than a
+quarter unexplained in all 149** — the unexplained share runs from 0.593 to
+0.973 with a median of 0.764, so it is the rule rather than a tail. Decision
+3 §4 pre-registered this as **a dated finding for Platform Engineering, not a
+trigger**, and it is recorded as one: per-round envelope cost is the size of the
+per-round content, not a rounding error on it, and no number in this milestone
+moves on it.
+
+### 7. The suite `p95_ms`: two numbers, and the second is the one that fires
+
+Decision 3 §5 and amendment 1 §4 item 6 pre-registered **two readings against
+5200, because one number cannot tell them apart.** Both are read here.
+
+| | M07, the population the rule was derived from | M08b, fresh | against 5200 |
+|---|---|---|---|
+| pooled | 5431 (n 73) | **6633** (n 70) | **OVER** |
+| mandated shape | 3769 (n 40) | **5241** (n 38) | **OVER** |
+
+**Pooled OVER with the mandated-shape p95 within would have been the share the
+rule was written to report — the browse gap's, decision 2's. That is not what
+happened.** The mandated shape's own p95 is 5241, **41 ms (0.8%) over the
+ceiling** and **1.39× M07's 3769**. In decision 3 §5's pre-registered words: **a
+mandated-shape p95 over 5200 is latency drift in the shape itself, a dated
+finding for Platform Engineering, and the rule's premise — that the mandated
+shape's tail is stable across runs — is what failed.**
+
+Recorded, not accommodated. The gate costs no case either way and none is
+re-scored on it; the transcript's line reads `suite latency  OVER p95=6633ms over
+5200ms` and stands. **`gates.budgets.p95_ms` does not move in this milestone** —
+constraint 1 allows it to move once, in PR 2, and it has. A ceiling re-derived
+from the run it is applied to is the hazard ADR-073 amendment 1 refused and this
+milestone was opened to avoid, so no re-derivation is computed here, not even as
+an illustration. What the drift costs the rule is that its population is no
+longer the stable reference the rule assumed, and the seat that owns the shape's
+latency is the one that must say what to do about it.
+
+Two things the drift does not permit. It does not turn the pooled OVER into
+evidence about the browse gap — with the mandated shape itself over the ceiling,
+the pooled reading no longer isolates a share, which is precisely the
+discrimination the two-number reading exists to make. And it does not touch the
+claim: `tokens_in` separates by call count and latency does not, which decision 3
+§5 said before the run and this run does not disturb.
+
+### 8. The two triggers, read and not diagnosed
+
+Constraint 9: a count in the record and a sentence here; no tool, tier or case
+changes on either.
+
+**The browse gap persists.** Nine samples across five of the seven cases carry a
+four-call-or-more turn with an executed `catalog-search` beyond the case's
+mandate before `entitlement-check` or the answer: `grounded-018` s1,
+`recommend-013` s1–s3, `recommend-014` s1–s3, `edge-025` s3, `recommend-003` s3.
+M08's count was fourteen samples on seven cases. No four-call sample outside the
+seven carries the shape. Two refused samples carry it and are surfaced rather
+than counted (`recommend-003` s1–s2), per the Platform Engineering seat's round-2
+finding. And the column the Tool Owner seat's round-1 finding added is populated:
+**ten more samples across five cases show the same shape below decision 2's
+four-call threshold** — `edge-025`, `entitlement-012`, `grounded-018`,
+`grounded-019`, `headroom-005`, all at three calls. The threshold was kept as
+pre-registered; this is the reading beside it, and `persists: true` here is read
+with that column in view.
+
+**The `tokens_out` five persist.** Four of the five fail `tokens_out` by majority
+at their unchanged tiers — `blackout-001` (377/300), `blackout-007` (338/300),
+`blackout-008` (344/300), `concise-022` (328/300 by 2 of 3). `blackout-009` has
+no `tokens_out` verdict on any sample because all three were refused, so it is
+neither a pass nor a fail of the trigger. The outside-the-five column is not
+empty: **seven further cases fail `tokens_out` by majority** — `blackout-006`,
+`edge-025`, `entitlement-002`, `entitlement-011`, `grounded-018`, `multi-023`,
+`recommend-013` — two of which are the cases that took N from 12 to 10. Owned by
+AI Quality, unscheduled, recorded here with the number.
+
+### 9. What this amendment's citations are held to
+
+PR 4's rule — *a commit reachable only from a remote-tracking branch counts as
+unreachable, so cite only what `main` or a tag reaches* — was run over this text
+before PR 3 merged, as amendment 1 §1 pre-registered. It found four distinct SHA
+citations in this amendment and two states.
+
+**Two are reachable from `main` and need nothing**: `8c7a428` (PR 1's merge) and
+`90121eb` (PR 2's merge). PR 3's own commits are deliberately named by their role
+and never by SHA, so no sentence here acquires a fuse when this branch is
+squash-merged.
+
+**Two are PR 2's branch commits, cited by the paragraph below and by amendment 2
+§7 before it**: the round-one head and the round-two head. They are reachable
+from `main` by no path and from no tag; today `tests/test_cited_commits_resolve.py`
+passes them only because `git for-each-ref` counts the branch, and in a fresh
+clone that branch is a remote-tracking ref, which is exactly what PR 4's rule
+stops counting. So amendment 1's prediction came true one amendment earlier than
+it expected: the text that opens PR 4 red is PR 2's, not PR 3's.
+
+**Closed rather than dated**, by the mechanism amendment 1 named and
+`close-milestone` step 7 already carries: both are tagged `cited-m08b-pr2-r1`
+(`8ab0a9a`) and `cited-m08b-pr2-r2` (`6863f7e`) and the tags pushed **before this
+PR merges**, after which the rule reads main-or-tag green over the whole of
+ADR-074 and stays green when the branch is eventually gone. A tag is the whole
+fix; PR 4 inherits a rule with nothing to be red about, which is the point of
+running it here.
+
+### What this amendment does not change
+
+The claim, 7700, the band [7171, 8180] and the placement below 8181 — all
+unmoved, and the fresh band is recorded beside them, not in place of them. The
+count band and its prediction; the refusal band; the `recommend-003` rule and its
+prior. The residual's four numbers and two identities. The `p95_ms` rule, its
+population and the number 5200, which moved once in PR 2 and does not move again.
+Decisions 1, 2 and 4; the cap, spent at PR 1b. Constraints 1–10. No case, tier,
+tool, topic, guardrail, catalog, policy or golden case moves in this milestone,
+and none is scheduled by anything read above: the `recommend-003` reading is
+Security's own ADR, the browse gap and the tiers stay owned and unscheduled, the
+latency drift and the per-round envelope are dated findings for Platform
+Engineering, and `blackout-009`'s unanimous refusal is a step-6b item for PR 6.
