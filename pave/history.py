@@ -185,6 +185,12 @@ README_GOLDENS = {
     # re-reading re-reads stops publishing, because a reader of this cell alone
     # would take a moved ceiling for an improved service.
     "m08": "m08-tools-reread-goldens.json",
+    # **A run, not a re-reading** (ADR-074 decision 1). The first fresh run of
+    # any arm since M07 stage 2, taken through the deployed gateway at the
+    # ceiling M08 re-derived and did not move. It carries no `rereads`, so the
+    # clause above does not apply to it; the `m08` row it stands beside stays
+    # pinned for its own reason.
+    "m08b": "m08b-tools-goldens.json",
 }
 
 
