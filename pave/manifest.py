@@ -56,6 +56,24 @@ API_VERSION = "pave/v1"
 #: ADR-003's declared values, so a runtime move is a manifest edit.
 RUNTIMES = ("lambda", "ecs", "agentcore")
 
+#: The `max_tokens_in` `templates/agent-tools/pave.manifest.yaml.tmpl` scaffolds
+#: with, and **the number is correct for exactly one tool** (ADR-074, M08b PR 4).
+#:
+#: A `tokens_in` ceiling is a per-turn ceiling and a tool loop makes a turn n model
+#: calls, each carrying the whole transcript so far (ADR-014 amendment 1). M08
+#: measured what the second round costs on the reference service and re-derived
+#: 6000 to 7700; the scaffold still hands a new team 6500. That is not a generous
+#: ceiling for a two-tool service, it is a ceiling that fires on the second round
+#: of every honest turn -- and the team's first reading of it is a red gate on a
+#: number nobody in that team chose.
+#:
+#: Duplicated here rather than parsed out of the template, for the reason
+#: `PIN_FLOOR` records one component over: the duplication is what makes moving
+#: the number a code diff AND a four-key template diff.
+#: `tests/test_scaffold.py::test_the_template_still_scaffolds_the_number_row_15_refuses`
+#: is red if the two ever disagree, so they cannot drift silently.
+SCAFFOLD_MAX_TOKENS_IN = 6500
+
 #: The ten fields, and **the thing that reads each one**. The refusal names the
 #: reader, because "required" with no reader is a rule nobody can argue with — and
 #: six of these ten were deletable at zero failures precisely because no reader was
@@ -123,6 +141,7 @@ ROWS = {
     12: "`gates.budgets` missing a key",
     13: "duplicated registry id",
     14: "`brand` outside the set the judge can score",
+    15: "two tools declared, and the scaffold's one-tool `max_tokens_in` kept verbatim",
 }
 
 #: Deferred **by name**, which is the whole of the commitment item 29 makes.
@@ -140,6 +159,17 @@ DEFERRED = {
         "that would make a second brand scoreable. One fictional news title is 16 "
         "failed, because the catalog is embedded model-facing in the judge prompt "
         "and digested into `quality/judge/frozen.json`. The second brand is M10's.",
+    "gates.budgets.p95_ms":
+        "the VALUE is not checked here and the key's presence is (row 12). This "
+        "verifier is a shape check over a committed file; a suite `p95_ms` is a "
+        "distribution, derived by the rule pinned in "
+        "`tests/test_budget_derivation.py` from a population of recorded samples, "
+        "and enforced by the gate against a run. There is nothing in this file to "
+        "compare it to. The template scaffolds 2500, which M08b PR 2 re-derived to "
+        "5200 for the reference service and did not move in the template; a "
+        "second tool makes 2500 wrong the same way it makes `max_tokens_in` 6500 "
+        "wrong (row 15), and unlike that one this verifier does not say so. Stated "
+        "rather than silently absent, and stated in the template too.",
     "whether the declaration is honest":
         "`classification` is a declaration the repository refuses to merge when it "
         "is outside the vocabulary. `handler.py:309` still takes `declared` from the "
@@ -426,7 +456,42 @@ def _check_gates(manifest: dict, rel: str) -> list[Finding]:
                     f"is missing {key!r}. Every case in this service's pack is "
                     "checked against these ceilings; an absent one is not a generous "
                     "ceiling, it is no ceiling."))
+        findings += _check_scaffold_ceiling(manifest, budgets, rel)
     return findings
+
+
+def _check_scaffold_ceiling(manifest: dict, budgets: dict, rel: str) -> list[Finding]:
+    """Row 15 — the one-tool ceiling kept by a service that offers a second tool.
+
+    **The condition is the tool count, not the number on its own.** 6500 is a
+    defensible ceiling for a one-tool service and it is what the scaffold hands
+    out; what makes it wrong is a second entry under `tools:`, because a tool loop
+    makes a turn n model calls and every round after the first re-sends the whole
+    transcript (ADR-014 amendment 1). M08 measured that on the reference service
+    and re-derived 6000 to 7700.
+
+    **Why `== SCAFFOLD_MAX_TOKENS_IN` and not `< some floor`.** A floor would be
+    this verifier choosing a ceiling for a service, which is AI Quality's to
+    derive and not a shape check's to invent -- and it would fire on teams that
+    had thought about the number and picked a low one on purpose. The verbatim
+    comparison fires on exactly one thing: a scaffolded default that nobody
+    revisited while the tool set grew past the shape it was written for.
+    """
+    tools = manifest.get("tools")
+    count = len(tools) if isinstance(tools, list) else 0
+    if count < 2 or budgets.get("max_tokens_in") != SCAFFOLD_MAX_TOKENS_IN:
+        return []
+    return [Finding(
+        15, f"{rel}:gates.budgets.max_tokens_in",
+        f"is {SCAFFOLD_MAX_TOKENS_IN}, the number `templates/agent-tools/"
+        f"{MANIFEST_NAME}.tmpl` scaffolds, while this service declares {count} tools. "
+        "That ceiling is a per-turn one and a tool loop makes a turn n model calls, "
+        "each re-sending the transcript so far — so the second round of an honest "
+        "turn is what trips it, and the team meets the number as a red gate rather "
+        "than as a decision. Derive one for this service's shape (the rule is pinned "
+        "in `tests/test_budget_derivation.py`) and move it here. Note what is NOT "
+        "checked beside it: `p95_ms` scaffolds 2500, is wrong for the same reason, "
+        "and this verifier says so only in its footer.")]
 
 
 def _check_pack(manifest: dict, directory: pathlib.Path) -> list[Finding]:

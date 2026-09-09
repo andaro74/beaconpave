@@ -22,10 +22,28 @@ tools:                             # must exist in registry; Cedar policy genera
   - id: catalog-search@^0
 gates:
   eval_min_cases: 20               # gate fails below this — no unevaluated agents
+  # THESE NUMBERS ARE FOR ONE TOOL. The `tools:` list above declares one, and a
+  # `tokens_in` ceiling is a PER-TURN ceiling while a tool loop makes a turn n
+  # model calls — every round after the first re-sends the transcript so far
+  # (ADR-014 amendment 1). So the moment you declare a second tool, both numbers
+  # below are wrong, and they are wrong in the direction that fires on an honest
+  # answer rather than on a runaway one.
+  #
+  # Measured on the reference service, which declares three tools: `max_tokens_in`
+  # 6000 was re-derived to 7700 (M08, ADR-014 amendment 2) and `p95_ms` 2500 to
+  # 5200 (M08b, amendment 3). Neither number was raised to make a run pass — both
+  # come from a rule pinned in `tests/test_budget_derivation.py` and written
+  # before the run it was applied to.
+  #
+  # `pave verify` refuses `max_tokens_in: 6500` outright once you declare two
+  # tools (row 15). It does NOT refuse `p95_ms: 2500` and says so by name in its
+  # "not checked" footer: a suite p95 is a distribution over recorded samples and
+  # there is nothing in this file to compare it to. Same defect, one of them
+  # caught — which is why it is written here as well as printed there.
   budgets:                         # tokens, not dollars — ADR-014
     p95_ms: 2500                   # suite-level distribution, not per case — ADR-016
     max_ms: 12000                  # per-request hang guard; a tool loop is n calls
-    max_tokens_in: 6500
+    max_tokens_in: 6500            # one tool. See above before adding a second.
     max_tokens_out: 800
 attestations:                      # written by CI, verified at deploy
   gate_verdict: required

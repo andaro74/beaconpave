@@ -1429,6 +1429,48 @@ RULES: tuple[Rule, ...] = (
         re.compile(r"^tests/(test_tool_loop|test_gateway_core|test_gateway_run_parity)\.py$"),
         ("platform-eng", "security"),
     ),
+    # --- ADR-074 / M08b PR 4: the file that decides what bytes a digest sees ---
+    Rule(
+        # **`.gitattributes` was on no rule, and it is upstream of every digest
+        # pin in the repository.** One line -- `* text=auto eol=lf` -- decides
+        # what bytes land in the index, and therefore what every SHA-256 pin in
+        # `evals/history/`, `quality/adversarial/instruments.json`,
+        # `quality/judge/frozen.json` and the `milestones/M08*` census records is
+        # a digest OF. Its own header records the cost of not having it: ADR-041
+        # pinned the committed history entries from a MIXED tree -- one entry LF,
+        # two CRLF, against three pure-LF blobs -- so no uniform checkout could
+        # satisfy all three, and CI failed an honest tree while accusing the PR of
+        # rewriting append-only history.
+        #
+        # Deleting the `eol=lf` half is one line in a file nothing keyed, and the
+        # damage is not in this file: it is in the next PR, where a Windows author
+        # commits 191 CRLF blobs and every digest recorded before that day stops
+        # matching the file it names. That is a history-integrity failure produced
+        # by a diff no history rule reaches, which is ADR-035's shape -- the
+        # thermometer and the thermostat both guarded, and the bench they stand on
+        # not.
+        #
+        # `platform-eng` owns the mechanism -- the checkout, `core.autocrlf`, CI --
+        # and is the seat that FEELS this control: the pain a mixed tree causes is
+        # a diff showing every line of a file as changed, and the cheap relief is
+        # to weaken the attribute. `ai-quality` is the counterweight under G9,
+        # holds no stake in the checkout, and owns `evals/history/` semantics --
+        # the entry digests that ADR-041 actually broke on. Two keys, not three:
+        # `security`'s instrument digests move the same way, and a third key here
+        # taxes a file that changes once a year to buy a property the second key
+        # already buys.
+        #
+        # **The test rides the rule** (ADR-043 decision 1, *weakened together or
+        # not at all*). `tests/test_line_endings.py` is the only thing that says
+        # the index is uniform and that every digesting reader normalises; on no
+        # rule it is deletable in the same diff that weakens the attribute, which
+        # is the inversion `tests/test_g4_capture_boundary.py` sits on
+        # `core/audit.py`'s rule to avoid.
+        "the line-ending attribute every committed digest is taken under, and the "
+        "test that says the index is uniform",
+        re.compile(r"^(\.gitattributes|tests/test_line_endings\.py)$"),
+        ("platform-eng", "ai-quality"),
+    ),
 )
 
 

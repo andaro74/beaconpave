@@ -238,11 +238,48 @@ def _row14(tmp_path):
     return make_service(tmp_path, manifest=m), SYNTHETIC_REGISTRY
 
 
+def _row15(tmp_path):
+    """Two tools declared, and the scaffold's `max_tokens_in` kept verbatim.
+
+    The registry is widened so `svc-one` is a legitimate caller of both tools —
+    otherwise this producer trips row 3 as well and the input stops being about
+    the thing it is named for."""
+    registry = [dict(SYNTHETIC_REGISTRY[0]),
+                dict(SYNTHETIC_REGISTRY[1], callers=["svc-two", "svc-one"])]
+    m = good_manifest()
+    m["tools"] = [{"id": "tool-a@^0"}, {"id": "tool-b@^0"}]
+    m["gates"]["budgets"]["max_tokens_in"] = manifest_mod.SCAFFOLD_MAX_TOKENS_IN
+    return make_service(tmp_path, manifest=m), registry
+
+
+def test_row_15_does_not_fire_on_one_tool_or_on_a_derived_ceiling(tmp_path):
+    """**The half that makes row 15 about the shape and not about the number.**
+
+    Two inputs that must stay clean, because a row that fires on either is a row
+    that refuses honest manifests: a one-tool service keeping the scaffold's
+    number (which is what the number is FOR — and what a fresh scaffold is, which
+    is why `test_a_fresh_scaffold_is_refused_with_the_onboarding_steps` still
+    reads exactly `[3, 8]`), and a two-tool service that derived its own ceiling,
+    which is `highlights-agent` at 8200."""
+    registry = [dict(SYNTHETIC_REGISTRY[0]),
+                dict(SYNTHETIC_REGISTRY[1], callers=["svc-two", "svc-one"])]
+
+    one_tool = good_manifest()
+    one_tool["gates"]["budgets"]["max_tokens_in"] = manifest_mod.SCAFFOLD_MAX_TOKENS_IN
+    assert 15 not in _rows(make_service(tmp_path / "a", manifest=one_tool), SYNTHETIC_REGISTRY)
+
+    derived = good_manifest()
+    derived["tools"] = [{"id": "tool-a@^0"}, {"id": "tool-b@^0"}]
+    derived["gates"]["budgets"]["max_tokens_in"] = 8200
+    assert 15 not in _rows(make_service(tmp_path / "b", manifest=derived), registry)
+
+
 #: One violating input per row. Kept beside `manifest.ROWS` and checked against it
 #: in both directions, so neither list can drift past the other.
 PRODUCERS = {
     1: _row1, 2: _row2, 3: _row3, 4: _row4, 5: _row5, 6: _row6, 7: _row7,
     8: _row8, 9: _row9, 10: _row10, 11: _row11, 12: _row12, 13: _row13, 14: _row14,
+    15: _row15,
 }
 
 #: The "message names" column of SPEC/05's refusal table, as assertions. A row that
@@ -264,6 +301,8 @@ MUST_NAME = {
     12: [floors.REQUIRED_BUDGET_KEYS[0], "no ceiling"],
     13: ["tool-a", "cannot decide twice"],
     14: ["meridian-news", floors.SUPPORTED_BRANDS[0], "brand_tone"],
+    15: [str(manifest_mod.SCAFFOLD_MAX_TOKENS_IN), "templates/agent-tools/",
+         "declares 2 tools", "test_budget_derivation.py", "p95_ms"],
 }
 
 
@@ -437,6 +476,14 @@ def test_the_command_states_its_limits_on_a_green_run():
     # gap rather than close it.
     assert set(manifest_mod.DEFERRED) == {
         "range evaluation", "brand-with-no-pack", "whether the declaration is honest",
+        # M08b PR 4. The Tool Owner seat's reading across two rounds: the value of a
+        # suite `p95_ms` is a distribution derived from recorded samples and enforced
+        # by the gate against a run, and this verifier is a shape check over a
+        # committed file with nothing to compare it to. Named here rather than
+        # checked, because the scaffold hands out 2500 and a second tool makes that
+        # wrong exactly the way it makes `max_tokens_in` 6500 wrong — and row 15
+        # refuses one of those two and not the other.
+        "gates.budgets.p95_ms",
     }, (
         f"the deferral list is {sorted(manifest_mod.DEFERRED)}. Item 29's commitment "
         "is that a gap is deferred BY NAME — dropping a name does not close the gap, "

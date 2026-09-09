@@ -1790,3 +1790,58 @@ def test_the_rename_bypass_stays_closed_for_the_rules_m06b_added():
         new = old.replace(".py", "_v2.py").replace(".json", "_v2.json")
         assert twokey.triggered([old, new]), (
             f"renaming {old} walks around its rule; the old path must still match.")
+
+
+# --- M08b PR 4: the line-ending attribute every committed digest is taken under ---
+
+#: Every path M08b PR 4 put on a rule, and the seats each must keep (ADR-074).
+#: The same shape as `M06B_SEATS` and `M07_SEATS` above and for the same reason:
+#: `test_the_seat_pin_covers_every_rule_this_adr_added` ratchets only the rules
+#: ADR-043 enumerated, keyed on substrings of `Rule.what`, and this rule's `what`
+#: matches none of them.
+M08B_PR4_SEATS = {
+    ".gitattributes": {"platform-eng", "ai-quality"},
+    "tests/test_line_endings.py": {"platform-eng", "ai-quality"},
+}
+
+
+def test_the_line_ending_attribute_collects_platform_eng_and_ai_quality():
+    """**Measured on `a9cf896`, before the rule existed: `two-key: not required`.**
+
+    `.gitattributes` is one line -- `* text=auto eol=lf` -- and it decides what
+    bytes the index holds, so every SHA-256 pin in the repository is a digest of
+    what it produced. Its own header records what happened without it: ADR-041
+    pinned three committed history entries from a MIXED tree, one LF and two CRLF
+    against three pure-LF blobs, and no uniform checkout could satisfy all three
+    -- CI failed an honest tree and accused the PR of rewriting append-only
+    history.
+
+    Deleting the `eol=lf` half is one line, and the damage lands in somebody
+    else's diff: 191 CRLF blobs in the index and every digest recorded before
+    that day naming a file it no longer matches. `platform-eng` feels this one
+    (the checkout, `core.autocrlf`, a diff that shows every line as changed);
+    `ai-quality` is the counterweight and owns the entry digests that actually
+    broke."""
+    for path, seats in sorted(M08B_PR4_SEATS.items()):
+        _blocked_for([path], seats)
+
+
+def test_the_m08b_pr4_pin_cannot_be_thinned_to_nothing():
+    """`M08B_PR4_SEATS = {}` satisfies the loop above by generating nothing, which
+    is the one-edit bypass `test_the_m06b_pin_cannot_be_thinned_to_nothing`
+    records at 1814 passed."""
+    assert len(M08B_PR4_SEATS) == 2, (
+        f"M08B_PR4_SEATS holds {len(M08B_PR4_SEATS)} paths, expected 2. Deleting an entry "
+        "in the same diff that narrows its rule is the one-edit bypass this constant "
+        "makes two.")
+
+
+def test_the_rename_bypass_stays_closed_for_the_line_ending_rule():
+    """A rule a `git mv` walks around is the "stated and absent" shape one level
+    out (ADR-042 decision 4). `--no-renames` reports both sides, so the OLD path
+    is what must match -- and `.gitattributes` has no extension to swap, so the
+    rename here is to a plausible neighbouring name."""
+    for old, new in ((".gitattributes", ".gitattributes.new"),
+                     ("tests/test_line_endings.py", "tests/test_line_endings_v2.py")):
+        assert twokey.triggered([old, new]), (
+            f"renaming {old} walks around its rule; the old path must still match.")
