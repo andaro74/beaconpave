@@ -44,7 +44,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 06d | The instrument, readable ❈ | three PRs ❈ | `m06d` | not re-scored ❈ | – | n/a ❈ | ✅ |
 | 07 | The guardrail, applied per channel by the gateway ✚ | six PRs ✚ | `m07` | **2/25** ✚ | not judged ✧ | 7/11, not recorded ✚ | ✅ |
 | 08 | The tools arm's budget: the context or the ceiling ✜ | six PRs ✜ | `m08` | **12/25** ✜ | not judged ✧ | not run ✜ | ✅ |
-| 08b | The ceiling, measured on samples it was not derived from ❁ | `m08b-fresh-run` | `m08b` | **10/25** ❁ | – | – | ⬜ |
+| 08b | The ceiling, measured on samples it was not derived from ❁ | six PRs ❁ | `m08b` | **10/25** ❁ | not judged ✧ | not run ❁ | ✅ |
 | 09 | Rules registry + regdelta loop | `m09-rules` | `m09` | –/25 | – | – | ⬜ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
@@ -499,7 +499,16 @@ is M08's measured where M08 could not measure it: the 7700 ceiling holds per
 sample on samples it was not derived from. Its bands, the `recommend-003`
 reading rule, the residual's attribution and the suite p95 rule are all
 written in ADR-074 decision 3 before the run; the numbers arrive at close,
-never before.
+never before. **Closed 2026-09-08, and they arrived: the claim holds** — every
+answered sample at three model calls or fewer passes 7700 (max 6782) and every
+one at four or more fails it (min 8351), on 75 fresh samples through the
+deployed gateway. The count is **10/25** against a predicted 12, inside the
+pre-registered band, and both cases it lost fail on `tokens_out` at unchanged
+tiers rather than on the ceiling. Both answer-quality triggers fired and both
+debts stay owned and unscheduled. Adversarial not run: no corpus edit, no probe
+run, and the one instrument digest that moved (`m04-I`) moved because per-round
+usage changed the tool loop, which no adversarial scorer reads. The whole
+reading is `milestones/M08b/README.md` and ADR-074 amendment 3.
 
 ## What part one produced
 
