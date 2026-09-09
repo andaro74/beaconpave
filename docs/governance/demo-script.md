@@ -123,13 +123,28 @@ next person what to do, which is the half of a gate that usually goes missing."
 
 ## Act 3 — The seat disposes (M09) · 3 min
 The fictional State of Jefferson AI Disclosure Act arrives as a delta. The
-Legal/S&P seat disposes it: three golden cases plus one guardrail line. Next
-run, recap-agent goes red. Fix. Then show the registry linking law → rule →
-control → dashboard panel in one lookup.
+Legal/S&P seat disposes it into **an eval pack of its own suite** — cases that
+require a visible `ai_disclosure`, and one that requires its absence, so the pack
+asserts the delta in both directions. Next run, **highlights-agent** goes red and
+`pave gate decide` exits 1. Fix — one sentence of caller-side prompt, no deploy.
+Run again: exit 0. Then `pave rules trace MER-AI-0001`, which walks law → rule →
+control → the case → the failing assert with no step supplied by hand.
 
 Then one probe end-to-end: the poisoned catalog entry attempts indirect
 injection; the guardrail blocks; **show the audit record**, and say plainly that
 the assertion greps for that record — not for a polite refusal.
+
+**Two corrections to this act, made in the open of M09 rather than found on
+camera (ADR-075 decision 3).** It said *recap-agent goes red*: `recap-agent` left
+`platform/registry/tools.yaml` at ADR-048 and by ADR-023 can never be a caller,
+because one gateway deployment authorizes as one service. The rule binds to the
+deployed service, Meridian Sports' `highlights-agent`, and the rule's own scope
+text moves with it on two keys. And it said *plus one guardrail line*: that half
+is **M09b's**, because a red under a disposition *and* a new guardrail line is
+unattributable between the two controls, which is the whole content of the claim
+this act demonstrates. The **dashboard panel** is M09b's too — `dashboards/`
+holds a README and nothing else today — so the lookup is a command here and a
+panel there.
 
 **Line:** "The rule has an owner, a source, an enforcing control, and a
 review-by date. Audit is a query, not an archaeology project."

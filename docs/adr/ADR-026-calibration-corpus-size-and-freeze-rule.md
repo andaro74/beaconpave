@@ -241,3 +241,48 @@ it would be.
 re-deferred to M07 (amendment 1), to M08 (amendment 2), to M09 (this). Two of
 the three moves are renumberings of the same milestone under two ADRs, and one
 was a lapse. The file carries all three; the test reads the current one.
+
+## Amendment 4 (2026-09-09, at the M09 open): re-deferred to M09b, in the same diff as the row that creates it
+
+**ADR-075 decision 1 split the milestone, and the widening follows the half that
+adds graded content.** M09 as inherited carried the rules registry *and* a new
+guardrail line, the `entitlement-circumvention` recalibration riding it, this
+widening, and a judge re-freeze — four spend events, one deploy and two seat
+rounds on two different controls. The operator split it: M09 takes the
+disposition and the control that needs no deploy, and **M09b** takes the
+guardrail line, the topic recalibration, Security's two round-one probes and the
+judge re-freeze. `re_deferred_to` in `quality/judge/calibration/labels.json`
+becomes **M09b**.
+
+**The reason stands, and this time it is more than a renumbering.** Amendment 1's
+reason is *"the next milestone that adds graded content — the disclosure
+disposition turns a rule into golden cases."* M09 does add graded content, but
+ADR-075 decision 3 disposes MER-AI-0001 by a **deterministic `ai_disclosure`
+assert and explicitly not a judge axis**, precisely so that the frozen instrument
+does not move inside the milestone that proves claim 6. So M09 adds cases the
+judge does not read, and there is nothing there for a wider draw to be labelled
+under the same discipline as. M09b is where the judge moves: it re-freezes for
+its own reasons, and two re-freezes become one. Paying still needs a wider
+deterministic draw hand-labelled under the existing discipline, which is a judge
+run, and `SPEC/09` constraint 8 puts M09's only model calls in one PR that spends
+them on the claim.
+
+**What is different from amendment 3.** That one moved the file in the same diff
+as the progression table, which is what ADR-070's sweep had omitted. This one
+moves it in the same diff as **the row that creates the milestone it names** —
+`M09b` did not exist in `README.md` before this PR, and
+`tests/milestone_status.py::milestone_is_closed` **raises** for a milestone the
+table does not list, so pointing the owe at `M09b` in any earlier or later diff
+would be an obligation deferred to nothing. Two keys on this edit, AI Quality and
+Security, on the `quality/judge/` rule.
+
+**What this is not.** Not a payment. Not a lapse: the target moved on the day the
+milestone it named was split, in the diff that split it. `how_it_must_be_paid` is
+unchanged — extend the deterministic draw, same ordering, larger n, never
+hand-pick items that would vary the label — and *"still one value"* is still the
+finding it would be.
+
+**Counted, and the count is now four.** Owed to M04; lapsed there; re-deferred to
+M07 (amendment 1), to M08 (amendment 2), to M09 (amendment 3), to M09b (this).
+Three of the four moves are the same milestone under a new number and one was a
+lapse. The file carries all four; the test reads the current one.
