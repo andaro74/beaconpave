@@ -127,6 +127,77 @@ def test_the_manifest_template_has_the_reference_key_set():
     assert set(rendered["gates"]["budgets"]) == set(floors.REQUIRED_BUDGET_KEYS)
 
 
+def test_the_template_still_scaffolds_the_number_row_15_refuses():
+    """**The drift pin between `pave/manifest.py` and this template** (M08b PR 4).
+
+    Row 15 refuses a two-tool manifest carrying `max_tokens_in ==
+    manifest.SCAFFOLD_MAX_TOKENS_IN`, and that constant is a copy of the number
+    this template scaffolds. A copy of a living value is wrong the moment the
+    original moves: raise the template to 7000 and row 15 goes on refusing 6500,
+    which no scaffold emits any more — a refusal that fires on nothing, which is
+    the "stated protection worse than an absent one" shape this repository has
+    recorded eight times.
+
+    The duplication is deliberate and this is what pays for it (`PIN_FLOOR`'s
+    argument, one component over): moving the number now takes a code diff on
+    `pave/manifest.py`'s three keys AND a template diff on ADR-047's four."""
+    rendered = yaml.safe_load(render_as_reference("pave.manifest.yaml.tmpl"))
+    assert rendered["gates"]["budgets"]["max_tokens_in"] == manifest_mod.SCAFFOLD_MAX_TOKENS_IN, (
+        f"the template scaffolds max_tokens_in "
+        f"{rendered['gates']['budgets']['max_tokens_in']} while `pave/manifest.py` "
+        f"refuses {manifest_mod.SCAFFOLD_MAX_TOKENS_IN}. Row 15 now fires on a number "
+        "no scaffold emits. Move both in the same diff.")
+    # And the scaffold itself must stay clean under the row it is the source of:
+    # one tool is what the number is FOR, and row 15 is about the second one.
+    assert len(rendered["tools"]) == 1, (
+        "the scaffold now declares more than one tool, so it emits a manifest its own "
+        "verifier refuses at row 15. Either derive a ceiling for the new shape or drop "
+        "the tool — `test_a_fresh_scaffold_is_refused_with_the_onboarding_steps` pins "
+        "the refusal set at exactly the two onboarding steps.")
+
+
+def test_both_templates_state_that_the_numbers_are_for_one_tool():
+    """**The condition stated where a team reads it**, not only where a verifier
+    prints it (ADR-074, M08b PR 4).
+
+    Three numbers are wrong the moment a scaffolded service offers a second tool:
+    the manifest's `max_tokens_in: 6500` and `p95_ms: 2500`, and the pack's
+    `tokens_in: 6000`. `pave verify` refuses exactly one of the three and names a
+    second in its footer; the third it does not see at all. A team that reads only
+    the PASS learns about one of three.
+
+    Asserted on the numbers and on `p95_ms` by name rather than on a sentence,
+    because a substring pin over prose is red the day someone rewords it and
+    silent the day someone deletes the number's context — the guard-coupled-to-
+    its-own-data shape. What is pinned here is that each number appears in a
+    template that also says `one tool` near it."""
+    manifest_text = (TEMPLATES / "pave.manifest.yaml.tmpl").read_text(encoding="utf-8")
+    cases_text = (TEMPLATES / "evals" / "golden" / "cases.yaml.tmpl").read_text(encoding="utf-8")
+
+    for label, text, numbers in (("pave.manifest.yaml.tmpl", manifest_text, ("6500", "2500")),
+                                 ("cases.yaml.tmpl", cases_text, ("6000",))):
+        lowered = text.lower()
+        assert "one tool" in lowered, (
+            f"{label} no longer says its numbers are for one tool. `pave verify` refuses "
+            "only `max_tokens_in`; the template is where the other two are stated.")
+        assert "adr-014" in lowered, (
+            f"{label} states the condition without naming ADR-014, which is where a "
+            "per-turn ceiling meeting an n-call turn is decided.")
+        for number in numbers:
+            assert number in text, (
+                f"{label} no longer scaffolds {number}, so the sentence above it "
+                "describes a number that is not there.")
+
+    assert "p95_ms" in manifest_text and "row 15" in manifest_text, (
+        "the manifest template must name both halves: the one `pave verify` refuses "
+        "(row 15) and the one it only prints in its footer (`p95_ms`). Naming one "
+        "teaches a reader that the verifier caught everything.")
+    assert "pave.manifest.yaml" in cases_text, (
+        "the pack template must point at the manifest: its `tokens_in` and the "
+        "manifest's `max_tokens_in` go wrong together, and a team reading one file "
+        "would fix one of them.")
+
+
 def test_the_gateway_client_template_sends_the_pinned_viewer_turn():
     """The `ast.JoinedStr` technique from `tests/test_transport_parity.py`, applied
     across the template boundary.

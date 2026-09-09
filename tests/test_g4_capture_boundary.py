@@ -445,13 +445,40 @@ STORE_WORDS = {withheld.STORE_OUTPUT, withheld.STORE_ENV, "WITHHELD_STORE", "cor
 #: the whole suite because no root reached them. A reader that can name the
 #: store can read it one line later, wherever it sits.
 SCORER_ROOTS = ("evals", "pave", "tools", "milestones")
+
+#: Directories inside the tree whose `.py` files are not this repository's source:
+#: build output, a virtualenv, git's own storage, and the agent worktrees under
+#: `.claude/`, which hold whole copies of the tree and would be scanned as if they
+#: were it.
 SKIP_DIRS = {"__pycache__", "node_modules", "cdk.out", ".claude", ".venv", ".git"}
 
 
 def _sources(*roots):
+    """Every `.py` under `roots`, skipping `SKIP_DIRS` **by tree-relative path**.
+
+    **The relativity is the whole of it, and it was wrong** (ADR-074, M08b PR 4).
+    This matched `SKIP_DIRS` against `path.parts` of the ABSOLUTE path, so a
+    checkout living anywhere beneath a directory named `.claude` -- which is
+    exactly where this repository's own seat worktrees live, one per review round,
+    created by `git worktree add .claude/worktrees/agent-<id>` -- had every one of
+    its files skipped and this scan yielded nothing.
+
+    Measured on `a9cf896` in a worktree under `.claude/`: the parametrised scan
+    below generated **zero** cases, `test_the_scan_has_something_to_scan` failed at
+    0 files, and `test_the_store_has_exactly_two_callers_in_the_repository` failed
+    with `importers == []` -- a check whose job is to refuse a THIRD importer
+    reporting that there are none, which is the direction that reads as a passing
+    property to anyone who does not look at the number. Two of the three seats who
+    ever ran this file ran it in such a worktree.
+
+    The same hazard applies to `.venv` and `.git`: a checkout at
+    `~/src/.venv/beaconpave` is unusual, and a checkout at
+    `/home/x/.claude/worktrees/...` is this repository's normal review setup.
+    """
     for root in roots:
-        for path in sorted((ROOT / root).rglob("*.py")):
-            if not SKIP_DIRS & set(path.parts):
+        base = ROOT / root
+        for path in sorted(base.rglob("*.py")):
+            if not SKIP_DIRS & set(path.relative_to(ROOT).parts):
                 yield path
 
 
@@ -477,7 +504,74 @@ def _reaches_the_store(tree: ast.Module) -> list[str]:
 
 
 def test_the_scan_has_something_to_scan():
-    assert len(list(_sources(*SCORER_ROOTS))) >= 20
+    """**The anti-vacuity guard, reading the real tree rather than a constant.**
+
+    `>= 20` was the whole of this, and a magic number cannot tell "the scan is
+    broken" from "the repository shrank" -- it went red under a `.claude/`
+    checkout, which is the right answer for the wrong reason, and it would have
+    stayed green on a scan that silently lost a third of the tree.
+
+    So the count is compared to an independent walk that does not go through
+    `_sources` at all: every `.py` under the four roots, minus the ones a
+    tree-relative `SKIP_DIRS` genuinely removes. If those two disagree, the
+    skipping logic is dropping files the roots really hold, whatever the absolute
+    number happens to be. The floor stays beneath it, because two checks that both
+    read the same broken helper agree with each other perfectly."""
+    scanned = sorted(_sources(*SCORER_ROOTS))
+    real = sorted(
+        path for root in SCORER_ROOTS for path in (ROOT / root).rglob("*.py")
+        if not SKIP_DIRS & set(path.relative_to(ROOT).parts)
+    )
+    assert scanned == real, (
+        f"the scan reaches {len(scanned)} files and the tree holds {len(real)} under the "
+        f"same roots. Missing: {sorted(set(real) - set(scanned))[:5]}. A scanner that "
+        "silently reaches fewer files than exist reports a property of its own bug.")
+    assert len(scanned) >= 20, (
+        f"only {len(scanned)} source files under {list(SCORER_ROOTS)}. Either the tree "
+        "moved or this is not a checkout of this repository — and every parametrised "
+        "case below would report green over nothing.")
+
+
+def test_the_scan_is_not_defeated_by_where_the_checkout_lives(tmp_path, monkeypatch):
+    """**The regression this fix exists for, run through `_sources` itself.**
+
+    A tree at `<anything>/.claude/<repo>` is what a seat worktree is, and this
+    repository creates one per seat per review round. Measured on `a9cf896` in
+    such a worktree: the parametrised scan below generated **zero** cases and the
+    file reported `2 failed, 23 passed, 1 skipped` -- 26 items where an honest
+    checkout runs 64.
+
+    **Why this drives the real helper rather than re-implementing its condition.**
+    A first version compared `SKIP_DIRS & set(relative.parts)` against
+    `SKIP_DIRS & set(absolute.parts)` inline, and measured what that bought:
+    reverting `_sources` to the absolute reading left this file **green in a
+    normal checkout** and red only in a worktree under `.claude/`. A guard that
+    cannot see its own fix reverted is the shape ADR-043 recorded four of ten
+    planted weakenings surviving under. So `ROOT` is repointed at a planted tree
+    whose absolute path contains each `SKIP_DIRS` name in turn, and `_sources` is
+    called: with the tree-relative reading it finds the planted module, and with
+    the absolute one it finds nothing.
+    """
+    module = sys.modules[__name__]
+    for name in sorted(SKIP_DIRS):
+        checkout = tmp_path / name / "checkout"
+        (checkout / "evals").mkdir(parents=True)
+        planted = checkout / "evals" / "module.py"
+        planted.write_text("x = 1" + chr(10), encoding="utf-8")
+
+        monkeypatch.setattr(module, "ROOT", checkout)
+        found = list(_sources("evals"))
+        assert found == [planted], (
+            f"a checkout under `{name}/` skips its own sources: `_sources` reached "
+            f"{[str(f) for f in found]} in a tree holding {planted}. Every parametrised "
+            "case below would report green over nothing, and "
+            "`test_the_store_has_exactly_two_callers_in_the_repository` would report the "
+            "store has no importers at all — which reads as a passing property.")
+
+        # And the condition really is present, or the assertion above proves nothing.
+        assert SKIP_DIRS & set(planted.parts), (
+            f"`{name}` does not appear in {planted}, so this case has stopped "
+            "reproducing the state it is named for.")
 
 
 @pytest.mark.parametrize("path", list(_sources(*SCORER_ROOTS)),

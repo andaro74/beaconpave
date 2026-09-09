@@ -130,6 +130,27 @@ trigger** instead, and this is where the trigger is read.
 
 ## 7. Merge, tag, push
 
+**Before the merge: tag every commit the milestone's documents cite by SHA.**
+
+```bash
+# For each `<sha>` a doc or an ADR written this milestone cites:
+git tag cited-<mNN>-<what> <sha> && git push origin cited-<mNN>-<what>
+```
+
+`tests/test_cited_commits_resolve.py` counts a commit as reachable only from
+`main` or from a tag. A branch commit is neither: it passes in your clone because
+`for-each-ref` sees the branch, and in a fresh clone that is a remote-tracking ref
+a reader may not have fetched and `git gc` may prune. Squash-merging the branch
+does not put the commit on `main` — that is how `33e5871` (ADR-042 draft 3) became
+a citation that resolved in one clone and no other. **Do this before the merge**,
+so the tag names a commit while it is still obviously live; after it, you are
+hunting a SHA in a reflog. M08b PR 3 did it by hand for `cited-m08b-pr2-r1` and
+`cited-m08b-pr2-r2`, which is why PR 4 opened with nothing to be red about.
+
+Citing the merge commit on `main` instead is the other legitimate answer, and the
+cheaper one — a SHA is worth tagging when the branch commit is the thing being
+pointed at (a draft, a round's head), not when the merge would do.
+
 ```bash
 git push -u origin mNN-<slug>       # open the PR; let the gate run
 # ... seat review (subagents first-pass, human disposes), merge to main ...
@@ -138,6 +159,9 @@ git tag mNN && git push origin mNN  # tag name != branch name, always
 ```
 
 Do not delete the merged branch — the branch list is a visible progress ledger.
+**That convention is what made the citation rule too weak until M08b PR 4**: a
+kept branch makes an unreachable citation look reachable, so the tag above is what
+carries the property and the kept branch is not a substitute for it.
 
 ## 8. Record the demo
 

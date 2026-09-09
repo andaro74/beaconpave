@@ -39,6 +39,28 @@
 # Owning seat: AI Quality. Two-key on every change, including this file's first
 # real content.
 
+# =============================================================================
+# THE BUDGET NUMBERS BELOW ARE FOR ONE TOOL
+# =============================================================================
+#
+# `budget: { ... tokens_in: 6000 ... }` in case 1 is a PER-TURN ceiling, and a
+# tool loop makes a turn n model calls — every round after the first re-sends the
+# transcript so far (ADR-014 amendment 1). The scaffold declares one tool, so
+# 6000 is a number for the shape it ships with and for no other.
+#
+# Declare a second tool in `pave.manifest.yaml` and this number is wrong, along
+# with that file's `max_tokens_in: 6500` and `p95_ms: 2500`. Measured on the
+# reference service at three tools: 6000 was re-derived to 7700 (ADR-014
+# amendment 2) and 2500 to 5200 (amendment 3), both by a rule written before the
+# run it was applied to and pinned in `tests/test_budget_derivation.py`. Derive
+# yours the same way. Do not raise one to make a run pass — CLAUDE.md's "never
+# edit a golden case to make a run pass" is the same rule one file over.
+#
+# `pave verify` catches exactly one of the three (`max_tokens_in`, row 15) and
+# names `p95_ms` in its "not checked" footer. This case's own `tokens_in` it does
+# not check at all: a disposed case's budget is AI Quality's, and a shape check
+# has no population to derive one from.
+
 # --- 1. deterministic asserts only, and this is the shape to prefer ----------
 # CLAUDE.md: "Prefer deterministic assertions over judge assertions wherever a
 # deterministic one can express the requirement." A case with no `judge:` block
@@ -51,6 +73,8 @@
     - json_schema: services/{{service}}/evals/answer.schema.json
     - must_cite: [t003]
     - cited_titles_in_fixture: true
+    # tokens_in 6000 is a ONE-TOOL number — see the block above before you add a
+    # second tool to `pave.manifest.yaml`.
     - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
   provenance:
     author: pave-template
