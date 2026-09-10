@@ -511,8 +511,10 @@ readers. The seat list here and the reviewer list there are the same list.
 
 ## Amendment 1 — a cold read of SPEC/09 before PR 2, five questions answered
 
-**Written 2026-09-09, after PR 1 was committed on `m09-rules` (`c391e93`, unopened)
-and before PR 2 is cut. Zero model calls; no deploy; no seat round.** The reader
+**Written 2026-09-09, after PR 1 was committed and before PR 2 is cut.** PR 1 was
+unopened when this was written and squash-merged as **`66bb114`** (#134) while it
+was in flight; the trees are identical, so every number below is unmoved and the
+merge commit is what they are cited against. Zero model calls; no deploy; no seat round.** The reader
 did not write SPEC/09 or ADR-075. Nothing in the plan is changed by this
 amendment; it names what PR 2, PR 3 and the spec must change, and the operator
 disposes.
@@ -526,7 +528,7 @@ evidence, never read out of a journal sentence: `milestones/M08b/goldens-run-{1,
 `services/highlights-agent/gateway_client.py`,
 `services/highlights-agent/evals/answer.schema.json`,
 `tools/entitlement-check/schema.in.json` and `tests/test_gateway_run_parity.py`.
-Baseline for every plant below: `python -m pytest -q` at `c391e93` is
+Baseline for every plant below: `python -m pytest -q` at `66bb114` is
 **3993 passed, 6 skipped**. Each plant was written to a working copy backed up to
 a temp directory, restored from that backup and **never with `git checkout`**, and
 `git status --porcelain` was empty after each.
@@ -717,10 +719,10 @@ says so and adds nothing; the rows that matter are the ones that are not.
 | 15 | the `p95_ms` condition evaluated, the manifest at what it yields | the derivation test | PR 2 | **reachable, and the answer is computed here: the gate does not move** (fact 1, §4). Two consequences the spec does not carry — the `context_census.py` `sys.path` debt is dated *"PR 2, if the p95 condition yields a move"* and therefore becomes undated; and `test_the_suite_p95_ceiling_is_the_number_the_rule_produces_from_the_mandated_shape`, which asserts 5200 from M07's population and `gates.p95_ms == produced`, stays green rather than needing replacement |
 | 16 | `gateway_client.py` and `classify.py` on two-key rules | a `_blocked_for` plant per rule | PR 2 | reachable and correctly dated before PR 4 edits the first. `classify.py` matches no rule today (fact 5) |
 | 17 | the DMA rename moves every digest it must and nothing else | each reader re-produces its record; the judge re-frozen | PR 3 | **not reachable in this milestone at all** (fact 4). §6 |
-| 18 | `brand_tone` re-deferred to M09b as the fourth | `test_calibration_owe.py` green with row 09b | PR 1 | **green, checked**: 256 passed over the five named tests at `c391e93` |
+| 18 | `brand_tone` re-deferred to M09b as the fourth | `test_calibration_owe.py` green with row 09b | PR 1 | **green, checked**: 256 passed over the five named tests at `66bb114` |
 | 19 | Act 3 recorded before the row is flipped | `test_demo_recordings.py` green with `recorded` set | PR 5 | green today with the act unrecorded; reachable |
 | 20 | zero model calls outside PR 4; PR 4 within 180 turns | the PR bodies; no `usage` under `milestones/M09/` outside PR 4 | every PR | reachable; PR 2's planted answers under `tests/` is the right precaution, inherited from M08b row 22 |
-| 21 | citations resolve from `main` or a tag | `test_cited_commits_resolve.py` before merge | every PR | green today. **This amendment cites `c391e93`, which `main` does not reach**; §6 |
+| 21 | citations resolve from `main` or a tag | `test_cited_commits_resolve.py` before merge | every PR | green today, and §6 records the one correction the rule forced on this text before it merged |
 | 22 | the deletability audit | the PR body names each check and its result | every PR | reachable |
 | — | **the prompt is the system under measurement** | `TOOL_SYSTEM_SHA256` and the line-by-line assert in `tests/test_gateway_run_parity.py` | **no PR** | **a claim with no row.** The fix moves the M02 lineage pin and the pin is on two keys the plan does not collect (fact 3). It is not optional: PR 4 cannot merge without editing that file |
 | — | **the census record is what the committed inputs produce** | `tests/test_m08_census.py` | **no PR** | **a claim with no row.** The census digests the prompt, the catalog, the contract set, the cases file and the manifest; PR 3 moves four and PR 4 moves one (facts 3, 4) |
@@ -979,13 +981,28 @@ sentence is what the four slides were hiding.
 PR 2, PR 4, PR 4b, PR 5. There is no PR 3, PRs 4 and 5 keep their numbers, and
 every reference in SPEC/09 and in this ADR stays valid.
 
-**This amendment's citations.** It names one commit, `c391e93`, which is PR 1's
-commit on `m09-rules` and reachable from `main` by no path and from no tag —
-exactly what SPEC/09 constraint 11 refuses. It is tagged `cited-m09-pr1`
-and the tag pushed **before this PR merges**, on ADR-074 amendment 3 §9's
-mechanism, so `tests/test_cited_commits_resolve.py` reads main-or-tag green over
-this text and stays green when the branch is gone. Every other reference here is
-to a path, a test name or a number, and none acquires a fuse.
+**This amendment's citations, and the one correction the rule forced.** As first
+written this text cited `c391e93` — PR 1's commit on `m09-rules`, reachable from
+`main` by no path and from no tag, which is exactly what SPEC/09 constraint 11
+refuses. Constraint 11 was run over this text before merge, as it requires, and it
+went red on it. The pre-registered remedy was applied: the commit was tagged
+`cited-m09-pr1` on ADR-074 amendment 3 §9's mechanism.
+
+**Then PR 1 merged while this PR was in flight**, squashing to **`66bb114`** on
+`main`, and the rule's *other* remedy — *cite the merge commit on `main` instead* —
+became available and is the better one, because a commit `main` reaches needs no
+ref kept alive for it. Every citation above now names `66bb114`; `git diff` between
+the two is empty, so the reading is against the same tree it was taken against and
+no number moves. **`cited-m09-pr1` is left standing rather than deleted** — it is
+pushed, it is now redundant, and deleting a published ref to tidy a redundancy is a
+remote mutation with no check behind it; `cited-m08b-pr2-r1` and `-r2` stand in the
+same condition for the same reason.
+
+Worth naming because it is a small instance of this amendment's own subject: **a
+pre-registered mechanism was applied correctly and then made unnecessary by an
+event the pre-registration did not model** — the base moving under a PR that reads
+the base. It cost one rebase and this paragraph. Every other reference here is to a
+path, a test name or a number, and none acquires a fuse.
 
 ### What this amendment asks PR 2 and the spec to carry
 
@@ -994,8 +1011,8 @@ done's own PR 1b box and on ADR-074 amendment 1's precedent — a Definition of 
 corrected after its PR prints is a checkbox rewritten to match the outcome. **None
 is made here**: asks 5, 6 and the re-scoping in 6 are the operator's the way
 decisions 1–4 and 6 were, and this PR also carries its own housekeeping — the ADR
-index row naming amendment 1 with the ≤10 ratchet unmoved at 10, and
-`cited-m09-pr1` tagging `c391e93` so §6's citation reads main-or-tag green.
+index row naming amendment 1 with the ≤10 ratchet unmoved at 10, and §6's citation
+correction after PR 1 squash-merged under it.
 
 1. **The `p95_ms` section carries §4's five-population table and its answer**: the
    condition does not hold, 5200 stands, ADR-014's stability sentence is withdrawn

@@ -3,7 +3,8 @@
 Two commits on one PR to `main`, because workflows only fire on PRs to `main` and
 a stacked PR gets no CI.
 
-- **`c391e93` — PR 1, the open.** ADR-075; SPEC/09; rows `09b` and `09c` in
+- **`66bb114` — PR 1, the open**, merged as #134 while this PR was in flight; on
+  `main` already and **not part of this PR's diff**. ADR-075; SPEC/09; rows `09b` and `09c` in
   `README.md`; `BUILD.md`; `SPEC/README.md`; the ADR index row; ADR-026 amendment
   4 and `labels.json`'s `re_deferred_to: "M09b"` in the same diff as the row;
   `docs/governance/demo-script.md`'s Act 3 corrected.
@@ -11,8 +12,8 @@ a stacked PR gets no CI.
   reader who did not write SPEC/09 or ADR-075, before PR 2 cuts. Named by its role
   and not by its sha: a squash merge destroys it, and ADR-074 amendment 3 §9 is the
   precedent — *"PR 3's own commits are deliberately named by their role and never by
-  SHA, so no sentence here acquires a fuse."* `c391e93` earns a tag instead, because
-  the amendment cites it in text that outlives the branch.
+  SHA, so no sentence here acquires a fuse."* PR 1's commit is cited by sha in the
+  amendment, and now names the merge commit `main` reaches.
 
 **Zero model calls. No deploy. No seat round. No code, no rule, no case, no
 threshold.**
@@ -193,17 +194,21 @@ ADR-075 stays valid — ADR-074 amendment 1 §6's shape exactly.
 
 - The ADR index row names amendment 1, with `tests/test_adr_index.py`'s **≤10
   ratchet unmoved at 10**.
-- `c391e93` is tagged **`cited-m09-pr1`** and the tag pushed before this PR merges,
-  so `tests/test_cited_commits_resolve.py` reads main-or-tag green over this text
-  and stays green when the branch is gone (ADR-074 amendment 3 §9's mechanism,
-  `close-milestone` step 7). Every other reference in the amendment is to a path, a
-  test name or a number, and none acquires a fuse.
+- The amendment's citations name **`66bb114`**, PR 1's merge on `main`. As first
+  written they named `c391e93`, its pre-squash commit on the branch;
+  `tests/test_cited_commits_resolve.py` went red on that before merge, as constraint
+  11 requires, and the commit was tagged `cited-m09-pr1` (pushed). PR 1 then merged
+  under this branch, making the rule's other remedy — *cite the merge commit on
+  `main`* — available and better; the tag is left standing rather than deleted, as
+  `cited-m08b-pr2-r1` and `-r2` are. `git diff c391e93 66bb114` is empty, so every
+  number in the amendment is against the tree it was read on. Amendment 1 §6 records
+  it. Every other reference is to a path, a test name or a number.
 
 ## Checks
 
 - `python -m pytest -q` → **4000 passed, 6 skipped**. Baseline before the amendment
   was 3993 passed, 6 skipped; the seven are `test_cited_commits_resolve.py`'s new
-  parametrised cases for `c391e93`, green via the tag.
+  parametrised cases for PR 1's commit, green from `main`.
 - `python milestones/M08/context_census.py --check` → OK
 - `python milestones/M08b/fresh_join.py --check` → OK
 - `python -m pave.cli gate history --base main` → PASS
