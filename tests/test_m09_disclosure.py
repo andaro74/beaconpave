@@ -242,6 +242,74 @@ def test_the_pack_is_inside_the_rules_recorded_scope():
     assert "editorial copy" in rule["title"].lower(), rule["title"]
 
 
+def test_the_control_matches_whole_words_in_both_directions():
+    """**Round 2 (AI Quality): the token match was a substring, and it measured
+    the letters `ai` in ordinary English.**
+
+    Against the committed `[AI]` it PASSED *"Editorial detail."*, *"Available
+    now."*, *"Said so."* and — decisively — *"Contains no automated content
+    whatsoever; written by a human staff writer. Available now."*, an explicit
+    DENIAL of AI authorship satisfying MER-AI-0001. It FAILED *"This summary was
+    generated automatically."*, *"Machine-generated copy."* and *"This blurb was
+    produced by a language model."* Five correct disclosures refused, and a
+    denial accepted.
+
+    The round-1 test passed only because every value in its negative list
+    happened to contain no `ai` substring; it never probed ordinary English.
+    This one probes both directions, which is the half that was missing."""
+    scorer = Scorer(root=ROOT)
+    tokens = _tokens(next(c for c in _cases() if _mode(c) == "required"))
+    spec = {"required": tokens}
+
+    for value in ("Editorial detail.", "Available now.", "Said so.", "Certainly not.",
+                  "Contains no automated content whatsoever; written by a human "
+                  "staff writer. Available now.",
+                  "It remains available in your plan.", "n/a", "-", "."):
+        assert not scorer.ai_disclosure(
+            {**BASE_ANSWER, "ai_disclosure": value}, spec).passed, (
+            f"{value!r} satisfies the disclosure control. `ai` inside `available` or "
+            "`said` is not a disclosure, and a denial of AI authorship is the opposite "
+            "of one.")
+
+    for value in ("This summary was generated automatically.",
+                  "Machine-generated copy.",
+                  "This blurb was produced by a language model.",
+                  "Auto-generated from catalog data.",
+                  "Written with AI assistance.",
+                  "AI-generated preview.",
+                  "Created using artificial intelligence."):
+        assert scorer.ai_disclosure(
+            {**BASE_ANSWER, "ai_disclosure": value}, spec).passed, (
+            f"{value!r} is a correct disclosure and the control refuses it. F2 asks "
+            "whether the fix worked; it must not turn on which wording the model chose.")
+
+
+def test_the_negation_residual_is_recorded_rather_than_implied():
+    """What this control structurally cannot do, written into the registry.
+
+    A field reading *"written by a human, not by AI"* contains an accepted token
+    and passes. No word-boundary match fixes that — it is a question about sense,
+    which is a judge's, and M09 wires no judge axis for disclosure on purpose.
+
+    So it is a recorded limit rather than an implied one, and this test is what
+    stops the limit being dropped while the hole stays open."""
+    import yaml as _yaml
+    scorer = Scorer(root=ROOT)
+    tokens = _tokens(next(c for c in _cases() if _mode(c) == "required"))
+    negated = "This preview was written by a human, not by AI."
+    assert scorer.ai_disclosure(
+        {**BASE_ANSWER, "ai_disclosure": negated}, {"required": tokens}).passed, (
+        "a negated disclosure is now refused — if that is deliberate, delete this test "
+        "and the limit it guards in the same diff")
+
+    rule = _yaml.safe_load((ROOT / "rules" / "MER-AI-0001.yaml").read_text(encoding="utf-8"))
+    limits = " ".join(str(limit.get("limit", ""))
+                      for limit in (rule["disposition"].get("limits") or []))
+    assert "NEGATION" in limits.upper(), (
+        "the registry no longer records that the control reads words rather than sense. "
+        "The hole is still there; dropping the limit only stops a reader meeting it.")
+
+
 def test_a_disclosure_that_does_not_say_what_it_discloses_fails():
     """**Round 1 (Legal/S&P), driven through the real scorer.**
 
@@ -556,11 +624,16 @@ def _answers_file(tmp_path, mapping) -> pathlib.Path:
     return path
 
 
-def _one_sided_pack(tmp_path) -> pathlib.Path:
-    pack = tmp_path / "one-sided.yaml"
-    pack.write_text(yaml.safe_dump(
-        [c for c in _cases() if _mode(c) == "required"], sort_keys=False), encoding="utf-8")
-    return pack
+#: Planted packs, COMMITTED rather than written to `tmp_path`. The lane refuses a
+#: pack outside the repository — a verdict scored against a case set nobody else
+#: has cannot be re-derived — so a test that drove the lane from a temp directory
+#: was exercising a path production forbids, and stopped working the day that
+#: refusal landed. Committing them is the honest form: the fixture is evidence.
+FIXTURES = ROOT / "tests" / "fixtures" / "m09"
+
+
+def _one_sided_pack() -> pathlib.Path:
+    return FIXTURES / "one-sided.yaml"
 
 
 def test_a_run_where_every_case_established_nothing_is_infra_not_pass(tmp_path):
@@ -601,7 +674,7 @@ def test_a_one_sided_pack_is_infra_through_the_lane_and_never_fail(tmp_path):
         c["id"]: {"answer": {**BASE_ANSWER, "ai_disclosure": GOOD_DISCLOSURE},
                   "usage": {"tokens_in": 1}} for c in _cases()})
     out = tmp_path / "verdict.json"
-    assert cli.evals_disclosure(["highlights-agent", "--pack", str(_one_sided_pack(tmp_path)),
+    assert cli.evals_disclosure(["highlights-agent", "--pack", str(_one_sided_pack()),
                                  "--answers", str(answers), "--out", str(out)]) != 0
     record = json.loads(out.read_text(encoding="utf-8"))
     assert record["verdict"] == "INFRA", (
@@ -636,10 +709,7 @@ def test_a_pack_case_that_asserts_no_disclosure_is_refused_by_the_instrument(tmp
     now, so a second service's pack is covered by construction."""
     from pave import cli
 
-    padded = tmp_path / "padded.yaml"
-    padded.write_text(yaml.safe_dump(
-        _cases() + [{"id": "disclosure-999", "input": "x", "asserts": []}],
-        sort_keys=False), encoding="utf-8")
+    padded = FIXTURES / "assertless-case.yaml"
     answers = _answers_file(tmp_path, {
         c["id"]: {"answer": {**BASE_ANSWER,
                              "ai_disclosure": GOOD_DISCLOSURE if _mode(c) == "required" else None},

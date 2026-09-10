@@ -23,10 +23,10 @@
       "required": ["covers", "excludes", "revives", "decided_by", "decided_on"],
       "additionalProperties": false,
       "properties": {
-        "covers": { "type": "string", "description": "What the rule reaches now" },
-        "excludes": { "type": "string", "description": "A sense the rule no longer reaches, named rather than deleted. A scope narrowed by silence cannot be audited" },
-        "revives": { "type": "string", "description": "What would bring the excluded sense back into force. Never blank: an exclusion with no revival condition is a retirement wearing a narrower name" },
-        "decided_by": { "type": "string" },
+        "covers": { "type": "string", "minLength": 1, "description": "What the rule reaches now. `minLength` because two seats measured that this file said \"Never blank\" twice and enforced it nowhere -- the same stated-and-absent shape round 1 fixed one field over, when `format: date` turned out to be decoration without a checker." },
+        "excludes": { "type": "string", "minLength": 1, "description": "A sense the rule no longer reaches, named rather than deleted. A scope narrowed by silence cannot be audited" },
+        "revives": { "type": "string", "minLength": 1, "description": "What would bring the excluded sense back into force. Never blank: an exclusion with no revival condition is a retirement wearing a narrower name" },
+        "decided_by": { "type": "string", "enum": ["platform-eng", "ai-quality", "security", "legal-sp", "data-governance", "tool-owner", "service-team"], "description": "The seat that took the scoping decision. An `enum` because `owner_seat` and `limits[].owed_to` both have one and this did not: a re-scope could name `\"whoever gets to it\"` and validate." },
         "decided_on": { "type": "string", "format": "date" }
       }
     },
@@ -49,9 +49,9 @@
             "required": ["limit", "owed_to", "dated"],
             "additionalProperties": false,
             "properties": {
-              "limit": { "type": "string", "description": "What the disposition does not reach, in the terms the rule uses" },
+              "limit": { "type": "string", "minLength": 1, "description": "What the disposition does not reach, in the terms the rule uses" },
               "owed_to": { "type": "array", "minItems": 1, "items": { "type": "string", "enum": ["platform-eng", "ai-quality", "security", "legal-sp", "data-governance", "tool-owner", "service-team"] } },
-              "dated": { "type": "string", "description": "The milestone or trigger that closes it. Never blank: an undated limit is a residual nobody inherits" }
+              "dated": { "type": "string", "minLength": 1, "description": "The milestone or trigger that closes it. Never blank: an undated limit is a residual nobody inherits" }
             }
           }
         },

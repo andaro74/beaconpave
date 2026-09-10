@@ -157,7 +157,11 @@ def rules_trace(argv):
     # until PR 4, and a lookup that exited 0 over it would report a chain that
     # does not exist yet. The RENDER says which of the two it is, so a reader can
     # tell "working as intended" from "broken."
-    sys.exit(gate_mod.EXIT_OK if chain.resolved else gate_mod.EXIT_QUALITY)
+    # WALKED exits 0: every link was located and one control type has no deeper
+    # walker. That is a reader limitation, not a broken disposition, and exiting
+    # 1 on it would make M09b's stronger control read as a failure.
+    sys.exit(gate_mod.EXIT_OK if (chain.resolved or chain.walked)
+             else gate_mod.EXIT_QUALITY)
 
 
 
@@ -604,7 +608,27 @@ def evals_disclosure(argv=()):
         _die(f"evals disclosure: no pack at {pack}. A lane that reported "
              f"success over a pack that is not there would report success after somebody "
              f"deletes it.", gate_mod.EXIT_CONTRACT)
+    # **The same three refusals `--cases` got, and for the same reasons.** Round 1
+    # hardened the RUNNER's pack flag — containment, shape, duplicate ids — and
+    # added this one without any of them, so a mapping or a list of strings
+    # reached `disclosure_sufficiency` and died on an uncaught `AttributeError` at
+    # exit 1, indistinguishable by exit code from a clean disclosure FAIL, and an
+    # out-of-tree pack was read without complaint in the milestone whose own
+    # finding was that a recorded run's case set must be committed.
+    if ROOT.resolve() not in pack.resolve().parents:
+        _die(f"evals disclosure: --pack {pack} is outside the repository. A verdict "
+             f"scored against a case set nobody else has cannot be re-derived.",
+             gate_mod.EXIT_CONTRACT)
     cases = _yaml.safe_load(pack.read_text(encoding="utf-8")) or []
+    if not isinstance(cases, list) or not all(
+            isinstance(c, dict) and c.get("id") and c.get("input") for c in cases):
+        _die(f"evals disclosure: --pack {pack} is not a list of cases carrying `id` and "
+             f"`input`. A malformed pack is a CONTRACT failure, not a quality result.",
+             gate_mod.EXIT_CONTRACT)
+    ids = [c["id"] for c in cases]
+    if len(ids) != len(set(ids)):
+        _die(f"evals disclosure: --pack {pack} has duplicate case id(s) "
+             f"{sorted({i for i in ids if ids.count(i) > 1})}.", gate_mod.EXIT_CONTRACT)
     catalog = json.loads((ROOT / "data" / "catalog.json").read_text(encoding="utf-8"))
 
     if not answers_paths:
@@ -1660,7 +1684,11 @@ def main(argv):
     if cmd == "rules" and rest[:1] == ["validate"]:
         rules_validate()
     elif cmd == "rules" and rest[:1] == ["trace"]:
-        rules_trace(rest[1:])
+        # `return`, like every other lane in this block. `rules_trace` ends in
+        # `sys.exit`, so this worked -- and converting that one call to a `return`,
+        # which is the shape the rest of the file uses, made an unresolved chain
+        # exit 0 at 4124 passed. `_entry`'s own recorded defect, one command over.
+        return rules_trace(rest[1:])
     elif cmd == "rules":
         _die(f"rules: expected `validate` or `trace`, got {rest}", gate_mod.EXIT_CONTRACT)
     elif cmd == "new":

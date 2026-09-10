@@ -229,6 +229,11 @@ ADR043_SEATS = {
     # creates them and before the data they read exists — M08b's precedent, and
     # the reason it is here rather than in PR 4.
     "tests/test_m09_disclosure.py": {"ai-quality", "platform-eng", "security"},
+    # Round 2 (Security): the disposition-pack rule had no representative here, so
+    # the ratchet above could not exercise it — and narrowing it to one filename
+    # was silent at 3951 passed. The pack is the executable form of a Legal/S&P
+    # rule; that seat's key is the whole of what this pin holds.
+    "services/highlights-agent/evals/disclosure/cases.yaml": {"ai-quality", "legal-sp"},
     "milestones/M09/verdict-pre-fix.json": {"ai-quality", "platform-eng", "security"},
 }
 
@@ -250,6 +255,13 @@ def _seats_for(path: str) -> set:
 #: satisfies, holding sole control of the router's strength.
 SEATS_THAT_MAY_NOT_BE_DROPPED = {
     "platform/gateway/core/classify.py": {"data-governance"},
+    # Round 2 (Security): the ratchet was written and immediately not applied to
+    # three of its own four occasions. All three gained `data-governance` in the
+    # diff that created the constant, for reasons that diff argues at length —
+    # and each was droppable without the constant noticing.
+    "platform/gateway/core/__init__.py": {"data-governance"},
+    "platform/gateway/core/classify_terms.py": {"data-governance"},
+    "tests/test_gateway_core.py": {"data-governance"},
     "services/highlights-agent/evals/disclosure/cases.yaml": {"legal-sp"},
     "services/highlights-agent/gateway_client.py": {"platform-eng", "security"},
     "pave/rules.py": {"legal-sp", "security", "platform-eng"},
@@ -335,11 +347,18 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           # and SPEC/09's own debt rows
                                           "the registry chain reader",
                                           "the caller's system prompt",
-                                          "G5's router"))]
-    assert len(added) == 27, (
+                                          "G5's router",
+                                          # round 2 (Security): the rule this PR
+                                          # added for Legal/S&P's key was the one
+                                          # rule the ratchet did not hold — the
+                                          # `added` list is opt-in by label, and
+                                          # narrowing the pattern to one filename
+                                          # was silent at 3951 passed.
+                                          "a disposition's eval pack"))]
+    assert len(added) == 28, (
         f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one, "
         f"ADR-049's three, ADR-052's two, ADR-053's two, ADR-072's one, SPEC/08's "
-        f"two, ADR-014 amendment 2's one, M08b PR 2's three and M09 PR 2's three, found "
+        f"two, ADR-014 amendment 2's one, M08b PR 2's three and M09 PR 2's four, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -498,6 +517,15 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
         # Member by member: narrowing the alternation to drop the package
         # `__init__` restores a complete G5 bypass at zero keys, and dropping the
         # witness leaves the seat that owns G5 unable to defend its only test.
+        # Shape paths, because the rule is a prefix and the pack for a service
+        # that does not exist yet must land on it the day it is written. Narrowing
+        # to `^services/highlights-agent/evals/disclosure/cases\.yaml$` left the
+        # pack's README on no rule and a second service's pack on AI Quality
+        # alone, at 3951 passed (Security, round 2).
+        "a disposition's eval pack": [
+            "services/highlights-agent/evals/disclosure/cases.yaml",
+            "services/highlights-agent/evals/disclosure/README.md",
+            "services/a-service-that-does-not-exist-yet/evals/disclosure/cases.yaml"],
         "G5's router": ["platform/gateway/core/classify.py",
                         "platform/gateway/core/__init__.py",
                         # A sibling holding the term lists: measured to leave
@@ -569,12 +597,15 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # test shapes), the chain reader and its only reader (2), the caller's system
     # prompt (1 -- named rather than a shape path, round 1), and G5's router (3
     # after round 1: the module, the package `__init__` a bypass lived in, and the
-    # only live witness, plus a term-list sibling). 104 -> 107 in round 1: two M09 shape paths that cannot
+    # only live witness, plus a term-list sibling). 107 -> 110 in round 2: the
+    # disposition-pack rule's three, added because the ratchet's label list is
+    # opt-in and this PR's own new rule was the one it did not hold.
+    # 104 -> 107 in round 1: two M09 shape paths that cannot
     # be enumerated in advance, so re-narrowing the clause to a closed list of
     # today's filenames is red rather than silent.
-    assert total == 107, (
+    assert total == 110, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "107. Deleting a required path in the same diff that "
+        "110. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )

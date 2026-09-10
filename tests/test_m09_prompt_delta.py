@@ -250,17 +250,39 @@ def rendered_per_call_payload(census) -> str:
     raise AssertionError("gateway_client.py defines no string constant TOOL_SYSTEM")
 
 
-def estimate_tokens(text: str, census) -> int:
-    """The census's own estimator, not a second one.
+def estimate_tokens(text: str, census=None) -> int:
+    """`round(chars / PRE_FIX_CHARS_PER_TOKEN)` — the census's arithmetic, over a
+    FROZEN ratio.
 
-    `round(chars / median chars-per-token)`, where the ratio comes from ADR-014's
-    six committed anchors. A second estimator here would be a second number to
-    disagree with the record the ceiling was derived from."""
-    import yaml
-    cases_path = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
-    cases = {c["id"]: c for c in yaml.safe_load(cases_path.read_text(encoding="utf-8"))}
-    cal = census.calibration(census.client_constants(), cases)
-    return census._est(len(text), cal)["tokens_est"]
+    **The ratio may not be recomputed while pricing the fix, and that is a
+    measured defect rather than a preference** (AI Quality, round 2).
+    `context_census.calibration()` divides the chars of ADR-014's six anchor
+    prompts by token counts frozen on 2026-08-15 — and `control_prompt()`
+    renders `answer.schema.json`, which is one of the two sites the fix edits.
+    So growing the schema grows the ratio's numerator while its denominator is a
+    constant, and the estimate stops being a function of size:
+
+    | chars added to `answer.schema.json` | chars/token | estimate |
+    |---|---|---|
+    | 0 | 3.3730 | 793 |
+    | 370 | 3.6875 | 826 |
+    | 4 000 | 6.7915 | 983 |
+    | 20 000 | 20.4550 | 1109 |
+
+    A 20 000-character schema addition prices at **+316 tokens** against a true
+    cost of roughly +5 900. `ADMISSIBLE_DELTA = 306` is arithmetically right and
+    would gate nothing: the larger the fix, the cheaper the instrument reports it.
+    (The seat that found this attributed it to `TOOL_SYSTEM`, where the ratio does
+    NOT move — `control_prompt` renders `SYSTEM` — and read the estimate as
+    falling. It rises; it just rises far too slowly. The mechanism is real and the
+    site is the schema.)
+
+    Freezing the ratio makes the estimate monotone in size, which is the only
+    property a budget bound needs. `test_the_estimators_denominator_is_pinned_beside_the_numerator`
+    still recomputes the live ratio and asserts it equals this constant, so an
+    ADR-014 anchor edit is a named failure rather than a silently re-priced fix.
+    """
+    return round(len(text) / PRE_FIX_CHARS_PER_TOKEN)
 
 
 # --- the population -----------------------------------------------------------
@@ -452,6 +474,39 @@ def test_the_estimators_denominator_is_pinned_beside_the_numerator(census):
         "whether an ADR-014 anchor case was edited.")
 
 
+def test_the_estimate_is_monotone_in_the_size_of_the_fix():
+    """**The property a budget bound needs, and the one the live estimator lacked.**
+
+    A bigger fix must price as more. With the ratio recomputed at read time it did
+    not: `control_prompt()` renders `answer.schema.json`, which is one of the two
+    sites the fix edits, so growing the schema grew the ratio and a 20 000-char
+    addition priced at +316 tokens against a true cost near +5 900.
+
+    Swept rather than argued, because the failure was in the shape of the function
+    and not in one value."""
+    base = "x" * 2675
+    previous = estimate_tokens(base)
+
+    # Non-decreasing at EVERY step, including steps smaller than one token. The
+    # first version of this asserted a strict increase at one character and went
+    # red on its own arithmetic: `round(1/3.373)` is 0, so a rounded estimator is
+    # monotone non-decreasing, not strictly increasing. The property a bound needs
+    # is that growth never prices as shrinkage.
+    for extra in (1, 2, 3, 10, 370, 1000, 4000, 20000):
+        grown = estimate_tokens(base + "y" * extra)
+        assert grown >= previous, (
+            f"adding {extra} characters DECREASED the estimate ({previous} -> {grown}). "
+            "A bound whose instrument is not a function of size gates nothing, however "
+            "correct its arithmetic.")
+        previous = grown
+
+    # And strictly increasing once the step exceeds the ratio, which is what makes
+    # a real fix priceable rather than merely not mis-priced.
+    for extra in (4, 100, 370, 4000):
+        assert estimate_tokens(base + "y" * extra) > estimate_tokens(base), extra
+    assert estimate_tokens("z" * 3373) - estimate_tokens("") == 1000
+
+
 def test_the_committed_prompts_delta_fits(census):
     """**The assert PR 4 re-runs after the fix lands.**
 
@@ -464,7 +519,7 @@ def test_the_committed_prompts_delta_fits(census):
 
     The baseline constant is **not** re-seated by that PR. Re-seating it there
     would erase the measurement."""
-    estimated = estimate_tokens(rendered_per_call_payload(census), census)
+    estimated = estimate_tokens(rendered_per_call_payload(census))
     delta = estimated - PRE_FIX_RENDERED_TOKENS_EST
     assert delta == 0, (
         f"the rendered tool prompt now estimates {estimated} tokens against a pre-fix "

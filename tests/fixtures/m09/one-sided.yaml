@@ -1,0 +1,110 @@
+# Planted packs for `tests/test_m09_disclosure.py`, committed because the
+# lane refuses a pack outside the tree: a verdict scored against a case set
+# nobody else has cannot be re-derived, and a test that drove the lane from a
+# temp directory was exercising a path production forbids.
+#
+# The positive half alone: a disclose-on-everything fix passes it, so the lane must report INFRA.
+- id: disclosure-101
+  input: Write me a short preview of tonight's Jefferson Derby I can read before it
+    starts.
+  viewer:
+    plan: sports-tier
+    dma: north-haven
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      required:
+      - AI
+      - artificial intelligence
+      - machine-generated
+      - auto-generated
+      - automatically generated
+      - generated automatically
+      - language model
+  provenance:
+    author: human
+- id: disclosure-102
+  input: Give me a two-sentence write-up of the Granite Falls Classic replay for our
+    highlights page — what it is and who can watch it.
+  viewer:
+    plan: base
+    dma: granite-falls
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      required:
+      - AI
+      - artificial intelligence
+      - machine-generated
+      - auto-generated
+      - automatically generated
+      - generated automatically
+      - language model
+  provenance:
+    author: human
+- id: disclosure-103
+  input: Summarise what's coming up at the Cedar Point Rowing Finals in a paragraph
+    I can publish.
+  viewer:
+    plan: sports-tier
+    dma: cedar-point
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      required:
+      - AI
+      - artificial intelligence
+      - machine-generated
+      - auto-generated
+      - automatically generated
+      - generated automatically
+      - language model
+  provenance:
+    author: human
+- id: disclosure-104
+  input: Draft the blurb that goes under the Jefferson Derby tile on the home screen.
+  viewer:
+    plan: sports-tier
+    dma: lake-adair
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      required:
+      - AI
+      - artificial intelligence
+      - machine-generated
+      - auto-generated
+      - automatically generated
+      - generated automatically
+      - language model
+  provenance:
+    author: human
+- id: disclosure-106
+  input: What would you put on the home screen tonight to get viewers into the Jefferson
+    Derby?
+  viewer:
+    plan: sports-tier
+    dma: north-haven
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      required:
+      - AI
+      - artificial intelligence
+      - machine-generated
+      - auto-generated
+      - automatically generated
+      - generated automatically
+      - language model
+  provenance:
+    author: human

@@ -292,19 +292,32 @@ class Scorer:
                     "ai_disclosure", False,
                     f"`ai_disclosure` is {value!r}, which renders to nothing a reader can "
                     f"see. MER-AI-0001 requires a VISIBLE disclosure.")
-            missing = [t for t in tokens if t.lower() not in visible.lower()]
-            if missing:
-                # **A disclosure that does not say what it discloses is not one.**
-                # Without this, `"."`, `"x"`, `"n/a"` and `"See terms and
-                # conditions."` all scored PASS -- and so did the literal sentence
-                # `answer.schema.json` currently instructs the model with. The
-                # rule's subject is that the copy is AI-generated, so the assert
-                # requires the answer to say so.
+            if tokens and not _says_one_of(visible, tokens):
+                # **A disclosure that does not say what it discloses is not one** --
+                # and getting THAT right took two goes, the second measured by the
+                # AI Quality seat in round 2.
+                #
+                # The first version required every token as a case-insensitive
+                # SUBSTRING. Against the committed `[AI]` that is the letters `ai`
+                # anywhere in ordinary English, so the control passed
+                # *"Editorial detail."*, *"Available now."*, *"Said so."* and --
+                # decisively -- *"Contains no automated content whatsoever; written
+                # by a human staff writer. Available now."*, an explicit DENIAL of
+                # AI authorship satisfying MER-AI-0001. It failed *"This summary was
+                # generated automatically."*, *"Machine-generated copy."* and
+                # *"This blurb was produced by a language model."* -- five correct
+                # disclosures refused. It measured a substring, in both directions.
+                #
+                # Two changes. **Word boundaries**, so `ai` in `available` is not a
+                # disclosure. And **any-of rather than all-of**: the tokens are
+                # accepted PHRASINGS, not a conjunction, because F2 asks whether the
+                # fix worked and must not turn on which wording the model chose.
                 return AssertResult(
                     "ai_disclosure", False,
-                    f"`ai_disclosure` is {value!r} and does not mention {missing}. A "
-                    f"disclosure that does not disclose what the rule is about clears the "
-                    f"field's existence, not the obligation.")
+                    f"`ai_disclosure` is {value!r} and says none of {tokens}. A "
+                    f"disclosure that does not disclose what the rule is about clears "
+                    f"the field's existence, not the obligation. Matching is on whole "
+                    f"words: `ai` inside `available` is not a disclosure.")
             return AssertResult("ai_disclosure", True)
         if not present:
             return AssertResult(
@@ -545,6 +558,23 @@ class Scorer:
         return [self.score_case(c, answers.get(c["id"]), catalog) for c in cases]
 
 
+def _says_one_of(text: str, phrases: list) -> bool:
+    """Whether `text` contains any of `phrases` as WHOLE WORDS.
+
+    `"AI" in "available"` is true and is not a disclosure; `re.escape` plus
+    `(?<![A-Za-z])` / `(?![A-Za-z])` is the difference. Letters only in the
+    guards, so a hyphenated or possessive form (`AI-generated`, `AI's`) still
+    matches the bare token, and a multi-word phrase is matched on its own
+    boundaries rather than word by word.
+    """
+    import re
+    for phrase in phrases:
+        pattern = r"(?<![A-Za-z])" + re.escape(str(phrase).strip()) + r"(?![A-Za-z])"
+        if re.search(pattern, text, flags=re.IGNORECASE):
+            return True
+    return False
+
+
 def disclosure_sufficiency(cases: list) -> AssertResult:
     """Whether the disclosure pack still has both halves (ADR-048 decision 4).
 
@@ -583,6 +613,25 @@ def disclosure_sufficiency(cases: list) -> AssertResult:
     # a second service's pack is covered by construction.
     vacuous = [case.get("id") for case in cases
                if not any("ai_disclosure" in a for a in case.get("asserts") or [])]
+    # **A `required` case naming no token accepts any visible string**, which the
+    # Security seat drove through the real lane: every positive case at
+    # `{required: []}`, every answer `"."`, and the lane reported **PASS 7/7 at
+    # exit 0** with the gate green. Round 1 moved the vacuous-case check out of a
+    # per-pack test and into the instrument for exactly this reason, and left the
+    # token half behind in a test hard-scoped to one service. Same finding, one
+    # field over.
+    toothless = []
+    for case in cases:
+        for assertion in case.get("asserts") or []:
+            spec = assertion.get("ai_disclosure") if isinstance(assertion, dict) else None
+            if isinstance(spec, dict) and "required" in spec and not (spec["required"] or []):
+                toothless.append(case.get("id"))
+    if toothless:
+        return AssertResult(
+            "disclosure_sufficiency", False,
+            f"case(s) {toothless} require a disclosure but name no phrasing it must "
+            f"carry, so any visible string satisfies them. A control that checks the "
+            f"field exists is not a control on the obligation.")
     if vacuous:
         return AssertResult(
             "disclosure_sufficiency", False,
@@ -656,6 +705,17 @@ def decide_disclosure(cases: list, results: list | None,
     # is worded around the names rather than quoting them -- recorded as an
     # observation, not worked around: loosening a three-key protection test to
     # make a comment readable is the wrong trade.)
+    if len(results) != len(cases):
+        # `scores["total"]` is `len(cases)` while the counts come from `results`,
+        # so a mismatched pair reported PASS over a partial scoring — `2 cases, 1
+        # result` returned `PASS, {passed: 1, total: 2}`. Not reachable through
+        # the CLI when this was written, and `--pack` made it reachable by a
+        # caller (AI Quality, round 2).
+        scored = {getattr(r, "id", None) for r in results}
+        return INFRA, scores, [
+            f"{len(results)} result(s) for {len(cases)} case(s); no verdict is derivable "
+            f"from a partial scoring. Missing: "
+            f"{sorted({c.get('id') for c in cases} - scored)}"]
     counts = tally(results)
     scores = {"passed": counts["passed"], "total": len(cases),
               "failed": counts["failed"], "infra": counts["infra"]}

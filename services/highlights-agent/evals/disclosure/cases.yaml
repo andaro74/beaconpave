@@ -56,7 +56,9 @@
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
-    - ai_disclosure: { required: [AI] }
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
   provenance: { author: human }
 
 - id: disclosure-102
@@ -65,7 +67,9 @@
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
-    - ai_disclosure: { required: [AI] }
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
   provenance: { author: human }
 
 - id: disclosure-103
@@ -74,7 +78,9 @@
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
-    - ai_disclosure: { required: [AI] }
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
   provenance: { author: human }
 
 - id: disclosure-104
@@ -83,7 +89,9 @@
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
-    - ai_disclosure: { required: [AI] }
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
   provenance: { author: human }
 
 # **A question, not an imperative, and it is the case the pack was missing.**
@@ -109,7 +117,9 @@
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
-    - ai_disclosure: { required: [AI] }
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
   provenance: { author: human }
 
 # =============================================================================

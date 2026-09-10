@@ -83,37 +83,58 @@ def test_it_renders_no_probe_runner(tmp_path, monkeypatch):
     root = tmp_path / "services" / "sportscast-agent"
     probes = [p.name for p in root.rglob("run_probes*.py")]
     assert not probes, probes
-    # **The exception list is "files a team is EXPECTED to need a second key
-    # for", and it stayed at two.** `pave.manifest.yaml` has been on it since
-    # ADR-046 -- what a service declares about itself is not its own team's call
-    # -- and `evals/` since ADR-047.
+    # **The cost per file, not a set of seats.** Round 1 replaced a blanket
+    # exception list with a seat cap, `ONBOARDABLE = {ai-quality, tool-owner,
+    # legal-sp}`. Round 2 measured that the cap answers the wrong question.
     #
-    # M09 PR 2 first put `services/[^/]+/gateway_client.py` on a rule and added it
-    # here to make this green. Round 1 (Service Team) refused that in two moves,
-    # both measured: the rule's whole justification names one service, and with
-    # five of five rendered destinations excepted **the assertion below was
-    # vacuous** -- deleting it outright left 3926 passing. Widening an exception
-    # to admit the change under review is how a check stops asking anything. The
-    # rule was narrowed to the measured service instead, so this list is unchanged
-    # and the assertion has something to refuse again.
+    # The Service Team seat put a THREE-seat rule on
+    # `^services/[^/]+/evals/golden/README\.md$` — three mandatory attestations
+    # on a byte-for-byte machine render of a template, on the file the banner
+    # tells teams to read first — and the suite was **4149 passed, identical to
+    # baseline**. The cap passed, because all three seats were inside it. That is
+    # the rubber stamp round 1 removed, walked back in through the front door.
     #
-    # **The seat cap is the half that was missing.** "Lands on no rule at all" was
-    # never the property worth having: `evals/golden/cases.yaml` could be given a
-    # five-seat rule and this test would say nothing, because `startswith("evals/")`
-    # is a wildcard. What a scaffolding team can actually collect on its first PR
-    # is the seats that own what it is being asked to write, so a rendered file may
-    # land only on rules whose seats are inside that set.
-    ONBOARDABLE = {"ai-quality", "tool-owner", "legal-sp"}
+    # And the Data Governance seat measured the cap's other half: because
+    # `data-governance` is OUTSIDE the set, adding that seat to the rule covering
+    # `pave.manifest.yaml` — which carries `classification:`, the `declared`
+    # argument to `classify.route`, and is the first question that seat's charter
+    # asks — became a RED test whose message told the next reader not to widen the
+    # set. An omission asserted green.
+    #
+    # Round 1 asked "which seats"; the finding was about "how much". So the pin is
+    # the exact cost of each rendered file. A rule that raises one is red with the
+    # file named, whichever seat it names — and a seat can join a rule without
+    # asking permission from a set it was never in.
+    ONBOARDING_COST = {
+        "pave.manifest.yaml": {"ai-quality", "tool-owner"},
+        "gateway_client.py": set(),
+        "evals/answer.schema.json": {"ai-quality"},
+        "evals/golden/cases.yaml": {"ai-quality"},
+        "evals/golden/README.md": {"ai-quality"},
+    }
+    assert sorted(ONBOARDING_COST) == sorted(dest for _, dest in scaffold.RENDERED), (
+        "a rendered file has no onboarding cost pinned. A new destination joins "
+        "`scaffold.RENDERED` unpriced, and the first thing a team learns about it is a "
+        "blocked PR.")
     for _, destination in scaffold.RENDERED:
-        rules = [r for r, _ in twokey.triggered([f"services/sportscast-agent/{destination}"])]
-        seats = {s for r in rules for s in r.seats}
-        assert seats <= ONBOARDABLE, (
-            f"{destination} lands on a rule demanding {sorted(seats - ONBOARDABLE)}, which a "
-            f"scaffolding team's first PR cannot plausibly collect. Either the rule should "
-            f"not match scaffolded services -- it is a path regex, and the thing worth "
-            f"covering is usually what is MEASURED rather than what is named -- or the "
-            f"scaffold should not render this file. Widening ONBOARDABLE makes this check "
-            f"stop asking (Service Team, M09 PR 2 round 1).")
+        seats = {s for r, _ in twokey.triggered([f"services/sportscast-agent/{destination}"])
+                 for s in r.seats}
+        assert seats == ONBOARDING_COST[destination], (
+            f"{destination} now costs a scaffolding team {sorted(seats)}, pinned at "
+            f"{sorted(ONBOARDING_COST[destination])}. Every seat here signs a "
+            f"byte-for-byte machine render on every new service's first PR, which is "
+            f"the attest-without-reading habit ADR-047 refused. If the rule is right, "
+            f"move this pin in the same diff and say what a team gains by being asked.")
+
+    # The union is what the banner prints, and it is pinned as a number so that a
+    # widening cannot arrive as a one-token edit inside a test body: measured at
+    # 4149 passed when `ONBOARDABLE` was widened with no rule to match it.
+    union = {s for seats in ONBOARDING_COST.values() for s in seats}
+    assert len(union) == 2 and union == {"ai-quality", "tool-owner"}, (
+        f"a scaffolding team's first PR now needs {sorted(union)}. That is a change to "
+        "what the paved road costs, and ADR-047 built `onboarding_seats` to compute it "
+        "so the banner follows the rules — not so the number could be edited to follow "
+        "a new rule.")
 
 
 # --- the pairwise checks: template vs the service it was cut from ----------------

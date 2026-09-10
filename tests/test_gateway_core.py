@@ -851,3 +851,76 @@ def test_the_symmetric_guardrail_check_actually_fires():
     # ...and the honest record still builds, so this proves rightness and not strictness.
     assert audit.build_record(decision="blocked", mechanism="guardrail",
                               guardrail=intervened, **common)["decision"] == "blocked"
+
+
+# --- G5's terms cannot be rebound from anywhere in the gateway -----------------
+
+def test_no_gateway_module_rebinds_another_modules_globals():
+    """**A regex over filenames cannot cover "any module Python executes."**
+
+    `handler.py` opens with one statement —
+    `from core import audit, cedar, classify, guardrail, meter, toolloop,
+    toolplane, withheld` — so every one of those modules runs, and any of them can
+    rebind `classify`'s module globals after `classify` is bound.
+
+    Round 1 (Data Governance) found `core/__init__.py` on no rule and disabled G5
+    from it: `SUBJECT_TERMS = ()` behind `if "pytest" not in sys.modules`, 4124
+    passed, `classify_sha256` byte-identical. The remedy put `__init__.py` and
+    `classify*.py` on the router's rule. Round 2 measured the same plant one name
+    to the right, in `meter.py`, which is on **no rule**:
+
+        SUBJECT_TERMS len: 0
+        allowed: True | level: None | mechanism: none
+        4149 passed, 6 skipped
+
+    G5 fully off in every non-pytest process, at zero keys. The rule bought three
+    filenames; the invariant needs every module on the import path, and the next
+    one is a file nobody has written yet.
+
+    **So this reads the SOURCE rather than the runtime**, which is the only thing
+    that sees past `if "pytest" not in sys.modules` — that guard is precisely a
+    bet that the check runs in-process. Cross-module rebinding has no legitimate
+    use anywhere in this package: the gateway's pure half is import-time-constant
+    by design, and `tests/test_hermeticity.py` already scans it for SDK imports on
+    the same principle."""
+    import ast
+
+    offenders = []
+    for path in sorted((ROOT / "platform" / "gateway").rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        imported = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported.update((a.asname or a.name).split(".")[0] for a in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                imported.update(a.asname or a.name for a in node.names)
+
+        for node in ast.walk(tree):
+            targets = []
+            if isinstance(node, (ast.Assign,)):
+                targets = node.targets
+            elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+                targets = [node.target]
+            for target in targets:
+                if (isinstance(target, ast.Attribute)
+                        and isinstance(target.value, ast.Name)
+                        and target.value.id in imported):
+                    offenders.append(
+                        f"{path.relative_to(ROOT).as_posix()}:{node.lineno} rebinds "
+                        f"{target.value.id}.{target.attr}")
+            # `setattr(mod, "X", ...)` is the same move spelled differently.
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                    and node.func.id == "setattr" and node.args
+                    and isinstance(node.args[0], ast.Name)
+                    and node.args[0].id in imported):
+                offenders.append(
+                    f"{path.relative_to(ROOT).as_posix()}:{node.lineno} setattr on "
+                    f"the imported module {node.args[0].id}")
+
+    assert not offenders, (
+        "a gateway module rebinds another module's globals:\n  " + "\n  ".join(offenders)
+        + "\n\nG5's term lists are import-time constants. A module that rewrites them "
+        "turns the router off for every process that is not this test suite, leaves "
+        "`classify_sha256` byte-identical, and needs no key if it lives in a file no "
+        "rule names. This check reads the source precisely because the runtime cannot "
+        "see a shim guarded on `pytest not in sys.modules`.")

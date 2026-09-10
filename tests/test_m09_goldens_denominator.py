@@ -205,14 +205,24 @@ def records_moved_by(seeds) -> set:
     set stops at the first hop.
     """
     digests = {}
+    unreadable = []
     for record in ROOT.glob("milestones/**/*.json"):
         try:
             doc = json.loads(record.read_text(encoding="utf-8"))
-        except (ValueError, OSError):
+        except (ValueError, OSError) as exc:
+            # **Fail LOUD.** This was `continue`, and two seats measured what that
+            # bought: a record digesting a model-facing file was invisible to the
+            # whole suite if it carried one trailing comma. A closure that skips
+            # what it cannot read reports a smaller cascade than the truth, and
+            # the number it reports is the one PR 4's merge condition rests on.
+            unreadable.append(f"{record.relative_to(ROOT).as_posix()}: {exc}")
             continue
         inputs = doc.get("inputs_sha256") if isinstance(doc, dict) else None
         if isinstance(inputs, dict):
             digests[record.relative_to(ROOT).as_posix()] = set(inputs)
+    assert not unreadable, (
+        "record(s) under milestones/ could not be parsed, so the cascade below is "
+        "computed over less than the tree:\n  " + "\n  ".join(unreadable))
 
     moved, frontier = set(), set(seeds)
     while frontier:
@@ -221,6 +231,32 @@ def records_moved_by(seeds) -> set:
         moved |= step
         frontier = step
     return moved
+
+
+def test_the_closures_seeds_are_the_files_the_fix_actually_edits():
+    """**The hand-list moved up a level; this is what pins it there.**
+
+    `records_moved_by` is a real transitive closure, but its seeds were three
+    hand-written strings that nothing asserted. Two seats measured the same
+    thing: truncating `MODEL_FACING_SITES` to `cases.yaml` alone left the
+    computed set identical and the suite green, because all five records happen
+    to be reachable through that one file. Latent is not fixed — the day a record
+    digests only the prompt, a seed deletion silently shrinks the cascade.
+
+    The seeds are the files the fix edits, and this repository already names
+    those in a second place: the three `PRE_FIX_*_SHA256` digests in
+    `tests/test_m09_prompt_delta.py` are exactly the model-facing surface PR 4
+    moves. Asserting the two agree makes each the other's witness."""
+    assert set(MODEL_FACING_SITES) == {
+        "services/highlights-agent/evals/golden/cases.yaml",
+        "services/highlights-agent/evals/answer.schema.json",
+        "services/highlights-agent/gateway_client.py",
+    }, (
+        f"the closure's seeds are {sorted(MODEL_FACING_SITES)}. They are the files PR 4 "
+        "edits; adding or removing one changes which records the Definition of done "
+        "must name, so it is a decision rather than a list edit.")
+    for seed in MODEL_FACING_SITES:
+        assert (ROOT / seed).is_file(), f"seed {seed} does not exist"
 
 
 def test_the_records_the_fix_moves_are_derived_and_not_listed():

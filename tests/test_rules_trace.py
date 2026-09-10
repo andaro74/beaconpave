@@ -363,9 +363,15 @@ def test_an_enforcing_control_of_another_type_resolves_and_does_not_exit_one(tmp
     directory = _registry(tmp_path, _typed(
         "cedar_policy", "platform/gateway/policy/disclosure.cedar", "L2"))
     chain = rules.trace("MER-AI-0001", directory, root)
-    assert chain.resolved, chain.defects
+    # **WALKED, the third state.** Not a defect — the control is enforcing and
+    # correctly recorded, and `pave rules trace` exits 0 — and not RESOLVED
+    # either, because the walk reached no case and no assert. Round 2 pulled this
+    # both ways: Tool Owner refused a chain that exits 1 on a stronger control,
+    # Platform Engineering refused a RESOLVED that never reached an assert.
     assert not chain.defects
+    assert chain.walked and not chain.resolved
     assert any(s.kind == "cedar_policy" for s in chain.steps)
+    assert "WALKED" in rules.render(chain)
 
 
 def test_a_two_control_disposition_resolves(tmp_path):
@@ -380,7 +386,10 @@ def test_a_two_control_disposition_resolves(tmp_path):
     rule["disposition"]["controls"].append(
         {"type": "guardrail", "ref": "platform/gateway/policy/guardrail.json", "layer": "L1"})
     chain = rules.trace("MER-AI-0001", _registry(tmp_path, rule), root)
-    assert chain.resolved, chain.defects
+    # An eval pack that reaches its asserts, PLUS a guardrail the reader cannot
+    # follow: WALKED, because one control short of a full walk is not a full walk.
+    assert not chain.defects
+    assert chain.walked and not chain.resolved
     assert [s.kind for s in chain.steps].count("case") == 1
 
 

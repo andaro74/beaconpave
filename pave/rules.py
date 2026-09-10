@@ -58,6 +58,11 @@ class Step:
     ref: str
     detail: str = ""
     resolved: bool = True
+    #: A step that was located and walked as far as its control type permits, but
+    #: reached no assert. Not a defect and not a resolution: `pave rules trace`
+    #: exits 0 on a chain whose only shortfall is `walked`, and `Chain.resolved`
+    #: stays false so that RESOLVED keeps meaning "a reader reached an assert".
+    walked: bool = False
 
 
 @dataclass(frozen=True)
@@ -85,6 +90,19 @@ class Chain:
         """
         return (bool(self.rule) and not self.defects and bool(self.steps)
                 and all(s.resolved for s in self.steps))
+
+    @property
+    def walked(self) -> bool:
+        """Every link located, with at least one control the walk cannot follow
+        further.
+
+        The middle state between RESOLVED and broken. A `guardrail` or
+        `cedar_policy` disposition is enforcing and correctly recorded, and the
+        reader has no walker for it — so the chain is not a defect and it is not
+        a proof of row 1a either."""
+        return (bool(self.rule) and not self.defects and bool(self.steps)
+                and not self.resolved
+                and all(s.resolved or s.walked for s in self.steps))
 
 
 def load_registry(registry: pathlib.Path = REGISTRY) -> dict[str, dict]:
@@ -303,10 +321,22 @@ def trace(rule_id: str, registry: pathlib.Path = REGISTRY,
                     f"artifact is an eval pack. A disposition that names one kind of "
                     f"control and points at another reports a chain it did not walk.")
                 continue
-            # Located, and walked as far as this type permits. RESOLVED: a control
-            # that is enforcing must not make the chain read as unresolved.
-            steps.append(Step(kind, ref, "located; the deeper walk for this control "
-                                         "type is not built"))
+            # **Located, and walked as far as this type permits — which is a THIRD
+            # state, not RESOLVED.** Round 2 pulled this in two directions and
+            # both were right. Tool Owner: a `guardrail` or `cedar_policy` control
+            # is enforcing, so it must not make the chain read as unresolved, or
+            # M09b makes claim 6's command red by strengthening the control.
+            # Platform Engineering: reporting RESOLVED for a walk that reached no
+            # case and no assert relaxes what row 1a proves, and that is a cut
+            # needing an ADR.
+            #
+            # `walked` satisfies both. The chain is not broken (no defect, and
+            # `pave rules trace` does not exit 1 on it) and it is not RESOLVED
+            # either: `Chain.resolved` still means *a reader got from the rule to
+            # an assert*, which is the sentence claim 6 rests on.
+            steps.append(Step(kind, ref, "located; this control type has no deeper "
+                                         "walk built — the chain is WALKED, not "
+                                         "resolved", resolved=False, walked=True))
             continue
 
         if path.is_dir() or path.suffix not in (".yaml", ".yml"):
@@ -357,7 +387,15 @@ def render(chain: Chain) -> str:
             # terminal is a line nobody reads — which would make printing it a
             # gesture rather than a disclosure.
             import textwrap
-            lines.append(f"  {step.kind:<10} {step.detail}".rstrip())
+            # `.splitlines()[0]`: `detail` interpolates `limits[].dated`, an
+            # unconstrained string. A newline in it injected arbitrary lines into
+            # the render -- the Security seat produced a false `chain: RESOLVED`
+            # line in the middle of a broken chain's output. The defect line and
+            # the real trailer both survived, so it misleads a reader rather than
+            # the gate; that is still the render's job to prevent.
+            detail = (step.detail or "").splitlines()[0] if step.detail else ""
+            mark = "" if step.resolved else "  <-- "
+            lines.append(f"  {step.kind:<10} {detail}{mark}".rstrip())
             lines.extend(textwrap.wrap(step.ref, width=76,
                                        initial_indent=" " * 15, subsequent_indent=" " * 15))
             continue
@@ -370,5 +408,6 @@ def render(chain: Chain) -> str:
     for defect in chain.defects:
         lines.append(f"  [BROKEN] {defect}")
     lines.append("")
-    lines.append(f"chain: {'RESOLVED' if chain.resolved else 'NOT RESOLVED'}")
+    state = "RESOLVED" if chain.resolved else ("WALKED" if chain.walked else "NOT RESOLVED")
+    lines.append(f"chain: {state}")
     return "\n".join(lines)
