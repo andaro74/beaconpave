@@ -83,10 +83,16 @@ WITHDRAWN_ID = "disclosure-004"
 #: Wording from the withdrawn reservation. Matched as fragments rather than as a
 #: whole sentence: a reservation restated in different words is the same stated
 #: protection, and an exact-sentence check would pass on a paraphrase.
+#: Each fragment must be specific to the RESERVATION. A bare "deliberately
+#: absent" was in the first version and matched the assert-vocabulary table's
+#: description of `cited_titles_empty` — *"the subject is deliberately absent from
+#: the catalog"* — which has nothing to do with `disclosure-004`. A guard that
+#: fires on unrelated prose is one the next editor routes around by rewording the
+#: innocent sentence.
 RESERVATION_FRAGMENTS = (
     "is reserved for M07",
     "the gap is the reservation",
-    "deliberately absent",
+    "`disclosure-004` is deliberately absent",
     "M07 adds it as the",
 )
 
@@ -148,65 +154,35 @@ def test_disclosure_004_is_used_by_no_case_anywhere():
 
 
 def test_the_golden_readme_and_its_template_are_withdrawn_together():
-    """**The reservation was in FOUR places, not the two ADR-075 D4 named.**
+    """**The reservation was in FOUR sites, not the two ADR-075 D4 named.**
 
-    The fourth is `templates/agent-tools/evals/golden/README.md.tmpl`, which
-    every service that does not exist yet inherits — and which
-    `tests/test_scaffold.py::test_the_golden_readme_round_trips_to_the_reference`
-    couples byte-for-byte to the reference README. Found by running that check
-    rather than by reading, and it is arguably the worst of the four: the other
-    three are stale text about one rule, and this one hands the stale reservation
-    to every future team.
+    The fourth is `templates/agent-tools/evals/golden/README.md.tmpl`, which every
+    service that does not exist yet inherits and which the scaffold's round-trip
+    check couples byte for byte to the reference README.
 
-    The coupling admits no order but *both in one diff*, which is why they are
-    asserted together here rather than in two tests that could pass separately.
-    """
+    **And what replaces it must be true for a SCAFFOLDED service, which round 1
+    (Service Team) measured that the first version was not.** That version said
+    *25 cases*, named a test hard-scoped to `highlights-agent`, and linked
+    `../disclosure/cases.yaml` — a dead link in a scaffold, a case count the team
+    is being told to change, and a protection claim that does not cover them. A
+    template is read by teams whose file it does not describe, so the withdrawal
+    says only what is true of any golden set, and the archaeology moved to the
+    pack's own README, which is not templated."""
     reference = GOLDEN_README.read_text(encoding="utf-8")
     template = (ROOT / "templates" / "agent-tools" / "evals" / "golden" /
                 "README.md.tmpl").read_text(encoding="utf-8")
-    heading = "### `disclosure-004`'s reservation, withdrawn"
-    assert heading in template, (
-        "the scaffold template carries no withdrawal section. Dropping it rather than "
-        "withdrawing restores the reservation by silence for every future service.")
-    # Like the reference, the template QUOTES the withdrawn wording in order to
-    # withdraw it, so the check is that no fragment stands as the file's own claim
-    # ahead of the withdrawal — not that the words are absent.
-    before = template.split(heading)[0]
-    standing = [f for f in RESERVATION_FRAGMENTS if f in before]
-    assert not standing, (
-        f"the scaffold template states the reservation as its own claim: {standing}. "
-        "Every service rendered from it inherits that sentence.")
-    # And the two stay in lock-step. The round-trip check couples them byte for
-    # byte after substitution, so neither can be corrected alone — asserted here
-    # so that the coupling is visible from the milestone that had to discover it.
-    section = reference.split(heading)[1].split("## The rule that matters most")[0]
-    assert section in template, (
-        "the reference and the template have drifted inside the withdrawal section.")
-
-
-def test_the_golden_readme_carries_no_reservation_sentence():
-    """Withdrawn here, in the one committed site that is digested by nothing."""
-    text = GOLDEN_README.read_text(encoding="utf-8")
-    live = [f for f in RESERVATION_FRAGMENTS if f in text]
-    # The README quotes the withdrawn wording in order to withdraw it, so the
-    # check is that the quotation is inside the withdrawal section rather than
-    # standing as the file's own claim. Naming the section is what makes a
-    # re-introduction elsewhere in the file visible.
-    withdrawal = text.split("### `disclosure-004`'s reservation, withdrawn", 1)
-    assert len(withdrawal) == 2, (
-        "the golden README no longer carries the withdrawal section. Deleting the "
-        "withdrawal restores the reservation by silence.")
-    before = withdrawal[0]
-    assert not [f for f in RESERVATION_FRAGMENTS if f in before], (
-        f"the golden README states the reservation as its own claim before withdrawing "
-        f"it: {[f for f in RESERVATION_FRAGMENTS if f in before]}")
-    assert live, (
-        "the withdrawal section quotes none of the withdrawn wording. A withdrawal that "
-        "does not say what it withdraws leaves the next reader unable to tell whether "
-        "the sentence was retired or simply lost.")
-    assert "../disclosure/cases.yaml" in text, (
-        "the README does not say where the disclosure cases actually live, which is the "
-        "half of the withdrawal that replaces the reservation with a fact.")
+    for text, name in ((reference, "reference"), (template, "template")):
+        standing = [f for f in RESERVATION_FRAGMENTS if f in text]
+        assert not standing, f"the golden {name} still states the reservation: {standing}"
+        assert "withdrawn" in text and "disclosure-004" in text, (
+            f"the golden {name} dropped the withdrawal instead of making it — which "
+            "restores the reservation by silence")
+    # Nothing service-specific, and no claim a scaffolded team cannot check.
+    for leak in ("25 cases", "../disclosure/cases.yaml", "numbers from 101",
+                 "test_m09_goldens_denominator", "MER-AI-0001", "highlights-agent"):
+        assert leak not in template.split("## The rule that matters most")[0], (
+            f"the scaffold template's withdrawal section carries {leak!r}, which is not "
+            "true of, or checkable by, a service rendered from it")
 
 
 def test_the_two_digested_sites_are_named_with_their_pr_rather_than_left_silent():

@@ -159,6 +159,33 @@ ADMISSIBLE_DELTA = 306
 #: the fix.
 PRE_FIX_RENDERED_TOKENS_EST = 793
 
+#: **What 793 is the estimate OF, so the number cannot be re-seated in silence.**
+#:
+#: The comment above says the baseline is not updated when the fix lands. Nothing
+#: enforced that: the AI Quality seat added a real 135-token disclosure sentence
+#: to `TOOL_SYSTEM`, re-seated 793 -> 928 and moved `TOOL_SYSTEM_SHA256`, and this
+#: file passed **9 of 9** with `delta == 0` and the bound vacuous. The only reds
+#: came from record digests PR 4 legitimately re-produces, so at that moment the
+#: re-seat is completely silent — in the one PR the baseline exists to police.
+#:
+#: A number pinned to a literal can be moved by editing the literal. These pin it
+#: to the TEXT, so re-seating requires stating which bytes it is no longer the
+#: baseline for, and `test_the_baseline_is_the_estimate_of_the_text_it_names`
+#: refuses a baseline whose text has moved.
+PRE_FIX_TOOL_SYSTEM_SHA256 = "c5e0e50584613dbfa75b0dc991fda55e075709dfb07fd3c5f38db8e0a6818e38"
+PRE_FIX_ANSWER_SCHEMA_SHA256 = "d4219cc724c5c17e94693d99992637de9c8f987e58632239ca2bbfccd0baa155"
+
+#: The estimator's denominator, pinned beside the numerator it divides.
+#:
+#: `calibration()` divides the chars of six ADR-014 anchor CASES by their measured
+#: token counts, so the golden cases file — `(ai-quality)`, one key — moves this
+#: ratio. Measured: padding the six anchor inputs by ~213 chars each, with no
+#: prompt change at all, moved the rendered estimate 793 -> 752, a phantom -41.
+#: It is red today only because the live assertion is `delta == 0`; the moment PR
+#: 4 replaces that with the bound, a calibration shift mis-prices the fix in
+#: either direction with nothing to say so.
+PRE_FIX_CHARS_PER_TOKEN = 3.373
+
 
 def rendered_tool_prompt() -> str:
     """What the model actually receives as its system block, rendered.
@@ -326,6 +353,55 @@ def test_the_boundary_is_the_scorers_and_not_this_files_arithmetic():
 
 
 # --- the committed prompt -----------------------------------------------------
+
+def test_the_baseline_is_the_estimate_of_the_text_it_names(census):
+    """**The baseline is pinned to its evidence, not to a literal.**
+
+    Re-seating `PRE_FIX_RENDERED_TOKENS_EST` was measured silent: change the
+    prompt, change the number, move the sha pin, and this file passed 9 of 9 with
+    the bound vacuous. So the baseline now names the two blobs it is the estimate
+    of, and moving the prompt without confronting that is red HERE — in the file
+    whose whole job is to price the move — rather than only in record digests the
+    fix's PR re-produces anyway.
+
+    When PR 4 lands the fix, these two digests are what it must consciously
+    change, and the reviewer sees a baseline being detached from its subject
+    rather than a number quietly becoming a different number."""
+    import hashlib
+
+    def digest(text: str) -> str:
+        return hashlib.sha256(text.replace("\r\n", "\n").encode("utf-8")).hexdigest()
+
+    constants = census.client_constants()
+    assert digest(constants["TOOL_SYSTEM"]) == PRE_FIX_TOOL_SYSTEM_SHA256, (
+        "`TOOL_SYSTEM` has moved, so PRE_FIX_RENDERED_TOKENS_EST is no longer the "
+        "estimate of the text it names. If this is the fix's PR: do NOT re-seat the "
+        "baseline — record the delta, and detach these pins deliberately with the "
+        "reason, which is the ADR-021 event `TOOL_SYSTEM_SHA256`'s docstring describes.")
+    schema = ROOT / "services" / "highlights-agent" / "evals" / "answer.schema.json"
+    assert digest(schema.read_text(encoding="utf-8")) == PRE_FIX_ANSWER_SCHEMA_SHA256, (
+        "`answer.schema.json` has moved. It is rendered into the prompt through "
+        "`{schema}`, so it is part of the delta and part of this baseline.")
+
+
+def test_the_estimators_denominator_is_pinned_beside_the_numerator(census):
+    """The calibration ratio is editable from a one-key data file.
+
+    `calibration()` divides the chars of six ADR-014 anchor CASES by their
+    measured token counts, and the golden cases file takes AI Quality's key
+    alone. Padding those six inputs — no prompt change — moved the rendered
+    estimate 793 → 752. A denominator that can move without the numerator moving
+    prices the fix wrongly in whichever direction the edit happened to go."""
+    import yaml as _yaml
+    cases_path = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
+    cases = {c["id"]: c for c in _yaml.safe_load(cases_path.read_text(encoding="utf-8"))}
+    cal = census.calibration(census.client_constants(), cases)
+    assert cal["chars_per_token"]["median"] == PRE_FIX_CHARS_PER_TOKEN, (
+        f"the estimator's chars-per-token median is {cal['chars_per_token']['median']}, "
+        f"pinned at {PRE_FIX_CHARS_PER_TOKEN}. Every token estimate in this file divides "
+        "by it, so a move here re-prices the fix with no prompt change at all — check "
+        "whether an ADR-014 anchor case was edited.")
+
 
 def test_the_committed_prompts_delta_fits(census):
     """**The assert PR 4 re-runs after the fix lands.**

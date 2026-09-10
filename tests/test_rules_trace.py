@@ -52,6 +52,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import sys
 
 import jsonschema
 import pytest
@@ -252,7 +253,12 @@ def test_a_disposed_rule_walks_all_the_way_to_the_asserts(tmp_path):
     kinds = [s.kind for s in chain.steps]
     assert kinds[:4] == ["source", "owner", "control", "binds"]
     cases = [s for s in chain.steps if s.kind == "case"]
-    assert len(cases) == 5
+    # Derived from the pack rather than pinned at a literal: round 1 added two
+    # cases, and a hard-coded 5 would have made this test a number to bump rather
+    # than a statement about the walk reaching every case.
+    committed = yaml.safe_load(
+        (ROOT / PACK_REF).read_text(encoding="utf-8"))
+    assert len(cases) == len(committed) >= 5
     assert all("ai_disclosure" in s.detail for s in cases), [s.detail for s in cases]
     assert next(s for s in chain.steps if s.kind == "binds").ref == "highlights-agent"
 
@@ -333,6 +339,59 @@ def test_an_unknown_rule_id_names_what_is_known(tmp_path):
     chain = rules.trace("MER-XX-9999", REGISTRY, ROOT)
     assert chain.rule is None and not chain.resolved
     assert "MER-AI-0001" in chain.defects[0]
+
+
+# --- the command's exit codes -------------------------------------------------
+#
+# **Untested until round 1, and the omission has a name here.** ADR-047 recorded
+# it — *"nothing exercised the CLI wrapper's exit codes (the exact gap that
+# produced ADR-046's one silent mutation)"* — and a new subcommand reintroduced
+# it: the Service Team seat made `rules trace` exit **0** on an unresolved chain,
+# the precise failure `rules_trace`'s own docstring names as the reason the code
+# exists, and measured **3926 passed**.
+
+def _trace_exit(rule_id: str, registry=None) -> int:
+    import subprocess
+    return subprocess.run(
+        [sys.executable, "-m", "pave.cli", "rules", "trace", rule_id],
+        cwd=str(ROOT), capture_output=True, text=True).returncode
+
+
+def test_a_resolved_chain_exits_zero(tmp_path, monkeypatch):
+    """Driven through `rules_trace` rather than the subprocess, because the
+    committed registry is undisposed until PR 4 and this is the branch that has
+    no committed input yet."""
+    from pave import cli
+
+    directory = _registry(tmp_path, _disposed())
+    # The REAL function, captured before patching. Binding the lambda to
+    # `rules.trace` after patching `cli.rules_mod.trace` makes it call itself —
+    # `cli.rules_mod` IS `pave.rules`, so the patch rebinds the name the lambda
+    # resolves. RecursionError, and a test that cannot run is a test that cannot
+    # refuse anything.
+    real_trace = rules.trace
+    monkeypatch.setattr(cli.rules_mod, "trace",
+                        lambda *a, **k: real_trace("MER-AI-0001", directory, ROOT))
+    with pytest.raises(SystemExit) as exc:
+        cli.rules_trace(["MER-AI-0001"])
+    assert exc.value.code == 0
+
+
+def test_an_undisposed_rule_exits_one_and_says_it_is_by_design():
+    """Exit 1 is right — the chain does not resolve — but the OUTPUT must let a
+    reader tell "working as intended" from "broken". Today this is the only rule
+    in the registry, so the command's success rate on real input is 0%, and a
+    bare NOT RESOLVED reads as a defect in the command."""
+    assert _trace_exit("MER-AI-0001") == 1
+    rendered = rules.render(rules.trace("MER-AI-0001", REGISTRY, ROOT))
+    assert "BY DESIGN" in rendered and "NOT RESOLVED" in rendered
+
+
+def test_an_unknown_rule_id_exits_two_and_not_one():
+    """A typo is a CONTRACT failure, not a quality result. Sharing exit 1 with a
+    real orphan made "you mistyped the id" indistinguishable from "this rule's
+    control is not there" — the gate's own split, one command over."""
+    assert _trace_exit("MER-XX-9999") == 2
 
 
 def test_an_empty_registry_is_a_failure_not_a_pass(tmp_path):

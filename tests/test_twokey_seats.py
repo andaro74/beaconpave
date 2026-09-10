@@ -445,9 +445,11 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
         # M09 PR 2. A path pattern, so a second service's client lands on the rule
         # the day it is written; the non-existent path pins the SHAPE, on the
         # goldens producer's precedent.
-        "the caller's system prompt": [
-            "services/highlights-agent/gateway_client.py",
-            "services/a-service-that-does-not-exist-yet/gateway_client.py"],
+        # Named, not a shape path: round 1 narrowed this rule to the measured
+        # service, so a non-existent path here would assert the opposite of the
+        # decision. `test_every_measured_client_is_on_this_rule` is what makes a
+        # second service join, and it reads the records rather than a regex.
+        "the caller's system prompt": ["services/highlights-agent/gateway_client.py"],
         "G5's router": ["platform/gateway/core/classify.py"],
         # M08b PR 2. The scorer every goldens verdict comes from, and (round 2)
         # the test that pins its comparison.
@@ -508,13 +510,13 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # census's rule (13); the goldens scorer (1); the two grants files on the
     # held-text readings rule and the estimator on its own (3). 88 -> 91 at
     # round 2: two digit-bearing shape paths on the census rule and the
-    # scorer's test on the scorer's. 91 -> 103 at M09 PR 2: seven M09 paths on
+    # scorer's test on the scorer's. 91 -> 102 at M09 PR 2: seven M09 paths on
     # the census rule (two verdicts, a reader shape, a record shape and three
     # test shapes), the chain reader and its only reader (2), the caller's system
-    # prompt and its shape path (2), and G5's router (1).
-    assert total == 103, (
+    # prompt (1 -- named rather than a shape path, round 1), and G5's router (1).
+    assert total == 102, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "103. Deleting a required path in the same diff that "
+        "102. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -802,11 +804,54 @@ def test_the_system_block_every_governed_run_sends_collects_two_seats():
     producer's reason."""
     _blocked_for(["services/highlights-agent/gateway_client.py"],
                  {"platform-eng", "security"})
-    _blocked_for(["services/a-service-that-does-not-exist-yet/gateway_client.py"],
-                 {"platform-eng", "security"})
+    # **A scaffolded client is NOT on this rule, and that is round 1's finding.**
+    # The first version was `^services/[^/]+/gateway_client\.py$`, which keyed a
+    # file `pave new` renders — so Platform Engineering and Security had to sign a
+    # machine render of a template they already hold four keys on, on every new
+    # service's first PR. Every reason for keying this file names one service; a
+    # scaffolded client is pinned by no parity test and digested by no record.
+    assert _seats_for("services/sportscast-agent/gateway_client.py") == set(), (
+        "a scaffolded service's client is back on the rule. That is a mandatory "
+        "rubber stamp on a byte-for-byte render, which is the attest-without-reading "
+        "habit ADR-047 refused (Service Team, M09 PR 2 round 1).")
     # narrow: the template's copy keeps the scaffold's four seats
     assert _seats_for("templates/agent-tools/gateway_client.py.tmpl") == \
         {"platform-eng", "ai-quality", "tool-owner", "security"}
+
+
+def test_every_measured_client_is_on_this_rule():
+    """**The invariant the path regex was standing in for, as a check.**
+
+    What deserves a key is not "every file called `gateway_client.py`" but "every
+    client whose text a committed record digests" — those are the ones where a
+    reworded prompt moves what a recorded number means with nothing else going
+    red. So the rule names services, and this walks the records to find the ones
+    that must be named.
+
+    A second service joins the day it acquires a recorded control, in the diff
+    that creates that record — the same "keyed before the PR that edits it"
+    discipline the first one got, and red here rather than noticed later."""
+    import json as _json
+
+    measured = set()
+    for record in ROOT.glob("milestones/**/*.json"):
+        try:
+            doc = _json.loads(record.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            continue
+        inputs = doc.get("inputs_sha256") if isinstance(doc, dict) else None
+        if isinstance(inputs, dict):
+            measured.update(p for p in inputs if p.endswith("gateway_client.py"))
+
+    assert measured, (
+        "no committed record digests a `gateway_client.py`, so this check is vacuous. "
+        "If the census stopped digesting the prompt, the rule below is guarding a file "
+        "nothing measures and the reasoning needs re-reading.")
+    for path in sorted(measured):
+        assert _seats_for(path) == {"platform-eng", "security"}, (
+            f"{path} is digested by a committed record and is not on the caller's-prompt "
+            f"rule: it collects {sorted(_seats_for(path))}. A client whose text a recorded "
+            "number depends on may not be reworded on one key.")
 
 
 def test_g5s_router_collects_data_governance_and_security():

@@ -616,16 +616,45 @@ RULES: tuple[Rule, ...] = (
         # SPEC/09 rather than by a seat, and dated to PR 2 **before** the PR that
         # edits it, which is the whole of why it is here and not there.
         #
-        # A path pattern rather than the one filename, on the goldens producer's
-        # precedent: a second service's client lands on this rule the day it is
-        # written rather than the day somebody notices.
+        # **Named, NOT `[^/]+`, and the Service Team seat is the reason (round
+        # 1).** The first version was a path pattern on the goldens producer's
+        # precedent. Measured against the evidence, every stated reason for keying
+        # this file names ONE service: `tests/test_gateway_run_parity.py` and
+        # `tests/test_transport_parity.py` both pin
+        # `services/highlights-agent/gateway_client.py` by name, and
+        # `milestones/M08/context-census.json` and `residual-differential.json`
+        # are the only records that digest a client -- both that one.
+        #
+        # A SCAFFOLDED client is read by none of them. It is not the system under
+        # measurement, no record digests it, no parity test pins it, and `pave
+        # new` deploys nothing -- ADR-047 decision 9 says exactly that inside the
+        # template the wide rule would have keyed. Keying it made Platform
+        # Engineering and Security sign, on every new service's first PR, a
+        # byte-for-byte machine render of a template they already hold four keys
+        # on: a mandatory rubber stamp, which is the *habit of attesting without
+        # reading* ADR-047 refused, arriving through the door trigger-count was
+        # only ever a proxy for.
+        #
+        # The defence offered for the wide pattern was that `onboarding_seats`
+        # computes the count from these rules, so the banner followed. That is
+        # circular -- it followed a rule written to match it. ADR-047 built the
+        # computation so the banner cannot drift from the rules, never as an
+        # argument that any rule set is therefore right.
+        #
+        # **The real invariant is coverage of what is MEASURED, and it is a test
+        # rather than a regex**: `test_every_measured_client_is_on_this_rule`
+        # requires every `gateway_client.py` named in a committed record's
+        # `inputs_sha256` to match here, so a second service joins the day it
+        # acquires a recorded control -- in the diff that creates it, which is the
+        # same "keyed before the PR that edits it" discipline this rule applies to
+        # the first one.
         #
         # Platform Engineering owns the gateway and the prompt's lineage pin;
         # Security is the counterweight, because the prompt is what reaches the
         # model and a sentence added to it moves every recorded observation's
         # meaning while no instrument digest moves.
         "the caller's system prompt — the system block every governed run sends",
-        re.compile(r"^services/[^/]+/gateway_client\.py$"),
+        re.compile(r"^services/highlights-agent/gateway_client\.py$"),
         ("platform-eng", "security"),
     ),
     Rule(

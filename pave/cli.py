@@ -1,8 +1,9 @@
 """
 pave — the paved-road CLI for beaconpave.
 
-Implemented: `rules validate` (G7), `gate decide` / `gate comment` (G2), `check`
-(G8), `evals run` (L2, M03), `adversarial run` (L5, M04). The rest are stubs that
+Implemented: `rules validate` and `rules trace` (G7, claim 6), `gate decide` /
+`gate comment` (G2), `check` (G8), `evals run` (L2, M03), `evals disclosure`
+(L3, M09), `adversarial run` (L5, M04). The rest are stubs that
 print what they WOULD do and name the milestone that implements them, so the repo
 stays runnable and self-documenting. A command that blocks merges is not a stub,
 and leaving it described as one is how the help text stops being read.
@@ -10,10 +11,15 @@ and leaving it described as one is how the help text stops being read.
   pave new <name> --brand <b> --classification <c>   scaffold a governed service
   pave check                                          hermetic local checks
   pave evals run|dryrun <service>                     run/dry-run the eval harness
+  pave evals disclosure <service> --answers ...       L3: score a disclosure run and
+                                                      write its verdict (M09)
   pave adversarial run <service>                      L5: re-score the pinned probe
                                                       observations and assert what G4
                                                       means (hermetic, no model call)
   pave rules validate                                 validate the rules registry (G7)
+  pave rules trace <RULE-ID>                          walk rule -> control -> case ->
+                                                      assert; exit 1 if it does not
+                                                      resolve, 2 if the id is unknown
   pave infra snapshot [--check] [--from <dir>]        record / verify the synth snapshot (G1)
   pave policy generate [--check]                      generate / verify Cedar from the registry (G3)
   pave gate comment|decide --verdicts ...             post score-diff / fail-closed
@@ -86,12 +92,24 @@ def rules_validate():
     if not files:
         _die("no rule files found (rules/*.yaml) — an empty rules registry is a failure, not a pass (G7)")
 
+    # **`format_checker=`, and without it the date formats are decoration.**
+    # Draft-07 `format` is annotation-only unless a checker is supplied, so
+    # `rules/schema.json`'s `"format": "date"` on `source.effective`, `review_by`
+    # and `disposition.decided_on` validated ANY string. Measured by the Legal/S&P
+    # seat on `c917c11`: `effective: ""`, `"whenever"` and `"2026-13-45"` each
+    # validated, and an empty string additionally defeats
+    # `test_contracts.py`'s `if effective:` guard -- so ADR-053's immortal-rule
+    # plant came straight back with `status: enforced` and
+    # `review_by: "2099-01-01"` at `rules registry valid`, on a schema whose own
+    # description claims to refuse it. Requiring the field closed the
+    # delete-the-key route and nothing else; this closes the rest.
+    checker = jsonschema.FormatChecker()
     problems = []
     for f in files:
         name = pathlib.Path(f).name
         doc = yaml.safe_load(pathlib.Path(f).read_text(encoding="utf-8"))
         try:
-            jsonschema.validate(doc, schema)
+            jsonschema.validate(doc, schema, format_checker=checker)
         except jsonschema.ValidationError as exc:
             where = "/".join(str(p) for p in exc.absolute_path) or "<root>"
             problems.append(f"{name}: {where}: {exc.message}")
@@ -126,10 +144,19 @@ def rules_trace(argv):
              gate_mod.EXIT_CONTRACT)
     chain = rules_mod.trace(wanted[0], ROOT / "rules", ROOT)
     _emit(rules_mod.render(chain))
-    # A chain that does not resolve exits 1. `trace` on a rule whose disposition
-    # is an honest `no-control` record resolves nothing and exits 1 too, which is
-    # correct: MER-AI-0001 is undisposed until PR 4, and a lookup that exited 0
-    # over it would be reporting a chain that does not exist yet.
+    # **Three states, three codes, and the middle one was collapsing into the
+    # third** (Service Team, round 1). A chain that does not resolve exits 1. A
+    # rule id that does not exist is a CONTRACT failure — the caller mistyped, and
+    # the gate's own split is that "could not establish the fact" pages the
+    # platform rather than reading as a quality result. Sharing exit 1 with a real
+    # orphan made a typo indistinguishable from a broken disposition.
+    if chain.rule is None:
+        sys.exit(gate_mod.EXIT_CONTRACT)
+    # `trace` on a rule whose disposition is an honest `no-control` record
+    # resolves nothing and exits 1, which is correct: MER-AI-0001 is undisposed
+    # until PR 4, and a lookup that exited 0 over it would report a chain that
+    # does not exist yet. The RENDER says which of the two it is, so a reader can
+    # tell "working as intended" from "broken."
     sys.exit(gate_mod.EXIT_OK if chain.resolved else gate_mod.EXIT_QUALITY)
 
 
@@ -554,61 +581,56 @@ def evals_disclosure(argv=()):
     """
     import yaml as _yaml
 
-    from evals.deterministic import Scorer, disclosure_sufficiency, tally
-    from evals.run_evals import summarise
+    from evals.deterministic import Scorer, decide_disclosure, disclosure_sufficiency
     from pave import verdict as verdict_mod
 
     out = _flag_values(argv, "--out")
     answers_paths = _flag_values(argv, "--answers")
-    consumed = set(answers_paths) | {out[0] if out else None}
+    # **`--pack` exists so a test can drive a DIFFERENT pack through this lane.**
+    # Without it every lane test used the committed pack, so deleting the
+    # sufficiency branch below was SILENT at 34 passed and a one-sided pack plus a
+    # disclose-on-everything system reported PASS 5/5 at exit 0 (Legal/S&P seat,
+    # round 1). That is the identical defect `test_rules_validate_reports_both_halves`
+    # was rewritten to close, in the same diff, one command over: `trace` and
+    # `orphan_rules` take their registry as an argument and this did not.
+    pack_override = _flag_values(argv, "--pack")
+    consumed = set(answers_paths) | set(pack_override) | {out[0] if out else None}
     positional = [a for a in argv if not a.startswith("--") and a not in consumed]
     service = pathlib.Path(positional[0]).name if positional else "highlights-agent"
 
-    pack = ROOT / "services" / service / "evals" / "disclosure" / "cases.yaml"
+    pack = (pathlib.Path(pack_override[0]) if pack_override
+            else ROOT / "services" / service / "evals" / "disclosure" / "cases.yaml")
     if not pack.is_file():
-        _die(f"evals disclosure: no pack at {pack.relative_to(ROOT)}. A lane that reported "
+        _die(f"evals disclosure: no pack at {pack}. A lane that reported "
              f"success over a pack that is not there would report success after somebody "
              f"deletes it.", gate_mod.EXIT_CONTRACT)
     cases = _yaml.safe_load(pack.read_text(encoding="utf-8")) or []
     catalog = json.loads((ROOT / "data" / "catalog.json").read_text(encoding="utf-8"))
 
-    notes, scores = [], {}
-    sufficiency = disclosure_sufficiency(cases)
-    if not sufficiency.passed:
-        notes.append(sufficiency.detail)
-
     if not answers_paths:
         _die("evals disclosure: --answers is required. A lane handed no run cannot report "
              "anything about one.", gate_mod.EXIT_CONTRACT)
 
+    # **The decision is `evals/deterministic.py`'s, not this file's.** Three of
+    # the four branches that decide what a disclosure verdict means used to live
+    # here, on no two-key rule, and two seats measured each of them deletable in
+    # silence. This function loads, scores and writes; `decide_disclosure` says
+    # what the result was (ADR-041 decision 7's split, `pave/verify.py`'s shape).
     missing = [p for p in answers_paths if not pathlib.Path(p).is_file()]
-    decided, results = "INFRA", []
-    if missing:
-        notes.append(f"committed run(s) missing {missing}")
-    elif not sufficiency.passed:
-        # INFRA already; the run is not scored against a pack that cannot decide.
-        pass
-    else:
+    results = None
+    if not missing and disclosure_sufficiency(cases).passed:
+        from evals.run_evals import summarise
         scorer = Scorer(root=ROOT)
-        loaded = [json.loads(pathlib.Path(p).read_text(encoding="utf-8")) for p in answers_paths]
+        loaded = [json.loads(pathlib.Path(p).read_text(encoding="utf-8"))
+                  for p in answers_paths]
+        # The k-sampling lives HERE and not in the scorer, exactly as it does for
+        # the goldens lane: `evals/deterministic.py` may not know that sampling
+        # exists, or each sample stops being scored by the code path a single run
+        # uses (`test_the_sampling_did_not_touch_the_scorer`).
         per_sample = [scorer.score_suite(cases, answers, catalog) for answers in loaded]
         results, _ = (summarise(per_sample, [c["id"] for c in cases])
                       if len(per_sample) > 1 else (per_sample[0], {}))
-        counts = tally(results)
-        scores = {"passed": counts["passed"], "total": len(cases),
-                  "failed": counts["failed"], "infra": counts["infra"]}
-        if counts["infra"]:
-            decided = "INFRA"
-            notes.append(f"{counts['infra']} case(s) established nothing")
-        else:
-            decided = "FAIL" if counts["failed"] else "PASS"
-        for result in results:
-            for assertion in result.asserts:
-                if not assertion.passed:
-                    # The failing assert, named per case. Row 1a's chain ends
-                    # here, and a verdict recording only a count would leave the
-                    # last link of it to whoever wrote the journal.
-                    notes.append(f"{result.id}: {assertion.kind} — {assertion.detail}")
+    decided, scores, notes = decide_disclosure(cases, results, missing)
 
     if out:
         verdict_mod.write(out[0], verdict_mod.build(

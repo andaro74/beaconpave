@@ -222,7 +222,8 @@ def trace(rule_id: str, registry: pathlib.Path = REGISTRY,
         for control in controls:
             steps.append(Step(
                 "control", f"{control.get('type')}  {control.get('ref')}",
-                "no enforcing control yet — the walk stops here", resolved=False,
+                "no enforcing control yet — undisposed BY DESIGN, not broken; "
+                "the disposition PR replaces this record", resolved=False,
             ))
         return Chain(rule_id, rule, steps, defects)
 

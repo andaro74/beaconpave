@@ -84,29 +84,36 @@ def test_it_renders_no_probe_runner(tmp_path, monkeypatch):
     probes = [p.name for p in root.rglob("run_probes*.py")]
     assert not probes, probes
     # **The exception list is "files a team is EXPECTED to need a second key
-    # for", not "files that happen to be keyed."** `pave.manifest.yaml` has been
-    # on it since ADR-046 — what a service declares about itself is not a thing
-    # its own team settles alone — and `evals/` since ADR-047.
+    # for", and it stayed at two.** `pave.manifest.yaml` has been on it since
+    # ADR-046 -- what a service declares about itself is not its own team's call
+    # -- and `evals/` since ADR-047.
     #
-    # `gateway_client.py` joined at M09 PR 2, and the reasoning is the manifest's
-    # one field over: the manifest declares what a service IS, and `TOOL_SYSTEM`
-    # declares what the model READS. SPEC/09's debt row put the file on a
-    # `(platform-eng, security)` rule because it is the system under measurement
-    # by `tests/test_gateway_run_parity.py`'s own docstring, and the rule is a
-    # path pattern for the goldens producer's reason — a second service lands on
-    # it the day its client is written rather than the day somebody notices.
+    # M09 PR 2 first put `services/[^/]+/gateway_client.py` on a rule and added it
+    # here to make this green. Round 1 (Service Team) refused that in two moves,
+    # both measured: the rule's whole justification names one service, and with
+    # five of five rendered destinations excepted **the assertion below was
+    # vacuous** -- deleting it outright left 3926 passing. Widening an exception
+    # to admit the change under review is how a check stops asking anything. The
+    # rule was narrowed to the measured service instead, so this list is unchanged
+    # and the assertion has something to refuse again.
     #
-    # It is NOT the `run_probes*.py` situation this test was written about. That
-    # file is omitted from the scaffold entirely, which a client cannot be: a
-    # service without a client is not a service. So the honest handling is to
-    # render it, key it, and let `onboarding_seats` tell the team the true cost —
-    # which it computes from `twokey.RULES` at print time precisely so this
-    # number follows the rules rather than a sentence (ADR-047).
+    # **The seat cap is the half that was missing.** "Lands on no rule at all" was
+    # never the property worth having: `evals/golden/cases.yaml` could be given a
+    # five-seat rule and this test would say nothing, because `startswith("evals/")`
+    # is a wildcard. What a scaffolding team can actually collect on its first PR
+    # is the seats that own what it is being asked to write, so a rendered file may
+    # land only on rules whose seats are inside that set.
+    ONBOARDABLE = {"ai-quality", "tool-owner", "legal-sp"}
     for _, destination in scaffold.RENDERED:
-        assert not twokey.triggered([f"services/sportscast-agent/{destination}"]) or \
-            destination in ("pave.manifest.yaml", "gateway_client.py") or \
-            destination.startswith("evals/"), (
-            f"{destination} lands on a two-key rule a scaffolding team cannot satisfy")
+        rules = [r for r, _ in twokey.triggered([f"services/sportscast-agent/{destination}"])]
+        seats = {s for r in rules for s in r.seats}
+        assert seats <= ONBOARDABLE, (
+            f"{destination} lands on a rule demanding {sorted(seats - ONBOARDABLE)}, which a "
+            f"scaffolding team's first PR cannot plausibly collect. Either the rule should "
+            f"not match scaffolded services -- it is a path regex, and the thing worth "
+            f"covering is usually what is MEASURED rather than what is named -- or the "
+            f"scaffold should not render this file. Widening ONBOARDABLE makes this check "
+            f"stop asking (Service Team, M09 PR 2 round 1).")
 
 
 # --- the pairwise checks: template vs the service it was cut from ----------------
@@ -342,7 +349,7 @@ def test_the_printed_steps_name_both_refusals_and_the_computed_seat_count():
     correct."""
     steps = scaffold.next_steps("sportscast-agent")
     seats = scaffold.onboarding_seats("sportscast-agent")
-    assert seats == ["ai-quality", "legal-sp", "platform-eng", "security", "tool-owner"], seats
+    assert seats == ["ai-quality", "legal-sp", "tool-owner"], seats
     assert f"{len(seats)} SEAT ATTESTATION(S): {', '.join(seats)}" in steps
     assert "row 3" in steps and "row 8" in steps
     assert "- id: catalog-search" in steps

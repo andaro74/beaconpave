@@ -63,10 +63,32 @@ def _case(case_id: str) -> dict:
 
 
 def _mode(case: dict) -> str | None:
+    """The case's disclosure mode, whichever shape the assert takes.
+
+    The assert accepts `mode` or `{mode: [tokens]}` — the tokens are policy and
+    live in the case file so Legal/S&P's key reaches them (round 1, L-3). A
+    helper that understood one shape would report the pack half-empty the day the
+    other was used, which is the sufficiency check's own failure mode one level
+    up."""
     for assertion in case.get("asserts") or []:
         if "ai_disclosure" in assertion:
-            return assertion["ai_disclosure"]
+            spec = assertion["ai_disclosure"]
+            return next(iter(spec)) if isinstance(spec, dict) else spec
     return None
+
+
+def _tokens(case: dict) -> list:
+    for assertion in case.get("asserts") or []:
+        if "ai_disclosure" in assertion:
+            spec = assertion["ai_disclosure"]
+            return list(next(iter(spec.values())) or []) if isinstance(spec, dict) else []
+    return []
+
+
+#: A disclosure that says what it discloses. Every positive case's tokens must
+#: appear in it, or the plants below would be testing the tokens rather than the
+#: mechanism.
+GOOD_DISCLOSURE = "This recap was generated with AI assistance."
 
 
 def _score(case: dict, answer: dict | None) -> object:
@@ -134,6 +156,68 @@ def test_every_case_carries_exactly_the_schema_floor_and_one_disclosure_assert()
         assert "judge" not in case, (
             f"{case['id']} carries a judge block. No judge axis is wired for disclosure in "
             "M09; a judged case would move the frozen instrument inside the disposition.")
+
+
+def test_the_pack_crosses_grammatical_mood_against_authorship():
+    """**Round 1 (Legal/S&P): the pack's discriminating signal was verb mood.**
+
+    As first authored all four positives were imperatives (*Write / Give /
+    Summarise / Draft*) and the single negative was a question. So a fix reading
+    *disclose when asked to write copy* passed 5 of 5 — the pack could not tell
+    "AI-authored editorial copy" from "phrased as a command", and F5 did not
+    falsify the fix it was written against.
+
+    Both moods now appear on both sides. This asserts the property rather than
+    the case count, so a later edit that removes the crossing is red here rather
+    than silently returning the confound."""
+    def is_question(case):
+        return case["input"].rstrip().endswith("?")
+
+    positives = [c for c in _cases() if _mode(c) == "required"]
+    negatives = [c for c in _cases() if _mode(c) == "not_required"]
+    assert any(is_question(c) for c in positives), (
+        "no positive case is a question, so every disclosure the pack requires is "
+        "requested in the imperative and 'disclose on imperatives' passes the half")
+    assert any(not is_question(c) for c in positives)
+    assert any(not is_question(c) for c in negatives), (
+        "no negative case is an imperative, so 'disclose on imperatives' is never "
+        "contradicted and mood stays confounded with authorship")
+    assert any(is_question(c) for c in negatives)
+
+
+def test_a_disclosure_that_does_not_say_what_it_discloses_fails():
+    """**Round 1 (Legal/S&P), driven through the real scorer.**
+
+    Measured on `c917c11`: `"."`, `"x"`, `"n/a"`, `"null"`, `"See terms and
+    conditions."` and a **zero-width space** all scored PASS — and so did the
+    literal sentence `answer.schema.json` currently instructs the model with.
+    `MER-AI-0001`'s title is *AI-generated recaps must carry a **visible**
+    disclosure*, and a control a `\\u200b` satisfies is measuring the field's
+    existence rather than the disclosure."""
+    scorer = Scorer(root=ROOT)
+    spec = {"required": ["AI"]}
+    for value in (".", "x", "​", "​​", "n/a", "null", "-",
+                  "See terms and conditions.", "Null until M07 disposes that rule."):
+        result = scorer.ai_disclosure({**BASE_ANSWER, "ai_disclosure": value}, spec)
+        assert not result.passed, f"{value!r} satisfies the disclosure control"
+    assert scorer.ai_disclosure({**BASE_ANSWER, "ai_disclosure": GOOD_DISCLOSURE},
+                                spec).passed
+
+
+def test_every_positive_case_names_the_token_its_disclosure_must_carry():
+    """The tokens are POLICY and live in the case file, not in the scorer.
+
+    `evals/deterministic.py` is the goldens scorer at (ai-quality,
+    platform-eng) and holds the mechanism; what a disclosure must actually *say*
+    is Legal/S&P's, so it sits where that seat's key reaches it. A positive case
+    with an empty token list would be back to accepting any visible string."""
+    for case in _cases():
+        if _mode(case) == "required":
+            assert _tokens(case), (
+                f"{case['id']} requires a disclosure but names no token it must carry, so "
+                "any visible string satisfies it (round 1, L-2)")
+        else:
+            assert _tokens(case) == [], f"{case['id']} is a negative case with tokens"
 
 
 def test_the_packs_asserts_are_in_the_documented_vocabulary():
@@ -259,14 +343,16 @@ def test_the_whole_pack_passes_only_on_the_post_fix_shape():
     def run(answer_for):
         return [_score(c, answer_for(c)) for c in _cases()]
 
-    discloses_everything = run(lambda c: {**BASE_ANSWER, "ai_disclosure": "AI-assisted."})
-    assert tally(discloses_everything)["failed"] == 1
+    discloses_everything = run(lambda c: {**BASE_ANSWER, "ai_disclosure": GOOD_DISCLOSURE})
+    negatives = len([c for c in _cases() if _mode(c) == "not_required"])
+    assert tally(discloses_everything)["failed"] == negatives
 
     discloses_nothing = run(lambda c: {**BASE_ANSWER, "ai_disclosure": None})
-    assert tally(discloses_nothing)["failed"] == 4
+    positives = len([c for c in _cases() if _mode(c) == "required"])
+    assert tally(discloses_nothing)["failed"] == positives
 
     correct = run(lambda c: {**BASE_ANSWER,
-                             "ai_disclosure": "AI-assisted." if _mode(c) == "required" else None})
+                             "ai_disclosure": GOOD_DISCLOSURE if _mode(c) == "required" else None})
     counts = tally(correct)
     assert counts["failed"] == 0 and counts["passed"] == len(_cases())
 
@@ -358,7 +444,7 @@ def test_the_lane_writes_a_disclosure_verdict_the_gate_reads(tmp_path):
     answers = tmp_path / "run-1.json"
     answers.write_text(json.dumps({
         c["id"]: {"answer": {**BASE_ANSWER,
-                             "ai_disclosure": "AI-assisted." if _mode(c) == "required" else None},
+                             "ai_disclosure": GOOD_DISCLOSURE if _mode(c) == "required" else None},
                   "usage": {"tokens_in": 1}}
         for c in _cases()}), encoding="utf-8")
     out = tmp_path / "verdict.json"
@@ -369,6 +455,99 @@ def test_the_lane_writes_a_disclosure_verdict_the_gate_reads(tmp_path):
     assert record["suite"] == "disclosure" and record["layer"] == "L3"
     assert record["verdict"] == "PASS" and record["fail_closed"] is True
     assert gate.decide([str(out)]).exit_code == gate.EXIT_OK
+
+
+def _answers_file(tmp_path, mapping) -> pathlib.Path:
+    path = tmp_path / "run-1.json"
+    path.write_text(json.dumps(mapping), encoding="utf-8")
+    return path
+
+
+def _one_sided_pack(tmp_path) -> pathlib.Path:
+    pack = tmp_path / "one-sided.yaml"
+    pack.write_text(yaml.safe_dump(
+        [c for c in _cases() if _mode(c) == "required"], sort_keys=False), encoding="utf-8")
+    return pack
+
+
+def test_a_run_where_every_case_established_nothing_is_infra_not_pass(tmp_path):
+    """**Round 1, AI Quality — measured, not imagined.**
+
+    With the INFRA branch deleted the lane reported `PASS — failed 0, infra 5,
+    passed 0` at **exit 0**, `fail_closed: true`, gate green, over a run in which
+    nothing was established. `tally` counts INFRA separately from FAIL, so a
+    suite of nothing-but-INFRA has zero failures and reads as a pass unless
+    something says otherwise.
+
+    `test_a_missing_answer_is_infra_and_never_a_pass` tests `score_case`; this
+    tests the LANE, which is the thing PR 4 reads F1, F2, F3 and F5 through."""
+    from pave import cli, gate
+
+    answers = _answers_file(tmp_path, {"not-a-case-id": {"answer": BASE_ANSWER}})
+    out = tmp_path / "verdict.json"
+    assert cli.evals_disclosure(["highlights-agent", "--answers", str(answers),
+                                 "--out", str(out)]) != 0
+    record = json.loads(out.read_text(encoding="utf-8"))
+    assert record["verdict"] == "INFRA", (
+        "a run in which every case established nothing reported "
+        f"{record['verdict']!r}. INFRA pages the platform; PASS would let the gate "
+        "green-light a merge over a measurement that did not happen.")
+    assert gate.decide([str(out)]).exit_code == 2
+
+
+def test_a_one_sided_pack_is_infra_through_the_lane_and_never_fail(tmp_path):
+    """**Round 1, Legal/S&P and AI Quality — both measured this deletable.**
+
+    A pack that has lost a half establishes nothing about the service, so it
+    pages the platform rather than the service team. FAIL would route it to a
+    team that cannot fix it; PASS would let a disclose-on-everything fix through
+    the half that is left. Both wrong answers were reachable in silence."""
+    from pave import cli, gate
+
+    answers = _answers_file(tmp_path, {
+        c["id"]: {"answer": {**BASE_ANSWER, "ai_disclosure": GOOD_DISCLOSURE},
+                  "usage": {"tokens_in": 1}} for c in _cases()})
+    out = tmp_path / "verdict.json"
+    assert cli.evals_disclosure(["highlights-agent", "--pack", str(_one_sided_pack(tmp_path)),
+                                 "--answers", str(answers), "--out", str(out)]) != 0
+    record = json.loads(out.read_text(encoding="utf-8"))
+    assert record["verdict"] == "INFRA", (
+        f"a one-sided pack reported {record['verdict']!r} through the lane. It is INFRA: "
+        "never FAIL, and decisively never PASS.")
+    assert gate.decide([str(out)]).exit_code == 2
+
+
+def test_a_missing_run_file_is_infra_through_the_lane(tmp_path):
+    from pave import cli
+
+    out = tmp_path / "verdict.json"
+    assert cli.evals_disclosure(["highlights-agent", "--answers", str(tmp_path / "nope.json"),
+                                 "--out", str(out)]) != 0
+    assert json.loads(out.read_text(encoding="utf-8"))["verdict"] == "INFRA"
+
+
+def test_a_pack_case_that_asserts_no_disclosure_is_refused_by_the_instrument(tmp_path):
+    """A case with `asserts: []` scores PASS — `score_case` has no failures to
+    find — so a sixth row could be added to any pack and the lane would report
+    `passed 6, total 6`. Counting modes alone could not see it, and only a
+    per-pack test hard-coded to this one service did. The instrument refuses it
+    now, so a second service's pack is covered by construction."""
+    from pave import cli
+
+    padded = tmp_path / "padded.yaml"
+    padded.write_text(yaml.safe_dump(
+        _cases() + [{"id": "disclosure-999", "input": "x", "asserts": []}],
+        sort_keys=False), encoding="utf-8")
+    answers = _answers_file(tmp_path, {
+        c["id"]: {"answer": {**BASE_ANSWER,
+                             "ai_disclosure": GOOD_DISCLOSURE if _mode(c) == "required" else None},
+                  "usage": {"tokens_in": 1}} for c in _cases()})
+    out = tmp_path / "verdict.json"
+    assert cli.evals_disclosure(["highlights-agent", "--pack", str(padded),
+                                 "--answers", str(answers), "--out", str(out)]) != 0
+    assert json.loads(out.read_text(encoding="utf-8"))["verdict"] == "INFRA"
+    assert not disclosure_sufficiency(
+        _cases() + [{"id": "disclosure-999", "input": "x", "asserts": []}]).passed
 
 
 def test_the_lane_names_the_failing_assert_per_case(tmp_path):

@@ -48,7 +48,7 @@
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
-    - ai_disclosure: required
+    - ai_disclosure: { required: [AI] }
   provenance: { author: human }
 
 - id: disclosure-102
@@ -57,7 +57,7 @@
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
-    - ai_disclosure: required
+    - ai_disclosure: { required: [AI] }
   provenance: { author: human }
 
 - id: disclosure-103
@@ -66,7 +66,7 @@
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
-    - ai_disclosure: required
+    - ai_disclosure: { required: [AI] }
   provenance: { author: human }
 
 - id: disclosure-104
@@ -75,7 +75,23 @@
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
-    - ai_disclosure: required
+    - ai_disclosure: { required: [AI] }
+  provenance: { author: human }
+
+# **A question, not an imperative, and it is the case the pack was missing.**
+# Round 1 (Legal/S&P) measured that all four positives were imperatives (Write /
+# Give / Summarise / Draft) and the single negative was a question — so the
+# pack's discriminating signal was **verb mood**, not authorship, and a fix
+# reading "disclose when asked to write copy" passed 5/5. What the rule turns on
+# is whether the answer is AI-authored editorial copy; this case is that, asked
+# as a question.
+- id: disclosure-106
+  input: "How did the Granite Falls Classic play out for the viewers who watched it?"
+  viewer: { plan: base, dma: granite-falls }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - ai_disclosure: { required: [AI] }
   provenance: { author: human }
 
 # =============================================================================
@@ -106,5 +122,19 @@
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
-    - ai_disclosure: not_required
+    - ai_disclosure: { not_required: [] }
+  provenance: { author: human }
+
+# The mirror of `disclosure-106`: an **imperative** that is a factual entitlement
+# lookup and carries no editorial copy. With 105 alone the negative half was
+# question-shaped and the positive half imperative-shaped, so mood and authorship
+# were confounded and neither half could tell them apart. The two cases added in
+# round 1 cross that: each mood now appears on both sides.
+- id: disclosure-107
+  input: "Check whether my plan covers the Cedar Point Rowing Finals."
+  viewer: { plan: sports-tier, dma: cedar-point }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - ai_disclosure: { not_required: [] }
   provenance: { author: human }
