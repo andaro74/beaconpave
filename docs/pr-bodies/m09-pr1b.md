@@ -8,7 +8,7 @@ a stacked PR gets no CI.
   `README.md`; `BUILD.md`; `SPEC/README.md`; the ADR index row; ADR-026 amendment
   4 and `labels.json`'s `re_deferred_to: "M09b"` in the same diff as the row;
   `docs/governance/demo-script.md`'s Act 3 corrected.
-- **PR 1b, the cold read — this PR's second commit.** ADR-075 amendment 1, by a
+- **PR 1b, the cold read — this PR's remaining commits.** ADR-075 amendment 1, by a
   reader who did not write SPEC/09 or ADR-075, before PR 2 cuts. Named by its role
   and not by its sha: a squash merge destroys it, and ADR-074 amendment 3 §9 is the
   precedent — *"PR 3's own commits are deliberately named by their role and never by
@@ -168,14 +168,41 @@ it, so **F1's premise is sound on the evidence**. The caller-side claim holds �
 `handler.py` receives `system` in the event. `check_readme`'s `tagged` set is
 `suite == "goldens"` only, as decision 4 says.
 
-## Eleven asks, none of them made here
+## Eleven asks, disposed and carried
 
-The amendment lists eleven changes to SPEC/09. **None is made in this diff.** Asks
-5 and 6 — moving the goldens control run to PR 4b, and vacating PR 3 — are the
-operator's the way decisions 1–4 and 6 were, and the re-scoping in ask 6 needs
-Legal/S&P and Data Governance with an ADR: *a rename of the market vocabulary is a
-change to the system under measurement, not a documentation tidy*, and A21 has been
-carried as the latter through five milestones.
+**Operator's disposition, 2026-09-09: accepted in full, all eleven.** They land in
+this diff, which is the Definition of done's own PR 1b box — *"the cold read
+committed as an amendment to ADR-075 with the spec's corrections in the same
+diff"* — and ADR-074 amendment 1's precedent: a Definition of done corrected after
+its PR prints is a checkbox rewritten to match the outcome.
+
+**Split by which PR can legitimately hold each.** Asks 1, 2, 3, 5, 6 and the
+Definition-of-done half of ask 4 are **spec text** and are made here: they change
+what PR 2 and PR 4 are measured against, and a plan corrected inside the PR it
+governs is the defect this reading exists to catch. Asks 7–11 and the build half
+of ask 4 are **work**, and SPEC/09 now names the PR that does each — PR 2 for the
+decision record, the two-key widening, the schema description and the seat brief;
+PR 4 for the three pins the fix moves; PR 4b for the comparator pin and its lane.
+
+What SPEC/09 now says that it did not:
+
+- **F4** takes the two direction predicates and gives up the count; `N` in [8, 12]
+  is a side-prediction in all three places, and the contradiction between them is
+  gone.
+- **The prompt-delta test** is per-sample:
+  `max(tokens_in + delta × len(calls)) ≤ 7700`. The number 918 is withdrawn.
+- **The `p95_ms` condition** carries its executed outcome and the five-population
+  table, on ADR-074 amendment 1 §4's precedent, with the reading of *the run reads
+  OVER* named. 5200 stands; ADR-014's stability sentence is withdrawn; the
+  re-derivation and the `context_census.py` debt both date to `09c`.
+- **PR 3 is vacated**, the DMA rename re-dates to `09c` with its own ADR and
+  re-scoped, and the slide is recorded as a finding — the milestone pre-authorised
+  only ADR-053's.
+- **PR 4b** carries the goldens control run, its entry, its `README_GOLDENS` row
+  and row 09's `N/25`; PRs 4 and 5 keep their numbers.
+- **Constraint 12** names the three checks the fix moves and the keys they collect.
+- **Rows 23 and 24** are added to the per-claim table — the two claims the reading
+  found with no measurement in any PR.
 
 ## The cap, and the fallback it fires
 

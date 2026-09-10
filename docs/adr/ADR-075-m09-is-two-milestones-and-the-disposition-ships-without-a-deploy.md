@@ -519,6 +519,30 @@ did not write SPEC/09 or ADR-075. Nothing in the plan is changed by this
 amendment; it names what PR 2, PR 3 and the spec must change, and the operator
 disposes.
 
+**Operator's disposition, 2026-09-09: accepted in full, all eleven asks.**
+Committed in this PR — PR 1b — before PR 2 cuts from `main`, with the SPEC/09
+corrections it names **in the same diff**, which is the Definition of done's own
+PR 1b box and ADR-074 amendment 1's precedent: a Definition of done corrected
+after its PR prints is a checkbox rewritten to match the outcome. The two asks
+that are decisions rather than corrections were taken as written. **Ask 5**: the
+goldens control run, its entry, its `README_GOLDENS` row and row 09's `N/25` move
+to **PR 4b**, with PRs 4 and 5 keeping their numbers. **Ask 6**: **PR 3 is
+vacated**, the DMA rename re-dates to **`09c`** by name with its own ADR and
+re-scoped as a change to the system under measurement, and the slide is recorded
+as **a finding** in the close's journal, since this milestone pre-authorised only
+ADR-053's. **This PR is the milestone's sixth slot spent, and the cap's
+pre-registered fallback fires on it** (§6): ADR-053's *no orphan rules* half gives
+way to M09b by name, and there is no PR 3.
+
+**What landed where, because the split is not arbitrary.** Asks 1, 2, 3, 5 and 6
+and the Definition-of-done half of ask 4 are **spec text** and land here: they
+change what PR 2 and PR 4 are measured against, and a plan corrected inside the
+PR it governs is the defect this reading exists to catch. Asks 7 through 11 and
+the build half of ask 4 are **work**, and land in the PR that does it — PR 2 for
+the decision record, the two-key widening, the schema description and the seat
+brief; PR 4 for the three pins the fix moves; PR 4b for the comparator pin and
+its lane. SPEC/09 now names each by its PR.
+
 Every number below is produced by running committed code over committed
 evidence, never read out of a journal sentence: `milestones/M08b/goldens-run-{1,2,3}.json`,
 `milestones/M08/context_census.py`, `milestones/M08b/fresh_join.py`,
