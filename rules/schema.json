@@ -28,6 +28,20 @@
       "properties": {
         "decided_by": { "type": "string" },
         "decided_on": { "type": "string", "format": "date" },
+        "limits": {
+          "type": "array",
+          "description": "What this disposition does NOT cover, each owed to a seat and dated. **A disposition records its own boundary, or the registry reports a rule discharged that is only partly discharged.** M09 met this at MER-AI-0001: an L3 eval pack asserts the disclosure field on an ANSWER, and the publish-class action that puts editorial copy in front of viewers carries a separate `ai_generated` flag that can be defaulted false with every semantic check green. `pave rules trace` prints these beside the controls, so a reader of the registry lookup sees the boundary at the same moment as the chain (ADR-075 amendment 2; Tool Owner seat, M09 PR 2 round 1).",
+          "items": {
+            "type": "object",
+            "required": ["limit", "owed_to", "dated"],
+            "additionalProperties": false,
+            "properties": {
+              "limit": { "type": "string", "description": "What the disposition does not reach, in the terms the rule uses" },
+              "owed_to": { "type": "array", "minItems": 1, "items": { "type": "string", "enum": ["platform-eng", "ai-quality", "security", "legal-sp", "data-governance", "tool-owner", "service-team"] } },
+              "dated": { "type": "string", "description": "The milestone or trigger that closes it. Never blank: an undated limit is a residual nobody inherits" }
+            }
+          }
+        },
         "controls": {
           "type": "array",
           "minItems": 1,

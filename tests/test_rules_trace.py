@@ -262,7 +262,7 @@ def test_the_committed_rule_traces_as_far_as_it_goes_and_says_so():
     chain = rules.trace("MER-AI-0001", REGISTRY, ROOT)
     assert chain.rule is not None and not chain.defects
     assert not chain.resolved
-    kinds = [s.kind for s in chain.steps]
+    kinds = [s.kind for s in chain.steps if s.kind != "limit"]
     assert kinds == ["source", "owner", "control"]
     assert "NOT RESOLVED" in rules.render(chain)
 
@@ -273,7 +273,7 @@ def test_a_disposed_rule_walks_all_the_way_to_the_asserts(tmp_path):
     directory = _registry(tmp_path, _disposed())
     chain = rules.trace("MER-AI-0001", directory, ROOT)
     assert chain.resolved, chain.defects
-    kinds = [s.kind for s in chain.steps]
+    kinds = [s.kind for s in chain.steps if s.kind != "limit"]
     assert kinds[:4] == ["source", "owner", "control", "binds"]
     cases = [s for s in chain.steps if s.kind == "case"]
     # Derived from the pack rather than pinned at a literal: round 1 added two
@@ -502,6 +502,58 @@ def test_an_undisposed_rule_exits_one_and_says_it_is_by_design():
     assert _trace_exit("MER-AI-0001") == 1
     rendered = rules.render(rules.trace("MER-AI-0001", REGISTRY, ROOT))
     assert "BY DESIGN" in rendered and "NOT RESOLVED" in rendered
+
+
+def test_the_registry_carries_the_dispositions_limit_and_the_lookup_prints_it():
+    """**A disposition records its own boundary, in the registry.**
+
+    Tool Owner, round 1: an L3 eval pack asserts `ai_disclosure` on the agent's
+    ANSWER, and the publish-class action that puts editorial copy in front of
+    viewers carries `ai_generated` — not `required`, and measurably flippable to
+    false with every semantic check green. The operator accepted the L3
+    disposition as sufficient for claim 6 (which is about tracing a rule to a
+    failing assert) and required the limit to live in the rule's own disposition
+    record rather than only in the ADR, so the registry carries it.
+
+    **And the lookup must print it**, or the registry carries a boundary the one
+    command a reader runs does not show — which is a limit recorded and absent."""
+    limits = (COMMITTED["disposition"] or {}).get("limits") or []
+    assert limits, (
+        "MER-AI-0001's disposition records no limit. The eval pack does not reach the "
+        "publish path, and a disposition that does not say so reports itself complete.")
+    limit = limits[0]
+    assert "publish" in limit["limit"], limit["limit"]
+    assert set(limit["owed_to"]) == {"tool-owner", "legal-sp"}, limit["owed_to"]
+    assert limit["dated"].strip(), "an undated limit is a residual nobody inherits"
+
+    rendered = rules.render(rules.trace("MER-AI-0001", REGISTRY, ROOT))
+    assert "limit" in rendered and "publish-highlight" in rendered, (
+        "the registry carries the limit and `pave rules trace` does not print it. A "
+        "reader takes the lookup for the disposition.")
+    assert "tool-owner" in rendered, "the render does not say who owes the limit"
+    # The LIMIT's own lines, not every line: the `no-control` row carries a long
+    # ref-plus-detail of its own, and asserting over the whole render would have
+    # been a check about that row wearing this one's name.
+    body = [ln for ln in rendered.splitlines() if ln.startswith(" " * 15)]
+    assert body, "the limit's prose was not wrapped onto continuation lines"
+    assert max(len(line) for line in body) < 100, (
+        "a limit is prose a human has to read, and an unwrapped line is one nobody "
+        "reads — printing it would be a gesture rather than a disclosure")
+
+
+def test_a_recorded_limit_does_not_make_the_chain_unresolved(tmp_path):
+    """A limit is a boundary, not a defect. A disposed rule that records one still
+    resolves — otherwise recording the honest thing would make the lookup red and
+    nobody would record it."""
+    rule = _disposed()
+    rule["disposition"]["limits"] = [
+        {"limit": "does not reach the publish path", "owed_to": ["tool-owner"],
+         "dated": "the next milestone"}]
+    root = _planted_tree(tmp_path, [{"id": "disclosure-101", "input": "x",
+                                     "asserts": [{"ai_disclosure": {"required": ["AI"]}}]}])
+    chain = rules.trace("MER-AI-0001", _registry(tmp_path, rule), root)
+    assert chain.resolved, chain.defects
+    assert any(s.kind == "limit" for s in chain.steps)
 
 
 def test_the_cli_emits_the_readers_render_and_does_not_rewrite_it(capsys):

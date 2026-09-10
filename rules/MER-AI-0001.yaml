@@ -25,6 +25,22 @@ disposition:
   decided_on: "2026-08-15"        # date the rule entered the registry, not the date it was disposed
   controls:
     - type: no-control
-      ref: "none yet — disposition at M07 adds the L3 eval pack and the gateway disclosure guardrail"
+      ref: "none yet — M09 PR 4 replaces this with the L3 eval pack; the gateway guardrail is M09b's"
+  # What the disposition does NOT reach. Recorded in the REGISTRY and not only in
+  # the ADR, so a reader of `pave rules trace MER-AI-0001` meets the boundary at
+  # the same moment as the chain (Tool Owner seat, M09 PR 2 round 1; the
+  # operator's disposition).
+  limits:
+    - limit: >-
+        An eval-pack disposition is not a publish-class disposition. The L3 pack
+        asserts `ai_disclosure` on the agent's ANSWER. The action that puts
+        editorial copy in front of viewers is `publish-highlight`, whose input
+        carries `ai_generated` — not in `required`, defaulting true, and
+        measurably flippable to false with every semantic check green (only four
+        byte digests move, and the PR that moves them re-pins them). There is no
+        disclosure-TEXT field on the publish input at all, so the string this
+        rule is about has no route to the approver, who sees a boolean.
+      owed_to: [tool-owner, legal-sp]
+      dated: "the milestone that touches the publish path"
 status: proposed
 review_by: "2026-10-01"           # the law's effective date: disposition cannot slip past it

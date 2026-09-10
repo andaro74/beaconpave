@@ -213,6 +213,16 @@ def trace(rule_id: str, registry: pathlib.Path = REGISTRY,
         f"status {rule.get('status')}        review_by {rule.get('review_by')}",
     ))
 
+    # **The boundary, printed with the chain.** A disposition that records what
+    # it does not reach is worth nothing if the lookup omits it: the registry
+    # would carry the limit and `pave rules trace` would still show an unqualified
+    # chain, which is the reading a human takes away. `resolved` is unaffected —
+    # a limit is a recorded boundary, not a defect — but it is never silent.
+    for limit in (rule.get("disposition") or {}).get("limits") or []:
+        steps.append(Step("limit", str(limit.get("limit", "")).strip(),
+                          f"owed to {', '.join(limit.get('owed_to') or [])} — "
+                          f"{limit.get('dated')}"))
+
     controls = (rule.get("disposition") or {}).get("controls") or []
     enforcing = enforcing_controls(rule)
     if not enforcing:
@@ -330,6 +340,16 @@ def render(chain: Chain) -> str:
     lines = [f"{chain.rule_id}  {chain.rule.get('title')}"]
     for step in chain.steps:
         mark = "        " if step.resolved else "  <-- "
+        if step.kind == "limit":
+            # **Wrapped, and the boundary is the one step that earns the room.**
+            # A limit is prose a human has to read, and a 500-character line in a
+            # terminal is a line nobody reads — which would make printing it a
+            # gesture rather than a disclosure.
+            import textwrap
+            lines.append(f"  {'limit':<10} {step.detail}")
+            lines.extend(textwrap.wrap(step.ref, width=76,
+                                       initial_indent=" " * 15, subsequent_indent=" " * 15))
+            continue
         detail = f"{mark}{step.detail}" if step.detail else ""
         lines.append(f"  {step.kind:<10} {step.ref}{detail}")
 
