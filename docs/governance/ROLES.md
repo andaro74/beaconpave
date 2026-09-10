@@ -86,6 +86,14 @@ Whoever feels a control's pain never solely controls its strength.
 | Adversarial scorer + its test (`evals/adversarial.py`, `tests/test_adversarial_scoring.py`) | Security + AI Quality |
 | Audit record shape and the scorer's observation (`platform/gateway/core/audit.py`) | Platform Eng + Security |
 | Any invariant (G1–G10) change | Platform Eng + the seat that defends it |
+| The rule registry (`rules/`) | Legal/S&P + Security, **plus an ADR** |
+| The registry chain reader (`pave/rules.py`) — what *traceable* means | Legal/S&P + Security + Platform Eng (M09) |
+| The caller's system prompt (`services/*/gateway_client.py`) — the system block every governed run sends | Platform Eng + Security (M09) |
+| G5's router (`platform/gateway/core/classify.py`) | Data Governance + Security (M09) |
+
+**This table is a summary and `pave/twokey.py` is the enforced list and the only
+authority.** It has drifted from the rules twice (ADR-037); read the module before
+assuming a path is or is not covered.
 
 **Why the comparator needs three keys.** From M04 that file holds the pinned
 numbers for *both* scored suites — the golden set and the probe corpus — and the

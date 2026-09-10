@@ -61,8 +61,13 @@ ADR043_SEATS = {
     "conftest.py": {"platform-eng", "security"},
     "pave/tests/conftest.py": {"platform-eng", "security"},
     "pytest.ini": {"platform-eng", "security"},
+    # `data-governance` joined at M09 PR 2 by the mechanism below, not by
+    # preference: G5's router got its first rule in that diff and
+    # `test_this_file_is_itself_on_a_rule_that_carries_securitys_key` went red by
+    # name until this file collected the new seat's key too. ADR-053 recorded the
+    # only previous instance, when `legal-sp` arrived the same way.
     "tests/test_twokey_seats.py": {"ai-quality", "security", "platform-eng",
-                                   "tool-owner", "legal-sp"},
+                                   "tool-owner", "legal-sp", "data-governance"},
     "platform/gateway/core/toolplane.py": {"platform-eng", "security", "tool-owner"},
     "tests/test_toolplane.py": {"platform-eng", "security", "tool-owner"},
     # --- ADR-044 ---
@@ -199,6 +204,28 @@ ADR043_SEATS = {
     "tests/test_m08b_fresh_join.py": {"ai-quality", "platform-eng", "security"},
     # round 2 (AI Quality): the scorer's own test, on the scorer's rule
     "tests/test_deterministic_runner.py": {"ai-quality", "platform-eng"},
+    # --- M09 PR 2 (ADR-075 amendment 1 asks 8 and the spec's own debt rows) ---
+    #
+    # The chain reader is the WHOLE of claim 6's row 1a: it decides what
+    # *traceable* means, from the rule to the failing assert. Measured on
+    # `479972e`: `two-key: not required`, on the file the milestone's one claim
+    # is read through. Legal/S&P owns the registry, Security is its counterweight
+    # on `^rules/`, Platform Engineering the mechanism.
+    "pave/rules.py": {"legal-sp", "security", "platform-eng"},
+    "tests/test_rules_trace.py": {"legal-sp", "security", "platform-eng"},
+    # The system block every governed run sends, on no rule while its five
+    # template siblings took four keys each. Put on a rule in PR 2, one PR BEFORE
+    # the PR that edits it — which is the whole reason the debt is dated there.
+    "services/highlights-agent/gateway_client.py": {"platform-eng", "security"},
+    # G5's router, and the first rule in this repository to name Data Governance.
+    # Measured on `479972e`: `two-key: not required` — the file that implements an
+    # invariant and supplies `classify_sha256` to every adversarial entry.
+    "platform/gateway/core/classify.py": {"data-governance", "security"},
+    # M09's readers, records and pins on the census rule, widened in the diff that
+    # creates them and before the data they read exists — M08b's precedent, and
+    # the reason it is here rather than in PR 4.
+    "tests/test_m09_disclosure.py": {"ai-quality", "platform-eng", "security"},
+    "milestones/M09/verdict-pre-fix.json": {"ai-quality", "platform-eng", "security"},
 }
 
 
@@ -266,11 +293,16 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           "the goldens scorer",
                                           # M08b PR 2, seat round 1
                                           "the held-text readings",
-                                          "the refusal estimator"))]
-    assert len(added) == 24, (
+                                          "the refusal estimator",
+                                          # M09 PR 2, ADR-075 amendment 1 ask 8
+                                          # and SPEC/09's own debt rows
+                                          "the registry chain reader",
+                                          "the caller's system prompt",
+                                          "G5's router"))]
+    assert len(added) == 27, (
         f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one, "
         f"ADR-049's three, ADR-052's two, ADR-053's two, ADR-072's one, SPEC/08's "
-        f"two, ADR-014 amendment 2's one and M08b PR 2's three, found "
+        f"two, ADR-014 amendment 2's one, M08b PR 2's three and M09 PR 2's three, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -391,7 +423,32 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                            "tests/test_m08b_p95.py",
                            "tests/fixtures/m08b/build_planted.py",
                            "tests/fixtures/m08b/planted/fresh-join.json",
-                           "tests/fixtures/m08b/planted/goldens-run-1.json"],
+                           "tests/fixtures/m08b/planted/goldens-run-1.json",
+                           # M09 PR 2 (ADR-075 amendment 1 ask 8). The verdicts F1,
+                           # F2, F3 and F5 are read from, a reader shape and a
+                           # record shape that need not exist yet, and the test
+                           # shapes — pinned so that narrowing the M09 clause back
+                           # to a list of today's filenames is red rather than
+                           # silent, which is what the M08b clause's own round-2
+                           # finding measured one milestone earlier.
+                           "milestones/M09/verdict-pre-fix.json",
+                           "milestones/M09/verdict-post-fix.json",
+                           "milestones/M09/disclosure_join.py",
+                           "milestones/M09/a-record-not-written-yet.json",
+                           "tests/test_m09_disclosure.py",
+                           "tests/test_m09_p95_condition.py",
+                           "tests/test_m09_a_test_not_written_yet.py"],
+        # M09 PR 2. The reader that decides what *traceable* means, and its only
+        # reader — ADR-043 decision 1's "weakened together or not at all", which is
+        # why both are required rather than the module alone.
+        "the registry chain reader": ["pave/rules.py", "tests/test_rules_trace.py"],
+        # M09 PR 2. A path pattern, so a second service's client lands on the rule
+        # the day it is written; the non-existent path pins the SHAPE, on the
+        # goldens producer's precedent.
+        "the caller's system prompt": [
+            "services/highlights-agent/gateway_client.py",
+            "services/a-service-that-does-not-exist-yet/gateway_client.py"],
+        "G5's router": ["platform/gateway/core/classify.py"],
         # M08b PR 2. The scorer every goldens verdict comes from, and (round 2)
         # the test that pins its comparison.
         "the goldens scorer": ["evals/deterministic.py", "tests/test_deterministic_runner.py"],
@@ -451,10 +508,13 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # census's rule (13); the goldens scorer (1); the two grants files on the
     # held-text readings rule and the estimator on its own (3). 88 -> 91 at
     # round 2: two digit-bearing shape paths on the census rule and the
-    # scorer's test on the scorer's.
-    assert total == 91, (
+    # scorer's test on the scorer's. 91 -> 103 at M09 PR 2: seven M09 paths on
+    # the census rule (two verdicts, a reader shape, a record shape and three
+    # test shapes), the chain reader and its only reader (2), the caller's system
+    # prompt and its shape path (2), and G5's router (1).
+    assert total == 103, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "91. Deleting a required path in the same diff that "
+        "103. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -698,6 +758,112 @@ def test_the_goldens_scorer_collects_ai_quality_and_platform_eng():
     _blocked_for(["tests/test_deterministic_runner.py"], {"ai-quality", "platform-eng"})
     # narrow: the recorders keep their own three-seat rule
     assert _seats_for("evals/run_evals.py") == {"ai-quality", "security", "platform-eng"}
+
+
+def test_the_chain_reader_collects_the_registry_seats_and_the_mechanism():
+    """M09 PR 2 (ADR-075 amendment 1 fact 5, ask 8). Measured on `479972e` over
+    PR 2's file list: `pave/rules.py` and `tests/test_rules_trace.py` matched
+    **no rule** — the reader that decides what *traceable* means, which is the
+    whole of claim 6's row 1a, editable on one key by any seat. ADR-037's
+    finding at the file the milestone's one claim is read through.
+
+    The seats that gain from a reader reporting a chain that does not hold are
+    Legal/S&P (the rule looks disposed) and AI Quality (its pack looks reached),
+    so G9 says neither may hold the only key: Legal/S&P owns the registry,
+    Security is already its counterweight on `^rules/`, and Platform Engineering
+    owns the mechanism.
+
+    `pave/cli.py` is deliberately NOT on this rule and must not become so —
+    ADR-041 decision 7 refuses to key it, and `pave/verify.py`'s precedent is
+    that the criteria live in the keyed module while the dispatch line does
+    not."""
+    for path in ("pave/rules.py", "tests/test_rules_trace.py"):
+        _blocked_for([path], {"legal-sp", "security", "platform-eng"})
+    assert _seats_for("pave/cli.py") == set(), (
+        "pave/cli.py has acquired a key. ADR-041 decision 7 refuses exactly that: "
+        "gating ~1200 lines of command dispatch teaches people to attest past a rule "
+        "without reading it. The deciding logic moves to a keyed module instead.")
+
+
+def test_the_system_block_every_governed_run_sends_collects_two_seats():
+    """M09 PR 2, SPEC/09's own debt row. Measured on `479972e`:
+    `services/highlights-agent/gateway_client.py` on **no rule**, `two-key: not
+    required` — while its five siblings under `templates/agent-tools/` took four
+    keys each and `tests/test_gateway_run_parity.py`'s own docstring calls
+    editing the prompt *"changing the system under measurement ... an ADR-021
+    event"*.
+
+    Dated to PR 2 and not to the PR that edits it, which is the point: a file
+    joins a rule BEFORE the diff that changes it, or the rule is written by
+    whoever wanted the change.
+
+    A path pattern, so a service that does not exist yet lands on the rule the
+    day its client is written — the goldens producer's shape, for the goldens
+    producer's reason."""
+    _blocked_for(["services/highlights-agent/gateway_client.py"],
+                 {"platform-eng", "security"})
+    _blocked_for(["services/a-service-that-does-not-exist-yet/gateway_client.py"],
+                 {"platform-eng", "security"})
+    # narrow: the template's copy keeps the scaffold's four seats
+    assert _seats_for("templates/agent-tools/gateway_client.py.tmpl") == \
+        {"platform-eng", "ai-quality", "tool-owner", "security"}
+
+
+def test_g5s_router_collects_data_governance_and_security():
+    """M09 PR 2, SPEC/09's debt row, owed to Data Governance since M07. Measured
+    on `479972e`: `platform/gateway/core/classify.py` on **no rule** — the file
+    that implements G5, where `sensitive` is refused by design.
+
+    **The first rule in this repository to name `data-governance`**, and it names
+    it because the file's own docstring does. Security is the counterweight for
+    the instrument half: `classify_sha256` sits in every adversarial entry's
+    instrument block, and `evals/history/schema.json` says in as many words that
+    a classification refusal IS a policy denial and can satisfy nine of the ten
+    probes — so widening the router's terms changes what nine probes mean.
+
+    `requires_adr` is OFF, and that is ADR-052 decision 2 rather than a
+    preference: a rule that gives a NEW seat an ADR requirement turns
+    `test_the_definition_of_a_decision_record_carries_every_adr_rules_seats` red
+    until that seat can also defend what satisfying it means, and handing Data
+    Governance an ADR requirement in the same diff that gives it its first key is
+    that trade exactly."""
+    _blocked_for(["platform/gateway/core/classify.py"], {"data-governance", "security"})
+    rules = [rule for rule, _ in twokey.triggered(["platform/gateway/core/classify.py"])]
+    assert not any(rule.requires_adr for rule in rules), (
+        "the router's rule now requires an ADR. That turns the decision-record test red "
+        "until Data Governance also holds a key on what discharges one (ADR-052 "
+        "decision 2) — do both in one diff or neither.")
+
+
+def test_m09s_readers_records_and_pins_collect_the_census_seats():
+    """M09 PR 2 (ADR-075 amendment 1 fact 5 and ask 8). Measured on `479972e`
+    over PR 2's and PR 4's file lists before this widening: every one of these
+    `two-key: not required`. The census rule names `milestones/M08/`,
+    `milestones/M08b/` and `tests/test_m08b_*` **by name** and had no `M09`
+    clause at all, so `milestones/M09/verdict-pre-fix.json`,
+    `verdict-post-fix.json` and the run-A answer files — the evidence F1, F2, F3
+    and F5 are read FROM — matched nothing. The goldens-evidence rule catches
+    `goldens-run*.json` and the control run only.
+
+    Widened in the diff that creates the readers, before the data exists, which
+    is M08b's precedent and ADR-060's. The shape paths are pinned for the reason
+    M08b's round 2 measured one milestone earlier: a name with a digit matched
+    nothing under `[a-z_]+`, and a clause narrowed back to today's filenames
+    drops the next reader silently."""
+    for name in ("verdict-pre-fix.json", "verdict-post-fix.json", "disclosure-run-1.json",
+                 "disclosure_join.py", "a-record-not-written-yet.json", "p95_join.py"):
+        _blocked_for([f"milestones/M09/{name}"], {"ai-quality", "platform-eng", "security"})
+    for path in ("tests/test_m09_disclosure.py", "tests/test_m09_prompt_delta.py",
+                 "tests/test_m09_p95_condition.py", "tests/test_m09_goldens_denominator.py",
+                 "tests/test_m09_a_test_not_written_yet.py"):
+        _blocked_for([path], {"ai-quality", "platform-eng", "security"})
+    # the rule stays narrow: M09's transcripts are prose, as M08b's are
+    for transcript in ("per-sample.txt", "goldens-score.txt", "README.md",
+                       "gate-pre-fix.txt", "gate-post-fix.txt"):
+        assert _seats_for(f"milestones/M09/{transcript}") == set()
+    # and the goldens control run keeps the goldens-evidence rule's own seats
+    assert _seats_for("milestones/M09/goldens-run-1.json") == \
+        {"ai-quality", "platform-eng", "security"}
 
 
 def test_a_forged_permit_from_the_generator_collects_four_seats():

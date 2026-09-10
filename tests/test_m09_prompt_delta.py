@@ -1,0 +1,354 @@
+"""
+The prompt delta, priced before a single call is spent.
+
+M09's fix is one sentence in `TOOL_SYSTEM`, and `TOOL_SYSTEM` is in **every
+request of every run this milestone takes**. That is the one way this milestone
+can break M08b's standing per-sample claim that `tokens_in` holds at 7700, and it
+is measurable with **no model call**, because the prompt is committed.
+
+**What was wrong with the bound the spec shipped, and it is arithmetic rather
+than a preference.** SPEC/09 as written asserted `6782 + delta < 7700` and called
+the headroom 918 tokens. `usage.tokens_in` is the **sum across calls** — checked
+below on all 70 answered M08b samples, total equals the sum of
+`usage.calls[].tokens_in` in 70 of 70 — and 6782 is `headroom-005` sample 3 at
+**three** calls. The system block is re-sent every round, so a delta of *d*
+tokens lands *n* times in an *n*-call sample. The spec's form therefore compares
+a per-sample total against a per-call delta and admits **delta ≤ 917**, where the
+claim can survive **delta ≤ 306**. A 400-token disclosure sentence — a plausible
+size for one that must say what to write and when — passes the spec's test, puts
+`headroom-005` at **7982**, and falsifies F4 on the run the test exists to
+protect.
+
+That is a stated protection that is absent, which CLAUDE.md ranks worse than a
+missing one because it stops anyone looking for the real one (ADR-075 amendment 1
+fact 2, ask 2).
+
+**The corrected bound reads the population, not the sentence about it.**
+`max(tokens_in + delta × len(calls)) ≤ 7700` over M08b's answered ≤3-call
+samples, computed from the committed answer files rather than from the single
+published maximum.
+
+**Why `<=` and not `<`.** `evals/deterministic.py::budget` compares `got > limit`,
+so a sample landing exactly on 7700 passes. The boundary is asserted in both
+directions below rather than assumed, because a bound that is off by one at the
+edge is a bound nobody can use to price a fix.
+
+**What this measures, and what it does not.** It measures **budget**: whether the
+fix breaches a ceiling. Nothing hermetic can measure a prompt's effect on
+*content*, and this test does not pretend to (ADR-075 amendment 1 §5). The
+hermetic content guard on this fix is the line-by-line assert in
+`tests/test_gateway_run_parity.py`, which names what the prompt gained; the
+measured content guards are F4's two direction falsifiers, and they cost a model
+call and are read at PR 4.
+
+Zero model calls, hermetic (G8): committed answer files and committed prompt text.
+
+Owning seats: AI Quality (the ceiling) · Platform Engineering (the loop) ·
+Security (what a recorded number means).
+"""
+from __future__ import annotations
+
+import importlib.util
+import json
+import pathlib
+import sys
+
+import pytest
+
+from evals.deterministic import Scorer
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+CENSUS_READER = ROOT / "milestones" / "M08" / "context_census.py"
+RUNS = [ROOT / "milestones" / "M08b" / f"goldens-run-{n}.json" for n in (1, 2, 3)]
+
+#: ADR-014's `tokens_in` ceiling, proven per sample on fresh samples at M08b. It
+#: does not move in this milestone: SPEC/09 constraint 1, and *What must not
+#: happen* — "if the prompt delta does not fit the headroom, the **fix** is
+#: rewritten", never the ceiling.
+CEILING = 7700
+
+#: The call count above which a sample is outside the claim. M08b's claim is
+#: "every answered sample at three calls or fewer under the ceiling"; the ≥4-call
+#: samples are over it by design and are not what the fix must fit inside.
+MANDATED_MAX_CALLS = 3
+
+
+@pytest.fixture(scope="module")
+def census():
+    """The census reader, imported the way `tests/test_m08_census.py` imports it.
+
+    **This inserts two tool paths into `sys.path` for the whole session** — the
+    reader does it at import time, and it is a standing Platform Engineering debt
+    (SPEC/09's obligations table). It is not *this* file's exposure: importing the
+    census is what `tests/test_m08_census.py` has done since M08 PR 3, so nothing
+    new leaks. The debt is dated *"the next PR that opens the file"*, and PR 2
+    opens it read-only; paying it would edit a file under `milestones/M08/`, which
+    this milestone's Definition of done forbids and which the p95 condition — not
+    firing — gives no other reason to touch."""
+    spec = importlib.util.spec_from_file_location("context_census", CENSUS_READER)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["context_census"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _samples() -> list[dict]:
+    """Every sample of M08b's fresh run, from the committed answer files.
+
+    Read from the ANSWER FILES, never from `fresh-join.json` and never from a
+    journal sentence. The derived record would do for the numbers, and reading it
+    would make this test agree with that record by construction rather than with
+    the run — the compression error this repository has paid for repeatedly
+    (ADR-075 amendment 1's opening rule: every number produced by running
+    committed code over committed evidence)."""
+    rows = []
+    for n, path in enumerate(RUNS, 1):
+        for case_id, record in json.loads(path.read_text(encoding="utf-8")).items():
+            usage = (record or {}).get("usage") or {}
+            calls = usage.get("calls") or []
+            rows.append({
+                "id": f"{case_id} s{n}",
+                "tokens_in": usage.get("tokens_in") or 0,
+                "calls": len(calls),
+                "per_call": [c.get("tokens_in", 0) for c in calls],
+            })
+    return rows
+
+
+def answered_within_mandate() -> list[dict]:
+    """The population the bound is computed over: answered, ≤3 calls.
+
+    `tokens_in > 0` is the census's own definition of answered — the harness
+    writes `tokens_in: 0` for a refused sample, and averaging one in would
+    understate every statistic."""
+    return [r for r in _samples()
+            if r["tokens_in"] > 0 and r["calls"] <= MANDATED_MAX_CALLS]
+
+
+def worst_case(delta: int, population: list[dict] | None = None) -> tuple[int, str]:
+    """The largest `tokens_in` any sample would carry if the prompt grew by
+    `delta` tokens per call, and which sample carries it."""
+    rows = population if population is not None else answered_within_mandate()
+    worst = max(rows, key=lambda r: r["tokens_in"] + delta * r["calls"])
+    return worst["tokens_in"] + delta * worst["calls"], worst["id"]
+
+
+def admissible_delta(population: list[dict] | None = None) -> int:
+    """The largest per-call prompt delta the 7700 claim survives.
+
+    Solved rather than searched: for each sample the delta it admits is
+    `(CEILING - tokens_in) // calls`, and the population's bound is the smallest
+    of those. A search over a range would have a range to get wrong."""
+    rows = population if population is not None else answered_within_mandate()
+    return min((CEILING - r["tokens_in"]) // r["calls"] for r in rows)
+
+
+#: The bound, pinned. Moving it is moving what this milestone may spend on its
+#: fix, and the number is derived from committed evidence — a diff that changes
+#: it without changing the evidence is the finding.
+ADMISSIBLE_DELTA = 306
+
+#: The rendered tool prompt's token estimate BEFORE the fix, by the census's own
+#: estimator, over the tree PR 2 merges.
+#:
+#: **This constant is not updated when the fix lands.** It is the baseline the
+#: delta is measured against, and re-seating it in the PR that moves the prompt
+#: would erase the measurement — the same move as re-pinning a comparator in the
+#: diff that moved it, which `evals/comparators.json` refuses in as many words.
+#: PR 4 leaves it alone and watches `test_the_committed_prompts_delta_fits` price
+#: the fix.
+PRE_FIX_RENDERED_TOKENS_EST = 793
+
+
+def rendered_tool_prompt() -> str:
+    """What the model actually receives as its system block, rendered.
+
+    `TOOL_SYSTEM.format(schema=answer.schema.json)` — the TEMPLATE plus the
+    schema, because `answer.schema.json` is rendered into it through `{schema}`
+    and its text is therefore part of the delta. `TOOL_SYSTEM_SHA256` pins the
+    template alone, one level above where a schema edit lands, so a bound taken
+    over the template would price half the fix. Both of M09's model-facing sites
+    are inside this string."""
+    template = ROOT / "services" / "highlights-agent" / "gateway_client.py"
+    schema = ROOT / "services" / "highlights-agent" / "evals" / "answer.schema.json"
+    import ast as _ast
+    tree = _ast.parse(template.read_text(encoding="utf-8"))
+    for node in tree.body:
+        if (isinstance(node, _ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], _ast.Name)
+                and node.targets[0].id == "TOOL_SYSTEM"
+                and isinstance(node.value, _ast.Constant)):
+            return node.value.value.format(schema=schema.read_text(encoding="utf-8"))
+    raise AssertionError("gateway_client.py defines no string constant TOOL_SYSTEM")
+
+
+def estimate_tokens(text: str, census) -> int:
+    """The census's own estimator, not a second one.
+
+    `round(chars / median chars-per-token)`, where the ratio comes from ADR-014's
+    six committed anchors. A second estimator here would be a second number to
+    disagree with the record the ceiling was derived from."""
+    import yaml
+    cases_path = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
+    cases = {c["id"]: c for c in yaml.safe_load(cases_path.read_text(encoding="utf-8"))}
+    cal = census.calibration(census.client_constants(), cases)
+    return census._est(len(text), cal)["tokens_est"]
+
+
+# --- the population -----------------------------------------------------------
+
+def test_the_population_is_m08bs_answered_three_call_samples():
+    """n = 58, and the two counts that make the bound mean anything."""
+    rows = answered_within_mandate()
+    answered = [r for r in _samples() if r["tokens_in"] > 0]
+    assert len(answered) == 70, f"{len(answered)} answered samples, not the 70 M08b recorded"
+    assert len(rows) == 58, f"{len(rows)} samples at ≤3 calls, not 58"
+    assert len([r for r in answered if r["calls"] >= 4]) == 12
+
+
+def test_tokens_in_is_the_sum_across_calls_and_this_is_why_the_delta_multiplies():
+    """The fact the corrected bound rests on, measured rather than asserted.
+
+    If `usage.tokens_in` were a per-call figure the spec's `6782 + delta` would be
+    right. It is a per-sample total: 70 of 70 answered samples have
+    `tokens_in == sum(calls[].tokens_in)`. The system block is inside every one of
+    those calls, so a delta of *d* lands `len(calls)` times."""
+    answered = [r for r in _samples() if r["tokens_in"] > 0]
+    agreeing = [r for r in answered if sum(r["per_call"]) == r["tokens_in"]]
+    assert len(agreeing) == len(answered) == 70, (
+        f"{len(agreeing)} of {len(answered)} samples have tokens_in equal to the sum over "
+        "calls. The corrected bound multiplies the delta by the call count because of "
+        "this fact; if it no longer holds, the bound is wrong and not the evidence.")
+
+
+def test_the_published_maximum_is_a_three_call_sample():
+    """6782 is `headroom-005` sample 3 at **three** calls, not one.
+
+    This is the whole of the spec's error in one row: the number it treated as a
+    per-call budget is a three-call total."""
+    rows = answered_within_mandate()
+    worst = max(rows, key=lambda r: r["tokens_in"])
+    assert worst["tokens_in"] == 6782, f"the ≤3-call maximum is {worst['tokens_in']}, not 6782"
+    assert worst["id"] == "headroom-005 s3", worst["id"]
+    assert worst["calls"] == 3, f"the published maximum is at {worst['calls']} call(s)"
+
+
+# --- the bound ----------------------------------------------------------------
+
+def test_the_admissible_delta_is_the_population_form_not_the_published_maximum():
+    """**306, not 917.** The correction, stated as the two numbers it lies
+    between."""
+    assert admissible_delta() == ADMISSIBLE_DELTA, (
+        f"the population admits {admissible_delta()} tokens per call, not "
+        f"{ADMISSIBLE_DELTA}. This number is the fix's budget; if the evidence moved, "
+        "say which run moved and re-derive — never raise it to fit a fix.")
+    spec_form = CEILING - 6782 - 1
+    assert spec_form == 917 and spec_form > ADMISSIBLE_DELTA * 2, (
+        "the bound SPEC/09 shipped admits three times the delta the claim can survive; "
+        "that ratio is the reason the form was corrected and is asserted so the old "
+        "form cannot quietly return.")
+
+
+def test_the_worst_case_table_at_the_boundary_and_over_it():
+    """Computed, both sides of 7700, including the exact boundary.
+
+    `evals/deterministic.py::budget` compares `got > limit`, so 7700 exactly is a
+    PASS. 307 is the first delta that is not."""
+    assert worst_case(300) == (7682, "headroom-005 s3")
+    assert worst_case(306) == (7700, "headroom-005 s3")
+    assert worst_case(307) == (7703, "headroom-005 s3")
+    assert worst_case(400) == (7982, "headroom-005 s3")
+    assert worst_case(917) == (9533, "headroom-005 s3")
+    assert worst_case(ADMISSIBLE_DELTA)[0] <= CEILING < worst_case(ADMISSIBLE_DELTA + 1)[0]
+
+
+def test_a_four_hundred_token_fix_passes_the_specs_bound_and_falsifies_f4():
+    """The concrete event the corrected test exists to prevent before a call.
+
+    A 400-token sentence clears `6782 + delta < 7700` and puts `headroom-005` at
+    7982 — a ≤3-call answered sample over 7700 that was under it at M08b, which
+    is F4's first clause word for word."""
+    delta = 400
+    assert 6782 + delta < CEILING, "the spec's bound admits it"
+    over, who = worst_case(delta)
+    assert over > CEILING and who == "headroom-005 s3", (
+        "and the run it was written to protect goes over the ceiling on that sample")
+
+
+def test_the_bound_is_the_minimum_over_the_population_not_over_one_sample():
+    """A sample with more calls can bind tighter than one with a bigger total,
+    and a bound taken from the single largest total would not see it.
+
+    **The plant discriminates, and the first version did not.** It planted one
+    sample at 7690 over two calls — which is *also* the largest total — so a
+    mutation replacing the population minimum with `max(rows, key=tokens_in)`
+    returned the same answer and the mutation was SILENT. A plant that the
+    defect passes measures nothing, which is this repository's own *verify the
+    plant before the count*.
+
+    So the two planted samples pull apart: **A** carries the largest total and
+    the loosest bound (7000 over one call → 700), **B** a smaller total and the
+    tightest (6900 over three calls → 266). The population's answer is 266; a
+    reader taking the largest total answers 700."""
+    loosest = {"id": "planted A", "tokens_in": 7000, "calls": 1, "per_call": [7000]}
+    tightest = {"id": "planted B", "tokens_in": 6900, "calls": 3, "per_call": [2300] * 3}
+    planted = answered_within_mandate() + [loosest, tightest]
+
+    assert max(planted, key=lambda r: r["tokens_in"]) is loosest, (
+        "the plant no longer discriminates: the tightest-binding sample is also the "
+        "largest, so a bound read off the largest total would give the right answer "
+        "for the wrong reason")
+    assert admissible_delta([loosest]) == 700 and admissible_delta([tightest]) == 266
+    assert admissible_delta(planted) == 266, (
+        "the bound did not follow the tighter sample down — it is reading one sample "
+        "rather than the population, which is the defect it was written to correct")
+
+
+def test_the_boundary_is_the_scorers_and_not_this_files_arithmetic():
+    """**Why `≤ 7700` and not `< 7700`, tied to the comparator that decides it.**
+
+    `evals/deterministic.py::budget` compares `got > limit`, so a sample landing
+    exactly on the ceiling PASSES, and the admissible delta is the one that
+    reaches 7700 rather than the one that stops below it. Asserted against the
+    scorer rather than restated here: a bound whose edge is justified by a
+    sentence in its own file can drift from the thing it is a bound for, and the
+    delta-0 committed prompt is nowhere near the edge, so nothing else in this
+    file exercises the choice today. It starts biting at the fix's PR."""
+    scorer = Scorer(root=ROOT)
+    limits = {"model": "haiku", "tokens_in": CEILING, "tokens_out": 100_000, "max_ms": 100_000}
+    at = scorer.budget({"tokens_in": CEILING, "tokens_out": 1, "latency_ms": 1}, limits)
+    over = scorer.budget({"tokens_in": CEILING + 1, "tokens_out": 1, "latency_ms": 1}, limits)
+    assert at.passed, (
+        f"a sample at exactly {CEILING} now fails the scorer's budget assert, so the "
+        "admissible delta is one token too generous — re-derive it against `got > limit`")
+    assert not over.passed
+    assert worst_case(ADMISSIBLE_DELTA)[0] == CEILING
+
+
+# --- the committed prompt -----------------------------------------------------
+
+def test_the_committed_prompts_delta_fits(census):
+    """**The assert PR 4 re-runs after the fix lands.**
+
+    Today the delta is zero: PR 2 moves no model-facing text, which SPEC/09
+    constraint 2 requires of every PR but the one carrying the fix. When PR 4
+    adds the disclosure sentence to `TOOL_SYSTEM` — and rewrites
+    `answer.schema.json`'s `ai_disclosure` description, the other model-facing
+    site — this recomputes and refuses a fix that does not fit, with no model
+    call spent.
+
+    The baseline constant is **not** re-seated by that PR. Re-seating it there
+    would erase the measurement."""
+    estimated = estimate_tokens(rendered_tool_prompt(), census)
+    delta = estimated - PRE_FIX_RENDERED_TOKENS_EST
+    assert delta == 0, (
+        f"the rendered tool prompt now estimates {estimated} tokens against a pre-fix "
+        f"baseline of {PRE_FIX_RENDERED_TOKENS_EST}, a delta of {delta}. If this is PR 2, "
+        "model-facing text moved in a PR that may not move it (SPEC/09 constraint 2). If "
+        "this is the fix's PR, replace this assertion with the bound below and record the "
+        "delta in the PR body — do not re-seat the baseline.")
+    over, who = worst_case(delta)
+    assert delta <= ADMISSIBLE_DELTA and over <= CEILING, (
+        f"a per-call delta of {delta} puts {who} at {over}, over the {CEILING} ceiling. "
+        f"The admissible delta is {ADMISSIBLE_DELTA}. The ceiling does not move for a fix "
+        "(SPEC/09 constraint 1): the FIX is rewritten.")

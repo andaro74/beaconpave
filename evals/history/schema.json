@@ -259,13 +259,15 @@
     },
     "suite": {
       "type": "string",
+      "description": "Which suite this row records. `disclosure` arrives at M09 (ADR-075 decision 4): MER-AI-0001's eval pack is its own SUITE rather than an arm, because `arm` means *which system produced these answers* over one case set and `evals/comparators.json` carries `arms_expected` on that meaning -- using the word for a second case set would make it mean two things, which is the inheritance ADR-053 refused to hand M07. The enum is what a recorded row may claim; the GATE costs nothing for a new suite, because `quality/verdicts/schema.json` types `suite` as a free string and `pave/gate.py` never enumerates suites. Note what a disclosure row does NOT trigger: `pave/history.py::check_readme`'s `tagged` set is `suite == \"goldens\"` only, so it forces no `README_GOLDENS` row and no bold cell.",
       "enum": [
         "goldens",
         "adversarial",
         "contract",
         "playwright",
         "k6",
-        "drill"
+        "drill",
+        "disclosure"
       ]
     },
     "target": {

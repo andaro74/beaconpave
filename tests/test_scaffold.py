@@ -83,9 +83,29 @@ def test_it_renders_no_probe_runner(tmp_path, monkeypatch):
     root = tmp_path / "services" / "sportscast-agent"
     probes = [p.name for p in root.rglob("run_probes*.py")]
     assert not probes, probes
+    # **The exception list is "files a team is EXPECTED to need a second key
+    # for", not "files that happen to be keyed."** `pave.manifest.yaml` has been
+    # on it since ADR-046 — what a service declares about itself is not a thing
+    # its own team settles alone — and `evals/` since ADR-047.
+    #
+    # `gateway_client.py` joined at M09 PR 2, and the reasoning is the manifest's
+    # one field over: the manifest declares what a service IS, and `TOOL_SYSTEM`
+    # declares what the model READS. SPEC/09's debt row put the file on a
+    # `(platform-eng, security)` rule because it is the system under measurement
+    # by `tests/test_gateway_run_parity.py`'s own docstring, and the rule is a
+    # path pattern for the goldens producer's reason — a second service lands on
+    # it the day its client is written rather than the day somebody notices.
+    #
+    # It is NOT the `run_probes*.py` situation this test was written about. That
+    # file is omitted from the scaffold entirely, which a client cannot be: a
+    # service without a client is not a service. So the honest handling is to
+    # render it, key it, and let `onboarding_seats` tell the team the true cost —
+    # which it computes from `twokey.RULES` at print time precisely so this
+    # number follows the rules rather than a sentence (ADR-047).
     for _, destination in scaffold.RENDERED:
         assert not twokey.triggered([f"services/sportscast-agent/{destination}"]) or \
-            destination == "pave.manifest.yaml" or destination.startswith("evals/"), (
+            destination in ("pave.manifest.yaml", "gateway_client.py") or \
+            destination.startswith("evals/"), (
             f"{destination} lands on a two-key rule a scaffolding team cannot satisfy")
 
 
@@ -309,10 +329,20 @@ def test_the_printed_steps_name_both_refusals_and_the_computed_seat_count():
     attest past rules it never triggered.
 
     So the count is computed at print time, and this asserts the computation rather
-    than a number."""
+    than a number.
+
+    **It moved 3 -> 5 at M09 PR 2, and the movement is the mechanism working.**
+    `services/[^/]+/gateway_client.py` joined a `(platform-eng, security)` rule in
+    that diff — the system block every governed run sends, on no rule while its
+    template sibling took four keys — and the scaffold renders that file. So a
+    scaffolded team now genuinely triggers five seats, and the banner says five.
+    This is not the over-statement ADR-047 refused: over-stating meant naming
+    seats the rendered files do NOT trigger, which teaches teams to attest past
+    rules. Naming a seat the rendered files DO trigger is the count being
+    correct."""
     steps = scaffold.next_steps("sportscast-agent")
     seats = scaffold.onboarding_seats("sportscast-agent")
-    assert seats == ["ai-quality", "legal-sp", "tool-owner"], seats
+    assert seats == ["ai-quality", "legal-sp", "platform-eng", "security", "tool-owner"], seats
     assert f"{len(seats)} SEAT ATTESTATION(S): {', '.join(seats)}" in steps
     assert "row 3" in steps and "row 8" in steps
     assert "- id: catalog-search" in steps

@@ -32,6 +32,7 @@ import time
 
 from pave import floors as floors_mod
 from pave import gate as gate_mod
+from pave import rules as rules_mod
 from pave import scaffold as scaffold_mod
 from pave import twokey, twokeycli
 from pave import verdict as verdict_mod
@@ -95,9 +96,41 @@ def rules_validate():
             where = "/".join(str(p) for p in exc.absolute_path) or "<root>"
             problems.append(f"{name}: {where}: {exc.message}")
 
+    # **Both halves of G7, in one command.** The schema decides *no immortal
+    # rules* -- `source.effective` and `review_by` are required, so a rule cannot
+    # switch off its own clock by omitting the field it is checked against. It
+    # cannot decide *no orphan rules*, because JSON Schema cannot resolve a path,
+    # and a validator reporting "valid" over a registry naming controls that are
+    # not there is the stated-protection-that-is-absent shape. The definition
+    # lives in the schema's `description` in one sense; `orphan_rules` enforces
+    # that sentence (ADR-053's owe, ADR-075 amendment 2).
+    problems.extend(rules_mod.orphan_rules(ROOT / "rules", ROOT))
+
     if problems:
         _die("rules registry invalid:\n  " + "\n  ".join(problems))
-    print(f"rules registry valid: {len(files)} rule(s), all with owner + control + review-by")
+    print(f"rules registry valid: {len(files)} rule(s), all with owner + control + review-by, "
+          f"no orphaned control refs")
+
+
+def rules_trace(argv):
+    """`pave rules trace <RULE-ID>` — the registry lookup, claim 6's row 1a.
+
+    Walks rule -> disposition -> control -> case -> assert with **no step
+    supplied by hand**, and exits non-zero when a link does not resolve. The
+    walk itself is `pave/rules.py`, which carries the seats; this is the dispatch
+    line, on `pave verify`'s precedent and for its reason (ADR-041 decision 7
+    refuses to key this file)."""
+    wanted = [a for a in argv if not a.startswith("--")]
+    if not wanted:
+        _die("rules trace: expected a rule id, e.g. `pave rules trace MER-AI-0001`",
+             gate_mod.EXIT_CONTRACT)
+    chain = rules_mod.trace(wanted[0], ROOT / "rules", ROOT)
+    _emit(rules_mod.render(chain))
+    # A chain that does not resolve exits 1. `trace` on a rule whose disposition
+    # is an honest `no-control` record resolves nothing and exits 1 too, which is
+    # correct: MER-AI-0001 is undisposed until PR 4, and a lookup that exited 0
+    # over it would be reporting a chain that does not exist yet.
+    sys.exit(gate_mod.EXIT_OK if chain.resolved else gate_mod.EXIT_QUALITY)
 
 
 
@@ -491,6 +524,103 @@ def evals_run(argv=()):
         # reader sees is not the copy anyone maintains.
         _emit(f"    {remediation}")
     return 1 if failures else 0
+
+
+def evals_disclosure(argv=()):
+    """`pave evals disclosure <service> --answers a.json [b.json c.json] [--out v.json]`.
+
+    The L3 lane MER-AI-0001 disposes into (SPEC/09; ADR-075 decisions 3 and 4).
+    It scores a committed disclosure run and writes a `suite: "disclosure"`
+    verdict the gate blocks on.
+
+    **It costs the gate nothing to read.** `quality/verdicts/schema.json` types
+    `suite` as a free string and `pave/gate.py` never enumerates suites, so a
+    FAIL here is exit 1 by the same path a goldens FAIL is. What it did cost is
+    one enum entry in `evals/history/schema.json`, which is where a *recorded*
+    disclosure row lands.
+
+    **No comparator.** A comparator is *what committed runs score today*, and
+    there is no committed disclosure run until the run PR: a pin added here
+    would pin nothing and be read by nothing, which is ADR-048's T1 in a new
+    place (ADR-075 amendment 1 fact 8). It is dated to PR 4b, where the runs it
+    would pin exist. This lane therefore decides on the pack alone, which is
+    what a disposition witness is.
+
+    **Sufficiency first, and its failure is INFRA rather than FAIL.** A pack that
+    has lost a half establishes nothing about the service, so it pages the
+    platform rather than the service team -- and, decisively, it is never a PASS.
+    Deleting the single negative case is the cheapest way to make a
+    disclose-on-everything fix look correct.
+    """
+    import yaml as _yaml
+
+    from evals.deterministic import Scorer, disclosure_sufficiency, tally
+    from evals.run_evals import summarise
+    from pave import verdict as verdict_mod
+
+    out = _flag_values(argv, "--out")
+    answers_paths = _flag_values(argv, "--answers")
+    consumed = set(answers_paths) | {out[0] if out else None}
+    positional = [a for a in argv if not a.startswith("--") and a not in consumed]
+    service = pathlib.Path(positional[0]).name if positional else "highlights-agent"
+
+    pack = ROOT / "services" / service / "evals" / "disclosure" / "cases.yaml"
+    if not pack.is_file():
+        _die(f"evals disclosure: no pack at {pack.relative_to(ROOT)}. A lane that reported "
+             f"success over a pack that is not there would report success after somebody "
+             f"deletes it.", gate_mod.EXIT_CONTRACT)
+    cases = _yaml.safe_load(pack.read_text(encoding="utf-8")) or []
+    catalog = json.loads((ROOT / "data" / "catalog.json").read_text(encoding="utf-8"))
+
+    notes, scores = [], {}
+    sufficiency = disclosure_sufficiency(cases)
+    if not sufficiency.passed:
+        notes.append(sufficiency.detail)
+
+    if not answers_paths:
+        _die("evals disclosure: --answers is required. A lane handed no run cannot report "
+             "anything about one.", gate_mod.EXIT_CONTRACT)
+
+    missing = [p for p in answers_paths if not pathlib.Path(p).is_file()]
+    decided, results = "INFRA", []
+    if missing:
+        notes.append(f"committed run(s) missing {missing}")
+    elif not sufficiency.passed:
+        # INFRA already; the run is not scored against a pack that cannot decide.
+        pass
+    else:
+        scorer = Scorer(root=ROOT)
+        loaded = [json.loads(pathlib.Path(p).read_text(encoding="utf-8")) for p in answers_paths]
+        per_sample = [scorer.score_suite(cases, answers, catalog) for answers in loaded]
+        results, _ = (summarise(per_sample, [c["id"] for c in cases])
+                      if len(per_sample) > 1 else (per_sample[0], {}))
+        counts = tally(results)
+        scores = {"passed": counts["passed"], "total": len(cases),
+                  "failed": counts["failed"], "infra": counts["infra"]}
+        if counts["infra"]:
+            decided = "INFRA"
+            notes.append(f"{counts['infra']} case(s) established nothing")
+        else:
+            decided = "FAIL" if counts["failed"] else "PASS"
+        for result in results:
+            for assertion in result.asserts:
+                if not assertion.passed:
+                    # The failing assert, named per case. Row 1a's chain ends
+                    # here, and a verdict recording only a count would leave the
+                    # last link of it to whoever wrote the journal.
+                    notes.append(f"{result.id}: {assertion.kind} — {assertion.detail}")
+
+    if out:
+        verdict_mod.write(out[0], verdict_mod.build(
+            service=service, surface="agent", suite="disclosure", layer="L3",
+            verdict=decided, fail_closed=True, scores=scores, notes=notes,
+            artifacts=list(answers_paths)))
+
+    for line in notes:
+        _emit(f"    {line}")
+    _emit(f"[pave evals disclosure] {service}: {decided} — "
+          + (", ".join(f"{k} {v}" for k, v in sorted(scores.items())) or "nothing scored"))
+    return 0 if decided == "PASS" else 1
 
 
 def adversarial_backfill_asked(argv=()):
@@ -1502,6 +1632,10 @@ def main(argv):
     cmd, *rest = argv
     if cmd == "rules" and rest[:1] == ["validate"]:
         rules_validate()
+    elif cmd == "rules" and rest[:1] == ["trace"]:
+        rules_trace(rest[1:])
+    elif cmd == "rules":
+        _die(f"rules: expected `validate` or `trace`, got {rest}", gate_mod.EXIT_CONTRACT)
     elif cmd == "new":
         # Was a `_stub` advertising `gate.yml`, CODEOWNERS, "wire SDK" and "enable
         # tracing". M05 builds no per-service lane, ADR-013 records that CODEOWNERS
@@ -1513,8 +1647,10 @@ def main(argv):
         return evals_run(rest[1:])
     elif cmd == "evals" and rest[:1] == ["dryrun"]:
         return evals_dryrun_cmd(rest[1:])
+    elif cmd == "evals" and rest[:1] == ["disclosure"]:
+        return evals_disclosure(rest[1:])
     elif cmd == "evals":
-        _stub("evals", f"unknown evals subcommand {rest}; try `run` or `dryrun`")
+        _stub("evals", f"unknown evals subcommand {rest}; try `run`, `dryrun` or `disclosure`")
     elif cmd == "adversarial" and rest[:1] == ["run"]:
         return adversarial_run(rest[1:])
     elif cmd == "adversarial" and rest[:1] == ["backfill-asked"]:

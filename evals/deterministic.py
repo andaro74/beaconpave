@@ -203,6 +203,68 @@ class Scorer:
         ]
         return AssertResult("entitlement", not diffs, "; ".join(diffs))
 
+    #: What `ai_disclosure` may demand. Two values, and the pair is the assert:
+    #: one half alone lets a fix that discloses on every answer pass everything
+    #: (ADR-048 decision 3), which is the PR #13 defect in a fourth place.
+    AI_DISCLOSURE_MODES = ("required", "not_required")
+
+    def ai_disclosure(self, answer: dict, mode: str) -> AssertResult:
+        """MER-AI-0001's executable control (M09; ADR-075 decision 3).
+
+        `required` -- the key is PRESENT and holds a non-empty, non-whitespace
+        string. `not_required` -- the key is PRESENT and is `null`.
+
+        **Both test key presence rather than truthiness, and that is the whole of
+        the negative half's value.** `ai_disclosure` is not in
+        `answer.schema.json`'s `required` list and the answer object is
+        `additionalProperties: false`, so an answer that never emits the key at
+        all validates cleanly. A negative assert written as *no disclosure text
+        is present* would therefore be satisfied by a model that simply stopped
+        emitting the field -- a vacuous pass, and one that reads as the fix
+        working. `not_required` demands the agent say *no disclosure is owed
+        here* rather than say nothing. The vacuity plant SPEC/09 constraint 7
+        names is exactly this, with ADR-075 amendment 1 fact 9's schema reading
+        behind it.
+
+        A whitespace-only string fails `required` for the same reason: `" "` is
+        a present key carrying no disclosure, and a control satisfied by it is
+        measuring the field's existence rather than the disclosure.
+
+        An unknown mode is a FAILURE, never a skip. `test_contracts` holds the
+        vocabulary, but a scorer that silently ignored a mode it did not know
+        would report a passing case that checked nothing -- the shape the
+        `unknown assert` branch in `score_case` exists to refuse, one level in.
+        """
+        if mode not in self.AI_DISCLOSURE_MODES:
+            return AssertResult(
+                "ai_disclosure", False,
+                f"unknown mode {mode!r}; expected one of {list(self.AI_DISCLOSURE_MODES)}",
+            )
+        present = "ai_disclosure" in answer
+        value = answer.get("ai_disclosure")
+        if mode == "required":
+            if not present:
+                return AssertResult("ai_disclosure", False,
+                                    "the answer carries no `ai_disclosure` key at all")
+            if not isinstance(value, str) or not value.strip():
+                return AssertResult("ai_disclosure", False,
+                                    f"`ai_disclosure` is {value!r}; MER-AI-0001 requires "
+                                    f"disclosure text on AI-authored editorial copy")
+            return AssertResult("ai_disclosure", True)
+        if not present:
+            return AssertResult(
+                "ai_disclosure", False,
+                "the answer carries no `ai_disclosure` key at all. This case requires the "
+                "key PRESENT and null — an omitted key is not a recorded 'no disclosure "
+                "owed', and accepting it would let a model satisfy the negative half by "
+                "dropping the field (the field is not `required` in the schema)",
+            )
+        if value is not None:
+            return AssertResult("ai_disclosure", False,
+                                f"`ai_disclosure` is {value!r}; this case carries no "
+                                f"AI-authored editorial copy and must not disclose")
+        return AssertResult("ai_disclosure", True)
+
     def entitlement_source(self, answer: dict, expected: str) -> AssertResult:
         """Evaluated for the record; **not scored** until M06 (ADR-016).
 
@@ -394,6 +456,8 @@ class Scorer:
                     results.append(self.cited_titles_empty(answer, value))
                 elif key == "entitlement":
                     results.append(self.entitlement(answer, value))
+                elif key == "ai_disclosure":
+                    results.append(self.ai_disclosure(answer, value))
                 elif key == "entitlement_source":
                     # Evaluated for the record, kept out of the score (ADR-016).
                     deferred.append(self.entitlement_source(answer, value))
@@ -424,6 +488,41 @@ class Scorer:
 
     def score_suite(self, cases: list, answers: dict, catalog: dict) -> list[CaseResult]:
         return [self.score_case(c, answers.get(c["id"]), catalog) for c in cases]
+
+
+def disclosure_sufficiency(cases: list) -> AssertResult:
+    """Whether the disclosure pack still has both halves (ADR-048 decision 4).
+
+    **A pack that has gone vacuous must not be able to do it silently.** The
+    positive half alone is passed by a fix that emits a disclosure on every
+    answer -- ADR-048 decision 3's sentence exactly, and the PR #13 defect this
+    repository has now met in three places. The negative half alone is passed by
+    a system that never discloses anything, which is the state the pack was
+    written to find the service in.
+
+    So the cheapest way to make a disclose-on-everything fix look correct is to
+    delete the one negative case, and the cheapest way to make a
+    disclose-on-nothing service look correct is to delete the positive ones.
+    Both are one line. This returns FAIL for either, and the caller reports
+    **INFRA** rather than FAIL -- the pack could not establish anything, which
+    pages the platform rather than the service team, and is never a PASS.
+
+    Counts MODES, not cases: five cases all carrying `required` is a pack with
+    one half, however many rows it has.
+    """
+    modes = {mode for case in cases
+             for assertion in case.get("asserts") or []
+             for key, mode in assertion.items() if key == "ai_disclosure"}
+    missing = [m for m in Scorer.AI_DISCLOSURE_MODES if m not in modes]
+    if missing:
+        return AssertResult(
+            "disclosure_sufficiency", False,
+            f"the pack carries no case asserting {', '.join(repr(m) for m in missing)}; "
+            f"a pack with one half passes against nothing (ADR-048 decision 3). "
+            f"Found modes: {sorted(modes) or 'none'} over {len(cases)} case(s)",
+        )
+    return AssertResult("disclosure_sufficiency", True,
+                        f"{len(cases)} case(s), both halves present")
 
 
 def suite_latency(answers: dict, ceiling_ms: int | None) -> AssertResult:

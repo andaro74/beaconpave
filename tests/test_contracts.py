@@ -249,6 +249,12 @@ ASSERT_KEYS = {
     "entitlement",
     "entitlement_source",
     "budget",
+    # M09. MER-AI-0001's executable control, used by the `disclosure` suite and
+    # by no golden case -- asserted below, because a golden case carrying it
+    # would move the goldens instrument inside the milestone that disposes the
+    # rule (SPEC/09: every instrument digest but the judge's is what PR 1 left
+    # it).
+    "ai_disclosure",
 }
 
 

@@ -3,9 +3,28 @@
 **Owning seat:** AI Quality. Two-key (`Two-Key-Disposition: ai-quality`) on every
 change, enforced by the `two-key` check.
 
-25 cases. `disclosure-004` is deliberately absent — M07 adds it as the
-MER-AI-0001 disposition, which is claim 6. The gap in the numbering is the
-reservation.
+**25 cases, and the denominator does not move.** Every recorded score is
+reported as `N/25`, and a suite that quietly gains a case makes a percentage
+change with nothing about any system under test changing. A test counts this
+file and refuses a `disclosure`-prefixed id in it **by name**, so folding a
+disposition's pack in later is a red check rather than a moved number.
+
+### `disclosure-004`'s reservation, withdrawn
+
+This file used to say `disclosure-004` was *deliberately absent* here, that M07
+would add it as the MER-AI-0001 disposition, and that *the gap is the
+reservation*. **Those sentences are withdrawn.** M07 is the guardrail milestone
+and stopped meaning that three renumberings ago, and a reservation that outlives
+the milestone it names is a stated protection that is absent — which CLAUDE.md
+ranks worse than a missing one, because it stops anyone looking for the real one.
+
+**A rule disposed into an eval pack gets its own suite, not a case in this
+file.** That pack lives at [`../disclosure/cases.yaml`](../disclosure/cases.yaml)
+with its own README, its own verdict and its own history entry, so disposing a
+rule never moves this file's denominator. The id `disclosure-004` is **not
+reused** there — that pack numbers from 101 — so that no reader joining the two
+files can conclude the reserved case was quietly filled. The gap in this file's
+numbering is now just a gap.
 
 ## The rule that matters most
 

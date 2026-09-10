@@ -148,7 +148,22 @@ EVIDENCE_REVISIONS: dict[str, list[tuple[str, str, str]]] = {
 #: tightening, and vacuous on every committed entry -- none carries `rereads` --
 #: so top-level `required` is untouched at five and
 #: `test_the_committed_entries_still_validate` holds. Three keys.
-SCHEMA_DIGEST = "48360fc95cf968c329e4961889bda16625080632d3e45be05a57e7197decd129"
+#: **Moved again at M09 PR 2 (ADR-075 decision 4)**, which adds `disclosure` to
+#: the `suite` enum so that MER-AI-0001's eval pack can record a row of its own.
+#:
+#: **This one IS a loosening, and it is the first of the four that is.** The
+#: three moves above are additions and tightenings; an enum gaining a member
+#: makes the schema accept a document it used to refuse, which is exactly the
+#: direction this pin exists to make somebody defend. It is defended: `arm` means
+#: *which system produced these answers* over one case set and
+#: `evals/comparators.json` carries `arms_expected` on that meaning, so a second
+#: case set is a SUITE or the word means two things (ADR-053's inheritance,
+#: refused). Top-level `required` is untouched at five, every committed entry
+#: validates unchanged -- none carries `suite: "disclosure"` -- and the
+#: suite-conditional `if/then` blocks are keyed on `goldens` and `adversarial`,
+#: so none of them fires on the new member and none of their requirements is
+#: weakened. Three keys, in the diff that moves the schema.
+SCHEMA_DIGEST = "303567571ea3f9ca962b9b23241ba4ad92d4cf969e2d876c484526c07aa3a48b"
 
 #: The keys a `rereads` object carries, all three required (ADR-073 amendment 4).
 #: `evals/history/schema.json` says the same; this says it again for a row that

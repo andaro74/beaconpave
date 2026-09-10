@@ -1071,3 +1071,173 @@ decision that the disclosure pack is its own suite; the goldens denominator at 2
 fix is caller-side, which was checked and holds. The refusal bands. The order of
 the debts against the run. Constraints 1–11, except constraint 4, which the rename
 takes with it. The M09b hand-off in decision 5 §5. The cap — six, and spent here.
+
+## Amendment 2 — PR 2's decision record: *no immortal rules* built, *orphan rule* defined, and three findings of its own
+
+**Written 2026-09-09 in PR 2's own diff, and it is owed rather than offered.**
+`rules/schema.json` puts PR 2 under `^rules/`, which is `(legal-sp, security)`
+with `requires_adr=True`, and `adr_records` reads the **diff**, not the body: the
+PR must add substantive reasoning to a `docs/adr/ADR-NNN-*.md` file in its own
+diff or the two-key job is red as planned (amendment 1 fact 7, ask 7). This is
+that record. Zero model calls; no deploy; no rule disposed; no run.
+
+### 1. *No immortal rules*: `source.effective` is required
+
+ADR-053 decision 12 left this open and named the plant: `effective` deleted,
+`status: enforced`, `review_by: "2099-01-01"` — a literally immortal enforced
+rule, **2079 passed**. The field was optional and the review-by assertion in
+`tests/test_contracts.py` was guarded `if effective:`, so a rule that simply
+omitted the field was never examined.
+
+`source.required` becomes `["type", "ref", "effective"]`. ADR-053's plant is now
+refused **by name at the missing key**, and `tests/test_rules_trace.py` runs that
+exact plant rather than a paraphrase of it. The committed registry carries
+`effective: 2026-10-01` and validates unchanged.
+
+**What this does not close, stated rather than claimed away.** The review-by
+assertion still exempts `status: enforced`, so an *enforced* rule may still carry
+a distant `review_by` — the other half of ADR-053's A14 finding. Bounding it needs
+a horizon that is Legal/S&P's to choose, and inventing one here would be this
+repository's own *"a remedy built against the plant you were shown"*. The gap is
+asserted as live by `test_the_enforced_clock_exemption_is_recorded_as_still_open`
+and recorded in the schema's own description, so *no immortal rules* is not read
+as fully discharged.
+
+### 2. *Orphan rule*, defined in one sense
+
+ADR-053 refused to hand M07 the term as it stood: *"the term needs defining
+first: the schema's own `description` uses a different sense from the
+ref-resolution one"*, and a name meaning two things lets the cheap half be closed
+while the expensive half is reported as done.
+
+**The definition, and it is the schema's `description` word for word:**
+
+> An **orphan rule** is a rule whose disposition names an enforcing control — any
+> `controls[].type` other than `no-control` — whose `ref` does not resolve to a
+> path in this tree. The rule is written down, the control is named, and the
+> control is not there.
+
+The other sense — a rule missing an owner, a disposition or a review-by date — is
+**real, enforced, and no longer called orphaning**. It is what `required` and
+`minItems` are for. Renaming it is the whole point: two senses under one word is
+how the cheap half gets closed and reported as the whole.
+
+**The schema carries the definition; the check carries the enforcement.** JSON
+Schema cannot resolve a path, so `pave/rules.py::orphan_rules` implements the
+sentence and `pave rules validate` runs it beside the schema validation — one
+command, both halves of G7. A test asserts the schema's description and the
+check's docstring state the same definition, so they cannot drift into two senses
+again.
+
+**A plant per sense**, which is what makes the definition load-bearing:
+
+| sense | plant | result |
+|---|---|---|
+| orphaning | `controls[0].ref` → a path that does not exist | red, and the message says *orphan rule* |
+| missing fields | `owner_seat` deleted | red **by the schema**, and the message does **not** say *orphan rule* |
+
+The second assertion is the one that proves the word stopped straddling.
+
+**Vacuity, recorded rather than discovered.** `orphan_rules` bites on **no
+committed rule today**: `MER-AI-0001`'s only control is an explicit reasoned
+`no-control` record, which the schema names as a permitted disposition and which
+is emphatically not orphaning. The check is exercised on planted registries under
+`tmp_path`, so the *test* is not vacuous while the *live data* gives it nothing to
+refuse, and it starts biting at PR 4 — the first time an enforcing ref exists.
+The deletability audit reports it as silent-on-live-data for that reason, and the
+file says so in its own docstring rather than leaving the audit to say it.
+
+**The fallback is recorded as armed and unspent.** Taking PR 1b spent the cap, so
+*Bounded*'s fallback fired by name: *no orphan rules* would re-date to M09b. PR 2
+built it anyway, because the definition was ADR-shaped and this record is one PR 2
+owed regardless — the definition rode a document that had to be written. That is
+recorded here rather than treated as the fallback not having fired.
+
+### 3. Three findings of PR 2's own, and the operator's dispositions
+
+Amendment 1's eleven asks all land in PR 2's diff. Three further findings arose
+from running the checks rather than from reading, and each is dispositioned.
+
+**F1, unscoped, fires on the negative case in every possible world.** As written
+it read *any disclosure case passes before the fix*. The negative case asserts the
+field is **not** disclosed, and the service already does not disclose — all 56
+committed M08b samples that carry the key carry it null — so it passes run A
+whatever the system does, and F1 would close the milestone red by construction.
+The plan-walk table already said the narrower thing. **Disposition: F1 is scoped
+to the positive half in all three sites.** Amendment 1 §5 resolved the same class
+of contradiction for the count; this is the same defect one falsifier over, and it
+was not caught there.
+
+**The `disclosure-004` reservation is in FOUR sites, not the two decision 4
+named.** The fourth is `templates/agent-tools/evals/golden/README.md.tmpl`, which
+every service that does not exist yet inherits, and which
+`tests/test_scaffold.py`'s round-trip check couples byte for byte to
+`evals/golden/README.md`. It is arguably the worst of the four: the other three
+are stale text about one rule, and this one hands the stale reservation to every
+future team. Found by running the round-trip check rather than by reading.
+**Disposition: the README and its template are withdrawn together in PR 2**, since
+the coupling admits no other order.
+
+**PR 4's Definition-of-done clause was unreachable, and amendment 1 fact 3
+under-counted the records.** Fact 3 names `milestones/M08/context-census.json` as
+the record the fix moves. The census digests `gateway_client.py` **and**
+`answer.schema.json`; `milestones/M08/residual-differential.json` digests the same
+input list; and `milestones/M08b/fresh-join.json` digests the census record
+itself. So the fix moves **three** records, one of them under `milestones/M08b/`,
+which the Definition of done forbade outright with no conditional branch —
+unreachable in PR 4 whatever happens. Amendment 1 §2 found four clauses of this
+shape; this is the fifth, and it is the one that decides whether PR 4 can merge.
+**Disposition: the clause is amended to name all three records and the PR that
+moves them**, and the same cascade dates the two remaining reservation sites to
+PR 4 rather than PR 2 — `answer.schema.json` additionally because it is
+model-facing, and constraint 2 reserves a change to what the model sees to the
+fix.
+
+### 4. Two consequences the plan did not price, both from mechanisms working
+
+**A new seat in `twokey.RULES` forced itself onto the seat-set pin.** G5's router
+gets its first rule, `(data-governance, security)` — the first rule in this
+repository to name that seat — and
+`test_this_file_is_itself_on_a_rule_that_carries_securitys_key` went red by name
+until `tests/test_twokey_seats.py`'s own rule collected `data-governance` too.
+That file's job is to hold every rule's seat set, so every seat whose key it pins
+must sign its removal. ADR-053 met this exactly once before, when `legal-sp`
+arrived the same way, and called it *the first time in this repository that a seat
+has been added because a check demanded it rather than because an ADR argued for
+it*. **This is the second**, and it is recorded as an output of the mechanism
+rather than a preference expressed here.
+
+**A scaffolded team's onboarding seat count moved 3 → 5.**
+`^services/[^/]+/gateway_client\.py$` is a path pattern for the goldens producer's
+reason, and `pave new` renders that file — so
+`test_it_renders_no_probe_runner`'s policy (a scaffolded file must not land on a
+rule the team cannot satisfy) went red. `gateway_client.py` joins the exception
+list beside `pave.manifest.yaml`, and the reasoning is the manifest's one field
+over: the manifest declares what a service **is**, and `TOOL_SYSTEM` declares what
+the model **reads**. It is not the `run_probes*.py` case that policy was written
+about — that file is omitted from the scaffold entirely, which a client cannot be.
+`onboarding_seats` computes the count from `twokey.RULES` at print time precisely
+so the number follows the rules, and it did. This is **not** the over-statement
+ADR-047 refused: over-stating meant naming seats the rendered files do not
+trigger; naming a seat they do trigger is the count being correct. **It is put to
+the Service Team seat as a live question rather than settled here**, because it
+changes what a new team must do.
+
+### 5. The comparator pin comes out
+
+Amendment 1 ask 9 offered two branches. **Taken: it comes out**, and re-dates to
+PR 4b. `pave/cli.py` calls `_suite_pin(pinned, service, "goldens")` and
+`_suite_pin(…, "adversarial")` — two literals, no generic suite lane — and a
+comparator is *what committed runs score today*, of which there are none for this
+suite until PR 4. A pin added at PR 2 would pin nothing and be read by nothing,
+which is ADR-048's T1 in a new place. Building the lane to read a pin whose value
+had to be invented would be worse than not building it.
+
+### What this amendment does not change
+
+The claim; F2, F3, F4 and F5 as amendment 1 left them, and F1 except for its
+scope. Decisions 1–4 and 6. The disclosure pack as its own suite; the goldens
+denominator at 25; the cap at six, spent. The M09b hand-off in decision 5 §5. The
+`p95_ms` answer, which is amendment 1 §4's and is executed rather than restated —
+ADR-014 amendment 4 carries the withdrawal and one correction to how the
+condition's unsatisfiability was described.

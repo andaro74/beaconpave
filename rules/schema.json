@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://beaconpave/rules/schema.json",
   "title": "Rule Record (Rules Registry)",
-  "description": "Every rule has an owner, a source, a disposition into an enforcing control, and a review-by date. No orphan rules, no immortal rules (G7). This is the regdelta pattern: external change -> named owner -> disposition -> executable control.",
+  "description": "Every rule has a named owner, a source, a disposition into an enforcing control, and a review-by date. This is the regdelta pattern: external change -> named owner -> disposition -> executable control.\n\n**G7's two halves, and what each word means here.**\n\n*No immortal rules*: `review_by` is required, and so is `source.effective`. Until M09 `effective` was optional and the review-by assertion in `tests/test_contracts.py` was guarded `if effective:`, so a rule that simply omitted the field was never examined -- ADR-053 planted `effective` deleted, `status: enforced`, `review_by: \"2099-01-01\"` and measured 2079 passed on a literally immortal enforced rule. Requiring the field closes that door and leaves the other one ADR-053 named OPEN: the review-by assertion still exempts `status: enforced`, so an enforced rule may still carry a distant `review_by`. Bounding that needs a horizon Legal/S&P chooses, and it is recorded as open rather than reported as done (ADR-075 amendment 2).\n\n*No orphan rules* means ONE thing, and this sentence is the definition: **an orphan rule is a rule whose disposition names an enforcing control -- any `controls[].type` other than `no-control` -- whose `ref` does not resolve to a path in this tree.** The rule is written down, the control is named, and the control is not there.\n\nThe term used to cover a second sense too: a rule missing an owner, a disposition or a review-by date. That sense is real and it is enforced -- by `required` below and by `disposition.controls`'s `minItems` -- but it is NOT called orphaning, because a term meaning two things lets the cheap half be closed while the expensive half is reported as done, which is the inheritance ADR-053 refused to hand M07. Missing fields are refused by this schema; orphaning is refused by `pave/rules.py::orphan_rules`, which JSON Schema cannot express because it cannot resolve a path. The schema carries the definition, the check carries the enforcement, and they say the same sentence (ADR-075 amendment 2).",
   "type": "object",
   "required": ["rule", "title", "source", "owner_seat", "severity", "disposition", "status", "review_by"],
   "properties": {
@@ -10,11 +10,11 @@
     "title": { "type": "string" },
     "source": {
       "type": "object",
-      "required": ["type", "ref"],
+      "required": ["type", "ref", "effective"],
       "properties": {
         "type": { "type": "string", "enum": ["regulation", "contract", "union", "incident", "red-team", "policy"] },
         "ref": { "type": "string" },
-        "effective": { "type": "string", "format": "date" }
+        "effective": { "type": "string", "format": "date", "description": "Mandatory from M09 (ADR-053's owe, ADR-075 amendment 2): the date the source becomes binding. Required rather than optional so that a rule cannot switch off its own review clock by omitting the field it is checked against." }
       }
     },
     "owner_seat": {
@@ -31,7 +31,7 @@
         "controls": {
           "type": "array",
           "minItems": 1,
-          "description": "At least one enforcing control, or an explicit reasoned 'no-control' record",
+          "description": "At least one enforcing control, or an explicit reasoned 'no-control' record. Every `ref` on a control whose `type` is not `no-control` must resolve to a path in this tree; one that does not is an ORPHAN RULE, in this file's one sense of that term (see the top-level description). JSON Schema cannot check it, so `pave/rules.py::orphan_rules` does.",
           "items": {
             "type": "object",
             "required": ["type", "ref"],

@@ -655,3 +655,89 @@ ADR's M02 amendment), and moving it moves no verdict.
   amendment 2 and the original derivation put them. No case moves.
 - **The M07 files' verdicts do not move.** The latency line at the new gate is
   the one predicted above; the count and the join are what M08 pinned.
+
+## Amendment 4 (M09 PR 2): the stability sentence is withdrawn, and the gate is a fixed ceiling with a recorded derivation
+
+**Amendment 3's premise failed, and this amendment retires the sentence rather
+than the number.** That amendment derives `p95_ms` from the mandated shape
+*because that shape's tail is stable across runs*, and it wrote down what would
+count as the premise failing: *"A mandated-shape p95 over 5200 is latency drift
+in the shape itself — a dated finding for Platform Engineering — and the rule's
+premise, that the mandated shape's tail is stable across runs, is what failed."*
+
+M08b measured **3769 → 5241**, 1.39×, 41 ms over a ceiling derived from the
+earlier figure. So the sentence is what failed, and it is **withdrawn**.
+
+**`gates.budgets.p95_ms` stays 5200.** SPEC/09's condition — the gate moves only
+if the point ADR-014's unchanged rule derives from the most recent fresh
+mandated-shape population still leaves the run that population came from OVER the
+gate — was executed by `tests/test_m09_p95_condition.py` over M08b's answer files,
+through `context_census.mandated_calls()` and the scorer's own percentile:
+
+| population | n | p95 | floor 1.15× | roof 1.60× | midpoint | point |
+|---|---|---|---|---|---|---|
+| mandated shape (**the rule**) | 38 | **5241** | 6027.15 | 8385.60 | 7206.375 | **7200** |
+| as-run ≤3 call | 58 | 5683 | 6535.45 | 9092.80 | 7814.125 | 7800 |
+| pooled | 70 | **6633** | 7627.95 | 10612.80 | 9120.375 | 9100 |
+| above mandate | 32 | 7223 | 8306.45 | 11556.80 | 9931.625 | 9900 |
+| ≥4 call | 12 | 8437 | 9702.55 | 13499.20 | 11600.875 | 11600 |
+
+**The condition holds under none of the five.** n = 38 at 5241 and n = 70 at 6633
+reproduce amendment 3's own figures, so the population read here is the one M08b
+read.
+
+### The finding that outlives the outcome
+
+Amendment 3 recorded the fact that made an in-view derivation survivable: *"The
+rule takes the only population under which the run in view fails the gate."*
+**Here there is no such population** — every one of the five reads *within* the
+point derived from it. The rule's own selection criterion has no solution on this
+data, which is what a failed premise looks like when you try to re-apply the rule
+that rested on it. That is a stronger statement than *the condition did not fire*,
+and it is why the answer is **the gate does not move** rather than *the gate has
+not moved yet*.
+
+### What the gate now is, described honestly
+
+**A fixed ceiling with a recorded derivation, not a share-of-population
+instrument.** 5200 is the number amendment 3 produced from M07's forty
+mandated-shape samples (p95 3769, band 4334.35–6030.4, midpoint 5182.375), and
+`tests/test_budget_derivation.py` still asserts exactly that and stays green. What
+it is no longer entitled to claim is that the population it was derived from is
+stable enough for the number to mean *the permitted 5% tail*. Until a fresh
+mandated-shape population re-establishes that, the gate is a line the service is
+measured against, and a breach is read as a finding rather than as a share.
+
+**The re-derivation is dated to `09c`** — the first scheduled milestone that both
+re-runs the goldens and does not read its own p95 against a number it just chose.
+Not M09: M09's own goldens control run produces a fresh mandated-shape population
+inside the milestone, so moving the gate at PR 2 on M08b's population and then
+reading PR 4b's run against it is the in-view hazard ADR-073 amendment 1 refused,
+with a shorter fuse.
+
+### One correction to how the condition was described
+
+ADR-075 amendment 1 §4 calls the same-population reading *unsatisfiable by
+construction*, on the ground that the point is `1.375·p95`, strictly above the
+p95 it came from. That is **unconditional on the unrounded midpoint** and
+**bounded on the derived point**: rounding to the nearest 100 can put the point at
+or below its own p95 for small values — p95 = 1 derives 0, and p95 = 100 derives
+100, equal rather than above. The guarantee needs `0.375·p95 > 50`, i.e.
+`p95 ≥ 134`. Every latency this repository has recorded is three orders of
+magnitude above that floor, so nothing here changes; the property was asserted
+more broadly than it holds and both halves are now swept by the test. A property
+stated wider than its bound is a stated protection that is absent, which is worth
+one paragraph.
+
+### What does not move
+
+- **`gates.budgets.p95_ms` stays 5200**, so `services/highlights-agent/pave.manifest.yaml`
+  is untouched and **neither record digesting it is re-produced** —
+  `milestones/M08/context-census.json` and `milestones/M08b/fresh-join.json` both
+  carry it in `inputs_sha256`, and SPEC/09's Definition of done resolves to its
+  stricter branch because of this.
+- **`tokens_in` stays 7700**, `tokens_out`, `max_ms` and every tier stay where
+  amendment 2 and the original derivation put them. No case moves.
+- **`tests/test_budget_derivation.py` is unchanged and green.** It asserts 5200
+  from M07's population and `gates.p95_ms == produced`, and neither statement is
+  affected by withdrawing the premise's stability claim.

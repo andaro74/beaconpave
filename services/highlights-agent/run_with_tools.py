@@ -386,6 +386,18 @@ def main(argv=None) -> int:
                              "the M02 value so committed workflows write the keys they "
                              "wrote; a stage run names its own so a same-day re-run cannot "
                              "overwrite a discarded run's records (M07 PR 4)")
+    # **The default is the golden file, byte for byte.** M09's disclosure suite is a
+    # second case set through the SAME producer rather than a second producer: this
+    # file is on `^services/[^/]+/run_with_tools\.py$` at (platform-eng, ai-quality)
+    # and writes every goldens evidence file, so a new runner beside it would be a
+    # fresh file deciding what a recorded run contains on no key at all -- ADR-037's
+    # finding, which this repository has now paid for in four places. The flag adds a
+    # path and changes nothing else; `tests/test_m09_disclosure.py` pins that the
+    # default resolves to the golden pack.
+    parser.add_argument("--cases", default=str(CASES), metavar="PATH",
+                        help="the case file to run. Defaults to the golden set, so every "
+                             "committed goldens workflow runs exactly as it did; M09's "
+                             "disclosure pack passes its own path (SPEC/09 PR 2)")
     parser.add_argument("--preflight-only", dest="preflight_only", action="store_true",
                         help="print the deployed function, both guardrail versions read "
                              "from its configuration, the bundle digests and the source "
@@ -395,7 +407,18 @@ def main(argv=None) -> int:
     if args.k < 1:
         parser.error(f"k={args.k}; a case needs at least one sample")
 
-    cases = yaml.safe_load(CASES.read_text(encoding="utf-8"))
+    case_file = pathlib.Path(args.cases)
+    if not case_file.is_file():
+        # Refusal, not an empty run. A missing case file that produced zero cases
+        # would write an answer file recording that nothing was asked, and every
+        # assertion about it would pass -- `rules_validate`'s empty-registry
+        # argument, one directory over.
+        parser.error(f"--cases {args.cases}: no such file. A run over no cases establishes "
+                     f"nothing and must not write one.")
+    cases = yaml.safe_load(case_file.read_text(encoding="utf-8"))
+    if not cases:
+        parser.error(f"--cases {args.cases}: holds no cases. A run over an empty pack "
+                     f"answers every question about it and measures none of them.")
     if args.only:
         cases = [c for c in cases if c["id"] == args.only]
         if not cases:
