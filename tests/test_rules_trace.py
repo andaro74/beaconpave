@@ -191,10 +191,33 @@ def test_a_no_control_record_is_not_orphaning():
 
 
 def test_a_ref_escaping_the_repository_does_not_resolve(tmp_path):
-    """`../../etc/hosts` exists on most machines, and a ref that resolved outside
-    the tree would make every rule non-orphaned by pointing away from it."""
-    directory = _registry(tmp_path, _disposed("../../../etc/hosts"))
-    assert rules.orphan_rules(directory, ROOT)
+    """A ref that resolved outside the tree would make every rule non-orphaned by
+    pointing away from it.
+
+    **The target is created, and that is the whole of the fix.** The first version
+    used `../../../etc/hosts`, which from this root resolves to a path that does
+    not exist — so it measured *the file is not there* rather than *the guard
+    refused it*, and deleting the containment check entirely was **silent at 4124
+    passed** (Security seat, round 1). With the guard gone, a ref of
+    `../../../pave/gate.py` — which does exist, outside the worktree — reported no
+    orphan at all."""
+    outside = tmp_path / "outside.yaml"
+    outside.write_text("[]", encoding="utf-8")
+    assert outside.exists() and ROOT.resolve() not in outside.resolve().parents, (
+        "the plant is inside the tree, so it cannot exercise the containment guard")
+
+    # A ref that climbs out of the root and lands on a file that IS there.
+    import os
+    escape = os.path.relpath(outside.resolve(), ROOT.resolve()).replace("\\", "/")
+    assert escape.startswith(".."), escape
+    assert not rules._resolves(escape, ROOT), (
+        "a ref resolving to an existing path outside the repository root was accepted. "
+        "Every rule can then be made non-orphaned by pointing away from the tree.")
+    assert rules.orphan_rules(_registry(tmp_path, _disposed(escape)), ROOT), (
+        "`orphan_rules` did not flag a control ref that escapes the tree")
+
+    # and the in-tree control: a path that exists and does not escape
+    assert rules._resolves(PACK_REF, ROOT)
 
 
 def test_rules_validate_reports_both_halves(tmp_path, monkeypatch, capsys):
@@ -277,7 +300,20 @@ def test_a_broken_ref_is_red_and_the_reader_supplies_no_step(tmp_path):
     assert not [s for s in chain.steps if s.kind == "case"], (
         "the reader reached cases through a ref that does not resolve — it supplied the "
         "step itself, which makes a broken disposition render like a working one")
-    assert "gone.yaml" in rules.render(chain)
+
+    # **The RENDER must name the broken link, not merely report a broken chain.**
+    # Stripping the `<--` marker, every step detail and every `[BROKEN]` line was
+    # SILENT at 4124 passed (Security seat, round 1): the chain rendered as four
+    # clean lines plus NOT RESOLVED, with no indication of which link failed. The
+    # only assertions were `"gone.yaml" in render(...)`, which the control label
+    # supplies regardless, and the trailer.
+    rendered = rules.render(chain)
+    assert "gone.yaml" in rendered
+    assert "[BROKEN]" in rendered, (
+        "the render no longer prints the defect line, so a reader is told the chain is "
+        "broken and not where")
+    assert "does not resolve" in rendered, "the failing step lost its detail"
+    assert "<--" in rendered, "the marker that points at the failing step is gone"
 
 
 def _planted_tree(tmp_path: pathlib.Path, pack: object | None, ref: str = PACK_REF) -> pathlib.Path:
@@ -295,23 +331,104 @@ def _planted_tree(tmp_path: pathlib.Path, pack: object | None, ref: str = PACK_R
     return tmp_path / "tree"
 
 
-def test_a_ref_that_resolves_to_something_that_is_not_a_pack_stops_the_walk(tmp_path):
-    """A directory, or a guardrail policy, or a Cedar policy: the ref resolves, so
-    this is **not** orphaning, and calling it that would send the reader to the
-    wrong link. The walk records how far it got and stops.
+def _typed(kind: str, ref: str, layer: str = "L3") -> dict:
+    rule = json.loads(json.dumps(COMMITTED))
+    rule["status"] = "enforced"
+    rule["disposition"]["decided_by"] = "legal-sp"
+    rule["disposition"]["controls"] = [{"type": kind, "ref": ref, "layer": layer}]
+    return rule
 
-    Not a defect either: a `guardrail` control is a legitimate disposition whose
-    further walk is M09b's."""
+
+def test_an_enforcing_control_of_another_type_resolves_and_does_not_exit_one(tmp_path):
+    """**Tool Owner, round 1 — dispatch on the declared TYPE, not the file
+    extension.**
+
+    The first version asked the filesystem what a control was. A `guardrail` or
+    `cedar_policy` disposition — enforcing, correctly recorded — produced an
+    unresolved step, so the chain read NOT RESOLVED with **zero defects** and
+    `pave rules trace` exited 1. Adding a second, genuinely stronger control
+    turned a chain that exits 0 into one that exits 1: **M09b would have made
+    claim 6's own command red by strengthening the control it reports on.**"""
+    root = _planted_tree(tmp_path, None)
+    policy = root / "platform" / "gateway" / "policy" / "disclosure.cedar"
+    policy.parent.mkdir(parents=True, exist_ok=True)
+    policy.write_text("forbid(principal, action, resource);", encoding="utf-8")
+    directory = _registry(tmp_path, _typed(
+        "cedar_policy", "platform/gateway/policy/disclosure.cedar", "L2"))
+    chain = rules.trace("MER-AI-0001", directory, root)
+    assert chain.resolved, chain.defects
+    assert not chain.defects
+    assert any(s.kind == "cedar_policy" for s in chain.steps)
+
+
+def test_a_two_control_disposition_resolves(tmp_path):
+    """The shape the committed rule's own header promises — the eval pack **and**
+    the gateway guardrail — and the shape ADR-075 gives M09b."""
+    root = _planted_tree(tmp_path, [{"id": "disclosure-101", "input": "x",
+                                     "asserts": [{"ai_disclosure": {"required": ["AI"]}}]}])
+    guard = root / "platform" / "gateway" / "policy" / "guardrail.json"
+    guard.parent.mkdir(parents=True, exist_ok=True)
+    guard.write_text("{}", encoding="utf-8")
+    rule = _typed("eval_pack", PACK_REF)
+    rule["disposition"]["controls"].append(
+        {"type": "guardrail", "ref": "platform/gateway/policy/guardrail.json", "layer": "L1"})
+    chain = rules.trace("MER-AI-0001", _registry(tmp_path, rule), root)
+    assert chain.resolved, chain.defects
+    assert [s.kind for s in chain.steps].count("case") == 1
+
+
+def test_a_control_declared_one_type_and_pointing_at_another_is_red(tmp_path):
+    """**The converse, and it is the worse half.**
+
+    `type: cedar_policy` pointing at the eval pack reported `RESOLVED` at exit 0
+    and printed the eval cases as the Cedar policy's chain — the `type` and
+    `layer` enums decorative in the one reader that claims to walk them. That is
+    G4's *a probe naming Cedar is not satisfied by a content filter*, one plane
+    over: a registry lookup reporting a chain it did not walk."""
+    root = _planted_tree(tmp_path, [{"id": "disclosure-101", "input": "x",
+                                     "asserts": [{"ai_disclosure": {"required": ["AI"]}}]}])
+    chain = rules.trace("MER-AI-0001", _registry(tmp_path, _typed(
+        "cedar_policy", PACK_REF, "L2")), root)
+    assert not chain.resolved
+    assert any("declared" in d and "eval pack" in d for d in chain.defects), chain.defects
+    assert not [s for s in chain.steps if s.kind == "case"], (
+        "the reader printed eval cases as this control's chain")
+
+
+def test_an_eval_pack_ref_that_is_not_a_case_file_is_red(tmp_path):
+    """The mirror: declared an eval pack, and the artifact is a directory."""
     root = _planted_tree(tmp_path, None)
     (root / "services" / "highlights-agent" / "evals" / "disclosure").mkdir(
         parents=True, exist_ok=True)
-    directory = _registry(tmp_path, _disposed("services/highlights-agent/evals/disclosure"))
-    chain = rules.trace("MER-AI-0001", directory, root)
+    chain = rules.trace("MER-AI-0001", _registry(tmp_path, _typed(
+        "eval_pack", "services/highlights-agent/evals/disclosure")), root)
     assert not chain.resolved
-    assert not chain.defects, chain.defects
-    stopped = [s for s in chain.steps if s.kind == "cases" and not s.resolved]
-    assert stopped and "not an eval pack" in stopped[0].detail
-    assert not [s for s in chain.steps if s.kind == "case"]
+    assert any("is declared an eval pack and is not one" in d for d in chain.defects)
+
+
+def test_binds_names_the_service_in_the_path_and_says_so_when_there_is_none(tmp_path):
+    """**Tool Owner, round 1: `_binds` hard-coded to `highlights-agent` was
+    invisible.** Every case used a `services/highlights-agent/...` ref, so a
+    reader that guessed the only deployed service passed the whole file — the
+    exact guess its own docstring refuses. Two refs it cannot guess from."""
+    root = _planted_tree(tmp_path, [{"id": "disclosure-101", "input": "x",
+                                     "asserts": [{"ai_disclosure": {"required": ["AI"]}}]}],
+                         ref="services/other-svc/evals/disclosure/cases.yaml")
+    chain = rules.trace("MER-AI-0001", _registry(tmp_path, _typed(
+        "eval_pack", "services/other-svc/evals/disclosure/cases.yaml")), root)
+    binds = [s for s in chain.steps if s.kind == "binds"]
+    assert binds and binds[0].ref == "other-svc", [s.ref for s in binds]
+
+    # and a ref that binds to no service says so rather than printing nothing
+    root2 = _planted_tree(tmp_path / "b", [{"id": "d-1", "input": "x",
+                                            "asserts": [{"ai_disclosure": {"required": ["AI"]}}]}],
+                          ref="quality/packs/cases.yaml")
+    chain2 = rules.trace("MER-AI-0001", _registry(tmp_path / "b", _typed(
+        "eval_pack", "quality/packs/cases.yaml")), root2)
+    stated = [s for s in chain2.steps if s.kind == "binds"]
+    assert stated and "no service in this path" in stated[0].detail, (
+        "a chain that binds to no service printed nothing about it, so a reader of the "
+        "demo artifact cannot tell an absent binding from an unstated one")
 
 
 def test_a_ref_that_resolves_to_an_empty_pack_is_red(tmp_path):
@@ -385,6 +502,29 @@ def test_an_undisposed_rule_exits_one_and_says_it_is_by_design():
     assert _trace_exit("MER-AI-0001") == 1
     rendered = rules.render(rules.trace("MER-AI-0001", REGISTRY, ROOT))
     assert "BY DESIGN" in rendered and "NOT RESOLVED" in rendered
+
+
+def test_the_cli_emits_the_readers_render_and_does_not_rewrite_it(capsys):
+    """**The keyed reader is only worth its keys if the CLI defers to it.**
+
+    `pave/cli.py` is deliberately on no rule (ADR-041 decision 7), and the whole
+    justification is that the criteria live in `pave/rules.py` where a seat's key
+    reaches them. Nothing asserted the twelve unkeyed lines actually *print what
+    the reader returned*: the Security seat rewrote `NOT RESOLVED` to `RESOLVED`
+    and exited 0 inside `rules_trace`, at **4124 passed** — ADR-052 round 2's
+    attack on `twokey.adr_records`, one command over.
+
+    Byte-identical, so a CLI that "helpfully" reformats is also caught."""
+    from pave import cli
+
+    with pytest.raises(SystemExit):
+        cli.rules_trace(["MER-AI-0001"])
+    printed = capsys.readouterr().out
+    expected = rules.render(rules.trace("MER-AI-0001", REGISTRY, ROOT))
+    assert expected.strip() in printed, (
+        "the CLI's output is not the reader's render. The deciding text is produced in "
+        "an unkeyed file, which is the arrangement keying `pave/rules.py` was meant to "
+        "prevent.")
 
 
 def test_an_unknown_rule_id_exits_two_and_not_one():

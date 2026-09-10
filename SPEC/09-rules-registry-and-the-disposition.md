@@ -437,15 +437,32 @@ the model reads. Run B (the pack, post-fix) and `pave gate decide` at exit 0. Th
 chain reader run over the real record. F1, F2, F3 and F5 read; the pack's refusal
 reading.
 
-**Three pins and records this PR moves, named here because the plan did not name
-them and they are not optional** (ADR-075 amendment 1 fact 3, ask 4): editing
+**Two pins and FIVE records this PR moves, and the count has been wrong twice**
+(ADR-075 amendment 1 fact 3, ask 4; amendment 2 §3; PR 2 seat round 1). Editing
 `TOOL_SYSTEM` goes red on `TOOL_SYSTEM_SHA256` and on the line-by-line assert in
 `tests/test_gateway_run_parity.py` — `(platform-eng, security)`, and its own
-docstring calls updating it *an ADR-021 event: say so in the progression row* —
-and both model-facing edits go red on `milestones/M08/context-census.json`,
-`milestones/M08/residual-differential.json` and, through the census record,
-`milestones/M08b/fresh-join.json`, each on the census rule's three keys. All
-three records are re-produced in this diff and the prompt move is recorded in the
+docstring calls updating it *an ADR-021 event: say so in the progression row*.
+
+The two model-facing edits then re-produce **five** committed records, each on the
+census rule's three keys:
+
+| record | reached |
+|---|---|
+| `milestones/M08/context-census.json` | digests the cases file, the schema and the client directly |
+| `milestones/M08/residual-differential.json` | the same input list |
+| `milestones/M08/rescore-join.json` | digests the cases file directly |
+| `milestones/M08b/residual-attribution.json` | digests the cases file directly |
+| `milestones/M08b/fresh-join.json` | digests the cases file **and** the census record |
+
+Amendment 1 named **one** of these; this file's own first correction named
+**three**. Both were hand-written, one hop deep, in a document. **The set is
+therefore computed, not listed**:
+`tests/test_m09_goldens_denominator.py::test_the_records_the_fix_moves_are_derived_and_not_listed`
+takes the transitive closure over every `inputs_sha256` in `milestones/`, and
+`test_the_spec_names_every_record_the_cascade_moves` fails if this table and the
+closure disagree. A sixth record lands on both the day it is written.
+
+All five are re-produced in PR 4's diff and the prompt move is recorded in the
 progression row.
 
 **PR 4b — the goldens control run, in a PR that is about F4.** The goldens arm
@@ -671,17 +688,23 @@ round on the guardrail* (M09 moves no guardrail).
       `deferred_from` still empty**; the progression row's ✅ and its goldens cell;
       tag `m09` (branch `m09-rules`, never the same name); the artifact recorded.
 - [ ] Nothing under `milestones/M07/` changed. **Nothing under `milestones/M08/`
-      or `milestones/M08b/` changed before PR 4; in PR 4,
-      `milestones/M08/context-census.json`, `milestones/M08/residual-differential.json`
-      and `milestones/M08b/fresh-join.json` are re-produced and nothing else under
-      those directories moves.** The `p95_ms` condition did not fire, so no record
-      moves for the manifest. *(As first written this clause forbade any change
-      under `milestones/M08b/` outright and permitted only a manifest digest line
-      under `milestones/M08/` — unreachable in PR 4 whatever happens, because both
-      model-facing sites are digested by the census record and the census record is
-      digested by the fresh join. ADR-075 amendment 1 §2 found four clauses of this
-      shape; this is the fifth, and it is the one that decides whether PR 4 can
-      merge.)*
+      or `milestones/M08b/` changed before PR 4; in PR 4, exactly the five records
+      the cascade reaches are re-produced — `milestones/M08/context-census.json`,
+      `milestones/M08/rescore-join.json`,
+      `milestones/M08/residual-differential.json`,
+      `milestones/M08b/residual-attribution.json` and
+      `milestones/M08b/fresh-join.json` — and nothing else under those directories
+      moves.** The set is the one
+      `test_the_records_the_fix_moves_are_derived_and_not_listed` computes, and
+      `test_the_spec_names_every_record_the_cascade_moves` refuses this clause if
+      the two disagree. The `p95_ms` condition did not fire, so no record moves for
+      the manifest. *(This clause has been wrong twice. As first written it forbade
+      any change under `milestones/M08b/` outright — unreachable whatever PR 4
+      does. Its first correction named three records and was short by two, in the
+      diff written to fix exactly that defect. Both errors were hand-listed
+      consequences of a digest graph, which is why the third version computes them.
+      ADR-075 amendment 1 §2 found four clauses of this shape; this is the fifth,
+      and it is the one that decides whether PR 4 can merge.)*
 - [ ] No case, tier, token ceiling, guardrail, policy, corpus, catalog or topic
       moved at any point; **every instrument digest, the judge's included, is what
       PR 1 left it** — the DMA rename leaves the milestone, so nothing is

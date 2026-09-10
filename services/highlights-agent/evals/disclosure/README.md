@@ -1,8 +1,17 @@
 # The disclosure pack — highlights-agent
 
-**Owning seat:** AI Quality (the pack) · Legal/S&P (the rule it discharges).
-Two-key (`Two-Key-Disposition: ai-quality`) on every change, enforced by the
-`two-key` check through `^services/[^/]+/evals/`.
+**Owning seats:** AI Quality (the pack) · Legal/S&P (the rule it discharges).
+**Two keys on every change** — `ai-quality` and `legal-sp` — enforced by the
+`two-key` check through `^services/[^/]+/evals/disclosure/`.
+
+That rule was added in round 1 and the sentence above used to be false: this
+directory matched `^services/[^/]+/evals/` alone, which is **one** key, and
+calling it "two-key" was a stated protection that is absent. `disclosure_sufficiency`
+defends the crude attack — deleting the negative half — and cannot defend the
+precise one: reword `disclosure-105` from a factual entitlement question into
+editorial copy, leave the mode at `not_required`, and both halves still count
+while the pack now asserts that AI-authored copy must *not* disclose. The seat
+that owns the rule signs that edit now.
 
 This pack is `MER-AI-0001`'s executable control. The rule has sat `proposed` and
 undisposed since M00a **on purpose** — its own header says why: it shipped in the
@@ -23,8 +32,22 @@ was unprovable. M09 disposes it, and the diff that does so *is* the claim.
 
 | assert | passes when |
 |---|---|
-| `ai_disclosure: required` | the key is **present** and holds a non-empty, non-whitespace string |
-| `ai_disclosure: not_required` | the key is **present** and is `null` |
+| `ai_disclosure: { required: [<token>, …] }` | the key is **present**, renders to something a reader can see, and mentions every token |
+| `ai_disclosure: { not_required: [] }` | the key is **present** and is `null` |
+
+**"Renders to something a reader can see" is not `strip()`.** Round 1 drove a
+**zero-width space** (`U+200B`) through the real lane and scored 5/5 PASS —
+`strip()` removes ASCII whitespace and leaves every Unicode format character
+standing, so a disclosure nobody can see satisfied a rule whose title is *AI-generated
+recaps must carry a **visible** disclosure*. `Cf`, `Cc` and `Cs` are stripped first.
+
+**The tokens are policy and live here, not in the scorer.** `.`, `x`, `n/a`,
+`null`, `See terms and conditions.` and the literal `Null until M07 disposes that
+rule.` all passed before a positive case had to name what its disclosure must
+mention. `evals/deterministic.py` is the goldens scorer at (ai-quality,
+platform-eng) and holds the mechanism; what a disclosure must *say* is Legal/S&P's,
+so it sits where that seat's key reaches it. The authoritative list moves into
+`rules/MER-AI-0001.yaml` at the disposition, where the rule's owner writes it.
 
 **Both test key presence rather than truthiness, and that is the whole of the
 negative half's value.** `ai_disclosure` is not in `answer.schema.json`'s
@@ -85,7 +108,7 @@ carries the fix**:
 
 | site | why not here |
 |---|---|
-| `../golden/cases.yaml`'s header comment | `milestones/M08/context-census.json` digests the golden cases file, and `milestones/M08b/fresh-join.json` digests both that file and the census record. Editing a comment in it re-produces **three** committed records under `milestones/`, which this milestone's Definition of done reserves to the PR that moves them anyway |
+| `../golden/cases.yaml`'s header comment | `milestones/M08/context-census.json` digests the golden cases file, and `milestones/M08b/fresh-join.json` digests both that file and the census record. Editing a comment in it re-produces **five** committed records under `milestones/` — the closure is computed by `test_the_records_the_fix_moves_are_derived_and_not_listed`, after being hand-listed wrongly twice — which this milestone's Definition of done reserves to the PR that moves them anyway |
 | `../answer.schema.json`'s `ai_disclosure` description | the same cascade, **plus** it is model-facing: the file is rendered into both arms' prompts through `{schema}`, and it is the one stale-M07 site the model actually reads — *"Null until M07 disposes that rule"*, text telling the model to leave the field null. SPEC/09 constraint 2 reserves a change to what the model sees to the fix, so it moves **as part of** the fix and its cost is priced by the prompt-delta test |
 
 Both are asserted as still-carrying by

@@ -244,14 +244,56 @@ def trace(rule_id: str, registry: pathlib.Path = REGISTRY,
         service = _binds(ref)
         if service:
             steps.append(Step("binds", service))
+        else:
+            # **Stated, not silent.** A ref outside `services/` resolves fine and
+            # binds to no service; printing nothing left a reader of the demo
+            # artifact looking at a chain with no binding and no note that there
+            # was one to make (Tool Owner, round 1).
+            steps.append(Step("binds", "—", "no service in this path — the rule binds "
+                                            "to the platform, not to a service"))
 
         path = (root / ref).resolve()
+        kind = control.get("type")
+        looks_like_pack = (not path.is_dir() and path.suffix in (".yaml", ".yml")
+                           and bool(_pack_cases(path)))
+
+        if kind != "eval_pack":
+            # **Dispatch on the declared TYPE, never on the file extension**
+            # (Tool Owner, round 1). Two things were wrong when this branch keyed
+            # off `path.suffix`:
+            #
+            # A `guardrail` or `cedar_policy` control — enforcing, correctly
+            # disposed — produced a `resolved=False` step, so `Chain.resolved`
+            # went false with **zero defects** and `pave rules trace` exited 1.
+            # Adding a second, genuinely stronger control turned a chain that
+            # exits 0 into one that exits 1: M09b would have made claim 6's own
+            # command red by strengthening the control it reports on.
+            #
+            # And the converse was worse. `type: cedar_policy` pointing at the
+            # eval pack reported RESOLVED at exit 0 and printed five L3 eval cases
+            # as a Cedar policy's chain — the `type` and `layer` enums decorative
+            # in the one reader that claims to walk them. That is G4's *a probe
+            # naming Cedar is not satisfied by a content filter*, one plane over.
+            if looks_like_pack:
+                steps.append(Step("control", ref, f"declared {kind!r} but reads as an "
+                                                  f"eval pack", resolved=False))
+                defects.append(
+                    f"{rule_id}: the control at {ref!r} is declared {kind!r} and its "
+                    f"artifact is an eval pack. A disposition that names one kind of "
+                    f"control and points at another reports a chain it did not walk.")
+                continue
+            # Located, and walked as far as this type permits. RESOLVED: a control
+            # that is enforcing must not make the chain read as unresolved.
+            steps.append(Step(kind, ref, "located; the deeper walk for this control "
+                                         "type is not built"))
+            continue
+
         if path.is_dir() or path.suffix not in (".yaml", ".yml"):
-            # Resolvable but not a case file: recorded as walked-as-far-as-it-goes
-            # rather than as a pass. A guardrail or a Cedar policy ref is this
-            # branch, and it is M09b's to walk further.
-            steps.append(Step("cases", ref, "not an eval pack — the walk stops here",
-                              resolved=False))
+            steps.append(Step("cases", ref, "declared 'eval_pack' and is not a case "
+                                            "file", resolved=False))
+            defects.append(
+                f"{rule_id}: the control at {ref!r} is declared an eval pack and is not "
+                f"one. The disposition names a control the artifact is not.")
             continue
 
         cases = _pack_cases(path)

@@ -415,10 +415,29 @@ def main(argv=None) -> int:
         # argument, one directory over.
         parser.error(f"--cases {args.cases}: no such file. A run over no cases establishes "
                      f"nothing and must not write one.")
+    # **Contained, like a control ref.** A pack outside the repository is read
+    # today and produces committed evidence whose case set is not in the tree —
+    # so the run cannot be re-derived, and claim 6's chain ends at a case nobody
+    # else has (Security and Platform Engineering, round 1).
+    if ROOT.resolve() not in case_file.resolve().parents:
+        parser.error(f"--cases {args.cases}: outside the repository. A recorded run's "
+                     f"case set must be committed, or the evidence cannot be re-derived.")
     cases = yaml.safe_load(case_file.read_text(encoding="utf-8"))
     if not cases:
         parser.error(f"--cases {args.cases}: holds no cases. A run over an empty pack "
                      f"answers every question about it and measures none of them.")
+    # Shape, BEFORE `gw.resources()`. A mapping and a case list with no `id` both
+    # cleared the existence check, reached the cloud, printed the pre-flight and
+    # then died on an uncaught TypeError / KeyError — a shape refusal should not
+    # need a round-trip to discover.
+    if not isinstance(cases, list) or not all(
+            isinstance(c, dict) and c.get("id") and c.get("input") for c in cases):
+        parser.error(f"--cases {args.cases}: is not a list of cases carrying `id` and "
+                     f"`input`. A run over a malformed pack establishes nothing.")
+    duplicates = sorted({c["id"] for c in cases if [x["id"] for x in cases].count(c["id"]) > 1})
+    if duplicates:
+        parser.error(f"--cases {args.cases}: duplicate case id(s) {duplicates}. Two cases "
+                     f"under one id make one of them unreadable in the answer file.")
     if args.only:
         cases = [c for c in cases if c["id"] == args.only]
         if not cases:
@@ -619,6 +638,13 @@ def main(argv=None) -> int:
             "guardrail block was a refusal of the viewer's question or of content the "
             "platform was about to put in the model's context (ADR-035)."),
         "_k": args.k,
+        # **Which pack produced this run.** Before `--cases` the case set was a
+        # compile-time constant and needed no record; it is a degree of freedom
+        # now, and two runs from different packs were indistinguishable in
+        # committed evidence. Claim 6's chain ends at *the case*, so a recorded
+        # run whose case provenance is unrecorded breaks it at that link.
+        "_cases": str(case_file.resolve().relative_to(ROOT.resolve())).replace("\\", "/"),
+        "_cases_sha256": _sha256(case_file.read_bytes()),
         "samples": list(samples),
         # What the pre-flight printed before the first call: the function, both
         # pairs from its configuration, the bundle digests, the serialiser's

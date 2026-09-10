@@ -57,6 +57,7 @@ Owning seats: AI Quality (the denominator) · Platform Engineering · Security.
 """
 from __future__ import annotations
 
+import json
 import pathlib
 
 import yaml
@@ -183,6 +184,85 @@ def test_the_golden_readme_and_its_template_are_withdrawn_together():
         assert leak not in template.split("## The rule that matters most")[0], (
             f"the scaffold template's withdrawal section carries {leak!r}, which is not "
             "true of, or checkable by, a service rendered from it")
+
+
+#: The two model-facing sites the fix's PR edits. Everything downstream of them
+#: is DERIVED below rather than listed.
+MODEL_FACING_SITES = (
+    "services/highlights-agent/evals/golden/cases.yaml",
+    "services/highlights-agent/evals/answer.schema.json",
+    "services/highlights-agent/gateway_client.py",
+)
+
+
+def records_moved_by(seeds) -> set:
+    """Every committed record that must be re-produced when `seeds` move.
+
+    **A transitive closure, because the records digest each other.**
+    `milestones/M08b/fresh-join.json` carries
+    `milestones/M08/context-census.json` in its own `inputs_sha256`, so moving an
+    input moves the census, and moving the census moves the join. A hand-listed
+    set stops at the first hop.
+    """
+    digests = {}
+    for record in ROOT.glob("milestones/**/*.json"):
+        try:
+            doc = json.loads(record.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            continue
+        inputs = doc.get("inputs_sha256") if isinstance(doc, dict) else None
+        if isinstance(inputs, dict):
+            digests[record.relative_to(ROOT).as_posix()] = set(inputs)
+
+    moved, frontier = set(), set(seeds)
+    while frontier:
+        step = {rec for rec, ins in digests.items()
+                if rec not in moved and ins & frontier}
+        moved |= step
+        frontier = step
+    return moved
+
+
+def test_the_records_the_fix_moves_are_derived_and_not_listed():
+    """**Five records, and the two counts before it were both wrong.**
+
+    ADR-075 amendment 1 fact 3 named **one** — `context-census.json`. This PR's
+    own correction named **three**, and the Platform Engineering seat measured
+    **five**: `milestones/M08/rescore-join.json` and
+    `milestones/M08b/residual-attribution.json` were in neither list.
+
+    Both errors are the same shape, and it is the shape this repository has paid
+    for before: a set of consequences written down by hand, one hop deep, in a
+    document. The Definition of done that rested on it said *"and nothing else
+    under those directories moves"*, which was unsatisfiable by two records — a
+    clause rewritten in this PR **to fix exactly that defect** and still wrong.
+
+    So the set is computed. A sixth record lands on this the day somebody writes
+    it, rather than the day a PR goes red for a reason no clause named."""
+    moved = records_moved_by(MODEL_FACING_SITES)
+    assert moved == {
+        "milestones/M08/context-census.json",
+        "milestones/M08/rescore-join.json",
+        "milestones/M08/residual-differential.json",
+        "milestones/M08b/fresh-join.json",
+        "milestones/M08b/residual-attribution.json",
+    }, (
+        f"the fix's record cascade is now {sorted(moved)}. SPEC/09's PR 4 paragraph and "
+        "its Definition-of-done clause name a set; if this one differs, the spec is out "
+        "of date and PR 4 cannot satisfy the clause. Update both in the same diff.")
+
+
+def test_the_spec_names_every_record_the_cascade_moves():
+    """The document and the computation agree, or the document is the finding.
+
+    This is the half that makes the derivation useful: computing the set is worth
+    nothing if the Definition of done still lists a different one."""
+    spec = (ROOT / "SPEC" / "09-rules-registry-and-the-disposition.md").read_text(
+        encoding="utf-8")
+    for record in sorted(records_moved_by(MODEL_FACING_SITES)):
+        assert record in spec, (
+            f"{record} is re-produced by the fix and SPEC/09 never names it. A PR cannot "
+            "collect keys for a record no clause told it to move.")
 
 
 def test_the_two_digested_sites_are_named_with_their_pr_rather_than_left_silent():

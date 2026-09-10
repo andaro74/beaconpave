@@ -80,7 +80,11 @@ ADR043_SEATS = {
     "tests/test_calibration_corpus.py": {"ai-quality", "platform-eng"},
     "tests/test_judge.py": {"ai-quality", "platform-eng"},
     "tests/test_tool_loop.py": {"platform-eng", "security"},
-    "tests/test_gateway_core.py": {"platform-eng", "security"},
+    # M09 PR 2 round 1 (Data Governance): the only live witness that G5 refuses
+    # `sensitive` by design gains the seat that owns G5. Edited in place rather
+    # than added below — a second entry for the same key silently shadows the
+    # first and leaves the ADR-044 line dead (ruff F601 caught exactly that).
+    "tests/test_gateway_core.py": {"platform-eng", "security", "data-governance"},
     "tests/test_gateway_run_parity.py": {"platform-eng", "security"},
     # ADR-048: added to ADR-042's enumerated protection-test rule, whose
     # membership ADR-044 pins member by member.
@@ -231,6 +235,39 @@ ADR043_SEATS = {
 
 def _seats_for(path: str) -> set:
     return {seat for rule, _ in twokey.triggered([path]) for seat in rule.seats}
+
+
+#: Seats that may not be dropped from a named rule without the drop being spelled
+#: out. `ADR043_SEATS` plus `test_this_file_is_itself_on_a_rule_that_carries_securitys_key`
+#: ratchet a seat IN — and the Security seat measured that they do not hold it:
+#: removing `data-governance` from the router rule, from THIS file's rule, and
+#: from both pins in one diff left **4124 passed**, because the agreement check
+#: only asks that the two lists match and they matched after the removal.
+#:
+#: The second-order consequence is what makes it a G9 finding rather than a
+#: bookkeeping one: after that one diff `platform/gateway/core/classify.py` is
+#: single-key and the key is `security` — the seat whose ten probes a wider router
+#: satisfies, holding sole control of the router's strength.
+SEATS_THAT_MAY_NOT_BE_DROPPED = {
+    "platform/gateway/core/classify.py": {"data-governance"},
+    "services/highlights-agent/evals/disclosure/cases.yaml": {"legal-sp"},
+    "services/highlights-agent/gateway_client.py": {"platform-eng", "security"},
+    "pave/rules.py": {"legal-sp", "security", "platform-eng"},
+}
+
+
+def test_a_seat_cannot_be_dropped_from_a_rule_without_naming_it_here():
+    """The ratchet in the removal direction, by name.
+
+    Dropping a seat now costs an explicit edit to this constant that names the
+    seat being dropped — which is the whole of what makes it a decision rather
+    than a diff."""
+    for path, required_seats in SEATS_THAT_MAY_NOT_BE_DROPPED.items():
+        missing = sorted(required_seats - _seats_for(path))
+        assert not missing, (
+            f"{path} no longer collects {missing}. That seat was added by a recorded "
+            "decision; dropping it is another one. If it is intended, remove it from "
+            "SEATS_THAT_MAY_NOT_BE_DROPPED in this diff and say why in the ADR.")
 
 
 def test_the_seat_sets_adr043_decided_are_exactly_these():
@@ -434,7 +471,15 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                            "milestones/M09/verdict-pre-fix.json",
                            "milestones/M09/verdict-post-fix.json",
                            "milestones/M09/disclosure_join.py",
+                           # Shapes that cannot be enumerated in advance: the
+                           # Security seat re-narrowed the M09 clause from a
+                           # character class to a closed list of the seven names
+                           # pinned here, at 4124 passed, after which
+                           # `milestones/M09/disclosure-run-2.json` matched
+                           # nothing. These two exist to make that narrowing red.
                            "milestones/M09/a-record-not-written-yet.json",
+                           "milestones/M09/disclosure-run-2.json",
+                           "milestones/M09/residual_join2.py",
                            "tests/test_m09_disclosure.py",
                            "tests/test_m09_p95_condition.py",
                            "tests/test_m09_a_test_not_written_yet.py"],
@@ -450,7 +495,16 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
         # decision. `test_every_measured_client_is_on_this_rule` is what makes a
         # second service join, and it reads the records rather than a regex.
         "the caller's system prompt": ["services/highlights-agent/gateway_client.py"],
-        "G5's router": ["platform/gateway/core/classify.py"],
+        # Member by member: narrowing the alternation to drop the package
+        # `__init__` restores a complete G5 bypass at zero keys, and dropping the
+        # witness leaves the seat that owns G5 unable to defend its only test.
+        "G5's router": ["platform/gateway/core/classify.py",
+                        "platform/gateway/core/__init__.py",
+                        # A sibling holding the term lists: measured to leave
+                        # `classify_sha256` byte-identical, so neither the rule
+                        # nor the instrument saw the widening.
+                        "platform/gateway/core/classify_terms.py",
+                        "tests/test_gateway_core.py"],
         # M08b PR 2. The scorer every goldens verdict comes from, and (round 2)
         # the test that pins its comparison.
         "the goldens scorer": ["evals/deterministic.py", "tests/test_deterministic_runner.py"],
@@ -513,10 +567,14 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # scorer's test on the scorer's. 91 -> 102 at M09 PR 2: seven M09 paths on
     # the census rule (two verdicts, a reader shape, a record shape and three
     # test shapes), the chain reader and its only reader (2), the caller's system
-    # prompt (1 -- named rather than a shape path, round 1), and G5's router (1).
-    assert total == 102, (
+    # prompt (1 -- named rather than a shape path, round 1), and G5's router (3
+    # after round 1: the module, the package `__init__` a bypass lived in, and the
+    # only live witness, plus a term-list sibling). 104 -> 107 in round 1: two M09 shape paths that cannot
+    # be enumerated in advance, so re-narrowing the clause to a closed list of
+    # today's filenames is red rather than silent.
+    assert total == 107, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "102. Deleting a required path in the same diff that "
+        "107. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -861,10 +919,18 @@ def test_g5s_router_collects_data_governance_and_security():
 
     **The first rule in this repository to name `data-governance`**, and it names
     it because the file's own docstring does. Security is the counterweight for
-    the instrument half: `classify_sha256` sits in every adversarial entry's
-    instrument block, and `evals/history/schema.json` says in as many words that
-    a classification refusal IS a policy denial and can satisfy nine of the ten
-    probes — so widening the router's terms changes what nine probes mean.
+    the instrument half: `classify_sha256` sits in every adversarial entry **that
+    carries an instrument block** — one of the three committed — and in all nine
+    registered instruments; a classification refusal IS a policy denial, so it can
+    satisfy the **ten of eleven** probes declaring the broad semantics, and
+    widening the router's terms changes what ten probes mean.
+
+    (Counted in round 1 rather than quoted. The wording inherited from
+    `evals/history/schema.json` said *every* entry and *nine of the ten*; two of
+    the three committed adversarial entries carry no `instrument` key at all, and
+    the corpus has been eleven since ADR-041. Security's key is also not merely
+    balance: Security's scored number goes **up** when the router widens, because
+    a wider refusal satisfies more probes with no system improving.)
 
     `requires_adr` is OFF, and that is ADR-052 decision 2 rather than a
     preference: a rule that gives a NEW seat an ADR requirement turns
@@ -873,6 +939,18 @@ def test_g5s_router_collects_data_governance_and_security():
     Governance an ADR requirement in the same diff that gives it its first key is
     that trade exactly."""
     _blocked_for(["platform/gateway/core/classify.py"], {"data-governance", "security"})
+    # **The package `__init__`, and it is not decoration.** Measured on `c917c11`
+    # by the Data Governance seat: a shim in that 14-line file setting
+    # `SUBJECT_TERMS = ()` behind `if "pytest" not in sys.modules` turned G5 off
+    # at run time with `classify_sha256` byte-identical — **4124 passed, zero
+    # keys**. It runs on every `from core import classify`. ADR-052 closed the
+    # identical hole in `pave/__init__.py`; this is the same fix one package over.
+    _blocked_for(["platform/gateway/core/__init__.py"], {"data-governance", "security"})
+    # A sibling module holding the router's term lists. Measured by the Security
+    # seat: moving them there and widening them left `classify_sha256`
+    # byte-identical, so the instrument could not see it either.
+    _blocked_for(["platform/gateway/core/classify_terms.py"],
+                 {"data-governance", "security"})
     rules = [rule for rule, _ in twokey.triggered(["platform/gateway/core/classify.py"])]
     assert not any(rule.requires_adr for rule in rules), (
         "the router's rule now requires an ADR. That turns the decision-record test red "
@@ -997,8 +1075,15 @@ def test_the_sole_g5_by_design_witness_collects_security():
     classification assertion green, and that one red.
 
     It is also the witness a singleton `DECLARABLE_LEVELS` cannot reach, because
-    it passes `declared="sensitive"` — a value the manifest will refuse."""
-    _blocked_for(["tests/test_gateway_core.py"], {"platform-eng", "security"})
+    it passes `declared="sensitive"` — a value the manifest will refuse.
+
+    **`data-governance` joined at M09 PR 2 round 1.** The seat that owns G5 held
+    the thermostat (`classify.py`) and none of the thermometers, so
+    `(platform-eng, security)` could have deleted every witness to G5 in one diff
+    without the seat that owns the invariant being asked — ADR-035's asymmetry
+    with the halves swapped."""
+    _blocked_for(["tests/test_gateway_core.py"],
+                 {"platform-eng", "security", "data-governance"})
 
 
 def test_deleting_the_transport_parity_pin_collects_security():

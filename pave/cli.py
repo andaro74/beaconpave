@@ -581,7 +581,7 @@ def evals_disclosure(argv=()):
     """
     import yaml as _yaml
 
-    from evals.deterministic import Scorer, decide_disclosure, disclosure_sufficiency
+    from evals.deterministic import Scorer, decide_disclosure
     from pave import verdict as verdict_mod
 
     out = _flag_values(argv, "--out")
@@ -618,7 +618,12 @@ def evals_disclosure(argv=()):
     # what the result was (ADR-041 decision 7's split, `pave/verify.py`'s shape).
     missing = [p for p in answers_paths if not pathlib.Path(p).is_file()]
     results = None
-    if not missing and disclosure_sufficiency(cases).passed:
+    # **Only `missing` is pre-checked here, and only because reading a file that
+    # is not there raises.** The first version also pre-checked sufficiency, which
+    # made `decide_disclosure`'s own sufficiency branch redundant — and therefore
+    # deletable in silence, which the Security seat measured: two places deciding
+    # one thing, one of them exercised. The decision has one home.
+    if not missing:
         from evals.run_evals import summarise
         scorer = Scorer(root=ROOT)
         loaded = [json.loads(pathlib.Path(p).read_text(encoding="utf-8"))

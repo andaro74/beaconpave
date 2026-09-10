@@ -580,6 +580,30 @@ RULES: tuple[Rule, ...] = (
         ("ai-quality", "platform-eng", "security"),
     ),
     Rule(
+        # **A disposition pack takes its rule's owner too (M09 PR 2, round 1 —
+        # Legal/S&P, Tool Owner and Platform Engineering, independently).**
+        # `^services/[^/]+/evals/` is AI Quality's, written for the goldens. The
+        # disclosure pack is the executable form of a REGULATORY rule Legal/S&P
+        # owns, and it sat on that one key: the seat whose rule it discharges held
+        # none on what discharges it.
+        #
+        # `disclosure_sufficiency` defends the crude attack -- deleting the
+        # negative half -- and cannot defend the precise one. Reword
+        # `disclosure-105`'s input from a factual entitlement question into
+        # editorial copy and leave the mode at `not_required`: both halves still
+        # count, and the pack now asserts that AI-authored copy must NOT disclose.
+        # One key, in the file the rule's whole discharge rests on.
+        #
+        # G9's sentence decides the second seat: whoever feels the control's pain
+        # never solely controls its strength. AI Quality feels it -- the pack is
+        # its suite and its cases -- so the counterweight is the seat that owns
+        # the obligation and not the measurement. This rule sits ABOVE the goldens
+        # rule's entry only in reading order; both match, and the seats union.
+        "a disposition's eval pack — the executable form of a rule in the registry",
+        re.compile(r"^services/[^/]+/evals/disclosure/"),
+        ("ai-quality", "legal-sp"),
+    ),
+    Rule(
         # **The chain reader (M09 PR 2, ADR-075 amendment 1 ask 8).** `pave/rules.py`
         # walks rule -> `disposition.controls[].ref` -> the pack -> the case ->
         # the assert, and claim 6's row 1a is *nothing else*: it is the file that
@@ -664,10 +688,18 @@ RULES: tuple[Rule, ...] = (
         # file that implements an invariant, editable on one key by any seat.
         #
         # It is also read as an adversarial instrument: `classify_sha256` is in
-        # every adversarial entry's instrument block, and `evals/history/schema.json`
-        # says in as many words that *a classification refusal IS a policy denial
-        # and can satisfy nine of the ten probes*. So widening the router's terms
-        # is a change to what nine probes mean.
+        # every adversarial entry **that carries an instrument block** -- one of
+        # the three committed, plus all nine registered instruments -- and a
+        # classification refusal IS a policy denial, so it can satisfy the **ten
+        # of eleven** probes declaring `guardrail_blocked_or_denied_and_logged`.
+        # Widening the router's terms is a change to what ten probes mean.
+        # (Counted rather than quoted, in round 1: the wording inherited from
+        # `evals/history/schema.json` said *nine of the ten* and the corpus has
+        # been eleven since ADR-041.)
+        #
+        # And that is why Security's key here is not merely balance: Security's
+        # scored number goes **up** when the router widens, because a wider
+        # refusal satisfies more probes with no system improving.
         #
         # **The first rule in this list to name `data-governance`**, and it names
         # it because the file's own docstring does: *"Owning seat: Data
@@ -679,8 +711,36 @@ RULES: tuple[Rule, ...] = (
         # red until that seat can also defend what satisfying it means* -- and
         # handing Data Governance an ADR requirement in the same diff that gives
         # it its first key is that trade exactly.
-        "G5's router — what classification lets reach a model, and what nine probes mean",
-        re.compile(r"^platform/gateway/core/classify\.py$"),
+        # **`__init__.py` and the witness joined in round 1, both measured.**
+        #
+        # The first version named `classify.py` alone. The Data Governance seat
+        # planted a shim in `platform/gateway/core/__init__.py` -- 14 lines of
+        # docstring, on **no rule**, which runs on every `from core import
+        # classify` -- setting `SUBJECT_TERMS = ()` behind `if "pytest" not in
+        # sys.modules`. G5 fully off at run time, `classify_sha256` byte-identical
+        # so every adversarial entry goes on fingerprinting a router that no
+        # longer decides anything: **4124 passed, zero keys.** That is ADR-052's
+        # `pave/__init__.py` finding one package over, and ADR-052 closed it the
+        # same way -- by putting the package's `__init__` on the rule.
+        #
+        # `tests/test_gateway_core.py` joins because `twokey.py`'s own comment
+        # calls it *the repository's ONLY live witness that G5 refuses `sensitive`
+        # by design*, and it took `(platform-eng, security)` while the thing it
+        # witnesses took Data Governance's. ADR-035's thermometer/thermostat
+        # asymmetry with the halves swapped: without this, those two seats could
+        # delete every witness to G5 in one diff and the seat that owns G5 would
+        # not be asked.
+        "G5's router — what classification lets reach a model, and what ten probes mean",
+        # `classify.*\.py`, not the one filename: the Security seat moved the
+        # router's term lists into `platform/gateway/core/classify_terms.py`,
+        # widened them there, and measured `classify_sha256` **byte-identical** —
+        # the rule bought one filename and the instrument digests one file, so a
+        # legitimate refactor-and-re-register leaves the terms one-key and
+        # instrument-invisible. Whether `classify_sha256` should digest the
+        # directory is Security's and is recorded as open; the rule not being the
+        # narrower of the two is free.
+        re.compile(r"^(platform/gateway/core/(classify[a-z_]*|__init__)\.py"
+                   r"|tests/test_gateway_core\.py)$"),
         ("data-governance", "security"),
     ),
     Rule(

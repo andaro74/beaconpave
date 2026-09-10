@@ -377,16 +377,52 @@ def test_the_runners_default_case_file_is_still_the_golden_pack():
         in source
 
 
-def test_the_runner_refuses_a_missing_or_empty_case_file(tmp_path):
-    """A run over no cases establishes nothing and must not write an answer file:
-    every assertion about it would pass. `rules_validate`'s empty-registry
-    argument, one directory over."""
-    for args in (["--cases", str(tmp_path / "nope.yaml")],
-                 ["--cases", str(_write_empty(tmp_path))]):
-        proc = subprocess.run([sys.executable, str(RUNNER), *args, "--preflight-only"],
-                              capture_output=True, text=True, cwd=str(ROOT))
-        assert proc.returncode != 0, f"{args} was accepted"
-        assert "--cases" in (proc.stderr + proc.stdout)
+def test_the_runner_refuses_a_missing_empty_malformed_or_out_of_tree_pack(tmp_path):
+    """A run over no cases, or over a pack that is not one, establishes nothing
+    and must not reach the cloud.
+
+    **The last three were added in round 1**, and every one of them cleared the
+    original existence check: a YAML *mapping* and a case list with no `id` both
+    reached `gw.resources()` and died on an uncaught `TypeError` / `KeyError`
+    after the pre-flight printed (Platform Engineering), and a pack **outside the
+    repository** was read and would have produced committed evidence whose case
+    set is not in the tree (Security). A shape refusal should not need a
+    round-trip to discover, and a recorded run must be re-derivable."""
+    mapping = tmp_path / "mapping.yaml"
+    mapping.write_text("id: x\ninput: y\n", encoding="utf-8")
+    idless = tmp_path / "idless.yaml"
+    idless.write_text("- input: y\n", encoding="utf-8")
+    dupes = tmp_path / "dupes.yaml"
+    dupes.write_text("- {id: a, input: y}\n- {id: a, input: z}\n", encoding="utf-8")
+    outside = tmp_path / "outside.yaml"
+    outside.write_text("- {id: a, input: y}\n", encoding="utf-8")
+
+    for label, path in (("missing", tmp_path / "nope.yaml"),
+                        ("empty", _write_empty(tmp_path)),
+                        ("mapping", mapping),
+                        ("no id", idless),
+                        ("duplicate ids", dupes),
+                        ("out of tree", outside)):
+        proc = subprocess.run(
+            [sys.executable, str(RUNNER), "--cases", str(path), "--preflight-only"],
+            capture_output=True, text=True, cwd=str(ROOT))
+        assert proc.returncode != 0, f"a {label} pack was accepted"
+        assert "--cases" in (proc.stderr + proc.stdout), f"{label}: refusal does not name --cases"
+
+
+def test_the_runner_records_which_pack_produced_a_run():
+    """Two runs from different packs were indistinguishable in committed evidence.
+
+    Before `--cases` the case set was a compile-time constant and needed no
+    record. It is a degree of freedom now, and claim 6's chain ends at *the
+    case* — so a recorded run whose case provenance is unrecorded breaks the
+    chain at its last link (Security O2, Platform Engineering)."""
+    source = RUNNER.read_text(encoding="utf-8")
+    assert '"_cases": str(case_file' in source, (
+        "the refusals sidecar no longer records which pack produced the run")
+    assert '"_cases_sha256"' in source, (
+        "the sidecar records the pack's path and not its bytes, so a pack edited "
+        "between two runs reads as the same pack")
 
 
 def _write_empty(tmp_path: pathlib.Path) -> pathlib.Path:
@@ -514,6 +550,11 @@ def test_a_one_sided_pack_is_infra_through_the_lane_and_never_fail(tmp_path):
     assert record["verdict"] == "INFRA", (
         f"a one-sided pack reported {record['verdict']!r} through the lane. It is INFRA: "
         "never FAIL, and decisively never PASS.")
+    # **The reason, not just the verdict.** The Security seat measured that the
+    # sufficiency branch could be deleted while the verdict stayed INFRA — because
+    # a second guard elsewhere produced the same answer for a different reason. A
+    # verdict that is right by accident is a branch nobody is holding.
+    assert any("not_required" in n for n in record["notes"]), record["notes"]
     assert gate.decide([str(out)]).exit_code == 2
 
 
@@ -523,7 +564,11 @@ def test_a_missing_run_file_is_infra_through_the_lane(tmp_path):
     out = tmp_path / "verdict.json"
     assert cli.evals_disclosure(["highlights-agent", "--answers", str(tmp_path / "nope.json"),
                                  "--out", str(out)]) != 0
-    assert json.loads(out.read_text(encoding="utf-8"))["verdict"] == "INFRA"
+    record = json.loads(out.read_text(encoding="utf-8"))
+    assert record["verdict"] == "INFRA"
+    # Names the run that did not arrive, for the reason above: without this the
+    # missing-run branch is deletable and the verdict stays INFRA by fallback.
+    assert any("missing" in n and "nope.json" in n for n in record["notes"]), record["notes"]
 
 
 def test_a_pack_case_that_asserts_no_disclosure_is_refused_by_the_instrument(tmp_path):

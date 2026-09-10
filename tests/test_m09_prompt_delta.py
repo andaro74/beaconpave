@@ -157,7 +157,17 @@ ADMISSIBLE_DELTA = 306
 #: diff that moved it, which `evals/comparators.json` refuses in as many words.
 #: PR 4 leaves it alone and watches `test_the_committed_prompts_delta_fits` price
 #: the fix.
-PRE_FIX_RENDERED_TOKENS_EST = 793
+PRE_FIX_RENDERED_TOKENS_EST = 1409
+#
+# **Re-seated once, in round 1, and the distinction is the whole point.** It was
+# 793 — the system block alone. The Tool Owner seat measured that the routed tool
+# specs are another ~616 tokens re-sent on every call, so 44% of the per-call
+# surface was unpriced and `ADMISSIBLE_DELTA` was spendable twice. What changed
+# here is the DEFINITION of the surface being priced, in a PR where no
+# model-facing byte moved: the three digests below are unchanged from the tree
+# this baseline was first taken on, which is exactly what distinguishes a widened
+# measurement from the re-seat this constant exists to forbid. When the text
+# moves, the digests move, and that is when re-seating is the erasure.
 
 #: **What 793 is the estimate OF, so the number cannot be re-seated in silence.**
 #:
@@ -174,6 +184,11 @@ PRE_FIX_RENDERED_TOKENS_EST = 793
 #: refuses a baseline whose text has moved.
 PRE_FIX_TOOL_SYSTEM_SHA256 = "c5e0e50584613dbfa75b0dc991fda55e075709dfb07fd3c5f38db8e0a6818e38"
 PRE_FIX_ANSWER_SCHEMA_SHA256 = "d4219cc724c5c17e94693d99992637de9c8f987e58632239ca2bbfccd0baa155"
+#: The routed tool specs, digested as the payload the gateway serialises. A
+#: reworded tool `description` is model-facing text on every call and moves
+#: this; `TOOL_SPECS_SHA256` in `tests/test_gateway_run_parity.py` catches the
+#: move, and this is what prices it.
+PRE_FIX_TOOL_SPECS_SHA256 = "40152facb40524ae1d3a4d83d5dab8c785db036b47f72a434a20dfd77d272a34"
 
 #: The estimator's denominator, pinned beside the numerator it divides.
 #:
@@ -187,25 +202,51 @@ PRE_FIX_ANSWER_SCHEMA_SHA256 = "d4219cc724c5c17e94693d99992637de9c8f987e58632239
 PRE_FIX_CHARS_PER_TOKEN = 3.373
 
 
-def rendered_tool_prompt() -> str:
-    """What the model actually receives as its system block, rendered.
+#: The tools the gateway routes, and therefore the specs it re-sends every call.
+#: Read from the committed history entry rather than named here, so a routed tool
+#: added later is priced without this file being edited.
+ROUTED = ("catalog-search", "entitlement-check")
 
-    `TOOL_SYSTEM.format(schema=answer.schema.json)` — the TEMPLATE plus the
-    schema, because `answer.schema.json` is rendered into it through `{schema}`
-    and its text is therefore part of the delta. `TOOL_SYSTEM_SHA256` pins the
-    template alone, one level above where a schema edit lands, so a bound taken
-    over the template would price half the fix. Both of M09's model-facing sites
-    are inside this string."""
+
+def rendered_per_call_payload(census) -> str:
+    """**Everything the model receives on every call**, not just the system block.
+
+    `TOOL_SYSTEM.format(schema=answer.schema.json)` is the system block, and both
+    sites M09 *plans* to edit are inside it. That is not the same as the
+    model-facing surface, and the first version of this function claimed it was:
+    *"Both of M09's model-facing sites are inside this string."* True of the plan,
+    read as a claim about what is priced, and it is not one.
+
+    `handler.tool_config` also hands Bedrock each routed tool's `description` and
+    full `inputSchema`, **re-sent on every call of every turn** — so a delta there
+    multiplies by the call count exactly as the system block does, which is the
+    entire correction this file exists to make. Measured by the Tool Owner seat:
+    the routed `toolConfig` is ~618 tokens against 793 for the system block, so
+    **44% of the per-call surface was unpriced**, and `ADMISSIBLE_DELTA` was
+    spendable twice — 1054 characters of prose added to a routed tool's
+    description left this file at **9 passed**.
+
+    The digest pins do fire on such a change, but a digest answers *did it move*,
+    not *how much did it cost*, and ADR-058 has the PR that moves them re-pin
+    them. Once re-pinned, nothing priced the growth."""
     template = ROOT / "services" / "highlights-agent" / "gateway_client.py"
     schema = ROOT / "services" / "highlights-agent" / "evals" / "answer.schema.json"
     import ast as _ast
+    import json as _json
     tree = _ast.parse(template.read_text(encoding="utf-8"))
     for node in tree.body:
         if (isinstance(node, _ast.Assign) and len(node.targets) == 1
                 and isinstance(node.targets[0], _ast.Name)
                 and node.targets[0].id == "TOOL_SYSTEM"
                 and isinstance(node.value, _ast.Constant)):
-            return node.value.value.format(schema=schema.read_text(encoding="utf-8"))
+            system = node.value.value.format(schema=schema.read_text(encoding="utf-8"))
+            # The tool specs, rebuilt exactly as `handler.tool_config` builds them
+            # — the census already reproduces those six lines and its own test
+            # pins the shape, so this reads the reproduction rather than making a
+            # third copy.
+            specs = _json.dumps(census.tool_config(ROUTED), ensure_ascii=False,
+                                sort_keys=True)
+            return system + "\n" + specs
     raise AssertionError("gateway_client.py defines no string constant TOOL_SYSTEM")
 
 
@@ -383,6 +424,14 @@ def test_the_baseline_is_the_estimate_of_the_text_it_names(census):
         "`answer.schema.json` has moved. It is rendered into the prompt through "
         "`{schema}`, so it is part of the delta and part of this baseline.")
 
+    import json as _json
+    specs = _json.dumps(census.tool_config(ROUTED), ensure_ascii=False, sort_keys=True)
+    assert digest(specs) == PRE_FIX_TOOL_SPECS_SHA256, (
+        "the routed tool specs have moved. Their `description` and `inputSchema` are "
+        "handed to the model on every call, so a reworded description is a per-call "
+        "delta exactly as a prompt sentence is — that is the surface round 1 found "
+        "unpriced, and it is inside this baseline now.")
+
 
 def test_the_estimators_denominator_is_pinned_beside_the_numerator(census):
     """The calibration ratio is editable from a one-key data file.
@@ -415,7 +464,7 @@ def test_the_committed_prompts_delta_fits(census):
 
     The baseline constant is **not** re-seated by that PR. Re-seating it there
     would erase the measurement."""
-    estimated = estimate_tokens(rendered_tool_prompt(), census)
+    estimated = estimate_tokens(rendered_per_call_payload(census), census)
     delta = estimated - PRE_FIX_RENDERED_TOKENS_EST
     assert delta == 0, (
         f"the rendered tool prompt now estimates {estimated} tokens against a pre-fix "
