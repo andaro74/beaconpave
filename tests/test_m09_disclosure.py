@@ -185,6 +185,63 @@ def test_the_pack_crosses_grammatical_mood_against_authorship():
     assert any(is_question(c) for c in negatives)
 
 
+def test_no_positive_case_asks_for_an_outcome_the_catalog_cannot_ground():
+    """**The measurement that moved the rule, kept as a check on the pack.**
+
+    `data/catalog.json` carries no outcome for any title — every field any title
+    has is `brand, entitlement, event, id, starts, title, type` — and
+    `grounded-017` requires the agent NOT to narrate one (`must_not_claim: "won
+    the Granite Falls Classic"`). So a case asking what *happened* in an event
+    gets "I do not have the result": a refusal to confabulate, which is not
+    AI-authored editorial copy and owes no disclosure. It would fail after the
+    fix for a reason that is not the fix, and F2 would fire on the wrong thing.
+
+    This is why Legal/S&P re-scoped MER-AI-0001 rather than the pack being
+    rewritten to fit — and it is asserted here so a later edit cannot walk a
+    recap-shaped case back in under a rule that no longer covers it."""
+    catalog_fields = {k for t in CATALOG["titles"] for k in t}
+    assert not (catalog_fields & {"result", "score", "winner", "outcome", "final"}), (
+        "the catalog now carries an outcome, so a recap IS groundable. That is one of "
+        "the conditions `rules/MER-AI-0001.yaml`'s `scope.revives` names: re-open the "
+        "recap sense as a scope decision on Legal/S&P's key, and give the pack its "
+        "recap half in that milestone.")
+
+    outcome_words = ("who won", "how did", "what happened", "final score", "the result",
+                     "played out", "play out", "recap of")
+    for case in _cases():
+        if _mode(case) != "required":
+            continue
+        lowered = case["input"].lower()
+        hits = [w for w in outcome_words if w in lowered]
+        assert not hits, (
+            f"{case['id']} asks for {hits}, which narrates an event outcome. This catalog "
+            "cannot ground one and the golden set forbids inventing it, so the correct "
+            "answer carries no disclosure and the case would fail after the fix for a "
+            "reason that is not the fix.")
+
+
+def test_the_pack_is_inside_the_rules_recorded_scope():
+    """The rule's `scope` and the pack are one decision in two files.
+
+    A re-scope recorded in the registry and a pack that drifts from it is the
+    two-lists problem this repository has paid for three times. The narrow,
+    checkable half of the agreement: the rule must record a scope, its excluded
+    sense must name recaps, and the revival condition must be non-empty — an
+    exclusion with no way back is a retirement wearing a narrower name."""
+    import yaml as _yaml
+    rule = _yaml.safe_load(
+        (ROOT / "rules" / "MER-AI-0001.yaml").read_text(encoding="utf-8"))
+    scope = rule.get("scope") or {}
+    assert scope, "MER-AI-0001 records no scope; the re-scope is in prose only"
+    assert "recap" in scope["excludes"].lower(), scope["excludes"]
+    assert scope["revives"].strip(), (
+        "the excluded sense has no revival condition, which makes the exclusion a "
+        "retirement rather than a scoping")
+    assert scope["decided_by"] == "legal-sp", (
+        "a scope decision on a Legal/S&P rule must record that seat as its author")
+    assert "editorial copy" in rule["title"].lower(), rule["title"]
+
+
 def test_a_disclosure_that_does_not_say_what_it_discloses_fails():
     """**Round 1 (Legal/S&P), driven through the real scorer.**
 

@@ -213,6 +213,17 @@ def trace(rule_id: str, registry: pathlib.Path = REGISTRY,
         f"status {rule.get('status')}        review_by {rule.get('review_by')}",
     ))
 
+    # **The scope, printed before the controls.** A rule re-scoped by its owning
+    # seat is a decision a reader of the lookup must meet, and `title` is not it:
+    # a scope narrowed by a quiet edit to the title cannot be audited, and the
+    # excluded sense and its revival condition exist nowhere a reader looks.
+    scope = rule.get("scope") or {}
+    if scope:
+        steps.append(Step("scope", str(scope.get("covers", "")).strip(),
+                          f"{scope.get('decided_by')} {scope.get('decided_on')}"))
+        steps.append(Step("excludes", str(scope.get("excludes", "")).strip()))
+        steps.append(Step("revives", str(scope.get("revives", "")).strip()))
+
     # **The boundary, printed with the chain.** A disposition that records what
     # it does not reach is worth nothing if the lookup omits it: the registry
     # would carry the limit and `pave rules trace` would still show an unqualified
@@ -340,13 +351,13 @@ def render(chain: Chain) -> str:
     lines = [f"{chain.rule_id}  {chain.rule.get('title')}"]
     for step in chain.steps:
         mark = "        " if step.resolved else "  <-- "
-        if step.kind == "limit":
+        if step.kind in ("limit", "scope", "excludes", "revives"):
             # **Wrapped, and the boundary is the one step that earns the room.**
             # A limit is prose a human has to read, and a 500-character line in a
             # terminal is a line nobody reads — which would make printing it a
             # gesture rather than a disclosure.
             import textwrap
-            lines.append(f"  {'limit':<10} {step.detail}")
+            lines.append(f"  {step.kind:<10} {step.detail}".rstrip())
             lines.extend(textwrap.wrap(step.ref, width=76,
                                        initial_indent=" " * 15, subsequent_indent=" " * 15))
             continue

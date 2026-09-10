@@ -1,27 +1,81 @@
-# M00a: this rule ships PROPOSED and UNDISPOSED on purpose.
+# M00a: this rule shipped PROPOSED and UNDISPOSED on purpose.
 #
 # It shipped in the starter as `status: enforced` with controls already pointing
 # at a `disclosure-*` eval pack that also already existed. That makes claim 6
 # ("a rule delta disposed end-to-end into eval cases") unprovable: the delta had
-# already happened at commit one, so M07 would have had nothing to demonstrate
-# but a file that was always there.
+# already happened at commit one, so the disposition would have had nothing to
+# demonstrate but a file that was always there.
 #
-# M07 disposes it: status -> enforced, the no-control record is replaced by the
-# eval pack and the guardrail, and `disclosure-004` is added to cases.yaml. That
-# diff IS the claim. Do not pre-empt it.
+# M09 PR 4 disposes it: status -> enforced, and the `no-control` record below is
+# replaced by the L3 eval pack. That diff IS the claim. Do not pre-empt it.
+# (The gateway disclosure guardrail is **M09b's**, not this disposition's, and
+# `disclosure-004` is **withdrawn and not reused** — ADR-075 decisions 1 and 4.
+# The three sentences that used to stand here said M07, said the guardrail landed
+# with the pack, and told the next reader to add `disclosure-004` to cases.yaml.
+# All three were false by the time they were read.)
+#
+# M09 PR 2 RE-SCOPED the rule. See `scope` below: it was written for AI-generated
+# *recaps* and is enforced against a service that produces none, so the scope
+# moved to the editorial copy that service actually authors. That is Legal/S&P's
+# decision and its reasoning is in the record rather than in this comment.
 #
 # Owning seat: Legal / Standards & Practices.
 
 rule: MER-AI-0001
-title: AI-generated recaps must carry a visible disclosure
+title: AI-authored editorial copy must carry a visible disclosure
 source:
   type: regulation
   ref: "Fictional State of Jefferson AI Disclosure Act, 2026 (demo artifact)"
   effective: "2026-10-01"
+
+# **The re-scope, as a decision rather than an edit to `title`.**
+#
+# The rule as written governed AI-generated RECAPS. ADR-075 decision 3 disposed it
+# against `highlights-agent`, the only service that can be a caller. Measured at
+# M09 PR 2, and the reason the scope had to move rather than the pack:
+#
+#   - `data/catalog.json` carries no outcome for any title — every field any title
+#     has is `brand, entitlement, event, id, starts, title, type`. There is no
+#     result, score or winner anywhere in the fixture.
+#   - The only sports title in the past at the suite's evaluation clock
+#     (2026-09-13T18:00:00Z) is `t003`, a replay whose result the catalog does not
+#     carry.
+#   - `grounded-017` REQUIRES the agent not to narrate a result: it asserts
+#     `must_not_claim: "won the Granite Falls Classic"` and
+#     `must_not_claim: "the winner was"`.
+#
+# So the correct answer to any recap request is *"I do not have the result"* — a
+# refusal to confabulate, which is not AI-authored editorial copy and carries no
+# disclosure. A recap-shaped control could therefore only ever have failed for a
+# reason that was not the control, which is the one thing claim 6 cannot survive.
+#
+# The rule moved, not the pack. Widening "editorial copy" to fit cases already
+# written would have been the rule bending to the control it is supposed to test.
+scope:
+  covers: >-
+    AI-authored editorial copy that Meridian Sports publishes to viewers about
+    catalog titles — previews, tile and home-screen blurbs, and publishable
+    summaries of what a title is and who may watch it. The test is authorship
+    and publication, not grammatical mood: a preview requested as a question is
+    in scope and a factual entitlement answer requested as a command is not.
+  excludes: >-
+    AI-generated recaps — editorial copy narrating the outcome of an event. Not
+    retired and not disclaimed: the obligation is sound and the bound service has
+    no instance of it, because the catalog carries no outcomes and the golden set
+    forbids the agent inventing one.
+  revives: >-
+    Any of: the catalog gaining an outcome field for a title; a service that
+    authors post-event copy joining the registry as a caller; or the Meridian
+    News surface arriving at M10, which is where the recap sense was born. The
+    first of these to land re-opens the recap sense as a scope decision on this
+    seat's key, and the eval pack gains its recap half in that milestone.
+  decided_by: legal-sp
+  decided_on: "2026-09-10"
+
 owner_seat: legal-sp
 severity: blocking
 disposition:
-  decided_by: "unassigned — logged by Legal/S&P, awaiting disposition (M07)"
+  decided_by: "unassigned — logged by Legal/S&P, awaiting disposition (M09 PR 4)"
   decided_on: "2026-08-15"        # date the rule entered the registry, not the date it was disposed
   controls:
     - type: no-control

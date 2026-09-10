@@ -66,6 +66,13 @@ SCHEMA = json.loads((REGISTRY / "schema.json").read_text(encoding="utf-8"))
 COMMITTED = yaml.safe_load((REGISTRY / "MER-AI-0001.yaml").read_text(encoding="utf-8"))
 PACK_REF = "services/highlights-agent/evals/disclosure/cases.yaml"
 
+#: Steps that RECORD something about the disposition rather than being a link
+#: of the walk: the rule's scope and its excluded sense, the revival condition,
+#: and the disposition's limits. They are printed with the chain — a boundary a
+#: reader does not meet is a boundary that is not recorded — and they do not
+#: change what the walk reached.
+ANNOTATIONS = ("scope", "excludes", "revives", "limit")
+
 
 def _registry(tmp_path: pathlib.Path, rule: dict) -> pathlib.Path:
     directory = tmp_path / "rules"
@@ -262,7 +269,7 @@ def test_the_committed_rule_traces_as_far_as_it_goes_and_says_so():
     chain = rules.trace("MER-AI-0001", REGISTRY, ROOT)
     assert chain.rule is not None and not chain.defects
     assert not chain.resolved
-    kinds = [s.kind for s in chain.steps if s.kind != "limit"]
+    kinds = [s.kind for s in chain.steps if s.kind not in ANNOTATIONS]
     assert kinds == ["source", "owner", "control"]
     assert "NOT RESOLVED" in rules.render(chain)
 
@@ -273,7 +280,7 @@ def test_a_disposed_rule_walks_all_the_way_to_the_asserts(tmp_path):
     directory = _registry(tmp_path, _disposed())
     chain = rules.trace("MER-AI-0001", directory, ROOT)
     assert chain.resolved, chain.defects
-    kinds = [s.kind for s in chain.steps if s.kind != "limit"]
+    kinds = [s.kind for s in chain.steps if s.kind not in ANNOTATIONS]
     assert kinds[:4] == ["source", "owner", "control", "binds"]
     cases = [s for s in chain.steps if s.kind == "case"]
     # Derived from the pack rather than pinned at a literal: round 1 added two

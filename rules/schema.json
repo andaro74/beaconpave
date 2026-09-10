@@ -17,6 +17,19 @@
         "effective": { "type": "string", "format": "date", "description": "Mandatory from M09 (ADR-053's owe, ADR-075 amendment 2): the date the source becomes binding. Required rather than optional so that a rule cannot switch off its own review clock by omitting the field it is checked against." }
       }
     },
+    "scope": {
+      "type": "object",
+      "description": "What the rule reaches, in the terms of the system it is enforced against — and what it does NOT, with what would bring an excluded sense back. **A rule re-scoped by its owning seat says so here rather than by a quiet edit to `title`.** M09 met the need at MER-AI-0001: the rule was written for AI-generated *recaps*, was disposed against a service that produces no recappable content — `data/catalog.json` carries no outcome field for any title, and `grounded-017` requires the agent NOT to narrate a result — so a recap-shaped control could only ever have failed for a reason that was not the control. Re-scoping the rule to the editorial copy the bound service actually authors is a Legal/S&P decision; recording it as a field is what stops the next reader taking `title` for the whole of it (ADR-075 amendment 2 §6).",
+      "required": ["covers", "excludes", "revives", "decided_by", "decided_on"],
+      "additionalProperties": false,
+      "properties": {
+        "covers": { "type": "string", "description": "What the rule reaches now" },
+        "excludes": { "type": "string", "description": "A sense the rule no longer reaches, named rather than deleted. A scope narrowed by silence cannot be audited" },
+        "revives": { "type": "string", "description": "What would bring the excluded sense back into force. Never blank: an exclusion with no revival condition is a retirement wearing a narrower name" },
+        "decided_by": { "type": "string" },
+        "decided_on": { "type": "string", "format": "date" }
+      }
+    },
     "owner_seat": {
       "type": "string",
       "enum": ["platform-eng", "ai-quality", "security", "legal-sp", "data-governance", "tool-owner", "service-team"]

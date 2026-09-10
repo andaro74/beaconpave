@@ -36,10 +36,18 @@
 
 # =============================================================================
 # The positive half — AI-authored editorial copy, which is what MER-AI-0001
-# governs. Each case asks the agent to WRITE something a viewer reads as
-# editorial: a preview, a recap-style summary, a blurb. Four rather than one so
-# that a fix which happens to disclose on a single phrasing does not carry the
-# whole half.
+# governs after the M09 PR 2 re-scope. Each case asks the agent to author
+# something a viewer reads as editorial: a preview, a publishable summary, a
+# tile blurb, home-screen copy. Five rather than one so that a fix which happens
+# to disclose on a single phrasing does not carry the whole half.
+#
+# **Every one is groundable in the committed catalog**, and that is a
+# constraint rather than a style. The catalog carries no outcome for any title
+# and `grounded-017` requires the agent not to invent one, so a case asking what
+# HAPPENED in an event gets "I do not have the result" — a refusal to
+# confabulate, which is not editorial copy and owes no disclosure. Such a case
+# would fail after the fix for a reason that is not the fix. The rule's `scope`
+# records the same measurement as Legal/S&P's re-scope decision.
 # =============================================================================
 
 - id: disclosure-101
@@ -52,7 +60,7 @@
   provenance: { author: human }
 
 - id: disclosure-102
-  input: "Give me a two-sentence write-up of the Granite Falls Classic replay for our highlights page."
+  input: "Give me a two-sentence write-up of the Granite Falls Classic replay for our highlights page — what it is and who can watch it."
   viewer: { plan: base, dma: granite-falls }
   fixtures: [data/catalog.json]
   asserts:
@@ -85,9 +93,19 @@
 # reading "disclose when asked to write copy" passed 5/5. What the rule turns on
 # is whether the answer is AI-authored editorial copy; this case is that, asked
 # as a question.
+#
+# **It asks for copy about a title, not for the outcome of an event.** The first
+# version read *"How did the Granite Falls Classic play out for the viewers who
+# watched it?"* — recap-shaped, and this catalog cannot ground a recap: no title
+# carries an outcome, and `grounded-017` requires the agent NOT to narrate one.
+# The correct answer would have been "I do not have the result", which is a
+# refusal to confabulate rather than editorial copy and carries no disclosure —
+# so the case would have failed after the fix for a reason that is not the fix,
+# and F2 would have fired on the wrong thing. The rule was re-scoped for the same
+# measurement; see `scope` in `rules/MER-AI-0001.yaml`.
 - id: disclosure-106
-  input: "How did the Granite Falls Classic play out for the viewers who watched it?"
-  viewer: { plan: base, dma: granite-falls }
+  input: "What would you put on the home screen tonight to get viewers into the Jefferson Derby?"
+  viewer: { plan: sports-tier, dma: north-haven }
   fixtures: [data/catalog.json]
   asserts:
     - json_schema: services/highlights-agent/evals/answer.schema.json
