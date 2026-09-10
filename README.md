@@ -45,7 +45,9 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 07 | The guardrail, applied per channel by the gateway ✚ | six PRs ✚ | `m07` | **2/25** ✚ | not judged ✧ | 7/11, not recorded ✚ | ✅ |
 | 08 | The tools arm's budget: the context or the ceiling ✜ | six PRs ✜ | `m08` | **12/25** ✜ | not judged ✧ | not run ✜ | ✅ |
 | 08b | The ceiling, measured on samples it was not derived from ❁ | six PRs ❁ | `m08b` | **10/25** ❁ | not judged ✧ | not run ❁ | ✅ |
-| 09 | Rules registry + regdelta loop | `m09-rules` | `m09` | –/25 | – | – | ⬜ |
+| 09 | The rule is disposed, and the service goes red ❉ | `m09-rules` | `m09` | –/25 ❉ | – | – | ⬜ |
+| 09b | The guardrail line the same rule disposes into ❉ | `m09b-guardrail` | `m09b` | – | – | – | ⬜ |
+| 09c | Answer quality: the browse gap and the tiers ❋ | `m09c-answer-quality` | `m09c` | –/25 ❋ | – | – | ⬜ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
 | 12 | Self-heal classifier + curation panel | `m12-selfheal` | `m12` | –/25 | – | –/10 | ⬜ |
@@ -509,6 +511,42 @@ debts stay owned and unscheduled. Adversarial not run: no corpus edit, no probe
 run, and the one instrument digest that moved (`m04-I`) moved because per-round
 usage changed the tool loop, which no adversarial scorer reads. The whole
 reading is `milestones/M08b/README.md` and ADR-074 amendment 3.
+
+❉ **M09 as inherited was two milestones, and the guardrail half is `09b`,
+added in place (ADR-075 decision 1).** It carried claim 6, Act 3, a new guardrail
+line, the `entitlement-circumvention` recalibration riding that line, the
+`brand_tone` widening as a judge run, the DMA rename, the `p95_ms` rule's failed
+premise and ADR-053's two halves — four spend events, one deploy and two seat
+rounds on two different controls. **A red after a disposition *and* a new
+guardrail line is unattributable between the two**, and claim 6's whole content is
+that a reader can trace the red to the rule; ADR-074 decision 1 refused the same
+shape one level out. So row 09 takes the disposition and the control that needs no
+deploy — the fix is one sentence in `TOOL_SYSTEM`, which is caller-side and not
+in the deployed bundle — and row 09b takes the guardrail line, the topic
+recalibration, Security's two probes and the `brand_tone` re-freeze. Nothing below
+row 09 shifts: **surfaces stays M10, the drill M11, self-heal M12**, and the seven
+`M10` code and template sites stay correct as written. The claim, its five
+falsifiers, the two bands, the prompt-delta test and the `p95_ms` condition are in
+ADR-075 decision 5, written before any code or call; the numbers arrive at close,
+never before. `SPEC/09-rules-registry-and-the-disposition.md`.
+
+❋ **Answer quality is scheduled for the first time, as `09c` (ADR-075
+decision 2).** ADR-074 decision 2 made the browse gap and the `tokens_out` tiers
+owned and unscheduled with one written trigger — *persists on M08b's fresh run*
+— and it fired on both halves: the browse gap on nine samples across five of the
+seven cases, and the `tokens_out` failures widened from five cases to twelve, two
+of them by a single sample writing 307 and 308 tokens against a tier of 300. That
+is thirteen cases failing for reasons the ceiling cannot reach. The row serves
+claim 2 defensively and **carries no claim of the twelve**, on rows 06c, 06d and
+08b's precedent; what claim, if any, it should carry is left to its own spec.
+**Two different `M10`s, separated here:** where `milestones/M08/README.md`'s last
+two debt rows and ADR-073 §4 date the browse gap and the tiers to *"M10"*, read
+**this row**; where the six code sites, `templates/agent-tools/README.md`,
+`docs/governance/demo-script.md` and the M08 and M08b journals say *M10* about
+lanes, the second brand and superseding history entries, read **the surfaces
+milestone, unchanged** — those sites are correct as written and are not edited,
+which is what the in-place label buys and what a renumbering would have spent four
+two-key rules and twelve attestations to undo.
 
 ## What part one produced
 

@@ -13,6 +13,7 @@ milestone branch is cut, so the definition of done exists before the work does.
 | `07-guardrail-per-channel.md` | The gateway applies the guardrail per channel, so platform-internal content is not judged as a viewer's intent; claim 6 moves to M08 (ADR-070) |
 | `08-budget-context-or-ceiling.md` | The tools arm's `tokens_in` budget: a census of the committed trajectories decides whether the context or the ceiling is the thing to change; claim 6 moves to M09 (ADR-073) |
 | `08b-ceiling-on-fresh-samples.md` | The first fresh run since M07: the 7700 ceiling measured on samples it was not derived from, with the debts that need a run; added in place, the registry stays M09 (ADR-074) |
+| `09-rules-registry-and-the-disposition.md` | A rule delta disposed into an executable control makes the deployed service fail the gate and the fix makes it pass, traceable rule → control → assert; the guardrail half is M09b and answer quality is 09c, both added in place (ADR-075) |
 
 A spec answers four things: what this milestone builds, what it deliberately
 does not build, the definition of done as a checklist, and the demo artifact it
