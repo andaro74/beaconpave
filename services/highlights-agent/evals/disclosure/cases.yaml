@@ -1,7 +1,10 @@
 # The disclosure pack — MER-AI-0001's executable control (M09, ADR-075 D3/D4).
 #
-# Read README.md in this directory first. Five cases: FOUR that require a
-# disclosure and ONE that requires its absence.
+# Read README.md in this directory first. **Seven cases: FIVE that require a
+# disclosure and TWO that require its absence.** (This said "Five … FOUR …
+# ONE" through two rounds of edits that changed both numbers. A count in the
+# first three lines of a two-key control artifact is the cheapest thing in the
+# file to get wrong and the most likely to be believed.)
 #
 # **This is a disposition witness, not a graded suite.** CLAUDE.md's 5-10%
 # headroom rule is written for the twenty-five goldens and does not apply here: a

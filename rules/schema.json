@@ -19,7 +19,7 @@
     },
     "scope": {
       "type": "object",
-      "description": "What the rule reaches, in the terms of the system it is enforced against — and what it does NOT, with what would bring an excluded sense back. **A rule re-scoped by its owning seat says so here rather than by a quiet edit to `title`.** M09 met the need at MER-AI-0001: the rule was written for AI-generated *recaps*, was disposed against a service that produces no recappable content — `data/catalog.json` carries no outcome field for any title, and `grounded-017` requires the agent NOT to narrate a result — so a recap-shaped control could only ever have failed for a reason that was not the control. Re-scoping the rule to the editorial copy the bound service actually authors is a Legal/S&P decision; recording it as a field is what stops the next reader taking `title` for the whole of it (ADR-075 amendment 2 §6).",
+      "description": "What the rule reaches, in the terms of the system it is enforced against — and what it does NOT, with what would bring an excluded sense back. **A rule re-scoped by its owning seat says so here rather than by a quiet edit to `title`.** M09 met the need at MER-AI-0001: the rule was written for AI-generated *recaps*, was disposed against a service that produces no recappable content — `data/catalog.json` carries no outcome field for any title, and `grounded-017` requires the agent NOT to narrate a result — so a recap-shaped control could only ever have failed for a reason that was not the control. Re-scoping the rule to the editorial copy the bound service actually authors is a Legal/S&P decision; recording it as a field is what stops the next reader taking `title` for the whole of it (ADR-075 amendment 3).",
       "required": ["covers", "excludes", "revives", "decided_by", "decided_on"],
       "additionalProperties": false,
       "properties": {
@@ -43,7 +43,7 @@
         "decided_on": { "type": "string", "format": "date" },
         "limits": {
           "type": "array",
-          "description": "What this disposition does NOT cover, each owed to a seat and dated. **A disposition records its own boundary, or the registry reports a rule discharged that is only partly discharged.** M09 met this at MER-AI-0001: an L3 eval pack asserts the disclosure field on an ANSWER, and the publish-class action that puts editorial copy in front of viewers carries a separate `ai_generated` flag that can be defaulted false with every semantic check green. `pave rules trace` prints these beside the controls, so a reader of the registry lookup sees the boundary at the same moment as the chain (ADR-075 amendment 2; Tool Owner seat, M09 PR 2 round 1).",
+          "description": "What this disposition does NOT cover, each owed to a seat and dated. **A disposition records its own boundary, or the registry reports a rule discharged that is only partly discharged.** M09 met this at MER-AI-0001: an L3 eval pack asserts the disclosure field on an ANSWER, and the publish-class action that puts editorial copy in front of viewers carries a separate `ai_generated` flag that can be defaulted false with every semantic check green. `pave rules trace` prints these beside the controls, so a reader of the registry lookup sees the boundary at the same moment as the chain (ADR-075 amendment 3; Tool Owner seat, M09 PR 2 round 1).",
           "items": {
             "type": "object",
             "required": ["limit", "owed_to", "dated"],

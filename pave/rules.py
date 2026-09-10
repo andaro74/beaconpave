@@ -49,6 +49,24 @@ REGISTRY = ROOT / "rules"
 #: the schema permits, so its `ref` is prose and is never resolved as a path.
 NO_CONTROL = "no-control"
 
+#: Where each enforcing control type's artifact must live, and what shape it must
+#: have. **Read against the schema's own enum**, so a `type` outside it is refused
+#: rather than treated as "some other control we do not walk".
+#:
+#: Round 2 measured why this is not optional: with the walk keyed only on
+#: `path.exists()`, a `type: cedar_policy` control pointing at a **markdown design
+#: document** reported a clean chain, `type: human-review` (outside the enum) was
+#: accepted, `type: no_control` with an underscore was read as ENFORCING, and
+#: `ref: "."` — the repository root — discharged every rule. The first fix made
+#: correctly-typed controls stop reading as broken; it made anything that exists
+#: read as fine, which is the same defect facing the other way.
+CONTROL_ARTIFACTS = {
+    "eval_pack": ("services/", (".yaml", ".yml")),
+    "guardrail": ("platform/gateway/", (".json", ".ts", ".yaml", ".yml")),
+    "cedar_policy": ("platform/gateway/", (".cedar", ".json")),
+    "classification": ("platform/gateway/core/", (".py",)),
+}
+
 
 @dataclass(frozen=True)
 class Step:
@@ -180,17 +198,53 @@ def _resolves(ref: str, root: pathlib.Path) -> bool:
     if not ref or not isinstance(ref, str):
         return False
     candidate = (root / ref).resolve()
-    if root.resolve() not in candidate.parents and candidate != root.resolve():
+    # `!= root` too: `ref: "."` resolves to the repository root, exists, and
+    # discharged every rule. A control that is "the whole repository" is not a
+    # control (Tool Owner and Legal/S&P, round 2).
+    if root.resolve() not in candidate.parents or candidate == root.resolve():
         return False
-    return candidate.exists()
+    if not candidate.exists():
+        return False
+    # **Against the committed tree, not the filesystem.** `SERVICES/…/CASES.YAML`
+    # and a ref with a trailing space both resolve on a Windows checkout and would
+    # not on Linux CI, so "no orphan rules" meant two different things by
+    # platform. A ref must be byte-identical to a path that is actually there.
+    try:
+        relative = candidate.relative_to(root.resolve()).as_posix()
+    except ValueError:  # pragma: no cover - the containment check above precedes this
+        return False
+    return relative == ref.strip("/") and (root / relative).exists()
+
+
+def _control_types() -> set:
+    """The `controls[].type` enum, read out of `rules/schema.json`.
+
+    One authority. A copy of an enum in the reader is the second vocabulary site
+    ADR-045 decision 7 closed one file over: the narrower gate wins at runtime,
+    which is exactly what makes that shape survive review."""
+    import json
+    schema = json.loads((ROOT / "rules" / "schema.json").read_text(encoding="utf-8"))
+    controls = schema["properties"]["disposition"]["properties"]["controls"]
+    return set(controls["items"]["properties"]["type"]["enum"])
 
 
 def _pack_cases(path: pathlib.Path) -> list[dict]:
-    """The cases in an eval pack, or `[]` if it holds none."""
+    """The cases in an eval pack, or `[]` if it does not hold a case list.
+
+    **Case SHAPE, not "a YAML list of mappings."** The looser reading reported a
+    real `.yml` guardrail config — also a list of mappings — as "reads as an eval
+    pack", so a correct disposition rendered BROKEN (Tool Owner, round 2). An
+    eval pack is a list of cases, and a case carries `id` and `asserts`; that is
+    what `run_with_tools.py` validates one directory over."""
     if yaml is None:  # pragma: no cover
         return []
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return [c for c in doc if isinstance(c, dict)] if isinstance(doc, list) else []
+    if not isinstance(doc, list):
+        return []
+    # An `id` makes it a case. The assert-less case keeps its OWN defect one
+    # level down — folding it in here would report "holds no cases" for a pack
+    # that holds one, which names the wrong link.
+    return [c for c in doc if isinstance(c, dict) and c.get("id")]
 
 
 def _binds(ref: str) -> str | None:
@@ -295,6 +349,31 @@ def trace(rule_id: str, registry: pathlib.Path = REGISTRY,
         kind = control.get("type")
         looks_like_pack = (not path.is_dir() and path.suffix in (".yaml", ".yml")
                            and bool(_pack_cases(path)))
+
+        # **The declared type must be one the schema permits.** Read from the
+        # schema rather than restated here, which is the discipline `orphan_rules`
+        # already follows: two copies of an enum drift, and the narrower one wins
+        # silently at runtime.
+        if kind not in _control_types():
+            steps.append(Step("control", label, f"type {kind!r} is not in the schema's "
+                                                f"enum", resolved=False))
+            defects.append(
+                f"{rule_id}: the disposition declares a control of type {kind!r}, which "
+                f"`rules/schema.json` does not permit. A control the registry cannot name "
+                f"is not a control it can be said to have.")
+            continue
+
+        home, suffixes = CONTROL_ARTIFACTS.get(kind, (None, None))
+        if home and not (ref.startswith(home) and path.suffix in suffixes):
+            steps.append(Step("control", label, f"declared {kind!r}; its artifact is not "
+                                                f"one", resolved=False))
+            defects.append(
+                f"{rule_id}: the control at {ref!r} is declared {kind!r}, whose artifact "
+                f"lives under {home!r} with suffix {suffixes}. A disposition that names "
+                f"one kind of control and points at another reports a chain it did not "
+                f"walk — G4's *a probe naming Cedar is not satisfied by a content filter*, "
+                f"one plane over.")
+            continue
 
         if kind != "eval_pack":
             # **Dispatch on the declared TYPE, never on the file extension**

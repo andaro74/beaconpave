@@ -53,22 +53,34 @@ source:
 # written would have been the rule bending to the control it is supposed to test.
 scope:
   covers: >-
-    AI-authored editorial copy that Meridian Sports publishes to viewers about
+    AI-authored editorial copy the bound service publishes to viewers about
     catalog titles — previews, tile and home-screen blurbs, and publishable
     summaries of what a title is and who may watch it. The test is authorship
     and publication, not grammatical mood: a preview requested as a question is
     in scope and a factual entitlement answer requested as a command is not.
+    **Not narrowed by brand.** An earlier draft of this field read "that
+    Meridian Sports publishes", which was a SECOND narrowing — of the surface —
+    smuggled into a field whose whole justification is the recap measurement
+    below, and given no revival condition of its own. A disclosure act does not
+    stop at a brand boundary; the rule binds to the service, and which brands
+    that service carries is the manifest's to say.
   excludes: >-
     AI-generated recaps — editorial copy narrating the outcome of an event. Not
     retired and not disclaimed: the obligation is sound and the bound service has
     no instance of it, because the catalog carries no outcomes and the golden set
     forbids the agent inventing one.
   revives: >-
-    Any of: the catalog gaining an outcome field for a title; a service that
-    authors post-event copy joining the registry as a caller; or the Meridian
-    News surface arriving at M10, which is where the recap sense was born. The
-    first of these to land re-opens the recap sense as a scope decision on this
-    seat's key, and the eval pack gains its recap half in that milestone.
+    Either: the catalog gaining an outcome field for a title, or a service that
+    authors post-event copy joining the registry as a caller. The first to land
+    re-opens the recap sense as a scope decision on this seat's key, and the
+    eval pack gains its recap half in that milestone.
+    **The Meridian News surface is NOT a revival condition, because it is not a
+    future event.** An earlier draft named it as one, "arriving at M10" — and
+    `data/catalog.json` already carries `t002 North Haven Nightly` and `t004 The
+    Port William Report` at `brand: meridian-news`, `tools/catalog-search` will
+    query that brand, and golden case `brand-020` already asks about one of
+    them. News copy is in scope today under `covers`; what is excluded is the
+    recap SENSE, for every brand alike.
   decided_by: legal-sp
   decided_on: "2026-09-10"
 

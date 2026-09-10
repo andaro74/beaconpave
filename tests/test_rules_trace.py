@@ -406,7 +406,10 @@ def test_a_control_declared_one_type_and_pointing_at_another_is_red(tmp_path):
     chain = rules.trace("MER-AI-0001", _registry(tmp_path, _typed(
         "cedar_policy", PACK_REF, "L2")), root)
     assert not chain.resolved
-    assert any("declared" in d and "eval pack" in d for d in chain.defects), chain.defects
+    # The artifact check fires first now: a `cedar_policy` ref under `services/`
+    # is not a Cedar policy, whatever it parses as. The defect names the declared
+    # type and where that type's artifact lives.
+    assert any("declared 'cedar_policy'" in d for d in chain.defects), chain.defects
     assert not [s for s in chain.steps if s.kind == "case"], (
         "the reader printed eval cases as this control's chain")
 
@@ -419,7 +422,7 @@ def test_an_eval_pack_ref_that_is_not_a_case_file_is_red(tmp_path):
     chain = rules.trace("MER-AI-0001", _registry(tmp_path, _typed(
         "eval_pack", "services/highlights-agent/evals/disclosure")), root)
     assert not chain.resolved
-    assert any("is declared an eval pack and is not one" in d for d in chain.defects)
+    assert any("declared 'eval_pack'" in d for d in chain.defects), chain.defects
 
 
 def test_binds_names_the_service_in_the_path_and_says_so_when_there_is_none(tmp_path):

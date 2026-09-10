@@ -202,10 +202,23 @@ PRE_FIX_TOOL_SPECS_SHA256 = "40152facb40524ae1d3a4d83d5dab8c785db036b47f72a434a2
 PRE_FIX_CHARS_PER_TOKEN = 3.373
 
 
-#: The tools the gateway routes, and therefore the specs it re-sends every call.
-#: Read from the committed history entry rather than named here, so a routed tool
-#: added later is priced without this file being edited.
-ROUTED = ("catalog-search", "entitlement-check")
+def routed_tools() -> tuple:
+    """The tools the gateway routes, read from the committed synth snapshot.
+
+    **This was a hand-written tuple under a comment claiming it was derived** —
+    *"Read from the committed history entry rather than named here, so a routed
+    tool added later is priced without this file being edited"* — which is the
+    stated-and-absent shape, in the file whose whole subject is a bound that does
+    not bound. `PRE_FIX_TOOL_SPECS_SHA256` could not catch the staleness either,
+    because the digest is computed OVER the list.
+
+    Measured by the Tool Owner seat: routing `publish-highlight` adds **422
+    estimated tokens**, larger than `ADMISSIBLE_DELTA` on its own and entirely
+    unpriced. `pave.infra.routed_tools` reads the snapshot ADR-017 already
+    drift-gates against a re-synthesis, so the deployment is the authority."""
+    from pave import infra
+    snapshot = ROOT / "platform" / "infra" / "cdk.out" / "BeaconpaveGateway.template.json"
+    return tuple(sorted(infra.routed_tools(json.loads(snapshot.read_text(encoding="utf-8")))))
 
 
 def rendered_per_call_payload(census) -> str:
@@ -244,7 +257,7 @@ def rendered_per_call_payload(census) -> str:
             # — the census already reproduces those six lines and its own test
             # pins the shape, so this reads the reproduction rather than making a
             # third copy.
-            specs = _json.dumps(census.tool_config(ROUTED), ensure_ascii=False,
+            specs = _json.dumps(census.tool_config(routed_tools()), ensure_ascii=False,
                                 sort_keys=True)
             return system + "\n" + specs
     raise AssertionError("gateway_client.py defines no string constant TOOL_SYSTEM")
@@ -447,7 +460,7 @@ def test_the_baseline_is_the_estimate_of_the_text_it_names(census):
         "`{schema}`, so it is part of the delta and part of this baseline.")
 
     import json as _json
-    specs = _json.dumps(census.tool_config(ROUTED), ensure_ascii=False, sort_keys=True)
+    specs = _json.dumps(census.tool_config(routed_tools()), ensure_ascii=False, sort_keys=True)
     assert digest(specs) == PRE_FIX_TOOL_SPECS_SHA256, (
         "the routed tool specs have moved. Their `description` and `inputSchema` are "
         "handed to the model on every call, so a reworded description is a per-call "

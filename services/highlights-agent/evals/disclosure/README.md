@@ -13,7 +13,10 @@ editorial copy, leave the mode at `not_required`, and both halves still count
 while the pack now asserts that AI-authored copy must *not* disclose. The seat
 that owns the rule signs that edit now.
 
-This pack is `MER-AI-0001`'s executable control. The rule has sat `proposed` and
+This pack is `MER-AI-0001`'s executable control — the rule now titled
+*AI-authored editorial copy must carry a visible disclosure*, re-scoped from
+*AI-generated recaps* at M09 PR 2 because the catalog grounds no recap (see the
+rule's own `scope` record). The rule has sat `proposed` and
 undisposed since M00a **on purpose** — its own header says why: it shipped in the
 starter as `enforced` with controls already pointing at a `disclosure-*` pack
 that also already existed, so the delta had happened at commit one and claim 6
@@ -32,19 +35,26 @@ was unprovable. M09 disposes it, and the diff that does so *is* the claim.
 
 | assert | passes when |
 |---|---|
-| `ai_disclosure: { required: [<token>, …] }` | the key is **present**, renders to something a reader can see, and mentions every token |
+| `ai_disclosure: { required: [<phrase>, …] }` | the key is **present**, renders to something a reader can see, and says **any one** of the listed phrasings, matched on whole words |
 | `ai_disclosure: { not_required: [] }` | the key is **present** and is `null` |
 
 **"Renders to something a reader can see" is not `strip()`.** Round 1 drove a
 **zero-width space** (`U+200B`) through the real lane and scored 5/5 PASS —
 `strip()` removes ASCII whitespace and leaves every Unicode format character
-standing, so a disclosure nobody can see satisfied a rule whose title is *AI-generated
-recaps must carry a **visible** disclosure*. `Cf`, `Cc` and `Cs` are stripped first.
+standing, so a disclosure nobody can see satisfied a rule requiring a **visible**
+one. `Cf`, `Cc` and `Cs` are stripped first.
 
-**The tokens are policy and live here, not in the scorer.** `.`, `x`, `n/a`,
-`null`, `See terms and conditions.` and the literal `Null until M07 disposes that
-rule.` all passed before a positive case had to name what its disclosure must
-mention. `evals/deterministic.py` is the goldens scorer at (ai-quality,
+**Whole words, and any-of rather than all-of.** Round 2 measured that a
+case-insensitive SUBSTRING match is the letters `ai` in ordinary English: it
+passed *"Available now."*, *"Said so."* and an explicit **denial** of AI
+authorship, and refused five correct disclosures. So matching is on word
+boundaries, and the list is a set of accepted PHRASINGS of which one must appear
+— F2 asks whether the fix worked and must not turn on which wording the model
+chose.
+
+**The phrasings are policy and live here, not in the scorer.** `.`, `x`, `n/a`,
+`null` and `See terms and conditions.` all passed before a positive case had to
+name what its disclosure must say. `evals/deterministic.py` is the goldens scorer at (ai-quality,
 platform-eng) and holds the mechanism; what a disclosure must *say* is Legal/S&P's,
 so it sits where that seat's key reaches it. The authoritative list moves into
 `rules/MER-AI-0001.yaml` at the disposition, where the rule's owner writes it.

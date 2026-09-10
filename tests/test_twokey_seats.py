@@ -592,7 +592,9 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # census's rule (13); the goldens scorer (1); the two grants files on the
     # held-text readings rule and the estimator on its own (3). 88 -> 91 at
     # round 2: two digit-bearing shape paths on the census rule and the
-    # scorer's test on the scorer's. 91 -> 102 at M09 PR 2: seven M09 paths on
+    # scorer's test on the scorer's. 91 -> 103 at M09 PR 2 (the arithmetic in this
+    # comment said 102 for one round and the assert said 103 — summary drift in the
+    # constant whose comment is its own audit trail, which is ADR-037's subject): seven M09 paths on
     # the census rule (two verdicts, a reader shape, a record shape and three
     # test shapes), the chain reader and its only reader (2), the caller's system
     # prompt (1 -- named rather than a shape path, round 1), and G5's router (3
