@@ -40,10 +40,10 @@
       "act": 3,
       "title": "The seat disposes",
       "owner_milestone": "M09",
-      "recorded": null,
+      "recorded": "docs/governance/recordings/act3.mp4",
       "owed_by": "M09",
       "deferred_from": [],
-      "why": "Not yet buildable; M09 drives the rules loop. Owned by M07 until ADR-070 made M07 the guardrail milestone and renumbered claim 6 to M08, and by M08 until ADR-073 made M08 the budget milestone and renumbered it to M09; renumberings, not deferrals -- no milestone closed with this act owed to it."
+      "why": "**PAID AT THE M09 CLOSE, by the milestone that owns it.** `owed_by` is M09 and `deferred_from` is empty and stays empty: this act was never owed by a milestone that closed without it, which is why ADR-075 decision 1 kept it in M09 rather than letting M09b make M09 its first counted deferral. The reason it carried until now -- 'Not yet buildable; M09 drives the rules loop' -- stopped being true at PR 4 and is not restated, on this file's own standard that a deferral whose stated reason has quietly expired is the exact failure `brand_tone` was. Owned by M07 until ADR-070 made M07 the guardrail milestone and renumbered claim 6 to M08, and by M08 until ADR-073 made M08 the budget milestone and renumbered it to M09; renumberings, not deferrals. The take is `milestones/M09/act3-take-sheet.md`, six beats, zero model calls, every command read off a committed artifact. **Beat 6 says on camera that the claim FAILED** -- F1 on `disclosure-103` and F4.2 on `grounded-017` -- because an act that shows the gate going red, the fix, and the gate going green, and stops there, is a recording of a mechanism sold as a claim that held. Two corrections ADR-075 decision 3 made in the open are honoured rather than discovered on camera: the service is `highlights-agent`, not `recap-agent`, and the guardrail line is M09b's. A third is owed and recorded as a debt -- the script's `one probe end-to-end` beat, which M09 cannot run (SPEC/09 constraint 8) and which reads M04's committed evidence or moves to M09b."
     },
     {
       "act": 4,

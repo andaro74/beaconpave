@@ -45,7 +45,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 07 | The guardrail, applied per channel by the gateway ✚ | six PRs ✚ | `m07` | **2/25** ✚ | not judged ✧ | 7/11, not recorded ✚ | ✅ |
 | 08 | The tools arm's budget: the context or the ceiling ✜ | six PRs ✜ | `m08` | **12/25** ✜ | not judged ✧ | not run ✜ | ✅ |
 | 08b | The ceiling, measured on samples it was not derived from ❁ | six PRs ❁ | `m08b` | **10/25** ❁ | not judged ✧ | not run ❁ | ✅ |
-| 09 | The rule is disposed, and the service goes red ❉ | seven PRs ❉ | `m09` | **10/25** ❉ | not judged ✧ | not run ❉ | ⬜ |
+| 09 | The rule is disposed, and the service goes red ❉ | seven PRs ❉ | `m09` | **10/25** ❉ | not judged ✧ | not run ❉ | ✅ |
 | 09b | The guardrail line the same rule disposes into ❉ | `m09b-guardrail` | `m09b` | – | – | – | ⬜ |
 | 09c | Answer quality: the browse gap and the tiers ❋ | `m09c-answer-quality` | `m09c` | –/25 ❋ | – | – | ⬜ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
