@@ -1,0 +1,21 @@
+# BASE=369c8ba (PR 4's merge)  HEAD=19cd300b8878ed3b35249d27ac9482ae6eca2b64
+# git diff --stat BASE..HEAD -- <guardrail, policy, corpora, tiers, topics, catalog, TOOL_SYSTEM, answer.schema.json>
+(nothing printed above means no line moved)
+
+# per path, name-only:
+  platform/gateway/core/guardrail.py -> 0 changed file(s)
+  platform/gateway/handler.py -> 0 changed file(s)
+  platform/gateway/core/ -> 0 changed file(s)
+  platform/gateway/policy/ -> 0 changed file(s)
+  platform/infra/lib/gateway-stack.ts -> 0 changed file(s)
+  platform/infra/tests/fixtures/BeaconpaveGateway.template.json -> 0 changed file(s)
+  quality/adversarial/ -> 0 changed file(s)
+  data/catalog.json -> 0 changed file(s)
+  services/highlights-agent/pave.manifest.yaml -> 0 changed file(s)
+  services/highlights-agent/evals/golden/cases.yaml -> 0 changed file(s)
+  services/highlights-agent/evals/answer.schema.json -> 0 changed file(s)
+  services/highlights-agent/gateway_client.py -> 0 changed file(s)
+
+# and the WORKING TREE against HEAD over the same paths — a run reads the
+# tree, not the commit, so an uncommitted edit is the same defect:
+(nothing printed above means the tree equals HEAD over these paths)

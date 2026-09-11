@@ -914,7 +914,17 @@ def test_a_disclosure_entry_validates_and_forces_no_readme_row(tmp_path):
         "`check_readme`'s `tagged` set is `suite == \"goldens\"` only; if that changed, "
         "a disclosure entry now forces a README_GOLDENS row and decision 4's costing "
         "is wrong.")
-    assert not any("m09" in p or "disclosure" in p for p in before), sorted(before)
+    # **Narrowed at M09 PR 4b, and the narrowing is what the check meant.** This
+    # line read `not any("m09" in p or "disclosure" in p ...)`, and it was true only
+    # while no `m09` row was pinned in `README_GOLDENS` at all. PR 4b pins one --
+    # the goldens control run -- so `check_readme` over this planted directory now
+    # reports `README tie for m09: entry m09-tools-goldens.json ... is missing`,
+    # which is a true statement about a directory holding one disclosure entry and
+    # nothing else, and has nothing to do with the disclosure suite. The claim under
+    # test is that the DISCLOSURE entry adds no obligation; the delta assertion above
+    # measures exactly that, and this line now says the same thing about the entry's
+    # own name rather than about a milestone tag that two suites share.
+    assert not any("disclosure" in p for p in before), sorted(before)
 
 
 def test_removing_disclosure_from_the_enum_refuses_the_entry(tmp_path):

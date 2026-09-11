@@ -314,31 +314,75 @@ def test_the_records_the_fix_moves_are_derived_and_not_listed():
     clause rewritten in this PR **to fix exactly that defect** and still wrong.
 
     So the set is computed. A sixth record lands on this the day somebody writes
-    it, rather than the day a PR goes red for a reason no clause named."""
+    it, rather than the day a PR goes red for a reason no clause named.
+
+    **Split at M09 PR 4b, and the split is the clause's own scope rather than a
+    carve-out.** The closure is over every record under `milestones/`, and PR 4b
+    writes one: `milestones/M09/fresh-join.json`, the goldens control run read by
+    M08b's committed reader, which digests the golden cases file like its siblings
+    and therefore joins the closure. It is not *"re-produced by the fix"* in any
+    sense the Definition of done means — it did not exist until after the fix and
+    was produced against the post-fix prompt by construction. The clause it feeds
+    says **"nothing under `milestones/M08/` or `milestones/M08b/` changed"**, and
+    those two directories are what the first assertion below governs. The second
+    keeps the teeth: everything else the closure reaches must be a record this
+    milestone itself produced, so a sixth record landing under any other directory
+    is still red here.
+
+    What this does **not** do is remove a record from the five. The pre-existing
+    cascade is unchanged, and `milestones/M08b/fresh-join.json` is still in it."""
     moved = records_moved_by(MODEL_FACING_SITES)
-    assert moved == {
+    #: The two directories the Definition-of-done clause names, verbatim.
+    governed = {r for r in moved
+                if r.startswith(("milestones/M08/", "milestones/M08b/"))}
+    assert governed == {
         "milestones/M08/context-census.json",
         "milestones/M08/rescore-join.json",
         "milestones/M08/residual-differential.json",
         "milestones/M08b/fresh-join.json",
         "milestones/M08b/residual-attribution.json",
     }, (
-        f"the fix's record cascade is now {sorted(moved)}. SPEC/09's PR 4 paragraph and "
-        "its Definition-of-done clause name a set; if this one differs, the spec is out "
-        "of date and PR 4 cannot satisfy the clause. Update both in the same diff.")
+        f"the fix's record cascade under M08 and M08b is now {sorted(governed)}. SPEC/09's "
+        "PR 4 paragraph and its Definition-of-done clause name a set; if this one differs, "
+        "the spec is out of date and PR 4 cannot satisfy the clause. Update both in the "
+        "same diff.")
+    rest = moved - governed
+    assert all(r.startswith("milestones/M09/") for r in rest), (
+        f"the closure reaches {sorted(r for r in rest if not r.startswith('milestones/M09/'))} "
+        "outside the directories the Definition of done governs and outside this milestone's "
+        "own evidence. A record in the cascade that no clause names is the defect the "
+        "computed closure exists to catch; name it or find out why it digests the prompt.")
 
 
 def test_the_spec_names_every_record_the_cascade_moves():
     """The document and the computation agree, or the document is the finding.
 
     This is the half that makes the derivation useful: computing the set is worth
-    nothing if the Definition of done still lists a different one."""
+    nothing if the Definition of done still lists a different one.
+
+    **Two documents, because the closure now reaches two kinds of record** (M09
+    PR 4b). A record under `milestones/M08/` or `milestones/M08b/` is one the fix
+    re-produced, and SPEC/09's clause is what must name it. A record this milestone
+    wrote after the fix is not in that clause and never was — but it is still a
+    record in the cascade, so it must be named **somewhere a reader reaches**, and
+    ADR-075 is where this milestone's records are described. Neither half is
+    allowed to be silent."""
     spec = (ROOT / "SPEC" / "09-rules-registry-and-the-disposition.md").read_text(
         encoding="utf-8")
+    adr = (ROOT / "docs" / "adr" /
+           "ADR-075-m09-is-two-milestones-and-the-disposition-ships-without-a-deploy.md"
+           ).read_text(encoding="utf-8")
     for record in sorted(records_moved_by(MODEL_FACING_SITES)):
-        assert record in spec, (
-            f"{record} is re-produced by the fix and SPEC/09 never names it. A PR cannot "
-            "collect keys for a record no clause told it to move.")
+        if record.startswith(("milestones/M08/", "milestones/M08b/")):
+            assert record in spec, (
+                f"{record} is re-produced by the fix and SPEC/09 never names it. A PR cannot "
+                "collect keys for a record no clause told it to move.")
+        else:
+            assert record in adr, (
+                f"{record} is in the fix's record cascade, is not one of the records the "
+                "Definition of done reserves to re-production, and ADR-075 never names it. "
+                "A record that digests the prompt and that no document describes is exactly "
+                "what the computed closure exists to surface.")
 
 
 def test_the_two_digested_sites_are_withdrawn_and_the_template_with_them():

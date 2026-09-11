@@ -752,6 +752,58 @@ def join(run_dir: pathlib.Path) -> dict:
     }
 
 
+#: What the report says that a cp1252 console cannot carry, and the ASCII that
+#: means the same thing. Kept as a table rather than a blanket `errors="replace"`
+#: because `<=` is the reading and `?` is not: a fallback that loses the relation
+#: turns "58 samples at <=3 calls" into a sentence with no predicate in it.
+ASCII_FALLBACK = {"≤": "<=", "≥": ">=", "—": "-", "–": "-",
+                  "‘": "'", "’": "'", "“": '"', "”": '"'}
+
+
+def emit(text: str, stream=None) -> None:
+    """`print`, except that a console whose codec cannot carry the report gets an
+    ASCII transliteration instead of a traceback.
+
+    **The debt M08b recorded and SPEC/09 dated to PR 4b, discharged here.**
+    `render()`'s first line carries `≤` and an em dash, and on a cp1252 console
+    `print` raises `UnicodeEncodeError` — *after* `join()` has written the record.
+    So the run succeeded, `fresh-join.json` is on disk and correct, and the
+    operator sees a traceback and no reading. `--check`, which is what the demo,
+    the pin and CI use, never reaches this path, which is why the defect survived a
+    whole milestone with every check green.
+
+    **Transliterated, not reconfigured.** `sys.stdout.reconfigure(...)` would change
+    what every other writer to that stream emits for the life of the process, to fix
+    one function's output; and `errors="replace"` would keep the exception away at
+    the cost of the relation the line is about. The stream is a parameter so the
+    fallback is testable without a cp1252 console —
+    `tests/test_m08b_fresh_join.py::test_the_render_path_survives_a_cp1252_console`.
+
+    The encode happens in the stream's own wrapper before any byte reaches the
+    console, so a refused line is not half-written before the fallback runs.
+    """
+    stream = sys.stdout if stream is None else stream
+    try:
+        print(text, file=stream)
+        return
+    except UnicodeEncodeError:
+        pass
+    for char, ascii_form in ASCII_FALLBACK.items():
+        text = text.replace(char, ascii_form)
+    # `try: stream.encoding`, not `getattr(stream, "encoding", None)`: the G4
+    # store-reach guard refuses `getattr` as a reflection door, and it refused
+    # this line when it was first written that way (M09 PR 4b). The guard is
+    # right — a reader that can name an attribute at runtime can name
+    # `core.withheld` — and a dynamic lookup buys nothing here.
+    try:
+        encoding = stream.encoding or "ascii"
+    except AttributeError:
+        encoding = "ascii"
+    # Anything the table did not name survives as its escape rather than as `?`:
+    # a reader who sees `✗` can look it up, and a reader who sees `?` cannot.
+    print(text.encode(encoding, errors="backslashreplace").decode(encoding), file=stream)
+
+
 def render(rec: dict) -> str:
     c, b, n, r, p = rec["claim"], rec["fresh_band"], rec["count"], rec["refusals"], rec["p95"]
     lines = [
@@ -800,7 +852,7 @@ def main(argv=None) -> int:
         print(f"OK: {out} is what the committed inputs produce")
         return 0
     out.write_text(text, encoding="utf-8", newline="\n")
-    print(render(rec))
+    emit(render(rec))
     print(f"\nwritten: {out}")
     return 0
 

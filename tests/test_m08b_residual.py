@@ -306,3 +306,80 @@ def test_the_committed_record_is_what_the_calibration_and_the_run_produce(reader
         "milestones/M08b/residual-attribution.json is not what the committed calibration and "
         "run produce; re-run `python milestones/M08b/residual_attribution.py` and find which "
         "input moved")
+
+
+# --- the cascade debt, re-dated at M09 PR 4b with a trigger that arrives in time ---
+#
+# ADR-075 amendment 5 §4(a) opened this debt and dated it *"the next PR that opens
+# `milestones/M08b/residual_attribution.py`"*. **That trigger cannot arrive in
+# time.** The hazard is not somebody opening the reader; it is somebody moving a
+# prompt constant, which re-prices this record's estimates in silence and needs no
+# one to open the reader at all — which is exactly how the 92.9% figure became
+# 78.6% with no run taken in between. A trigger that fires after the damage is a
+# record of the damage, not a guard against it.
+#
+# So the trigger is re-stated at M09 PR 4b (ADR-075 amendment 6) as **before the
+# first PR that edits any prompt constant** — and it is this test, which is that
+# PR's red check. Owner: AI Quality + Platform Engineering.
+#
+# The two constants are digested rather than described: `TOOL_SYSTEM` lives in
+# `gateway_client.py` and the `ai_disclosure` description in `answer.schema.json`,
+# and both reach this record through `milestones/M08/context-census.json`, whose
+# digest is pinned beside them so a census re-produced for any other reason is red
+# here too.
+PROMPT_CONSTANTS_AT_M09_PR4B = {
+    "services/highlights-agent/gateway_client.py":
+        "83804329dc6cf3fcef2ef1f76a429c7a56e3352827b70a1575ea70c7e937eba8",
+    "services/highlights-agent/evals/answer.schema.json":
+        "fd301dc1722c2f38349aded4ff94c54c00f495be40dffafd58ee0965a4d39559",
+    "milestones/M08/context-census.json":
+        "d35c5aea98f8ae1108dd649b4a6d52efd32ce5506103a68c4ba0cc0a92885f7f",
+}
+
+
+def test_a_prompt_constant_may_not_move_before_this_records_era_debt_is_paid():
+    """**The trigger, as a red check rather than as a row in a table.**
+
+    M08b's published attribution — *"provider-side framing, 501 of 463 signed
+    (92.9%)"* — is **era-pinned to M08b's prompt**. Its `E` and `S` are estimated
+    from HEAD's committed text and joined to `A` and `B`, which the run measured;
+    so the moment a prompt constant moves, the join is over text the run never
+    sent and the figure re-prices itself. It already did once: M09 PR 4's two
+    model-facing edits moved it to 552 of 402 (78.6%) with no run taken between
+    the two readings. **92.9% is correct for its era; 78.6% is the artifact.**
+
+    M08's sibling record has an `m02_era_text` block and caught the same drift.
+    This one has none, and closing the gap means editing
+    `milestones/M08b/residual_attribution.py`, which SPEC/09's Definition of done
+    reserves to re-production — so the fix is dated rather than taken, and this is
+    what makes the date arrive.
+
+    **When this goes red, do one of two things, not a re-pin:** give the reader an
+    era block (the debt, AI Quality + Platform Engineering), or re-publish the
+    figure with the era it belongs to named beside it. Re-pinning the digests here
+    to the new prompt is the one move that is not allowed — it is the guard being
+    deleted by the change it exists to catch."""
+    import hashlib
+    for name, pinned in PROMPT_CONSTANTS_AT_M09_PR4B.items():
+        text = (ROOT / name).read_bytes().replace(b"\r\n", b"\n")
+        assert hashlib.sha256(text).hexdigest() == pinned, (
+            f"{name} has moved since M09 PR 4b. M08b's published attribution figure is "
+            "estimated against HEAD's prompt with no era pin, so this edit has just "
+            "re-priced a figure whose run predates it. Pay the debt first (an era block "
+            "on milestones/M08b/residual_attribution.py, AI Quality + Platform "
+            "Engineering) or re-publish the figure with its era named. ADR-075 "
+            "amendment 6; do NOT re-pin this constant to the new text.")
+
+
+def test_the_published_figure_names_its_era():
+    """The one line PR 4b put beside the number, asserted so it cannot fall off.
+
+    Without it a reader takes 92.9% for a standing property of the system rather
+    than a reading of one prompt, and re-producing the record against a later
+    prompt looks like a correction instead of a different question."""
+    readme = (ROOT / "milestones" / "M08b" / "README.md").read_text(encoding="utf-8")
+    assert "92.9%" in readme, "the published figure is gone; re-aim this test, do not delete it"
+    assert "era-pinned" in readme and "amendment 5" in readme, (
+        "milestones/M08b/README.md publishes 92.9% without the line saying the figure is "
+        "era-pinned to M08b's prompt and that re-production against a later prompt yields "
+        "a different figure by construction (ADR-075 amendment 6)")

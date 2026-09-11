@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import io
 import json
 import pathlib
 import re
@@ -735,3 +736,68 @@ def test_a_sample_without_per_call_usage_is_refused(reader, planted):
     _edit(planted / "goldens-run-3.json", strip)
     with pytest.raises(SystemExit, match="no usage.calls"):
         reader.join(planted)
+
+
+# --- the render path, on a console that cannot carry the report ---------------
+# SPEC/09's obligation table: "`milestones/M08b/fresh_join.py`'s render path
+# raising `UnicodeEncodeError` on a cp1252 console (`--check` unaffected) |
+# Platform Engineering | **PR 4b**, which opens the file to read the goldens
+# control run." Discharged at M09 PR 4b. The defect survived a whole milestone
+# with every check green because `--check` -- the demo, the pin and CI -- never
+# reaches `render()`, so the only path that raised was the one an operator runs
+# by hand.
+
+def _cp1252_stream():
+    """A text stream with the console codec that raises, and nothing else.
+
+    Not a monkeypatch of `sys.stdout`: the fallback has to be provable without a
+    Windows console, and `emit` takes the stream precisely so that it is."""
+    return io.TextIOWrapper(io.BytesIO(), encoding="cp1252", errors="strict", newline="")
+
+
+def test_the_render_path_survives_a_cp1252_console(reader):
+    """The real record's real rendering, on the codec that raised."""
+    rendered = reader.render(json.loads((reader.HERE / "fresh-join.json").read_text(encoding="utf-8")))
+    assert "≤" in rendered, (
+        "the report no longer carries the character the debt is about; if render() stopped "
+        "emitting it, this test is measuring nothing and should be re-aimed, not deleted")
+    stream = _cp1252_stream()
+    with pytest.raises(UnicodeEncodeError):
+        print(rendered, file=stream)          # the defect, still reproducible
+    reader.emit(rendered, stream=_cp1252_stream())   # and the path that survives it
+
+
+def test_the_fallback_keeps_the_relation_rather_than_replacing_it(reader):
+    """`<=` is the reading; `?` is not.
+
+    A blanket `errors="replace"` would keep the traceback away and turn "58
+    samples at <=3 calls" into a sentence with no predicate in it, which is a
+    report that passes a smoke test and tells a reader the wrong thing."""
+    stream = _cp1252_stream()
+    reader.emit("samples at ≤3 calls — max 6782", stream=stream)
+    stream.flush()
+    written = stream.buffer.getvalue().decode("cp1252")
+    assert "samples at <=3 calls - max 6782" in written
+    assert "?" not in written
+
+
+def test_a_character_the_table_does_not_name_survives_as_its_escape(reader):
+    """Unknown is not the same as unreadable: `\u2717` can be looked up, `?` cannot."""
+    stream = _cp1252_stream()
+    reader.emit("verdict ✗", stream=stream)
+    stream.flush()
+    written = stream.buffer.getvalue().decode("cp1252")
+    # The codepoint survives as a number a reader can look up, and no character
+    # was replaced by `?`.
+    assert "2717" in written and "?" not in written, written
+
+
+def test_a_stream_that_can_carry_the_report_is_written_once_and_unchanged(reader):
+    """The fallback is a fallback. On a utf-8 console the characters survive, and
+    the transliteration must not run -- a fix that always transliterates has
+    quietly changed what every other operator sees."""
+    stream = io.TextIOWrapper(io.BytesIO(), encoding="utf-8", errors="strict", newline="")
+    reader.emit("samples at ≤3 calls — max 6782", stream=stream)
+    stream.flush()
+    written = stream.buffer.getvalue().decode("utf-8")
+    assert written == "samples at ≤3 calls — max 6782\n"

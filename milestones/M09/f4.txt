@@ -1,0 +1,46 @@
+ceiling 7700   cases 25   baseline evals/history/m08b-tools-goldens.json (M08b, 10/25)
+
+case              M08b                   M09 control            cause, if it fails here
+  blackout-001    FAIL [F F F]     FAIL [F F F]     tokens_out at an unchanged tier: tokens_out=357 over 300 (calls=3) [M08b: tokens_out_at_unchanged_tiers]
+  blackout-006    FAIL [F F F]     FAIL [F F F]     tokens_out at an unchanged tier: tokens_out=310 over 300 (calls=3) [M08b: tokens_out_at_unchanged_tiers]
+  blackout-007    FAIL [F F F]     FAIL [F F F]     tokens_out at an unchanged tier: tokens_out=326 over 300 (calls=3) [M08b: tokens_out_at_unchanged_tiers]
+  blackout-008    FAIL [F F F]     FAIL [F F F]     tokens_out at an unchanged tier: tokens_out=352 over 300 (calls=3) [M08b: tokens_out_at_unchanged_tiers]
+  blackout-009    FAIL [F F F]     FAIL [F F F]     refused by the guardrail before scoring [M08b: guardrail_topic_refusal]
+  entitlement-002 FAIL [P F F]     FAIL [F P F]     tokens_out at an unchanged tier: tokens_out=345 over 300 (calls=3) [M08b: tokens_out_at_unchanged_tiers]
+  entitlement-010 PASS [P P P]     PASS [P P P]     
+  entitlement-011 FAIL [P F F]     PASS [P P F]     
+  entitlement-012 FAIL [F F F]     FAIL [F F F]     answer content: entitlement, json_schema [M08b: named by no cause]
+  recommend-003   FAIL [F F F]     FAIL [F F F]     answer content: json_schema, must_cite, must_mention [M08b: guardrail_topic_refusal, browse_gap]
+  recommend-013   FAIL [F F F]     FAIL [F F F]     the ceiling: tokens_in=8949 over 7700 (calls=4) [M08b: tokens_out_at_unchanged_tiers, browse_gap]
+  recommend-014   FAIL [F F F]     FAIL [F F F]     tokens_out at an unchanged tier: tokens_out=525 over 500 (calls=3) [M08b: browse_gap]
+  recommend-015   PASS [P P P]     PASS [P P P]     
+  grounded-016    PASS [P P P]     PASS [P P P]     
+  grounded-017    PASS [P P P]     FAIL [P F F]     tokens_out at an unchanged tier: tokens_out=337 over 300 (calls=3) [M08b: named by no cause]
+  grounded-018    FAIL [F F F]     FAIL [F F F]     the ceiling: tokens_in=9365 over 7700; tokens_out=442 over 300 (calls=4) [M08b: tokens_out_at_unchanged_tiers, browse_gap]
+  grounded-019    PASS [P F P]     PASS [P P P]     
+  brand-020       PASS [P P P]     PASS [P P P]     
+  brand-021       PASS [P F P]     PASS [P F P]     
+  concise-022     FAIL [F F P]     FAIL [F F F]     tokens_out at an unchanged tier: tokens_out=327 over 300 (calls=3) [M08b: tokens_out_at_unchanged_tiers]
+  multi-023       FAIL [F F F]     FAIL [F F F]     the ceiling: tokens_in=14584 over 7700; tokens_out=629 over 600 (calls=6) [M08b: tokens_out_at_unchanged_tiers, browse_gap]
+  edge-024        PASS [P P P]     PASS [P P P]     
+  edge-025        FAIL [F F F]     FAIL [F F F]     the ceiling: tokens_in=9956 over 7700; tokens_out=751 over 300 (calls=4) [M08b: tokens_out_at_unchanged_tiers, browse_gap]
+  headroom-005    PASS [P P P]     PASS [P P P]     
+  headroom-026    PASS [P P P]     PASS [P P P]     
+
+F4.1  a <=3-call answered sample over 7700 that was under it at M08b ..... clean
+        61 samples at <=3 calls, max 7280; 8 at >=4, min 8949
+F4.2  a case that passed 3-of-3 at M08b fails by majority ................. FIRED
+        8 cases passed 3-of-3 at M08b; all of them are read
+        grounded-017: M08b ['PASS', 'PASS', 'PASS'] -> M09 ['PASS', 'FAIL', 'FAIL']
+F4.3  a case that failed 0-of-3 at M08b passes by majority ................ clean
+        12 cases failed 0-of-3 at M08b; all of them are read
+
+F4    FIRED - F4.2 on grounded-017
+
+SIDE-PREDICTION (not F4, not the claim)  count N = 10/25 against band [8, 12], predicted 10: in band
+        M08b was 10/25; a miss is a finding about the band and does not fail the claim
+        cases whose MAJORITY moved either way: 2 ['entitlement-011', 'grounded-017']
+        failing cases named by no M08b cause: 2 ['entitlement-012', 'grounded-017']
+SIDE-PREDICTION  refused by majority 1/25 ['blackout-009'] against band [0, 2]: in band
+
+THE CLAIM IS FAILED. F1 fired on disclosure-103 at PR 4 (ADR-075 amendment 5) and a falsified claim is not re-read. F4's reading above is F4's; it does not offset F1 and no clean reading here makes the claim anything but FAILED.
