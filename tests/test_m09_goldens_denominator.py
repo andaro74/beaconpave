@@ -60,6 +60,7 @@ from __future__ import annotations
 import json
 import pathlib
 
+import pytest
 import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -195,7 +196,7 @@ MODEL_FACING_SITES = (
 )
 
 
-def records_moved_by(seeds) -> set:
+def records_moved_by(seeds, root: pathlib.Path | None = None) -> set:
     """Every committed record that must be re-produced when `seeds` move.
 
     **A transitive closure, because the records digest each other.**
@@ -204,9 +205,10 @@ def records_moved_by(seeds) -> set:
     input moves the census, and moving the census moves the join. A hand-listed
     set stops at the first hop.
     """
+    root = ROOT if root is None else root
     digests = {}
     unreadable = []
-    for record in ROOT.glob("milestones/**/*.json"):
+    for record in root.glob("milestones/**/*.json"):
         try:
             doc = json.loads(record.read_text(encoding="utf-8"))
         except (ValueError, OSError) as exc:
@@ -215,14 +217,18 @@ def records_moved_by(seeds) -> set:
             # whole suite if it carried one trailing comma. A closure that skips
             # what it cannot read reports a smaller cascade than the truth, and
             # the number it reports is the one PR 4's merge condition rests on.
-            unreadable.append(f"{record.relative_to(ROOT).as_posix()}: {exc}")
+            unreadable.append(f"{record.relative_to(root).as_posix()}: {exc}")
             continue
         inputs = doc.get("inputs_sha256") if isinstance(doc, dict) else None
         if isinstance(inputs, dict):
-            digests[record.relative_to(ROOT).as_posix()] = set(inputs)
-    assert not unreadable, (
-        "record(s) under milestones/ could not be parsed, so the cascade below is "
-        "computed over less than the tree:\n  " + "\n  ".join(unreadable))
+            digests[record.relative_to(root).as_posix()] = set(inputs)
+    if unreadable:
+        # `raise`, not `assert`: an assertion here is stripped under `-O`, which
+        # would make the fail-open guard itself fail open. And it is the helper's
+        # own refusal rather than a caller's, so every caller inherits it.
+        raise RuntimeError(
+            "record(s) under milestones/ could not be parsed, so the cascade is "
+            "computed over less than the tree:\n  " + "\n  ".join(unreadable))
 
     moved, frontier = set(), set(seeds)
     while frontier:
@@ -258,6 +264,40 @@ def test_the_closures_seeds_are_the_files_the_fix_actually_edits():
     for seed in MODEL_FACING_SITES:
         assert (ROOT / seed).is_file(), f"seed {seed} does not exist"
 
+
+
+def test_the_closure_refuses_a_record_it_cannot_read_rather_than_skipping_it(tmp_path):
+    """**Round 2's own remedy, and nothing exercised it.**
+
+    The first computed closure carried `continue` here, and two seats measured
+    what that bought: a record digesting a model-facing file was invisible to the
+    whole suite for one trailing comma. A closure that skips what it cannot read
+    reports a smaller cascade than the truth, and the number it reports is the one
+    PR 4's merge condition rests on — so the failure mode is a PR that believes it
+    moves three records and moves five.
+
+    The fix went in and was treated as its own proof: the deletability audit
+    replaced `assert not unreadable` with `assert True` and the suite stayed at
+    **4160 passed**, because no test had ever handed the helper a record it could
+    not parse. That is the shape this whole amendment is about, committed by a
+    correction to it."""
+    milestones = tmp_path / "milestones" / "M08"
+    milestones.mkdir(parents=True)
+    seed = "services/highlights-agent/evals/answer.schema.json"
+    (milestones / "good.json").write_text(
+        json.dumps({"inputs_sha256": {seed: "0" * 64}}), encoding="utf-8")
+
+    # The control: the planted tree computes a closure at all, so a green result
+    # below would mean something.
+    assert records_moved_by({seed}, root=tmp_path) == {"milestones/M08/good.json"}
+
+    (milestones / "broken.json").write_text(
+        '{"inputs_sha256": {"' + seed + '": "abc",}}', encoding="utf-8")
+    with pytest.raises(RuntimeError) as exc:
+        records_moved_by({seed}, root=tmp_path)
+    assert "broken.json" in str(exc.value), (
+        f"the refusal does not name the record that could not be read: {exc.value}")
+    assert "less than the tree" in str(exc.value)
 
 def test_the_records_the_fix_moves_are_derived_and_not_listed():
     """**Five records, and the two counts before it were both wrong.**

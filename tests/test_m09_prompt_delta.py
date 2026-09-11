@@ -70,7 +70,15 @@ CEILING = 7700
 #: The call count above which a sample is outside the claim. M08b's claim is
 #: "every answered sample at three calls or fewer under the ceiling"; the ≥4-call
 #: samples are over it by design and are not what the fix must fit inside.
-MANDATED_MAX_CALLS = 3
+#:
+#: **Not called "mandated".** `tests/test_m09_p95_condition.py::_population`
+#: selects `calls == mandated` — the census's PER-CASE mandate, 2 or 3 — and this
+#: file selects `calls <= 3`. n = 38 and n = 58 over the same run. Both were
+#: called "the mandated shape" in prose, in one milestone, which the AI Quality
+#: seat raised in round 1 and restated as still open in round 2; the first fix
+#: reworded the comment and left the name. One of the two had to be renamed and
+#: this is the one, because the p95 file's word is the census's own.
+AT_MOST_THREE_CALLS = 3
 
 
 @pytest.fixture(scope="module")
@@ -122,7 +130,7 @@ def answered_within_mandate() -> list[dict]:
     writes `tokens_in: 0` for a refused sample, and averaging one in would
     understate every statistic."""
     return [r for r in _samples()
-            if r["tokens_in"] > 0 and r["calls"] <= MANDATED_MAX_CALLS]
+            if r["tokens_in"] > 0 and r["calls"] <= AT_MOST_THREE_CALLS]
 
 
 def worst_case(delta: int, population: list[dict] | None = None) -> tuple[int, str]:

@@ -88,8 +88,9 @@ Whoever feels a control's pain never solely controls its strength.
 | Any invariant (G1–G10) change | Platform Eng + the seat that defends it |
 | The rule registry (`rules/`) | Legal/S&P + Security, **plus an ADR** |
 | The registry chain reader (`pave/rules.py`) — what *traceable* means | Legal/S&P + Security + Platform Eng (M09) |
-| The caller's system prompt (`services/*/gateway_client.py`) — the system block every governed run sends | Platform Eng + Security (M09) |
-| G5's router (`platform/gateway/core/classify.py`) | Data Governance + Security (M09) |
+| The caller's system prompt (`services/highlights-agent/gateway_client.py`) — the system block every governed run sends | Platform Eng + Security (M09) |
+| G5's router (`platform/gateway/core/classify.py`, `platform/gateway/core/__init__.py`, `tests/test_gateway_core.py`) | Data Governance + Security (M09) |
+| A disposition's eval pack (`services/*/evals/disclosure/`) — the executable form of a rule in the registry | AI Quality + Legal/S&P (M09) |
 
 **This table is a summary and `pave/twokey.py` is the enforced list and the only
 authority.** It has drifted from the rules twice (ADR-037); read the module before

@@ -1,0 +1,8 @@
+# Planted pack, committed inside the tree — see `malformed-mapping.yaml` for why.
+#
+# A list of mappings carrying no `id`. Claim 6's chain ends at *the case*, so a
+# case that cannot be named is a chain with no last link; it died on a KeyError
+# one call later before the shape branch existed.
+- input: Write me a preview of tonight's Jefferson Derby.
+  asserts:
+    - json_schema: answer.schema.json

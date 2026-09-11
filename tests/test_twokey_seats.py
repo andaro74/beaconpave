@@ -2174,3 +2174,102 @@ def test_the_rename_bypass_stays_closed_for_the_line_ending_rule():
                      ("tests/test_line_endings.py", "tests/test_line_endings_v2.py")):
         assert twokey.triggered([old, new]), (
             f"renaming {old} walks around its rule; the old path must still match.")
+
+
+#: How the published table spells a seat, and what `pave/twokey.py` calls it. The
+#: table is prose and the module is code; the mapping is the only place the two
+#: vocabularies meet, so it lives here rather than being inferred.
+ROLES_SEAT_NAMES = {
+    "AI Quality": "ai-quality",
+    "Security": "security",
+    "Platform Eng": "platform-eng",
+    "Legal/S&P": "legal-sp",
+    "Data Governance": "data-governance",
+    "Tool owner": "tool-owner",
+    "Service Team": "service-team",
+}
+
+#: A service name that is deliberately NOT the one service this repository has.
+#: A row published as `services/*/…` must hold for a service that does not exist
+#: yet, because that is the whole content of the asterisk.
+_OTHER_SERVICE = "zzz-not-highlights-agent"
+
+
+def _row_paths(cell: str) -> list[str]:
+    """Concrete example paths for the backticked path expressions in a table cell.
+
+    A trailing `/` is a directory class and gets a plausible file; a `*` is
+    expanded to a service that is not the one the repository happens to hold."""
+    out = []
+    for token in re.findall(r"`([^`]+)`", cell):
+        if "/" not in token:
+            continue
+        token = token.replace("*", _OTHER_SERVICE)
+        if token.endswith("/"):
+            token += "cases.yaml" if "evals" in token else "MER-PROBE-0001.yaml"
+        out.append(token)
+    return out
+
+
+def _two_key_rows() -> list[tuple[str, list[str], set]]:
+    """`(change, example paths, seats)` for every row of ROLES.md's two-key table."""
+    text = ROLES.read_text(encoding="utf-8")
+    table = text.split("## Two-key rules (G9)", 1)[1].split("\n\n**This table", 1)[0]
+    rows = []
+    for line in table.splitlines():
+        if not line.startswith("|") or line.startswith("|---") or "Keys required" in line:
+            continue
+        change, keys = [c.strip() for c in line.strip("|").split("|")][:2]
+        seats = {slug for name, slug in ROLES_SEAT_NAMES.items() if name in keys}
+        rows.append((change, _row_paths(change), seats))
+    return rows
+
+
+def test_every_path_the_published_table_names_is_on_the_rule_it_claims():
+    """**ROLES.md's table is a published protection, and nothing checked it.**
+
+    Round 1 narrowed the caller's-system-prompt rule to
+    the exact path `services/highlights-agent/gateway_client.py` on the Service Team's finding
+    and left the table saying `services/*/gateway_client.py` — a protection
+    published over every service that the enforced list gives to one. The Security
+    seat raised it in both rounds. The deletability audit then put the old wording
+    back and the whole suite stayed at **4168 passed**: the table could say
+    anything at all.
+
+    `test_every_seat_string_is_a_seat_roles_md_lists` compares the two
+    *vocabularies* and `tests/test_evals_lane.py` compares the comparator row. No
+    check compared the **paths**, which is the half that says who holds a key over
+    what. ADR-037's finding is that this summary drifts from the enforced list —
+    twice, measured — and a drift check that reads only the seat names cannot see
+    the drift that actually happened.
+
+    Read as "⊇" rather than "==": `pave/twokey.py` being the **stricter** of the
+    two is the fail-closed direction and needs no row. The table promising a key
+    the module does not collect is the direction that hurts."""
+    rows = _two_key_rows()
+    checked = 0
+    for change, paths, seats in rows:
+        if not paths or not seats:
+            continue                    # a prose class ("Eval threshold"), not a path
+        for path in paths:
+            collected = _seats_for(path)
+            checked += 1
+            assert collected, (
+                f"ROLES.md publishes {path!r} as two-key ({change!r}) and "
+                f"`pave/twokey.py` puts it on NO rule. A table promising a second "
+                f"key over a path the enforced list does not cover is a protection "
+                f"stated and absent — worse than a missing one, because it stops "
+                f"the next reader looking for the real rule.")
+            assert seats <= collected, (
+                f"ROLES.md publishes {path!r} as needing {sorted(seats)} "
+                f"({change!r}); `pave/twokey.py` collects {sorted(collected)}. "
+                f"Missing: {sorted(seats - collected)}.")
+
+    # **Anti-vacuity.** A parser that silently stops matching rows turns this into
+    # a test that asserts nothing, which is the failure it exists to name. Nine
+    # rows carry a path today; the floor is set below that so a row may be added
+    # or reworded without a false red, and far enough above zero that the parser
+    # going blind is loud.
+    assert checked >= 12, (
+        f"only {checked} published paths were checked across {len(rows)} rows — "
+        f"the table parser is stale and this test is measuring nothing.")

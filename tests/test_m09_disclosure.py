@@ -37,7 +37,15 @@ import sys
 import pytest
 import yaml
 
-from evals.deterministic import FAIL, INFRA, PASS, Scorer, disclosure_sufficiency, tally
+from evals.deterministic import (
+    FAIL,
+    INFRA,
+    PASS,
+    Scorer,
+    decide_disclosure,
+    disclosure_sufficiency,
+    tally,
+)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PACK = ROOT / "services" / "highlights-agent" / "evals" / "disclosure" / "cases.yaml"
@@ -380,6 +388,20 @@ def test_the_pack_has_a_readme_that_names_the_rule_it_discharges():
     (None, False),
     ("", False),
     ("   ", False),
+    # **The invisible rows are what `_visible` is for, and they were missing.**
+    # The deletability audit swapped `self._visible(value)` back to
+    # `value.strip()` and the whole suite stayed green at 4160, because the
+    # phrasing requirement added in round 2 masks the emptiness half: an
+    # all-invisible disclosure carries no accepted phrasing either, so it fails
+    # for the second reason once the first stops firing. That is a check
+    # reachable only through another check's failure, which is not a check --
+    # and the two failures say different things to the reader who has to fix
+    # them. These rows call `ai_disclosure` with a BARE mode, so no token list
+    # is in play and the visibility test is the only thing standing.
+    ("\u200b", False),                     # zero-width space: L-2's own plant
+    ("\u200b\u2060\ufeff", False),         # zero-width joiner-family, three of them
+    ("\u0001", False),                     # Cc, a control character
+    ("\u200b   \u200b", False),            # invisible either side of whitespace
     (123, False),
     ([], False),
 ])
@@ -389,6 +411,32 @@ def test_required_demands_a_present_non_empty_string(value, passes):
     rather than the disclosure."""
     result = Scorer(root=ROOT).ai_disclosure({**BASE_ANSWER, "ai_disclosure": value}, "required")
     assert result.passed is passes, result.detail
+
+
+def test_the_phrase_is_read_off_the_visible_text_and_not_the_bytes():
+    """`_visible` runs BEFORE the phrasing check, and both directions matter.
+
+    A disclosure a reader sees as *"AI"* must count even when format characters
+    sit between the letters, or the control refuses a correct disclosure for a
+    reason no reader can see -- which is the same failure as L-2 pointed the
+    other way, and the failure the round-2 substring fix already made once.
+    Paired with the invisible rows above, this is what makes the strip
+    load-bearing in both directions: remove it and one of these two goes red."""
+    scorer = Scorer(root=ROOT)
+    seen = scorer.ai_disclosure(
+        {**BASE_ANSWER, "ai_disclosure": "A\u200bI wrote this."}, {"required": ["AI"]})
+    assert seen.passed, seen.detail
+
+    # ...and an all-invisible value fails on VISIBILITY, not on phrasing. The two
+    # messages are not interchangeable: one says "say what you disclose", the
+    # other says "a reader cannot see it".
+    unseen = scorer.ai_disclosure(
+        {**BASE_ANSWER, "ai_disclosure": "\u200b"}, {"required": ["AI"]})
+    assert not unseen.passed
+    assert "renders to nothing a reader can see" in unseen.detail, (
+        f"an invisible disclosure was refused for the wrong reason: {unseen.detail!r}. "
+        f"The visibility half must fire before the phrasing half, or removing it is "
+        f"silent -- which the deletability audit measured at 4160 passed.")
 
 
 def test_required_fails_when_the_key_is_absent_entirely():
@@ -424,6 +472,40 @@ def test_not_required_fails_on_an_absent_key_and_this_is_the_vacuity_plant():
         "premise changed and the assert's reasoning needs re-reading")
     result = Scorer(root=ROOT).ai_disclosure(answer, "not_required")
     assert not result.passed and "no `ai_disclosure` key" in result.detail
+
+
+def test_a_partial_scoring_is_infra_and_names_the_cases_that_went_missing():
+    """**A verdict is not derivable from a scoring that lost a case.**
+
+    `scores["total"]` is `len(cases)` while the counts come from `results`, so a
+    mismatched pair reported `PASS, {passed: 1, total: 2}` over a run that scored
+    one of two. Added as AI Quality round 2's remedy — and the deletability audit
+    then replaced the branch with `if False:` and the whole suite stayed at
+    **4160 passed**, because nothing drove a short result list through it. The
+    branch a seat asked for is not a check until something removes it and a test
+    says so.
+
+    Distinct from `test_a_run_where_every_case_established_nothing_is_infra`: an
+    answer that did not arrive produces an INFRA *result*, and this is a result
+    that is not there at all — the state `--pack` made reachable by giving the
+    lane a case set the answers file was not produced against."""
+    cases = _cases()
+    results = [_score(c, {**BASE_ANSWER, "ai_disclosure": GOOD_DISCLOSURE}) for c in cases]
+    dropped = cases[-1]["id"]
+
+    verdict, scores, notes = decide_disclosure(cases, results[:-1])
+    assert verdict == INFRA, (
+        f"{len(results) - 1} results for {len(cases)} cases decided {verdict!r}. "
+        f"A partial scoring establishes nothing about the service: it pages the "
+        f"platform.")
+    assert not scores, f"a verdict with no derivation still published scores: {scores}"
+    assert any(dropped in n for n in notes), (
+        f"the notes do not name the case that went missing: {notes}. A count that "
+        f"does not say WHICH case is a number the next reader has to re-derive.")
+
+    # ...and the same call with every result present is not INFRA, so the branch
+    # is measured on rightness and not on strictness.
+    assert decide_disclosure(cases, results)[0] != INFRA
 
 
 def test_an_unknown_mode_fails_rather_than_being_skipped():
@@ -688,6 +770,44 @@ def test_a_one_sided_pack_is_infra_through_the_lane_and_never_fail(tmp_path):
     assert gate.decide([str(out)]).exit_code == 2
 
 
+def test_a_pack_whose_positives_name_no_phrasing_is_infra_through_the_lane(tmp_path):
+    """**Round 2, Security — and the refusal was itself deletable in silence.**
+
+    Every positive case at `{required: []}` accepts any visible string, so the
+    pack has both halves and measures nothing: the seat drove it through the real
+    lane with every answer `"."` and got **PASS 7/7 at exit 0**, gate green.
+    `disclosure_sufficiency` refuses it — and the deletability audit then replaced
+    `if toothless:` with `if False:` and the whole suite stayed at **4160
+    passed**, because the branch beside it (the vacuous-case one) is tested and
+    this one was not. A refusal nobody exercises is the defect it refuses, one
+    release later."""
+    from pave import cli, gate
+
+    answers = _answers_file(tmp_path, {
+        c["id"]: {"answer": {**BASE_ANSWER, "ai_disclosure": "."},
+                  "usage": {"tokens_in": 1}} for c in _cases()})
+    out = tmp_path / "verdict.json"
+    assert cli.evals_disclosure(["highlights-agent", "--pack", str(FIXTURES / "toothless.yaml"),
+                                 "--answers", str(answers), "--out", str(out)]) != 0
+    record = json.loads(out.read_text(encoding="utf-8"))
+    assert record["verdict"] == "INFRA", (
+        f"a pack whose positive cases name no phrasing reported {record['verdict']!r}. "
+        "It establishes nothing about the obligation, so it pages the platform: INFRA, "
+        "never FAIL, and decisively never PASS.")
+    # The REASON, not just the verdict — the one-sided test's own lesson. Without
+    # this the branch can go and the verdict stays INFRA for the other reason.
+    assert any("name no phrasing" in n for n in record["notes"]), record["notes"]
+    assert gate.decide([str(out)]).exit_code == 2
+
+
+def test_the_toothless_fixture_still_carries_both_halves():
+    """Otherwise the test above passes for the one-sided reason and the toothless
+    branch is untested again — which is exactly how it got here."""
+    cases = yaml.safe_load((FIXTURES / "toothless.yaml").read_text(encoding="utf-8"))
+    modes = [_mode(c) for c in cases]
+    assert modes.count("required") >= 1 and modes.count("not_required") >= 1
+
+
 def test_a_missing_run_file_is_infra_through_the_lane(tmp_path):
     from pave import cli
 
@@ -811,3 +931,81 @@ def test_removing_disclosure_from_the_enum_refuses_the_entry(tmp_path):
     with pytest.raises(jsonschema.ValidationError) as exc:
         jsonschema.validate(entry, schema)
     assert "disclosure" in str(exc.value)
+
+
+# --- the guards that were masking each other ----------------------------------
+#
+# **Both the lane's `--pack` guards and the runner's `--cases` guards deleted in
+# silence**, and for the same reason: every malformed fixture lived in a temp
+# directory, so the CONTAINMENT refusal fired first and the SHAPE branch was
+# never reached. Remove the shape check and the test still passes, because the
+# pack was refused for being out of tree. Remove the containment check and it
+# still passes, because the pack is also malformed. Two guards, each the other's
+# alibi, and the pair testing neither.
+#
+# Split: containment is measured with a pack that is perfectly well-formed and
+# merely elsewhere, and shape with a pack committed INSIDE the tree. Each now
+# fails for exactly one reason, and the reason is asserted.
+
+WELL_FORMED = "- {id: disclosure-101, input: Write me a preview., asserts: []}\n"
+
+
+def _outside(tmp_path: pathlib.Path) -> pathlib.Path:
+    path = tmp_path / "elsewhere.yaml"
+    path.write_text(WELL_FORMED, encoding="utf-8")
+    return path
+
+
+def test_the_lane_refuses_a_well_formed_pack_that_is_outside_the_tree(tmp_path, capsys):
+    """Containment alone: nothing about this pack is wrong except where it is.
+
+    A verdict scored against a case set nobody else has cannot be re-derived,
+    which is the whole of claim 6's last link. **The REASON is asserted**, or the
+    test passes on the shape refusal and the two guards go on covering for each
+    other — which is how they both came to be deletable in silence."""
+    from pave import cli
+
+    answers = _answers_file(tmp_path, {"disclosure-101": {"answer": BASE_ANSWER}})
+    with pytest.raises(SystemExit) as exc:
+        cli.evals_disclosure(["highlights-agent", "--pack", str(_outside(tmp_path)),
+                              "--answers", str(answers), "--out", str(tmp_path / "v.json")])
+    assert exc.value.code != 0
+    captured = capsys.readouterr()
+    assert "outside the repository" in captured.out + captured.err, (
+        f"a well-formed pack outside the tree was refused for some other reason, or "
+        f"accepted: {(captured.out + captured.err).strip()[:200]!r}")
+
+
+@pytest.mark.parametrize("fixture,why", [
+    ("malformed-mapping.yaml", "a mapping is not a list of cases"),
+    ("malformed-idless.yaml", "a case that cannot be named breaks the chain's last link"),
+    ("malformed-inputless.yaml", "a case with no input is scored against someone else's run"),
+])
+def test_the_lane_refuses_a_malformed_pack_that_is_inside_the_tree(tmp_path, fixture, why):
+    """Shape alone: these are committed, so containment passes and the shape
+    branch is the only thing standing. It was not, until this test."""
+    from pave import cli
+
+    answers = _answers_file(tmp_path, {"disclosure-101": {"answer": BASE_ANSWER}})
+    with pytest.raises(SystemExit) as exc:
+        cli.evals_disclosure(["highlights-agent", "--pack", str(FIXTURES / fixture),
+                              "--answers", str(answers), "--out", str(tmp_path / "v.json")])
+    assert exc.value.code != 0, why
+
+
+@pytest.mark.parametrize("fixture", ["malformed-mapping.yaml", "malformed-idless.yaml"])
+def test_the_runner_refuses_a_malformed_pack_that_is_inside_the_tree(fixture):
+    """The same split, one directory over. `test_the_runner_refuses_a_missing_...`
+    drives all six of its fixtures from `tmp_path`, so its three shape cases were
+    refused by containment and the shape branch deleted clean."""
+    proc = subprocess.run(
+        [sys.executable, str(RUNNER), "--cases", str(FIXTURES / fixture), "--preflight-only"],
+        capture_output=True, text=True, cwd=str(ROOT))
+    assert proc.returncode != 0, (
+        f"{fixture} is committed inside the tree, so containment accepts it and the "
+        f"shape check is the only guard left — and it accepted a pack that is not "
+        f"a list of cases carrying `id`.")
+    output = proc.stderr + proc.stdout
+    assert "--cases" in output and "outside" not in output, (
+        f"the refusal reads {output.strip()[:200]!r} — an in-tree pack must be "
+        f"refused for its SHAPE, not for where it is.")

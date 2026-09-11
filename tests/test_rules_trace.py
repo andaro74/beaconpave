@@ -612,3 +612,203 @@ def test_an_empty_registry_is_a_failure_not_a_pass(tmp_path):
     empty.mkdir()
     with pytest.raises(FileNotFoundError):
         rules.load_registry(empty)
+
+
+# --- guards that another guard was answering for ------------------------------
+#
+# Five checks in `pave/rules.py` and two in `rules/schema.json` deleted in silence
+# in the deletability audit. Every one is a round-1 or round-2 remedy: the seat's
+# plant proved the defect, the fix went in, and the fix was treated as its own
+# witness. Where a guard looked tested, it was being answered for by the guard
+# beside it -- `_resolves`' containment check is invisible because the byte-for-byte
+# comparison after it raises `ValueError` on an escaping path and returns False
+# anyway.
+
+def test_the_repository_root_is_not_a_control():
+    """`ref: "."` exists, is contained, and discharged every rule.
+
+    The escape test above covers `../../etc/passwd`; this is the other direction
+    and the containment line carries both. Removing that line leaves the escape
+    test green -- the byte comparison below it raises `ValueError` on a path
+    outside the root and returns False -- so `.` is what actually measures it."""
+    for ref in (".", "./", "", "/"):
+        assert not rules._resolves(ref, ROOT), (
+            f"{ref!r} resolves as a control ref. A control that is 'the whole "
+            f"repository' discharges every rule in the registry at once.")
+
+
+def test_a_ref_that_is_not_the_path_it_names_does_not_resolve():
+    """**Against the committed tree, not the filesystem.**
+
+    `services/.../disclosure/../disclosure/cases.yaml` resolves to a real file and
+    `exists()` says yes, but it is not a path in the tree -- and on a
+    case-insensitive checkout neither is `SERVICES/.../CASES.YAML`, which is why
+    *no orphan rules* meant two different things on Windows and on Linux CI. The
+    `..`-traversing form is the one that measures the same on both."""
+    pack = pathlib.Path(PACK_REF)
+    detour = (pack.parent / ".." / pack.parent.name / pack.name).as_posix()
+    assert (ROOT / detour).exists(), "the fixture path is wrong, not the check"
+    assert not rules._resolves(detour, ROOT), (
+        f"{detour!r} resolved. It names a file that is there by a route that is "
+        f"not in the tree; a registry that accepts it cannot be re-derived from "
+        f"a checkout.")
+    assert rules._resolves(PACK_REF, ROOT), "the plain path must still resolve"
+
+
+def test_a_control_type_outside_the_schemas_enum_is_red(tmp_path):
+    """**Tool Owner, round 2 -- and the fix was itself unexercised.**
+
+    `test_a_control_declared_one_type_and_pointing_at_another_is_red` covers a
+    type IN the enum pointing at the wrong artifact. A type the schema does not
+    permit takes a different branch: `CONTROL_ARTIFACTS.get` returns no home, the
+    artifact check is skipped, and the control reads as enforcing and resolved.
+    `type: human-review` and `type: no_control` (an underscore for the hyphen)
+    both walked clean."""
+    (tmp_path / "ok").mkdir()
+    control = _typed("eval_pack", PACK_REF)
+    clean = rules.trace(control["rule"], _registry(tmp_path / "ok", control),
+                        _planted_tree(tmp_path / "ok",
+                                      [{"id": "d-1", "asserts": [{"x": 1}]}]))
+    assert clean.resolved and not clean.defects, "the fixture is wrong, not the check"
+
+    # **The ref must NOT be an eval pack.** With the enum check disabled a
+    # pack-shaped ref takes the `looks_like_pack` branch, which appends a defect
+    # naming the same `kind` -- so the first version of this test passed under the
+    # mutation for a reason that was not the enum. `classify.py` is a real file,
+    # is not a pack, and is not the artifact home of any permitted type, so the
+    # enum branch is the only thing that can refuse it.
+    for kind in ("human-review", "no_control", "guardrail_v2"):
+        rule = _typed(kind, "platform/gateway/core/classify.py")
+        planted = tmp_path / kind
+        planted.mkdir()
+        tree = _planted_tree(planted, [{"id": "d-1", "asserts": [{"x": 1}]}])
+        target = tree / "platform" / "gateway" / "core" / "classify.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("SENSITIVE_TERMS = ()\n", encoding="utf-8")
+        chain = rules.trace(rule["rule"], _registry(planted, rule), tree)
+        # **The DEFECT, not `resolved`.** `resolved` is False for any non-pack
+        # control -- the walk reaches no case and no assert -- so asserting it
+        # here passes whether or not the type was ever checked, and the
+        # deletability audit measured exactly that: `if kind not in
+        # _control_types():` -> `if False:` left the suite at 4184. A test that
+        # passes because of the line next to the one it names is this
+        # amendment's whole subject, written into the test closing it.
+        assert chain.defects, (
+            f"a control of type {kind!r} -- which `rules/schema.json` does not "
+            f"permit -- produced no defect. A control the registry cannot name is "
+            f"not a control it can be said to have.")
+        assert any(kind in defect for defect in chain.defects), (
+            f"the chain does not say that {kind!r} is the problem: {chain.defects}")
+        assert not chain.resolved
+
+
+def test_a_pack_that_is_not_a_list_and_a_case_with_no_id_are_both_red(tmp_path):
+    """`_pack_cases` returns `[]` for either, and an empty pack is already red --
+    so both were reached only through the empty-pack assertion, whose message says
+    something else. The distinction matters to the reader who has to fix it: a
+    mapping is a pack written wrongly, a case without an `id` is a chain whose
+    last link cannot be named."""
+    # `7` is the one that measures the `isinstance(doc, list)` guard. A mapping
+    # and a string are both ITERABLE, so the comprehension below the guard already
+    # refuses them by yielding keys and characters -- remove the guard and those
+    # two still fail, which is why the audit reported it SILENT at 4184. A number
+    # is not iterable and raises `TypeError` straight out of the reader.
+    for label, pack in (("a mapping", {"id": "d-1", "asserts": []}),
+                        ("a case with no id", [{"asserts": [{"x": 1}]}]),
+                        ("a scalar string", "disclosure-101"),
+                        ("a number", 7)):
+        rule = _disposed()
+        chain = rules.trace(rule["rule"], _registry(tmp_path, rule),
+                            _planted_tree(tmp_path, pack))
+        assert not chain.resolved, f"{label} read as a pack carrying cases"
+
+
+# --- the schema's own halves --------------------------------------------------
+
+def _validates(rule: dict) -> bool:
+    try:
+        jsonschema.validate(rule, SCHEMA, format_checker=jsonschema.FormatChecker())
+    except jsonschema.ValidationError:
+        return False
+    return True
+
+
+def test_a_scope_record_of_empty_strings_is_refused():
+    """`minLength: 1` on every `scope` field. A scope whose `revives` is `""` is a
+    rule re-scoped with no condition that would ever bring the excluded sense
+    back -- the decision recorded as taken and its terms left blank, which is the
+    field's whole subject."""
+    rule = _disposed()
+    assert _validates(rule), "the fixture is wrong, not the schema"
+    for field in ("covers", "excludes", "revives", "decided_by", "decided_on"):
+        planted = json.loads(json.dumps(rule))
+        planted["scope"][field] = ""
+        assert not _validates(planted), (
+            f"`scope.{field}` accepts the empty string. A required field that "
+            f"admits nothing is a field that is not required.")
+
+
+def test_scope_and_disposition_decided_by_must_name_a_real_seat():
+    """A seat that does not exist is a decision nobody took. `DISPOSITION_RE` in
+    `pave/twokey.py` accepts any `[a-z-]+`, so the same typo one file over
+    produces a PR that can never be satisfied -- ADR-037's shape, and the reason
+    the enum is in the schema rather than in a reviewer's head."""
+    for block in ("scope", "disposition"):
+        rule = _disposed()
+        assert _validates(rule), "the fixture is wrong, not the schema"
+        for typo in ("legal-and-sp", "Legal/S&P", "whoever gets to it", ""):
+            rule[block]["decided_by"] = typo
+            assert not _validates(rule), (
+                f"`{block}.decided_by` accepts {typo!r}, which is not a seat "
+                f"`docs/governance/ROLES.md` lists.")
+
+    # **And the undisposed state stays sayable.** `disposition.decided_by` is
+    # `unassigned — …` on the committed rule and must remain so: PR 2 disposes
+    # nothing, and a schema that refused the state the registry is actually in
+    # would have been closed by loosening it back to any string at all.
+    undisposed = _disposed()
+    undisposed["disposition"]["decided_by"] = COMMITTED["disposition"]["decided_by"]
+    assert undisposed["disposition"]["decided_by"].startswith("unassigned")
+    assert _validates(undisposed), (
+        "the schema refuses the undisposed disposition the registry carries today")
+
+
+def test_rules_validate_refuses_a_date_that_is_not_one(tmp_path, monkeypatch):
+    """**The fix for this PR's own headline false claim, and nothing exercised it.**
+
+    Draft-07 `format` is annotation-only without a `FormatChecker`, so
+    `effective: ""`, `"whenever"` and `"2026-13-45"` all validated -- and the empty
+    string additionally defeats `test_contracts.py`'s `if effective:` guard, which
+    hands back ADR-053's immortal enforced rule. Amendment 2 said requiring the
+    field closed that door; it closed one of two. The audit then set
+    `checker = None` and the whole suite stayed at 4160."""
+    from pave import cli
+
+    registry = tmp_path / "rules"
+    registry.mkdir()
+    (registry / "schema.json").write_text(json.dumps(SCHEMA), encoding="utf-8")
+    # `rules_validate` walks BOTH halves of G7 off the same root, so the planted
+    # tree has to carry the control the planted rule names -- otherwise every case
+    # below dies on the orphan half and the date half is never reached, which is
+    # the masking this whole section exists to undo.
+    pack = tmp_path / PACK_REF
+    pack.parent.mkdir(parents=True, exist_ok=True)
+    pack.write_text("- {id: disclosure-101, input: x, asserts: []}\n", encoding="utf-8")
+    monkeypatch.setattr(cli, "ROOT", tmp_path)
+
+    good = _disposed()
+    (registry / f"{good['rule']}.yaml").write_text(
+        yaml.safe_dump(good, sort_keys=False), encoding="utf-8")
+    cli.rules_validate()                                  # the control: it passes
+
+    for bad in ("", "whenever", "2026-13-45", "2026-02-30", "01/01/2026"):
+        planted = json.loads(json.dumps(good))
+        planted["source"]["effective"] = bad
+        (registry / f"{planted['rule']}.yaml").write_text(
+            yaml.safe_dump(planted, sort_keys=False), encoding="utf-8")
+        with pytest.raises(SystemExit) as exc:
+            cli.rules_validate()
+        assert exc.value.code != 0, (
+            f"`rules registry valid` over source.effective = {bad!r}. A rule whose "
+            f"effective date is not a date has no clock, and `status: enforced` with "
+            f"no clock is the immortal rule ADR-053 planted.")

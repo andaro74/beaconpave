@@ -63,6 +63,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import math
 import pathlib
 import sys
 
@@ -158,11 +159,18 @@ def _p95(population: list[dict]) -> int:
     return int(detail.split("p95=")[1].split("ms")[0])
 
 
+#: The granularity ADR-014 rounds the derived point to. Named rather than
+#: written twice, because `ROUNDING_SAFE_P95` below is computed FROM it: a
+#: rounding rule and a bound on that rule's effect that can move independently
+#: are two statements about one mechanism.
+GRANULARITY = 100
+
+
 def derive(p95: int) -> tuple[float, float, float, int]:
     """ADR-014's unchanged rule: band, midpoint, point rounded to the nearest 100."""
     floor, roof = p95 * FLOOR_X, p95 * ROOF_X
     midpoint = (floor + roof) / 2
-    return floor, roof, midpoint, round(midpoint / 100) * 100
+    return floor, roof, midpoint, round(midpoint / GRANULARITY) * GRANULARITY
 
 
 # --- the five populations -----------------------------------------------------
@@ -223,6 +231,13 @@ def test_the_condition_does_not_hold_under_any_population(rows):
 #: 0) and again at p95 = 100 (point 100, equal). ADR-075 amendment 1 §4 states it
 #: as unconditional; it is unconditional on the UNROUNDED midpoint and bounded on
 #: the rounded point, and the spec is corrected to say so.
+#:
+#: **Pinned as a literal and checked against its derivation**, because the
+#: deletability audit moved it 134 -> 400 with the suite green: every assertion
+#: around it is one-sided, so the floor could drift upward without limit, and a
+#: floor higher than the mechanism needs quietly widens the region the test
+#: declares unguaranteed. The literal stays so a reader sees the number; the
+#: derivation below is what makes it true.
 ROUNDING_SAFE_P95 = 134
 
 
@@ -264,6 +279,35 @@ def test_the_rounded_point_is_above_its_own_p95_only_above_a_stated_floor():
     assert min(POPULATIONS[name][1] for name in POPULATIONS) > ROUNDING_SAFE_P95 * 10, (
         "a measured population has come within an order of magnitude of the rounding "
         "floor; the bound stops being a footnote and becomes a live constraint")
+
+
+def test_the_rounding_floor_is_derived_from_the_rule_rather_than_chosen():
+    """**The audit moved `ROUNDING_SAFE_P95` from 134 to 400 and nothing noticed.**
+
+    Every other assertion about it is one-sided — the sweep above it still holds,
+    a breaking p95 still exists below it, the populations are still clear of it —
+    so the floor could be raised without limit, and each raise silently widens the
+    band of p95 values the suite declares *unguaranteed* while saying nothing has
+    changed. The number is the smallest integer for which the guarantee is
+    available, and it follows from exactly two things `derive` already knows: the
+    midpoint's excess over its own p95, and the most rounding can take away.
+
+    Written as a derivation rather than a second literal so that moving the BAND
+    (ADR-014's `1.15`/`1.60`) or the rounding granularity moves the floor with it.
+    A bound that does not track the mechanism it bounds is the stale-sentence
+    shape this milestone has paid for four times."""
+    excess = (FLOOR_X + ROOF_X) / 2 - 1              # 0.375 -- how far the midpoint clears p95
+    worst_rounding = GRANULARITY / 2                 # 50 -- the most rounding can take back
+    assert math.floor(worst_rounding / excess) + 1 == ROUNDING_SAFE_P95, (
+        f"ROUNDING_SAFE_P95 is {ROUNDING_SAFE_P95}; the band ({FLOOR_X}, {ROOF_X}) "
+        f"rounded to {GRANULARITY} makes the guarantee available from "
+        f"{math.floor(worst_rounding / excess) + 1}. A floor above its own derivation "
+        f"declares a band of p95 values unguaranteed that is not.")
+
+    # ...and the derivation is sufficient, not merely arithmetic: AT the floor the
+    # property holds, and the guarantee it rests on is the one stated.
+    assert derive(ROUNDING_SAFE_P95)[3] > ROUNDING_SAFE_P95
+    assert excess * ROUNDING_SAFE_P95 > worst_rounding
 
 
 def test_no_population_meets_the_rules_own_selection_criterion(rows):

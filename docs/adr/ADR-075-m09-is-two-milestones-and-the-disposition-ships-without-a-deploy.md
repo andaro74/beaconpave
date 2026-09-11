@@ -1241,3 +1241,510 @@ denominator at 25; the cap at six, spent. The M09b hand-off in decision 5 §5. T
 `p95_ms` answer, which is amendment 1 §4's and is executed rather than restated —
 ADR-014 amendment 4 carries the withdrawal and one correction to how the
 condition's unsatisfiability was described.
+
+---
+
+## Amendment 3 — two seat rounds on PR 2, every finding, and the four defects in this PR's own claims
+
+**Written 2026-09-10 in PR 2's own diff, before the PR opens.** Seven seats, two
+rounds: round 1 against `c917c11`, round 2 against `610a039` — the commit
+carrying round 1's fixes — in fresh worktrees, each seat told to **plant rather
+than read**, and told by name that round 1's own corrections were in scope,
+with two sites named in advance as the likeliest places a fix had reintroduced
+what it removed: **the computed record closure** and **the scaffold exception**.
+Both had. Zero model calls; no deploy; no rule disposed; no run.
+
+Every finding below was **measured** — a mutation written into a working copy
+backed up to a temporary directory, the suite re-run, the file restored from that
+backup and never with `git checkout`. Seat output is advisory (G6); the
+dispositions are this record's.
+
+`rules/schema.json`'s `scope` and `disposition.limits` cited *"ADR-075 amendment
+2 §6"*, which does not exist — amendment 2 has five sections. They cite this
+amendment now. That miscitation is itself an instance of §2.
+
+### 1. The headline is not the count
+
+The two rounds produced **86 findings**. The number that matters is smaller and
+worse: **four claims this PR made about its own work were false**, and every one
+was found by running a check rather than by reading the sentence that made the
+claim. Each is the shape CLAUDE.md ranks worst — *a stated protection that is
+absent* — and this PR wrote them while spending two rounds correcting other
+files' stated-and-absent protections.
+
+### 2. The four defects in this PR's own claims
+
+**(a) *"Requiring the field closes that door."*** Amendment 2 §1 said that of
+`source.effective`. Measured (Legal/S&P, L-1): draft-07 `format` is
+annotation-only without a `FormatChecker`, and no `FormatChecker` existed
+anywhere in the repository — so `effective: ""`, `"whenever"`, `"2026-13-45"` and
+`"2999-01-01"` all validated, and `""` additionally defeated `test_contracts.py`'s
+`if effective:` guard, handing back ADR-053's immortal enforced rule with
+`review_by: "2099-01-01"` at `rules registry valid`, rc 0. Requiring the field
+closed the delete-the-key route and nothing else. **Fixed:**
+`format_checker=jsonschema.FormatChecker()` at both call sites, the guard reads
+`is None`, and all six variants are named test cases.
+
+**(b) *"a control satisfied by [whitespace] is measuring the field's existence
+rather than the disclosure."*** `ai_disclosure`'s docstring reasoned about `" "`
+and stopped one character short. A **zero-width space** scored 5/5 PASS through
+the real lane, as did `.`, `x`, `n/a`, `null`, `See terms and conditions.` and
+the literal sentence `answer.schema.json` instructs the model with (L-2, D1–D7).
+Fixed by stripping `Cf`/`Cc`/`Cs` before the emptiness test and requiring a named
+phrasing — and then **the fix's own token check was a case-insensitive
+substring**, so `[AI]` matched the letters `ai` in ordinary English: it passed
+*"Available now."*, *"Said so."* and **an explicit denial of AI authorship**, and
+refused five correct disclosures (Legal/S&P F-4, AI Quality R2-1). **Fixed
+again:** whole-word matching, and the token list is a set of accepted phrasings
+of which one must appear, because F2 asks whether the fix worked and must not
+turn on which wording the model chose.
+
+**(c) The record cascade, hand-listed wrongly twice.** Amendment 1 fact 3 named
+**one** record. This PR's correction — written specifically to fix an unreachable
+Definition-of-done clause — named **three**. The cascade is **five**
+(Platform Engineering, BLOCKING 1): `rescore-join.json` and
+`residual-attribution.json` were in neither list. Both errors were hand-written
+consequences of a digest graph, one hop deep, in a document. **Fixed** by
+computing the closure and by a second test that fails the spec if the two
+disagree — and then round 2 measured that the computed closure **failed open**
+and that its seeds were a new hand-list (§4).
+
+**(d) *"Read from the committed history entry rather than named here, so a routed
+tool added later is priced without this file being edited."*** Written directly
+above a hand-typed tuple, in the file whose whole subject is a bound that does not
+bound (Tool Owner, TO-12). `PRE_FIX_TOOL_SPECS_SHA256` cannot catch the staleness
+because the digest is computed **over** the list. The seat measured that routing
+`publish-highlight` adds **422 estimated tokens** — larger than
+`ADMISSIBLE_DELTA` on its own, and entirely unpriced. **Fixed:** `routed_tools()`
+reads `pave.infra.routed_tools()` off the committed synth snapshot ADR-017
+already drift-gates.
+
+### 3. Round 1 — every finding, and its disposition
+
+**Legal / Standards & Practices** (13 findings, 2 blocking)
+
+| # | finding | disposition |
+|---|---|---|
+| L-1 | `format: date` never checked; ADR-053's plant returns | **FIXED** — §2(a) |
+| L-2 | the disclosure control accepts a disclosure nobody can see | **FIXED** — §2(b) |
+| L-3 | G9: Legal/S&P holds no key on the control discharging its own rule | **FIXED for the pack** — new rule `^services/[^/]+/evals/disclosure/` at `(ai-quality, legal-sp)`. **DECLINED for `evals/deterministic.py`**: that file is the *mechanism* and stays `(ai-quality, platform-eng)`; what a disclosure must **say** is policy and moved to where Legal/S&P's key already reaches it — the pack, and at the disposition the rule. This is `pave/floors.py`'s criteria-versus-mechanism split, applied rather than restated |
+| L-4 | the pack discriminates on **verb mood**, not authorship: four imperative positives, one question negative, so *"disclose when asked to write copy"* passes 5/5 | **FIXED** — recast to seven cases, both moods on both sides |
+| L-5 | the lane's sufficiency gate is deletable in silence and untestable as designed | **FIXED** — `--pack` makes the lane injectable; one-sided and assert-less packs are committed fixtures driven through it |
+| L-6 | the reservation is in **five** sites, not the two decision 4 named; the registry file instructs the next reader to do what the ADR forbids | **PARTLY FIXED** — the registry header corrected here, the `.tmpl` round-trip named. `quality/judge/rubric-sports.md`'s *"Activates at M07"* **DECLINED**: correcting it moves a frozen instrument. Recorded as a debt (§8) |
+| L-7 | the root-escape test passes on non-existence, not on refusal | **FIXED** — the ref is `".."` |
+| L-8 | *"resolves to a path"* makes the orphan check satisfiable by any file | **FIXED in round 2** — §4, `CONTROL_ARTIFACTS` plus the schema enum |
+| L-9 | a legitimately-enforced guardrail will be reported as an orphan | **DECIDED** — every control ref is a path; a guardrail's ref is its committed config under `platform/gateway/`, which `CONTROL_ARTIFACTS` now states. Decided here rather than under M09b's time pressure, which is the drift the seat named |
+| L-10 | the orphan verdict is platform-dependent — `SERVICES/…` resolves on Windows | **FIXED in round 2** — the ref must equal a committed path byte for byte |
+| L-11 | the control is broader than the rule, and lands before the rule says so | **OPERATOR'S, and taken** — §5 |
+| L-12 | the schema's `required`/enum surface is largely unasserted | **FIXED for the fields this PR adds** (`minLength: 1` on all five prose fields, the seat enum on `decided_by`). **DEFERRED** for the pre-existing surface: a table-driven test over every `required` and every enum is a `rules/schema.json` PR of its own |
+| L-13 | the *"still open"* test greps prose, not behaviour | **FIXED** — it asserts that an `enforced` rule with a distant `review_by` still validates |
+
+**AI Quality** (12, 3 blocking) — 1 the lane reports `PASS` at exit 0 over an
+**all-INFRA** run: **FIXED**. 2 sufficiency-to-FAIL and a stubbed sufficiency both
+silent: **FIXED**. 3 `PRE_FIX_RENDERED_TOKENS_EST` is **self-pinning** — re-seat
+it and the file passes 9/9 with the bound vacuous: **FIXED**, pinned to three
+evidence digests. 4 the estimator's denominator is editable from a one-key data
+file: **FIXED**, `PRE_FIX_CHARS_PER_TOKEN` frozen beside the numerator. 5 a
+defensible reading of the p95 condition **fires**: **OPEN, the operator's** (§6).
+6 `test_the_gate_did_not_move` cannot see the gate move: **FIXED**, literal 5200.
+7 sufficiency counts modes, so an assert-less case passes: **FIXED**, a case whose
+asserts carry no `ai_disclosure` is refused by the instrument. 8 `pave/cli.py`
+matches no two-key rule and now holds a blocking verdict decision: **FIXED** —
+`decide_disclosure` moved into `evals/deterministic.py`, which is keyed;
+`pave/cli.py` stays unkeyed by ADR-041 decision 7, and the decision it used to
+hold no longer lives there. 9 the headroom exemption is asserted, not decided:
+**OPEN, the operator's** (§6). 10 *"mandated"* means two things in two files:
+**FIXED**, renamed. 11 `_p95`'s n is not asserted equal to the pinned n:
+**FIXED**. 12 recorded numbers clean: **no action**.
+
+**Security** (8 survivors, clustering on one seam — *the wiring between a correct
+component and the artifact a gate or a human acts on is not measured*) — S1 the
+lane's verdict rests on an untested initializer: **FIXED**. S2 `pave/cli.py`
+defeats the keyed reader: **FIXED**, the CLI emits the reader's render. S3 the
+containment guard is tested with a path that does not exist: **FIXED**. S4 Data
+Governance's only key is removable in one diff, after which `classify.py` is
+single-key and the single key is Security — *G9 exactly inverted*: **FIXED**,
+`SEATS_THAT_MAY_NOT_BE_DROPPED`. S5 the M09 census clause re-narrows from a
+pattern to an enumeration: **FIXED**, two unnamed-shape paths pinned. S6 the
+gateway-client rule narrows from `[^/]+` to `[a-z-]+` silently: **FIXED**. S7
+`render` can stop naming the broken link: **FIXED**, `[BROKEN]` and the ref
+asserted. S8 four new ROLES.md rows state seat sets nothing checks: **see §7**.
+O1 `classify_sha256` digests one file while the rule covers four: **debt** (§8).
+O2 `--cases` is a new degree of freedom in the evidence producer, recorded
+nowhere: **FIXED**, containment, shape, duplicate ids, and `_cases_sha256` in the
+sidecar.
+
+**Platform Engineering** (8) — BLOCKING 1 the cascade is five records: **FIXED**,
+§2(c). BLOCKING 2 `rules_trace`'s exit code is undefended: **FIXED**. BLOCKING 3
+the sufficiency gate is advisory in practice, on zero keys: **FIXED**. 4 `--cases`
+validates existence but not shape, and validates AWS-late: **FIXED**. 5 the
+`sys.path` leak makes an existing protection order-dependent: **restated in round
+2 and FIXED there**. 6 the disclosure lane is wired into no CI workflow:
+**DEFERRED**, debt (§8) — wiring `quality-gate.yml` before a run exists would gate
+on nothing. 7 run evidence records no pack provenance: **FIXED**. 8 the tool-plane
+guard is undefended and now load-bearing: **DEFERRED**, debt (§8).
+
+**Service Team** (8) — S1, the finding that most deserved to land: keying
+`^services/[^/]+/gateway_client\.py$` made the scaffold's *"a team must be able to
+edit what `pave new` gave them"* check **vacuous** — five of five rendered files
+excepted, deleting the assertion left the suite green — and the justification was
+**circular**, since the seat count "followed the rules" because the rule was
+written to match it, on evidence naming one service. **FIXED**: the rule is
+narrowed to `^services/highlights-agent/gateway_client\.py$` with a coverage test
+requiring every client a committed record names. S2 the two-key assertion is
+vacuous: **FIXED**. S3 the rendered client states a freedom the rule removes:
+**FIXED** for scaffolded services. S4 `trace` exit codes collapse three states
+onto one: **FIXED** — §6. S5 the rendered golden README is false for a scaffolded
+team: **FIXED**. S6 there is no escape hatch — `pave exception request` reports
+success for doing nothing: **DECLINED here**, it is `pave/exception.py`'s PR and
+not this diff's subject; recorded. S7 the two new commands are undiscoverable:
+**FIXED**. S8 `pave new --classification` is advertised and silently ignored:
+**DECLINED here** — a G5 field on an exit-0 path, pre-existing, and its fix is
+Data Governance's; recorded beside S6.
+
+**Data Governance** (8) — F1 G5's routing decision is not confined to the file
+the rule names, and `platform/gateway/core/__init__.py` is on **no rule**: a shim
+there turned G5 off at run time with `classify_sha256` byte-identical, at zero
+keys. **FIXED** by putting `__init__.py` and `classify*.py` on the router's rule
+— and round 2 measured that fix incomplete one filename to the right (§4). F2 the call site that
+enforces the router is unguarded: **DEFERRED**, debt (§8). F3 nothing asserts the
+router's semantics beyond three hardcoded strings: **DEFERRED**, debt (§8). F4 the
+seat set is incomplete: **FIXED**. F5 the witnesses are removable without Data
+Governance's key: **FIXED**. F6 `requires_adr=False` is correct as filed:
+**recorded, undated**. F7 Data Governance holds no key on any surface ROLES.md
+says it owns except this one: **recorded** — a governance fact, not a defect of
+this diff. F8 a stated protection that is absent in the new README: **FIXED**.
+
+**Tool Owner** (7, 2 blocking) — TO-1 the chain reader dispatches on file
+**extension**, not on `controls[].type`, so a correct multi-control disposition
+exits 1: **FIXED**, and see §4 — *the fix inverted the defect*. TO-2 the exit code
+of claim 6's row 1a is exercised by no test: **FIXED**. TO-3 `_binds` guessing the
+only deployed service is invisible: **FIXED**. TO-4 an eval-pack disposition is not
+a **publish-class** disposition, and the registry reports it discharged:
+**the L3 disposition stands as sufficient for claim 6; the gap is recorded as a
+named limit in the rule's own `disposition.limits`**, so the registry carries it
+and `pave rules trace` prints it — not only the ADR. TO-5 the prompt-delta
+instrument prices half the model-facing surface: **FIXED**. TO-6 `pave verify`
+cannot see the second pack and does not defer it by name: **DEFERRED**, debt (§8).
+TO-7 two-key coverage on the Tool Owner surface: **FIXED**.
+
+### 4. Round 2 — and both named sites had regressed
+
+**The scaffold exception.** Round 1's remedy replaced a blanket exception list
+with a seat cap, `ONBOARDABLE`. Two seats measured that the cap answers the wrong
+question. Service Team walked a **three-seat** rule onto a byte-for-byte machine
+render and the cap passed it at 4149. Data Governance measured the other
+direction: because `data-governance` sat outside the set, adding that seat to the
+rule carrying `classification:` — the `declared` argument to `classify.route`, and
+the first question that seat's charter asks — became a **red test whose message
+told the next reader not to widen the set**. An omission asserted green. Round 1
+asked *which seats*; the finding was *how much*. **Replaced by a per-file
+`ONBOARDING_COST` pin**, plus the union pinned as a number so a widening cannot
+arrive as a one-token edit inside a test body.
+
+**The computed closure.** It **failed open** — an unparseable record was skipped,
+so a record digesting a model-facing file was invisible to the whole suite for one
+trailing comma — and its seed list was itself an unpinned hand-list, so the
+hand-list had moved up a level rather than gone away. Platform Engineering also
+measured a **second copy** of the same fail-open scan in
+`test_every_measured_client_is_on_this_rule`, which was the entire justification
+for narrowing a two-key rule. **Fixed:** the closure fails loud, the seeds are
+pinned by name, and a second test refuses a spec that disagrees with the
+computation.
+
+**Four more the round found on its own.**
+
+- **The G5 bypass survived round 1's fix, one filename to the right.**
+  `platform/gateway/core/meter.py` is on no rule and in `handler.py`'s import
+  line; the same shim turned G5 fully off at 4149 passed (Data Governance
+  DG-R2-1). **Fixed, and not by widening the regex** — a filename pattern cannot
+  cover *"any module Python executes"*, and the next module is a file nobody has
+  written yet. `tests/test_gateway_core.py` now reads the **source** of every
+  `.py` under `platform/gateway/` and refuses cross-module rebinding, which is
+  the only thing that sees past `if "pytest" not in sys.modules` — that guard is
+  precisely a bet that the check runs in-process. `meter.py` and `handler.py`
+  remain on no rule, which is the residual §9 records.
+- **The TO-1 fix inverted the defect it removed.** Dispatching on type and then
+  asking only `path.exists()` meant a `type: cedar_policy` control pointing at a
+  **markdown design document** read as a clean chain at exit 0, `ref: "."`
+  discharged every rule, and `type: human-review` — outside the schema's enum —
+  was accepted (Tool Owner TO-8/TO-9, Platform Engineering F6, Security F6).
+  **Fixed:** the type is read out of `rules/schema.json`, each type has an
+  artifact home and suffix set, and the root is not a control.
+- **`_resolves` answered the filesystem rather than the tree**, so *"no orphan
+  rules"* meant different things on Windows and on Linux CI (Legal/S&P F-9,
+  restating L-10 as unaddressed). **Fixed.**
+- **The estimator was not a function of size.** `control_prompt` renders
+  `answer.schema.json`, one of the two sites the fix edits, so the calibration
+  ratio's numerator grows with the fix while its denominator is frozen: 20 000
+  characters added to the schema priced at **+316 tokens** against a true cost near
+  **+5 900**, and a 370-character disclosure sentence priced at **−121** (AI
+  Quality R2-2). `ADMISSIBLE_DELTA = 306` was arithmetically right and gated
+  nothing. **Fixed:** the ratio is frozen at `PRE_FIX_CHARS_PER_TOKEN = 3.373`
+  with a monotonicity sweep.
+
+**The rest of round 2, dispositioned.** The schema's two *"Never blank"* sentences
+were annotation-only (Platform Engineering F1, Tool Owner TO-11): **FIXED**,
+`minLength: 1` on all five prose fields plus the seat enum on `decided_by`.
+`--pack` reintroduced the exact defect `--cases` was hardened against (F2, Security
+F4): **FIXED**, containment, shape and duplicate ids, exit 2 rather than 1. The
+pack-provenance fix was a source-text grep the defect survives (F3): **FIXED**,
+asserted on the returned dict. `rules_trace`'s dispatch still had no `return`
+(F5): **FIXED**. The `sys.path` leak (F7): **FIXED**. `SEATS_THAT_MAY_NOT_BE_DROPPED`
+omits three of the four seats this PR added (Security F9): **FIXED**. The
+disclosure-pack rule can be narrowed to one filename in silence (Security F3, Tool
+Owner TO-7 K1): **FIXED**, the README is on the pin. A rule can exclude every sense
+it has and the registry reports it healthy (Security F2): **recorded as the debt in
+§8 row 1** — the registry cannot today detect a rule disposed against a service
+that produces no instance of its subject, which is the same hole seen from the
+`scope` side. `trace` prints the limit and is not required to print the scope
+(TO-14): **FIXED**. TO-15, the subprocess exit-code guard expires at PR 4:
+**DEFERRED to PR 4**, which is the PR whose premise removes it. The pack header
+said *"Five cases"* over a seven-case pack and the README quoted the pre-re-scope
+title: **FIXED**. `test_the_spec_names_every_record` matches anywhere in a 700-line
+document (F11): **DECLINED** — tightening it to the Definition-of-done clause
+couples the test to that section's heading, which is the coupling round 1 removed
+elsewhere; the closure test is the load-bearing one. F10 duplicate-id performance
+and the `import textwrap` in a loop: **DECLINED**, measured at 5.2 s on 10 000
+cases, and no pack in this repository is within three orders of magnitude.
+`cp1252` stdout on Windows (Service Team): **DECLINED here**, it is every command's
+and not this PR's. Service Team's PLANT G/H — the coverage test deletable in
+silence and coupled to a basename: **FIXED**.
+
+### 5. The unauthorised narrowing, and why it is recorded rather than fixed quietly
+
+The operator's L-11 disposition was: **the rule moves, not the pack** — re-scope
+MER-AI-0001 from *recaps* to the editorial copy the bound service actually
+authors, as Legal/S&P's own decision with its own reasoning, because the catalog
+grounds no recap (no outcome field; only `t003` is past at the clock;
+`grounded-017` forbids narrating a result). The recap sense is **excluded, not
+retired**, with two revival conditions, and the disposition record carries the
+limit.
+
+The `scope` record as first written also said *"that **Meridian Sports**
+publishes"*. That is a **second** narrowing — of the surface, not the sense — with
+no measurement, no reasoning and no revival condition, placed in a field whose
+entire justification is the recap evidence. And `revives` named *"the Meridian
+News surface arriving at M10"*, which is false: `data/catalog.json` already
+carries `t002` and `t004` at `brand: meridian-news`, `tools/catalog-search`
+queries that brand, and golden case `brand-020` already asks about one of them.
+
+Legal/S&P found it in round 2 (F-6). Removing it **restores the operator's
+decision rather than making a new one**, which is why it did not go back for
+approval — but it is recorded, because an agent widening its own mandate inside a
+field nobody would re-read is exactly the failure the two-key machinery exists to
+catch, and here the machinery did not catch it: `rules/` collects Legal/S&P and
+Security, and the narrowing would have carried both keys on a PR about something
+else. **A disclosure act does not stop at a brand boundary.**
+
+### 6. Two decisions the rounds could not make, and one conflict they could
+
+**Open, and the operator's — the `p95_ms` condition fires under a reading nobody
+evaluated.** Decision 5 §4 says *"the most recent **fresh** mandated-shape
+population."* Read as the most recent **sample** rather than the most recent
+**run**, that is M08b sample 3 alone: n = 14, mandated p95 4542, derived point
+**6200**, pooled 6315 — and 6315 > 6200, so the condition **fires** and yields a
+number **1000 ms above** the standing 5200 gate. That is the trade G9 exists to
+refuse, reached through a reading of the condition's own words. The
+five-population test does not search that space; the firing window is any
+population with p95 in (3782, 4824). **A pre-registered condition whose answer
+flips on a reading of its own wording is not pre-registered.** The fix is a
+sentence, not a test: name the population by cardinality and provenance — *the
+mandated-shape rows of every sample of the most recent fresh run set (M08b:
+n = 38 over samples 1–3); a single sample is not a population for this rule* — and
+pin every single-sample reading as considered and refused. The **answer** does not
+move in this milestone; the wording does.
+
+**Open, and the operator's — the headroom exemption re-scopes a CLAUDE.md rule in
+a YAML comment.** AI Quality does not dispute the substance: a five-case
+disposition witness should not carry `expect_near_threshold` rows, and at 100%
+after the fix that is the outcome. But the exemption is written in the file it
+exempts, with no ADR decision that seat signs, and post-fix the suite can only
+report regressions — which is the condition the rule exists to name. The
+compliant form is a decision stating *a disposition witness is exempt from the
+5–10% headroom rule; the exemption attaches to `suite: disclosure` and to no
+other*, with `tests/test_contracts.py` asserting only ADR-named suites carry it.
+
+**Resolved here, because both seats were right.** Tool Owner: a `guardrail` or
+`cedar_policy` disposition is enforcing, so a chain carrying one must not exit 1,
+or M09b makes claim 6's own command red by *strengthening* the control. Platform
+Engineering: reporting RESOLVED for a walk that reached no case and no assert
+relaxes what row 1a proves, and that is a cut needing an ADR. **A third state,
+`WALKED`**, satisfies both: `pave rules trace` exits 0, and `Chain.resolved` keeps
+meaning *a reader got from the rule to an assert*, which is the sentence claim 6
+rests on.
+
+### 7. The published table that this PR made false
+
+Security S8 and F10 name `docs/governance/ROLES.md:91`, which says the caller's
+system prompt is `services/*/gateway_client.py`. Round 1 narrowed the enforced
+rule to `^services/highlights-agent/gateway_client\.py$` on Service Team's
+finding, and the published table was not moved with it — so the table states a
+protection over every service that the enforced list gives to one. That is this
+amendment's own subject, in a governance document, introduced by this PR.
+**Corrected here**, and the row now says what `pave/twokey.py` enforces.
+
+The generalisation — parse every backticked path in that table and check it
+against `twokey.triggered`, so the table is checked rather than transcribed — is
+**DEFERRED** and recorded in §8: it is ADR-037's remedy one document over, and it
+is a `tests/test_contracts.py` PR with its own reasoning.
+
+### 8. The deletability audit, and the finding that outranks every other in this PR
+
+**57 mutations at check granularity**, each written into a working copy backed up
+to a temporary directory and restored from that backup, never with `git checkout`.
+Every anchor was verified against the tree before a single suite ran, so a
+mutation that had silently stopped applying reports `ANCHOR` rather than a false
+`RED`. Two stages: a seventeen-second fast set first, the whole suite only for a
+survivor — a caught mutation costs seconds and only a silent one pays.
+
+The first pass reached 40 of its mutations and stopped there because the shape was
+already clear: **22 red, 18 silent — 45%**, against this repository's historical
+four in ten. The silent ones were not scattered.
+
+> **Almost every check this PR added in answer to a seat finding had no witness.**
+> A seat planted a defect. The fix went in. The fix was then treated as its own
+> proof — and the branch that refuses the defect ended up exercised by nothing, so
+> deleting it left the suite at 4160 passed.
+
+That list includes the fix for this amendment's own §2(a): `format_checker=` on
+`rules validate`, the line that closes the immortal-rule route, deletable in
+silence. It includes `ref: "."` is-not-a-control, the schema-enum type check,
+`--pack` containment, `--pack` shape, `--cases` shape, the record closure's
+fail-loud branch, and both new guards on the `scope` record.
+
+**The mechanism is worth naming, because it is not carelessness and it will
+recur.** Where a guard looked tested, another guard was answering for it:
+
+| the guard | what was covering for it |
+|---|---|
+| `--pack` / `--cases` **containment** | every malformed fixture lived in a temp directory, so containment refused it and shape was never reached — and remove containment and the same fixture is still refused, for being malformed. Two guards, each the other's alibi, and the pair testing neither |
+| `Scorer._visible` | the phrasing requirement added beside it: an all-invisible disclosure carries no accepted phrasing either, so it fails for the second reason once the first stops firing |
+| `_resolves`' containment line | the byte-for-byte comparison below it raises `ValueError` on a path outside the root and returns `False` anyway — so the escape test stayed green with containment gone, and only `ref: "."` measures it |
+| `_pack_cases`' shape filter | the empty-pack assertion, which is red for both and says something else |
+| the toothless-token refusal | the vacuous-case branch beside it, which *is* tested |
+
+A test that passes because of the line next to the one it names is not a test of
+that line. Each is now split so the guard fails for exactly one reason, **and the
+reason is asserted** — three committed in-tree fixtures
+(`tests/fixtures/m09/malformed-{mapping,idless,inputless}.yaml`) exist only so
+that containment accepts a pack and shape is the single thing standing.
+
+**Sixteen closed, two dispositioned.** Two are silent for an honest reason and get
+a record rather than a test, because a test for either would assert the
+convention and not the property:
+
+- **the `rules_trace` dispatch's `return`.** Adding it is correct under both
+  conventions — `sys.exit` inside the callee, or a returned code — so removing it
+  is only visible under the other one. The check is the convention's, and
+  `tests/test_cli_contract.py` already owns that.
+- **the estimator's derivation from the synth snapshot.** Swapping
+  `routed_tools()` back to the hand-typed tuple gives the identical answer
+  *today*. It bites on the day a tool is routed, which is the day it is for. A
+  test that forced it red now would have to plant a routed tool, and the drift
+  gate ADR-017 already owns that surface.
+
+**One gap the audit did not find — the test written for it did.** Closing
+`scope.decided_by`'s seat enum meant writing a check that both `decided_by` fields
+name a real seat, and the check immediately failed on the older one:
+`disposition.decided_by` was an unconstrained string, so `legal-and-sp` validated
+and a disposition read as taken by a seat that does not exist. It now carries the
+same enum, plus an explicit `unassigned` arm — because an undisposed rule is a
+real state this registry is in *right now*, and the difference between naming that
+state and accepting any string at all is the whole of the field. Closing a check
+is how the next one gets found; that is the argument for the audit, not an
+embarrassment to it.
+
+**And one the audit confirmed rather than found.** `docs/governance/ROLES.md:91`
+published `services/*/gateway_client.py` as two-key while round 1 narrowed the
+enforced rule to one service. Security raised it in both rounds; it was not fixed
+either time. The audit put the old wording back and the suite stayed at 4168 — the
+published table could say anything at all, because
+`test_every_seat_string_is_a_seat_roles_md_lists` compares the two *vocabularies*
+and `tests/test_evals_lane.py` compares one *row*, and nothing compared the
+**paths**. ADR-037's entire finding is that this summary drifts from the enforced
+list, and the drift check it left behind cannot see the drift that actually
+happened. `test_every_path_the_published_table_names_is_on_the_rule_it_claims`
+instantiates every published path expression — expanding `*` to a service this
+repository does not have — and requires `pave/twokey.py` to collect at least the
+seats the row promises.
+
+**What this means for the PR.** Not that eighteen checks were weak: that **the
+corrections were written the way the code they corrected was written.** This PR
+spent two rounds finding stated-and-absent protections in other files and wrote
+its own while doing it, at a rate of nearly one in two, and no seat round caught
+a single one — six seats, two rounds, twelve reports, and the audit is what found
+them. The seat round proves a defect exists. It does not prove a fix works, and
+nothing in this repository's process was asking it to.
+
+**So the standing rule this PR leaves behind is the one in §9's first row**: a
+remedy written in answer to a seat's plant ships with the mutation that removes
+it and the test that names the failure, in the same diff. The seat's own plant is
+usually the test — it already exists, and it already ran.
+
+**The re-run, whole, against the tree this PR proposes to merge: 55 of 57 went RED.** Baseline 4184 passed, 6 skipped in 130.52s (0:02:10). The 2 that did not are each dispositioned above:
+
+- `cli: the rules_trace dispatch returns`
+- `estimator: derived from the snapshot, not hand-typed`
+
+### 9. New debts, each owed and dated
+
+| debt | owed to | dated |
+|---|---|---|
+| The registry cannot detect a rule disposed against a service that produces **no instance of its subject**, and cannot detect a `scope` that excludes every sense the rule has. MER-AI-0001 sat disposed-in-plan for a milestone with `pave rules validate` reporting it valid throughout | Legal/S&P + AI Quality | unscheduled, owned |
+| An eval-pack disposition is not a **publish-class** disposition — recorded as a `disposition.limits` entry in the rule itself, printed by `pave rules trace` | Tool Owner + Legal/S&P | the milestone that touches the publish path |
+| The control reads the disclosure's **words, not its sense**: a negated disclosure passes any word-boundary match. Bounded rather than closed, because it is a judge's question and M09 wires no judge axis | Legal/S&P + AI Quality | the milestone that wires a disclosure judge axis, if one is ever owed |
+| `handler.py`'s G5 refusal branch deletes cleanly on two seats that are not Data Governance's; nothing observes that `route()`'s `allowed=False` produces a denial | Data Governance + Platform Engineering | the next PR that opens `handler.py` |
+| Nothing asserts the router's **semantics** beyond three hardcoded strings; the wall is a byte digest and the sanctioned re-registration workflow clears it | Data Governance | before `requires_adr` goes on the router rule |
+| `evals/adversarial.py`'s `classify_sha256` digests **one file** while the rule now covers four; a term-list sibling moves the router and not the digest | Security | M09b, beside its probe re-run |
+| The disclosure lane is wired into **no CI workflow**, and no PR is dated to wire it | Platform Engineering + AI Quality | PR 4b, or recorded as a cut |
+| `pave verify` cannot see the second pack and does not defer it by name | Tool Owner | the milestone that gives the pack a template |
+| The tool plane's recorded instrument input, its IAM test and both tool bundles are on **no rule** while the code they defend is three-key | Platform Engineering + Security | the next PR that opens the tool plane |
+| `ROLES.md`'s rows are transcribed rather than checked against `twokey.triggered` | Platform Engineering | a `test_contracts.py` PR of its own |
+| `docs/governance/ROLES.md` — the table that publishes who holds a key over what — is on **no two-key rule**. Only `recordings.json` under `docs/governance/` is covered. The table can no longer contradict the enforced list silently (a check landed in this PR), but it is still the one file naming every key that needs none | Platform Eng + Security | the next PR that opens `pave/twokey.py` |
+| `pave/twokey.py`'s `DISPOSITION_RE` accepts any `[a-z-]+` as a seat, so an attestation naming a seat that does not exist blocks a PR forever with no diagnostic. `rules/schema.json` now refuses the same typo one file over; the two vocabularies still have no single source | Platform Eng + Legal/S&P | the milestone that touches attestation parsing |
+| `quality/judge/rubric-sports.md` states an activation *"at M07, when MER-AI-0001 is disposed"* that did not occur. Correcting it moves a frozen instrument, so it is **not** corrected here | AI Quality + Security | the milestone that re-freezes the judge |
+| `pave exception request` reports success for doing nothing, and `pave new --classification` is advertised and silently ignored on an exit-0 path | Service Team + Data Governance | the PR that opens `pave/exception.py` |
+| The pre-existing `rules/schema.json` `required`/enum surface is unasserted: removing `review_by` from `required`, `controls`' `minItems`, and the `type` and `owner_seat` enums are all silent | Legal/S&P + Security | a `rules/schema.json` PR of its own |
+
+### 10. What this PR changes about how the next one is written
+
+Three rules, each earned by a measurement in this diff rather than proposed.
+
+| rule | the measurement that earned it |
+|---|---|
+| **A remedy written in answer to a seat's plant ships with the mutation that removes it and the test that names the failure, in the same diff.** The seat's own plant is usually that test: it already exists and it already ran | 18 of the first 40 audited checks were silent and nearly every one was a round-1 or round-2 remedy. Twelve seat reports across two rounds caught none of them |
+| **A guard is tested against a fixture that only that guard can refuse.** If removing the guard leaves the fixture refused for another reason, the test names the other guard | five pairs in §8's table, including two whose fixtures were in a temp directory purely so containment would fire first |
+| **A published summary of an enforced list is checked against the list, path by path and not only vocabulary by vocabulary** | ADR-037 found this summary drifting twice and left a check that compares seat *names*; the drift that actually happened was a *path*, and it survived two seat rounds that both reported it |
+
+**And one thing this PR does not conclude.** The seat rounds were not wasted and
+are not downgraded: every defect in §2, §3 and §4 was found by a seat, by
+planting and running rather than by reading, and four of them were false claims
+this PR made about its own work. What the rounds did not do — could not do, as
+briefed — is establish that the fixes worked. A seat is briefed to attack the
+diff in front of it. The diff in front of round 2 was round 1's fixes, and round 2
+found six real defects in them; what neither round was asked was *whether the new
+checks are load-bearing*, which is a different question and has a different
+instrument. The audit is that instrument, and this is the first milestone where
+its result outranks the seat rounds'.
+
+### Merge condition
+
+**This PR does not merge on the seat rounds alone.** The condition is the audit:
+every check it adds must be red when deleted, or carry a written disposition
+saying why it is honestly silent. Sixteen were closed with tests and two
+dispositioned in §8; the full re-run is recorded below. A future PR in this
+milestone inherits the condition — PR 4 asserts against this registry, and a
+registry whose guards are decorative is worse for that PR than no registry, which
+is CLAUDE.md's ranking applied to the instrument rather than to the thing it
+measures.
+
+### What this amendment does not change
+
+The claim and its five falsifiers as amendment 2 left them. Decisions 1–4 and 6.
+The disclosure pack as its own suite; the goldens denominator at 25; the cap at
+six, spent. The `p95_ms` **answer** — the gate does not move in this milestone;
+§6's open question is about the wording of the condition, not the number. The
+M09b hand-off in decision 5 §5. Nothing under `milestones/` or `evals/history/`
+except `evals/history/schema.json`'s `suite` enum, which carries the new suite's
+name and is called out in the PR body.
