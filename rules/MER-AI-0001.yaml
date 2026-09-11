@@ -6,8 +6,10 @@
 # already happened at commit one, so the disposition would have had nothing to
 # demonstrate but a file that was always there.
 #
-# M09 PR 4 disposes it: status -> enforced, and the `no-control` record below is
-# replaced by the L3 eval pack. That diff IS the claim. Do not pre-empt it.
+# M09 PR 4 DISPOSED it, and that diff is the claim: `status: proposed -> enforced`
+# and the `no-control` record replaced by the L3 eval pack below. The delta was a
+# delta -- every positive case of that pack failed the run taken BEFORE the fix
+# (run A, `milestones/M09/`), which is falsifier F1 read rather than assumed.
 # (The gateway disclosure guardrail is **M09b's**, not this disposition's, and
 # `disclosure-004` is **withdrawn and not reused** — ADR-075 decisions 1 and 4.
 # The three sentences that used to stand here said M07, said the guardrail landed
@@ -87,11 +89,23 @@ scope:
 owner_seat: legal-sp
 severity: blocking
 disposition:
-  decided_by: "unassigned — logged by Legal/S&P, awaiting disposition (M09 PR 4)"
-  decided_on: "2026-08-15"        # date the rule entered the registry, not the date it was disposed
+  decided_by: legal-sp
+  # The date the disposition was TAKEN. The rule entered the registry on
+  # 2026-08-15 and carried that date here while `decided_by` was `unassigned`,
+  # which is the state this field now leaves: an undisposed rule recorded when it
+  # arrived, a disposed one records when it was decided.
+  decided_on: "2026-09-11"
   controls:
-    - type: no-control
-      ref: "none yet — M09 PR 4 replaces this with the L3 eval pack; the gateway guardrail is M09b's"
+    # **The executable control, and the only one this disposition claims.** L3:
+    # the disclosure pack is scored by `pave evals disclosure`, which writes a
+    # `suite: "disclosure"` verdict the gate blocks on. The gateway disclosure
+    # guardrail is **M09b's** and is deliberately not named here -- a disposition
+    # that names a control it does not have is the orphan-rule shape, and a
+    # disposition naming two controls when one is built makes the red
+    # unattributable between them (ADR-075 decision 1).
+    - type: eval_pack
+      ref: services/highlights-agent/evals/disclosure/cases.yaml
+      layer: L3
   # What the disposition does NOT reach. Recorded in the REGISTRY and not only in
   # the ADR, so a reader of `pave rules trace MER-AI-0001` meets the boundary at
   # the same moment as the chain (Tool Owner seat, M09 PR 2 round 1; the
@@ -124,5 +138,5 @@ disposition:
         rather than a hole the model can walk through.
       owed_to: [legal-sp, ai-quality]
       dated: "the milestone that wires a disclosure judge axis, if one is ever owed"
-status: proposed
+status: enforced
 review_by: "2026-10-01"           # the law's effective date: disposition cannot slip past it

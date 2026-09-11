@@ -1,0 +1,14 @@
+# git diff --stat 66bb114..6644c1d -- <the guardrail, policy, corpus, tiers, topics, catalog>
+(exit: empty above means no line moved)
+
+# per path, name-only:
+  platform/gateway/core/guardrail.py -> 0 changed file(s)
+  platform/gateway/handler.py -> 0 changed file(s)
+  platform/gateway/core/ -> 0 changed file(s)
+  platform/gateway/policy/ -> 0 changed file(s)
+  platform/infra/lib/gateway-stack.ts -> 0 changed file(s)
+  platform/infra/tests/fixtures/BeaconpaveGateway.template.json -> 0 changed file(s)
+  quality/adversarial/ -> 0 changed file(s)
+  data/catalog.json -> 0 changed file(s)
+  services/highlights-agent/pave.manifest.yaml -> 0 changed file(s)
+  services/highlights-agent/evals/golden/cases.yaml -> 0 changed file(s)
