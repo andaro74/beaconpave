@@ -199,6 +199,26 @@ PRE_FIX_ANSWER_SCHEMA_SHA256 = "d4219cc724c5c17e94693d99992637de9c8f987e58632239
 #: move, and this is what prices it.
 PRE_FIX_TOOL_SPECS_SHA256 = "40152facb40524ae1d3a4d83d5dab8c785db036b47f72a434a20dfd77d272a34"
 
+#: **The three digests above are the tree the baseline was taken on, and PR 4
+#: detached the first two from the live text on purpose.** The fix moved
+#: `TOOL_SYSTEM` and `answer.schema.json`; the baseline ESTIMATE above is
+#: deliberately not re-seated, so the delta below is a real subtraction rather than
+#: a difference between a number and itself. What the pins buy now is that the
+#: detachment is visible: a reader sees the pre-fix subject, the post-fix subject,
+#: and the measured cost between them, instead of one literal quietly becoming
+#: another.
+POST_FIX_TOOL_SYSTEM_SHA256 = "933ae96c61b774306b86c5fefda1e31b0f96e38a9e3d40d600c0d64ad93f2355"
+POST_FIX_ANSWER_SCHEMA_SHA256 = "fd301dc1722c2f38349aded4ff94c54c00f495be40dffafd58ee0965a4d39559"
+
+#: The delta the fix cost, measured by the estimator above over the rendered
+#: per-call payload. **200 of an admissible 306**, which puts `headroom-005 s3` at
+#: 7382 against the 7700 ceiling.
+#:
+#: Pinned because it is the one number that says what the fix spent. A diff that
+#: changes the prompt and leaves this alone is red HERE, in the file that prices
+#: it, and not only in the record digests PR 4 re-produces anyway.
+MEASURED_DELTA = 200
+
 #: The estimator's denominator, pinned beside the numerator it divides.
 #:
 #: `calibration()` divides the chars of six ADR-014 anchor CASES by their measured
@@ -449,42 +469,54 @@ def test_the_boundary_is_the_scorers_and_not_this_files_arithmetic():
 
 # --- the committed prompt -----------------------------------------------------
 
-def test_the_baseline_is_the_estimate_of_the_text_it_names(census):
-    """**The baseline is pinned to its evidence, not to a literal.**
-
-    Re-seating `PRE_FIX_RENDERED_TOKENS_EST` was measured silent: change the
-    prompt, change the number, move the sha pin, and this file passed 9 of 9 with
-    the bound vacuous. So the baseline now names the two blobs it is the estimate
-    of, and moving the prompt without confronting that is red HERE — in the file
-    whose whole job is to price the move — rather than only in record digests the
-    fix's PR re-produces anyway.
-
-    When PR 4 lands the fix, these two digests are what it must consciously
-    change, and the reviewer sees a baseline being detached from its subject
-    rather than a number quietly becoming a different number."""
+def _digest(text: str) -> str:
     import hashlib
+    return hashlib.sha256(text.replace("\r\n", "\n").encode("utf-8")).hexdigest()
 
-    def digest(text: str) -> str:
-        return hashlib.sha256(text.replace("\r\n", "\n").encode("utf-8")).hexdigest()
 
+def test_the_baseline_names_the_text_it_was_taken_on_and_the_fix_detached_it(census):
+    """**The baseline is pinned to its evidence, not to a literal — and PR 4 is
+    where that pinning has to be paid rather than admired.**
+
+    Re-seating `PRE_FIX_RENDERED_TOKENS_EST` was measured silent before the fix:
+    change the prompt, change the number, move the sha pin, and this file passed
+    9 of 9 with the bound vacuous. So the baseline names the blobs it is the
+    estimate of, and PR 4 had to detach the two the fix moves DELIBERATELY, with
+    the post-fix digests written beside the pre-fix ones and the estimate left
+    where it was.
+
+    Three assertions, and the third is the one that does real work:
+
+    - the live `TOOL_SYSTEM` and `answer.schema.json` are the POST-fix blobs;
+    - they are NOT the pre-fix blobs, so the detachment is real and this test
+      cannot be satisfied by a fix that was never applied;
+    - **the routed tool specs still digest to the PRE-fix value.** They are handed
+      to the model on every call and are a per-call delta exactly as a prompt
+      sentence is — the 44% of the surface round 1 found unpriced. The fix is two
+      sites, and this is the assertion that says the tool plane is not a third."""
     constants = census.client_constants()
-    assert digest(constants["TOOL_SYSTEM"]) == PRE_FIX_TOOL_SYSTEM_SHA256, (
-        "`TOOL_SYSTEM` has moved, so PRE_FIX_RENDERED_TOKENS_EST is no longer the "
-        "estimate of the text it names. If this is the fix's PR: do NOT re-seat the "
-        "baseline — record the delta, and detach these pins deliberately with the "
-        "reason, which is the ADR-021 event `TOOL_SYSTEM_SHA256`'s docstring describes.")
     schema = ROOT / "services" / "highlights-agent" / "evals" / "answer.schema.json"
-    assert digest(schema.read_text(encoding="utf-8")) == PRE_FIX_ANSWER_SCHEMA_SHA256, (
-        "`answer.schema.json` has moved. It is rendered into the prompt through "
-        "`{schema}`, so it is part of the delta and part of this baseline.")
+
+    assert _digest(constants["TOOL_SYSTEM"]) == POST_FIX_TOOL_SYSTEM_SHA256, (
+        "`TOOL_SYSTEM` is neither the pre-fix nor the post-fix text this file names, so "
+        "MEASURED_DELTA is the cost of something else. Do NOT re-seat "
+        "PRE_FIX_RENDERED_TOKENS_EST — record the new delta, and say which bytes moved "
+        "and why, which is the ADR-021 event `TOOL_SYSTEM_SHA256`'s docstring describes.")
+    assert _digest(schema.read_text(encoding="utf-8")) == POST_FIX_ANSWER_SCHEMA_SHA256, (
+        "`answer.schema.json` is neither the pre-fix nor the post-fix text. It is "
+        "rendered into the prompt through `{schema}`, so it is part of the delta.")
+
+    assert POST_FIX_TOOL_SYSTEM_SHA256 != PRE_FIX_TOOL_SYSTEM_SHA256
+    assert POST_FIX_ANSWER_SCHEMA_SHA256 != PRE_FIX_ANSWER_SCHEMA_SHA256, (
+        "the post-fix pins equal the pre-fix ones, so this test passes over a tree "
+        "where the fix was never applied and MEASURED_DELTA would be 0")
 
     import json as _json
     specs = _json.dumps(census.tool_config(routed_tools()), ensure_ascii=False, sort_keys=True)
-    assert digest(specs) == PRE_FIX_TOOL_SPECS_SHA256, (
-        "the routed tool specs have moved. Their `description` and `inputSchema` are "
-        "handed to the model on every call, so a reworded description is a per-call "
-        "delta exactly as a prompt sentence is — that is the surface round 1 found "
-        "unpriced, and it is inside this baseline now.")
+    assert _digest(specs) == PRE_FIX_TOOL_SPECS_SHA256, (
+        "the routed tool specs have moved. The fix is TWO sites; a reworded tool "
+        "`description` is a third per-call delta and is not priced by MEASURED_DELTA, "
+        "which is the surface round 1 found unpriced in the first place.")
 
 
 def test_the_estimators_denominator_is_pinned_beside_the_numerator(census):
@@ -494,16 +526,69 @@ def test_the_estimators_denominator_is_pinned_beside_the_numerator(census):
     measured token counts, and the golden cases file takes AI Quality's key
     alone. Padding those six inputs — no prompt change — moved the rendered
     estimate 793 → 752. A denominator that can move without the numerator moving
-    prices the fix wrongly in whichever direction the edit happened to go."""
+    prices the fix wrongly in whichever direction the edit happened to go.
+
+    **PR 4 moved this ratio legitimately, and that is why the check is now two
+    checks.** `calibration()` renders `answer.schema.json` into `control_prompt()`,
+    and the schema is one of the fix's two sites, so the live median went
+    **3.373 → 3.6845** the moment the fix landed — the
+    exact mechanism this file's `estimate_tokens` docstring describes, arriving as
+    a red check. The old single assertion could not tell that from the edit it was
+    written to catch, and leaving it would have meant either re-seating one
+    literal with nothing said, or freezing the fix out of a file it legitimately
+    moves.
+
+    So the two are separated:
+
+    - the live median is pinned at its POST-fix value, so the next move is still
+      a named failure;
+    - **the anchor inputs themselves are digested**, which is what the original
+      message was actually asking about (*"check whether an ADR-014 anchor case
+      was edited"*). That assertion is independent of the schema, so a padded
+      anchor is red whether or not a prompt moved in the same diff — and the pair
+      can no longer be satisfied by one edit standing in for the other.
+
+    `PRE_FIX_CHARS_PER_TOKEN` is unmoved and is still the estimator's frozen
+    denominator: `estimate_tokens` divides by it and by nothing that is read at
+    call time, which is what keeps the delta monotone in the size of the fix."""
     import yaml as _yaml
     cases_path = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
     cases = {c["id"]: c for c in _yaml.safe_load(cases_path.read_text(encoding="utf-8"))}
     cal = census.calibration(census.client_constants(), cases)
-    assert cal["chars_per_token"]["median"] == PRE_FIX_CHARS_PER_TOKEN, (
-        f"the estimator's chars-per-token median is {cal['chars_per_token']['median']}, "
-        f"pinned at {PRE_FIX_CHARS_PER_TOKEN}. Every token estimate in this file divides "
-        "by it, so a move here re-prices the fix with no prompt change at all — check "
-        "whether an ADR-014 anchor case was edited.")
+    assert cal["chars_per_token"]["median"] == POST_FIX_CHARS_PER_TOKEN, (
+        f"the estimator's live chars-per-token median is {cal['chars_per_token']['median']}, "
+        f"pinned at {POST_FIX_CHARS_PER_TOKEN} since the fix. It moves when an ADR-014 "
+        "anchor case is edited AND when `answer.schema.json` is — the digest below says "
+        "which. A move here re-prices any future fix, in whichever direction the edit "
+        "happened to go.")
+    assert cal["chars_per_token"]["median"] != PRE_FIX_CHARS_PER_TOKEN, (
+        "the live ratio is back at its pre-fix value, so either the fix was reverted or "
+        "this pin is no longer measuring the tree it names")
+
+    import hashlib as _hashlib
+    import json as _json
+    anchors = sorted(census.ADR_014_ANCHORS)
+    assert len(anchors) == 6, anchors
+    blob = _json.dumps(
+        {a: census.user_turn(census.client_constants(), cases[a]) for a in anchors},
+        ensure_ascii=False, sort_keys=True)
+    assert _hashlib.sha256(blob.encode("utf-8")).hexdigest() == ADR_014_ANCHOR_INPUTS_SHA256, (
+        "an ADR-014 anchor case's viewer turn has changed. Those six inputs are the "
+        "estimator's denominator and they take AI Quality's key alone; editing one "
+        "re-prices every token estimate in this file with no prompt change at all. This "
+        "is the half of the old assertion the schema edit was drowning out.")
+
+
+#: The six ADR-014 anchor cases' rendered viewer turns, digested. **Not the whole
+#: cases file**: the goldens legitimately change for reasons that have nothing to
+#: do with calibration, and a digest over all 25 would go red on every one of
+#: them and be re-pinned without anybody reading why.
+ADR_014_ANCHOR_INPUTS_SHA256 = "b5c9f6ccf9a1b52de78d9aec5c1b404d625132105aa7a15670615fda84fcbfb6"
+
+#: The live calibration median AFTER the fix. `PRE_FIX_CHARS_PER_TOKEN` stays
+#: frozen above as `estimate_tokens`'s denominator; this one is the live reading,
+#: pinned so that the next move is a named failure rather than a re-price.
+POST_FIX_CHARS_PER_TOKEN = 3.6845
 
 
 def test_the_estimate_is_monotone_in_the_size_of_the_fix():
@@ -540,30 +625,56 @@ def test_the_estimate_is_monotone_in_the_size_of_the_fix():
 
 
 def test_the_committed_prompts_delta_fits(census):
-    """**The assert PR 4 re-runs after the fix lands.**
+    """**The bound, live, over the fix as committed.**
 
-    Today the delta is zero: PR 2 moves no model-facing text, which SPEC/09
-    constraint 2 requires of every PR but the one carrying the fix. When PR 4
-    adds the disclosure sentence to `TOOL_SYSTEM` — and rewrites
-    `answer.schema.json`'s `ai_disclosure` description, the other model-facing
-    site — this recomputes and refuses a fix that does not fit, with no model
-    call spent.
+    Through PR 2 this asserted `delta == 0`, because SPEC/09 constraint 2 reserves
+    every model-facing byte to the PR carrying the fix. PR 4 carries it, so the
+    `== 0` clause is gone and the BOUND is what stands — which is what the old
+    assertion's own failure message instructed that PR to do.
 
-    The baseline constant is **not** re-seated by that PR. Re-seating it there
-    would erase the measurement."""
+    Measured: **200 tokens per call** of an admissible **306**, putting
+    `headroom-005 s3` — M08b's largest ≤3-call sample at 6782 over three calls — at
+    **7382** against the 7700 ceiling. The fix fit before a single call of run B
+    was spent, which is the whole point of pricing a committed prompt.
+
+    The baseline constant is **not** re-seated. Re-seating it here would erase the
+    measurement, which is the same move as re-pinning a comparator in the diff
+    that moved it."""
     estimated = estimate_tokens(rendered_per_call_payload(census))
     delta = estimated - PRE_FIX_RENDERED_TOKENS_EST
-    assert delta == 0, (
-        f"the rendered tool prompt now estimates {estimated} tokens against a pre-fix "
-        f"baseline of {PRE_FIX_RENDERED_TOKENS_EST}, a delta of {delta}. If this is PR 2, "
-        "model-facing text moved in a PR that may not move it (SPEC/09 constraint 2). If "
-        "this is the fix's PR, replace this assertion with the bound below and record the "
-        "delta in the PR body — do not re-seat the baseline.")
+    assert delta == MEASURED_DELTA, (
+        f"the rendered tool prompt estimates {estimated} tokens against the pre-fix "
+        f"baseline of {PRE_FIX_RENDERED_TOKENS_EST} — a delta of {delta}, not the "
+        f"{MEASURED_DELTA} this milestone measured and recorded. Model-facing text has "
+        "moved since PR 4. Price it, record the new number, and do NOT re-seat the "
+        "baseline.")
     over, who = worst_case(delta)
     assert delta <= ADMISSIBLE_DELTA and over <= CEILING, (
         f"a per-call delta of {delta} puts {who} at {over}, over the {CEILING} ceiling. "
         f"The admissible delta is {ADMISSIBLE_DELTA}. The ceiling does not move for a fix "
         "(SPEC/09 constraint 1): the FIX is rewritten.")
+
+
+def test_the_fix_leaves_headroom_rather_than_landing_on_the_boundary(census):
+    """**How much of the budget the fix did NOT spend, asserted rather than
+    inferred.**
+
+    A delta that fits says nothing about how close it came, and "it fits" is the
+    sentence a later widening gets added under. 200 of 306 leaves 106 tokens per
+    call, and `headroom-005 s3` lands 318 under the ceiling.
+
+    This is not a second copy of the bound above: that one refuses a fix that does
+    not fit, and this one records what was left over, so a future PR spending the
+    remainder has to move a number that says what it is spending."""
+    delta = estimate_tokens(rendered_per_call_payload(census)) - PRE_FIX_RENDERED_TOKENS_EST
+    assert ADMISSIBLE_DELTA - delta == 106, (
+        f"the fix now leaves {ADMISSIBLE_DELTA - delta} tokens per call of the admissible "
+        f"{ADMISSIBLE_DELTA}, not the 106 PR 4 recorded")
+    over, who = worst_case(delta)
+    assert (over, who) == (7382, "headroom-005 s3"), (over, who)
+    assert CEILING - over == 318, (
+        f"the binding sample lands {CEILING - over} tokens under the ceiling, not the 318 "
+        "PR 4 recorded. The population or the fix moved; read which before adjusting this.")
 
 
 def test_the_snapshot_the_estimator_reads_is_committed_and_not_a_build_artifact():

@@ -1,0 +1,5 @@
+$ python -m pave.cli gate decide --verdicts milestones/M09/verdict-post-fix.json
+  [PASS] milestones/M09/verdict-post-fix.json (disclosure L3): suite reported PASS
+
+gate: PASS — 1 verdict(s), none blocking
+exit 0

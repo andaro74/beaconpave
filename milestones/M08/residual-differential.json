@@ -15,9 +15,9 @@
     "milestones/M07/goldens-run-3-trajectory.json": "d4b3aa126e943e1497bb63accc2d877b2c5c58264fef06e34245bd651fe5a4a8",
     "milestones/M07/goldens-run-3.json": "9b281fc2d362368bd72c1f1e4cd8dabca9a40e23301e487c199a799c1d80401e",
     "platform/gateway/policy/tools.contracts.json": "a0ad6eae3b8f4ada5e9e673368bf0970fa8bcec80dbe4ccfcc017d3d7742f9d7",
-    "services/highlights-agent/evals/answer.schema.json": "d4219cc724c5c17e94693d99992637de9c8f987e58632239ca2bbfccd0baa155",
-    "services/highlights-agent/evals/golden/cases.yaml": "f59f4a398f3a1693f3fa463485ff83b8a9b39a2fcd4f9f2ebb85611ea69bf027",
-    "services/highlights-agent/gateway_client.py": "4554dd284606139de8ece32efc09884c68e89c770e2c9bc18617469230dcd73c"
+    "services/highlights-agent/evals/answer.schema.json": "fd301dc1722c2f38349aded4ff94c54c00f495be40dffafd58ee0965a4d39559",
+    "services/highlights-agent/evals/golden/cases.yaml": "6f2ffa7b47fd35c798690bfa26c6f1725fbf1c90c48763a8ccce517c910f8f73",
+    "services/highlights-agent/gateway_client.py": "83804329dc6cf3fcef2ef1f76a429c7a56e3352827b70a1575ea70c7e937eba8"
   },
   "m02_era_text": {
     "commit": "4eda0d036884a2d536d757b60b78ff10ac7d91e8",
@@ -34,18 +34,18 @@
     },
     "clock_at_m02": "2026-09-13T18:00:00Z",
     "rebuilt_text_sha256_at_head": {
-      "tool_system_prompt": "9ebd6e0725e914e492592c0f178dc09d97449c59d2072d618897dae43da238a4",
+      "tool_system_prompt": "b6885a47efefb980c06f7572eb33ec34a39294a5a8667a6546f083bf2dcfda1b",
       "catalog_search_toolspec": "c8c3bddb71174ae73e4de6d15fd1db7ed536ab75175770e6a3329b292db53986"
     },
-    "identical_to_head": true
+    "identical_to_head": false
   },
   "added_spec": {
     "tool": "entitlement-check",
     "chars": 951,
-    "tokens_est": 282,
+    "tokens_est": 258,
     "tokens_est_band": [
-      281,
-      282
+      257,
+      258
     ],
     "as_sent": "the toolSpec the gateway builds from the committed input contract"
   },
@@ -60,7 +60,7 @@
         "per_call_median": 1974
       },
       "delta_per_call": 281,
-      "delta_minus_added_spec_est": -1
+      "delta_minus_added_spec_est": 23
     },
     "3": {
       "m02_one_tool": {
@@ -72,7 +72,7 @@
         "per_call_median": 2057
       },
       "delta_per_call": 270,
-      "delta_minus_added_spec_est": -12
+      "delta_minus_added_spec_est": 12
     },
     "4": {
       "m02_one_tool": {
@@ -84,7 +84,7 @@
         "per_call_median": 2100
       },
       "delta_per_call": 288,
-      "delta_minus_added_spec_est": 6
+      "delta_minus_added_spec_est": 30
     }
   },
   "modal_pair (exact medians)": {
@@ -108,13 +108,13 @@
       ],
       "two_call_samples": 52,
       "per_call_base": {
-        "lower": 1564,
+        "lower": 1566,
         "upper": 1693
       },
-      "explained_by_committed_text_est": 1155,
+      "explained_by_committed_text_est": 1240,
       "residual_est": {
-        "lower": 409,
-        "upper": 538
+        "lower": 326,
+        "upper": 453
       }
     },
     "m07-stage2": {
@@ -124,29 +124,29 @@
       ],
       "two_call_samples": 7,
       "per_call_base": {
-        "lower": 1859,
+        "lower": 1862,
         "upper": 1974
       },
-      "explained_by_committed_text_est": 1437,
+      "explained_by_committed_text_est": 1498,
       "residual_est": {
-        "lower": 422,
-        "upper": 537
+        "lower": 364,
+        "upper": 476
       }
     }
   },
   "residual_delta": {
-    "lower": 13,
-    "upper": -1,
-    "added_spec_tokens_est": 282,
+    "lower": 38,
+    "upper": 23,
+    "added_spec_tokens_est": 258,
     "added_spec_tokens_est_band": [
-      281,
-      282
+      257,
+      258
     ]
   },
   "reading": {
     "question": "does the residual grow with the added tool spec?",
-    "answer": "no",
-    "sentence": "At two calls the per-call input went from 1693 (one tool) to 1974 (two tools), a difference of 281 against an added spec estimated at 282 [281, 282]; the residual's upper bound is 538 at M02 and 537 at stage 2. The residual did not grow with the spec: it is a fixed cost that appears with toolConfig and does not scale with the number of tools offered.",
+    "answer": "yes",
+    "sentence": "The residual grew by 23 across an added spec of 258.",
     "rules_out": [
       "per_tool_provider_framing",
       "estimation_error_on_tool_spec_json"

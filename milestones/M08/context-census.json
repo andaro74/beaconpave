@@ -48,9 +48,9 @@
     "milestones/M07/stage1/goldens-run-3-trajectory.json": "cc99adca31ef2b43307e3f422fb4adf2027e273d2638070b0fd97c944d4c722d",
     "milestones/M07/stage1/goldens-run-3.json": "47063367894d32a82e7d73f58ce1af576213cb8fd5a754d75cc03519586121fd",
     "platform/gateway/policy/tools.contracts.json": "a0ad6eae3b8f4ada5e9e673368bf0970fa8bcec80dbe4ccfcc017d3d7742f9d7",
-    "services/highlights-agent/evals/answer.schema.json": "d4219cc724c5c17e94693d99992637de9c8f987e58632239ca2bbfccd0baa155",
-    "services/highlights-agent/evals/golden/cases.yaml": "f59f4a398f3a1693f3fa463485ff83b8a9b39a2fcd4f9f2ebb85611ea69bf027",
-    "services/highlights-agent/gateway_client.py": "4554dd284606139de8ece32efc09884c68e89c770e2c9bc18617469230dcd73c",
+    "services/highlights-agent/evals/answer.schema.json": "fd301dc1722c2f38349aded4ff94c54c00f495be40dffafd58ee0965a4d39559",
+    "services/highlights-agent/evals/golden/cases.yaml": "6f2ffa7b47fd35c798690bfa26c6f1725fbf1c90c48763a8ccce517c910f8f73",
+    "services/highlights-agent/gateway_client.py": "83804329dc6cf3fcef2ef1f76a429c7a56e3352827b70a1575ea70c7e937eba8",
     "services/highlights-agent/pave.manifest.yaml": "2f11414cef788db641195bcf9d33f632eb6630954501500c1b881a3e7c415f5c"
   },
   "1_by_milestone (exact)": {
@@ -3307,96 +3307,96 @@
       "points": [
         {
           "case": "concise-022",
-          "chars": 3934,
+          "chars": 4300,
           "tokens_measured": 1168,
-          "chars_per_token": 3.368
+          "chars_per_token": 3.682
         },
         {
           "case": "blackout-001",
-          "chars": 3968,
+          "chars": 4334,
           "tokens_measured": 1171,
-          "chars_per_token": 3.389
+          "chars_per_token": 3.701
         },
         {
           "case": "recommend-003",
-          "chars": 3958,
+          "chars": 4324,
           "tokens_measured": 1172,
-          "chars_per_token": 3.377
+          "chars_per_token": 3.689
         },
         {
           "case": "multi-023",
-          "chars": 3981,
+          "chars": 4347,
           "tokens_measured": 1181,
-          "chars_per_token": 3.371
+          "chars_per_token": 3.681
         },
         {
           "case": "headroom-026",
-          "chars": 3972,
+          "chars": 4338,
           "tokens_measured": 1177,
-          "chars_per_token": 3.375
+          "chars_per_token": 3.686
         },
         {
           "case": "edge-025",
-          "chars": 3917,
+          "chars": 4283,
           "tokens_measured": 1163,
-          "chars_per_token": 3.368
+          "chars_per_token": 3.683
         }
       ],
       "chars_per_token": {
-        "min": 3.368,
-        "median": 3.373,
-        "max": 3.389
+        "min": 3.681,
+        "median": 3.6845,
+        "max": 3.701
       }
     },
     "per_call_text": {
       "system_prompt": {
-        "chars": 2675,
-        "tokens_est": 793,
+        "chars": 3349,
+        "tokens_est": 909,
         "tokens_est_band": [
-          789,
-          794
+          905,
+          910
         ],
         "of_which_answer_schema": {
-          "chars": 2334,
-          "tokens_est": 692,
+          "chars": 2700,
+          "tokens_est": 733,
           "tokens_est_band": [
-            689,
-            693
+            730,
+            733
           ]
         }
       },
       "tool_specs": {
         "catalog-search": {
           "chars": 1082,
-          "tokens_est": 321,
+          "tokens_est": 294,
           "tokens_est_band": [
-            319,
-            321
+            292,
+            294
           ]
         },
         "entitlement-check": {
           "chars": 951,
-          "tokens_est": 282,
+          "tokens_est": 258,
           "tokens_est_band": [
-            281,
-            282
+            257,
+            258
           ]
         }
       },
       "tool_specs_total": {
         "chars": 2033,
-        "tokens_est": 603,
+        "tokens_est": 552,
         "tokens_est_band": [
-          600,
-          604
+          549,
+          552
         ]
       },
       "viewer_turn": {
         "chars": 138,
-        "tokens_est": 41,
+        "tokens_est": 37,
         "tokens_est_band": [
-          41,
-          41
+          37,
+          37
         ],
         "chars_min": 91,
         "chars_max": 162
@@ -3405,11 +3405,11 @@
     "per_call_base_from_two_call_samples": {
       "n": 7,
       "upper_median": 1974,
-      "lower_median": 1859,
-      "explained_by_committed_text_est": 1437,
+      "lower_median": 1862,
+      "explained_by_committed_text_est": 1498,
       "residual_est": {
-        "lower": 422,
-        "upper": 537,
+        "lower": 364,
+        "upper": 476,
         "note": "not in any committed text the client or gateway sends; not attributed to a cause by this census"
       }
     }
@@ -3464,17 +3464,17 @@
   "7_removable_evidence (replayed + estimated)": {
     "rows_returned_not_cited": {
       "samples_with_any": 2,
-      "tokens_per_call_est_max": 144.1,
+      "tokens_per_call_est_max": 131.9,
       "tokens_per_call_est_median": 0.0
     },
     "text_sent_twice": {
       "shared_lines_40plus_chars": [
         "\"$schema\": \"http://json-schema.org/draft-07/schema#\","
       ],
-      "tokens_per_call_est": 16
+      "tokens_per_call_est": 14
     },
     "undeclared_tools_offered": [],
-    "removable_tokens_per_call_est": 160.1
+    "removable_tokens_per_call_est": 145.9
   },
   "8_decision_rule (pre-registered, SPEC/08)": {
     "samples_at_mandated_calls": 40,
@@ -3504,7 +3504,7 @@
     "above_mandate_tokens_in_min": 6022,
     "gap_per_call_max": 78.3,
     "cross_sample_reading_not_the_rule": {
-      "removable_per_call_est_max_any_sample": 160.1,
+      "removable_per_call_est_max_any_sample": 145.9,
       "note": "the first run of this reader compared this figure with gap_per_call_max and printed A; see decision_rule.__doc__"
     },
     "per_sample": [
@@ -3514,7 +3514,7 @@
         "calls": 3,
         "tokens_in": 6169,
         "gap_per_call": 56.3,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3523,7 +3523,7 @@
         "calls": 3,
         "tokens_in": 6149,
         "gap_per_call": 49.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3532,7 +3532,7 @@
         "calls": 3,
         "tokens_in": 6183,
         "gap_per_call": 61.0,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3541,7 +3541,7 @@
         "calls": 3,
         "tokens_in": 6235,
         "gap_per_call": 78.3,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3550,7 +3550,7 @@
         "calls": 3,
         "tokens_in": 6137,
         "gap_per_call": 45.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3559,7 +3559,7 @@
         "calls": 3,
         "tokens_in": 6192,
         "gap_per_call": 64.0,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3568,7 +3568,7 @@
         "calls": 3,
         "tokens_in": 6156,
         "gap_per_call": 52.0,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3577,7 +3577,7 @@
         "calls": 3,
         "tokens_in": 6131,
         "gap_per_call": 43.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3586,7 +3586,7 @@
         "calls": 3,
         "tokens_in": 6068,
         "gap_per_call": 22.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3595,7 +3595,7 @@
         "calls": 3,
         "tokens_in": 6161,
         "gap_per_call": 53.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3604,7 +3604,7 @@
         "calls": 3,
         "tokens_in": 6199,
         "gap_per_call": 66.3,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3613,7 +3613,7 @@
         "calls": 3,
         "tokens_in": 6218,
         "gap_per_call": 72.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3622,7 +3622,7 @@
         "calls": 3,
         "tokens_in": 6152,
         "gap_per_call": 50.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3631,7 +3631,7 @@
         "calls": 3,
         "tokens_in": 6188,
         "gap_per_call": 62.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3640,7 +3640,7 @@
         "calls": 3,
         "tokens_in": 6232,
         "gap_per_call": 77.3,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3649,7 +3649,7 @@
         "calls": 3,
         "tokens_in": 6172,
         "gap_per_call": 57.3,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3658,7 +3658,7 @@
         "calls": 3,
         "tokens_in": 6212,
         "gap_per_call": 70.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3667,7 +3667,7 @@
         "calls": 3,
         "tokens_in": 6229,
         "gap_per_call": 76.3,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3676,7 +3676,7 @@
         "calls": 3,
         "tokens_in": 6120,
         "gap_per_call": 40.0,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3685,7 +3685,7 @@
         "calls": 3,
         "tokens_in": 6069,
         "gap_per_call": 23.0,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3694,7 +3694,7 @@
         "calls": 3,
         "tokens_in": 6154,
         "gap_per_call": 51.3,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3703,7 +3703,7 @@
         "calls": 3,
         "tokens_in": 6217,
         "gap_per_call": 72.3,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3712,7 +3712,7 @@
         "calls": 3,
         "tokens_in": 6221,
         "gap_per_call": 73.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3721,7 +3721,7 @@
         "calls": 3,
         "tokens_in": 6186,
         "gap_per_call": 62.0,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3730,7 +3730,7 @@
         "calls": 3,
         "tokens_in": 6196,
         "gap_per_call": 65.3,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3739,7 +3739,7 @@
         "calls": 3,
         "tokens_in": 6225,
         "gap_per_call": 75.0,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3748,7 +3748,7 @@
         "calls": 3,
         "tokens_in": 6182,
         "gap_per_call": 60.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3757,7 +3757,7 @@
         "calls": 3,
         "tokens_in": 6160,
         "gap_per_call": 53.3,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3766,7 +3766,7 @@
         "calls": 3,
         "tokens_in": 6197,
         "gap_per_call": 65.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3775,7 +3775,7 @@
         "calls": 3,
         "tokens_in": 6158,
         "gap_per_call": 52.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3784,7 +3784,7 @@
         "calls": 3,
         "tokens_in": 6069,
         "gap_per_call": 23.0,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3793,7 +3793,7 @@
         "calls": 3,
         "tokens_in": 6159,
         "gap_per_call": 53.0,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       },
       {
@@ -3802,7 +3802,7 @@
         "calls": 3,
         "tokens_in": 6200,
         "gap_per_call": 66.7,
-        "own_removable_per_call_est": 16.0,
+        "own_removable_per_call_est": 14.0,
         "covered": false
       }
     ],

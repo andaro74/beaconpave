@@ -1,0 +1,96 @@
+fast set green (9 files). 25 mutations.
+
+backups: C:\Users\andar\AppData\Local\Temp\m09-pr4-audit-r_gnngve
+
+  SILENT            rule: status back to `proposed`
+          4313 passed, 6 skipped in 136.76s (0:02:16)
+  RED     rule: the eval-pack control back to `no-control`
+  RED     rule: the control ref points at a path that is not there
+  RED     rule: decided_by set to a seat that does not exist
+  RED     fix: the disclosure paragraph removed from TOOL_SYSTEM
+  RED     fix: `Always include the ai_disclosure field.` alone removed
+  RED     fix: the schema's description back to `Null until M07`
+  RED     fix: the scaffold template left behind at `Null until M07`
+  RED     golden header: the withdrawal deleted rather than made
+  RED     golden header: the reservation restated beside the withdrawal
+  RED     baseline: PRE_FIX_RENDERED_TOKENS_EST re-seated to the post-fix estimate
+  RED     baseline: ADMISSIBLE_DELTA raised to 999
+  RED     baseline: the post-fix TOOL_SYSTEM pin set back to the pre-fix digest
+  RED     anchors: an ADR-014 anchor case's viewer turn padded
+  RED     differential: identical_to_head forced back to true
+  RED     differential: the reading's answer put back to `no`
+  RED     residual: an era block added, as if the debt were paid
+  RED     residual: the system-prompt estimate put back to its pre-fix value
+  RED     falsifiers: `CLAIM: FAILED` rewritten to a pass
+  RED     falsifiers: F4 reported clean instead of DEFERRED
+  RED     falsifiers: F1 re-read as `all three samples must pass`
+  SILENT            falsifiers: F5 read by majority instead of on every sample
+          4313 passed, 6 skipped in 133.62s (0:02:13)
+  RED     run A: disclosure-103's volunteered disclosure removed from sample 1
+  RED     run B: a disclosure planted on the negative case disclosure-105
+  SILENT            gate: the pre-fix transcript's exit code rewritten to 0
+          4313 passed, 6 skipped in 134.67s (0:02:14)
+
+| # | mutation | what it removes | result |
+|---|---|---|---|
+| 1 | rule: status back to `proposed` | the disposition itself; the committed chain walks to an assert | **SILENT** |
+| 2 | rule: the eval-pack control back to `no-control` | the enforcing ref resolves; the chain reaches a case | **RED** |
+| 3 | rule: the control ref points at a path that is not there | orphan_rules, on live input for the first time | **RED** |
+| 4 | rule: decided_by set to a seat that does not exist | the seat enum on a DISPOSED rule | **RED** |
+| 5 | fix: the disclosure paragraph removed from TOOL_SYSTEM | TOOL_SYSTEM_SHA256, the line-by-line parity assert, MEASURED_DELTA | **RED** |
+| 6 | fix: `Always include the ai_disclosure field.` alone removed | the parity assert names the WHOLE paragraph, not a fragment | **RED** |
+| 7 | fix: the schema's description back to `Null until M07` | the withdrawal test; the scaffold round-trip; MEASURED_DELTA | **RED** |
+| 8 | fix: the scaffold template left behind at `Null until M07` | the FIFTH site; the template-and-schema agreement | **RED** |
+| 9 | golden header: the withdrawal deleted rather than made | the withdrawal must NAME disclosure-004, not merely drop the reservation | **RED** |
+| 10 | golden header: the reservation restated beside the withdrawal | RESERVATION_FRAGMENTS on the golden file | **RED** |
+| 11 | baseline: PRE_FIX_RENDERED_TOKENS_EST re-seated to the post-fix estimate | the re-seat the baseline exists to forbid | **RED** |
+| 12 | baseline: ADMISSIBLE_DELTA raised to 999 | the bound; the ceiling does not move for a fix | **RED** |
+| 13 | baseline: the post-fix TOOL_SYSTEM pin set back to the pre-fix digest | the detachment assertion -- the pins must differ | **RED** |
+| 14 | anchors: an ADR-014 anchor case's viewer turn padded | ADR_014_ANCHOR_INPUTS_SHA256 -- the estimator's denominator, on one key | **RED** |
+| 15 | differential: identical_to_head forced back to true | the era guard; the record must not claim an identity it lacks | **RED** |
+| 16 | differential: the reading's answer put back to `no` | the pinned post-fix reading; the reversal must not be re-hidden | **RED** |
+| 17 | residual: an era block added, as if the debt were paid | the no-era-guard assertion | **RED** |
+| 18 | residual: the system-prompt estimate put back to its pre-fix value | the assertion that this record is priced against HEAD's prompt | **RED** |
+| 19 | falsifiers: `CLAIM: FAILED` rewritten to a pass | the outcome; a claim rewritten to match the outcome | **RED** |
+| 20 | falsifiers: F4 reported clean instead of DEFERRED | the vacuity assertion -- F4 has no evidence in this PR | **RED** |
+| 21 | falsifiers: F1 re-read as `all three samples must pass` | the falsifier is read by majority and is not re-read to stop firing | **RED** |
+| 22 | falsifiers: F5 read by majority instead of on every sample | F5 on every sample -- a one-in-three disclosure on a factual answer | **SILENT** |
+| 23 | run A: disclosure-103's volunteered disclosure removed from sample 1 | the F1 reading is over the committed run, not over a summary | **RED** |
+| 24 | run B: a disclosure planted on the negative case disclosure-105 | F5 -- the disclose-on-everything failure | **RED** |
+| 25 | gate: the pre-fix transcript's exit code rewritten to 0 | F3 -- the gate blocked, read from the transcript | **SILENT** |
+
+22 red, 3 silent, 0 anchor, of 25
+tree restored and green
+  RED     rule: the STATUS FIELD back to `proposed` (re-aimed)
+  RED     gate: the transcript's TRAILING exit code rewritten to 0 (re-aimed)
+  RED     falsifiers: F5 read by majority instead of on every sample (re-run)
+tree restored and green
+
+=== the three survivors, resolved ===
+
+25 mutations, 22 red on the first pass. All three survivors are closed, and two of
+them were NOT silent checks:
+
+  1  `rule: status back to proposed` -- MIS-AIMED PLANT. The replacement took the
+     FIRST `status: enforced` in the file, which is inside the M00a header comment
+     recording what the rule shipped as. The field was never touched, so the check
+     had nothing to refuse. Re-aimed at the field: RED.
+
+ 25  `gate: the exit code rewritten to 0` -- MIS-AIMED PLANT. The first `exit 1`
+     in the transcript is inside the render's summary line (`... blocking; exit 1;
+     owner: service team`). `falsifiers.gate_exit` parses lines STARTING with
+     `exit `, so the mutation missed what the check reads. Re-aimed at the
+     trailing line: RED.
+
+ 22  `falsifiers: F5 read by majority` -- GENUINELY SILENT, at 4313 passed. F5's
+     predicate was inline in `main()` and the test beside it re-implemented the
+     per-sample check instead of calling the reader's, so a test passed because of
+     its own copy of the logic rather than because of the logic. The predicate is
+     extracted as `fired_f5` and
+     `test_f5_is_read_on_every_sample_and_not_by_majority` drives it against a
+     plant a majority reading passes -- one disclosure in three on a negative
+     case. Re-run: RED.
+
+FINAL: 25 of 25 red. One check was silent, one test was added, and two plants had
+to be verified before their result could be believed -- which is what
+"verify the plant before the count" is for.

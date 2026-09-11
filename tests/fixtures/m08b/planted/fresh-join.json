@@ -10,9 +10,9 @@
     "tests/fixtures/m08b/planted/goldens-run-refusals.json": "5bf64dd92a8b10484da46e32edd2caeacf8d094d52ba4f5c45960fb5c2fcfa4c",
     "tests/fixtures/m08b/planted/per-sample.txt": "ddcf16be1a2cdda54ba5b50db9fa1006d61e71a4dbe6842a4b81bd7f657bae4f",
     "tests/fixtures/m08b/planted/goldens-score.txt": "a7fe7969745e82afbb31939415cf833cff96a6b0d7e72a48d90f9062bf5e20e9",
-    "services/highlights-agent/evals/golden/cases.yaml": "f59f4a398f3a1693f3fa463485ff83b8a9b39a2fcd4f9f2ebb85611ea69bf027",
-    "milestones/M08/context-census.json": "eee7a0144ae733708c3d099bfe8ee70803116df84d4597d5d3f80f4681bbd610",
-    "milestones/M08/rescore-join.json": "6a2e72af9e957f554830afd5be6d158ce97192f4d817236a7031d2c26295d512",
+    "services/highlights-agent/evals/golden/cases.yaml": "6f2ffa7b47fd35c798690bfa26c6f1725fbf1c90c48763a8ccce517c910f8f73",
+    "milestones/M08/context-census.json": "d35c5aea98f8ae1108dd649b4a6d52efd32ce5506103a68c4ba0cc0a92885f7f",
+    "milestones/M08/rescore-join.json": "a0daf2fa7346331112ba5721cc681a8a7e92bc2b59a69bd6a2986435f4ad3c71",
     "services/highlights-agent/pave.manifest.yaml": "2f11414cef788db641195bcf9d33f632eb6630954501500c1b881a3e7c415f5c",
     "data/catalog.json": "200a262fd5300c361c5bcbefa3240f642f655b5863ad4b75bd95f799ec921d6f",
     "platform/gateway/policy/tools.contracts.json": "a0ad6eae3b8f4ada5e9e673368bf0970fa8bcec80dbe4ccfcc017d3d7742f9d7"

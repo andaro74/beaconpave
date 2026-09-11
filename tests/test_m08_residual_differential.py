@@ -73,22 +73,77 @@ def test_the_reader_offers_no_ceiling_and_the_record_no_pass_count():
     assert '"passed"' not in text and "/25" not in text
 
 
-def test_the_m02_era_text_the_differential_assumes_is_still_heads(reader):
-    """The arithmetic subtracts HEAD's committed text from M02's per-call base,
-    which is only valid because the client, the answer schema and the
-    `catalog-search` contract as sent were byte-identical at M02's run commit.
-    The M02-era digests are constants verified against `git show` when the
-    record was produced (`--verify-history`); this pins HEAD's side, so a client
-    or contract change turns the record red rather than quietly invalidating
-    the subtraction."""
+#: What the differential READ while HEAD's tool prompt was still M02's, and what
+#: it reads now that M09 PR 4 has moved it. **Both, because the pair is the
+#: finding** — see the test below. `answer: "no"` was M08's published conclusion.
+M02_ERA_READING = "no"
+POST_FIX_READING = "yes"
+
+
+def test_the_m02_era_text_the_differential_assumed_has_moved_and_the_record_says_so(reader):
+    """**The guard fired at M09 PR 4, and this is the record of what it caught.**
+
+    The arithmetic subtracts HEAD's committed text from M02's per-call base, which
+    was only valid because the client, the answer schema and the `catalog-search`
+    contract as sent were byte-identical at M02's run commit. This test pinned
+    `identical_to_head is True` so that a client or contract change would turn the
+    record red *rather than quietly invalidating the subtraction*.
+
+    A client change happened: `TOOL_SYSTEM` gained MER-AI-0001's disclosure
+    paragraph, the first time that prompt has moved since M02. The guard did its
+    job — it went red, in the diff that moved the text, which is the whole reason
+    it was written.
+
+    **What it caught is worse than a stale digest, and that is why the assertion
+    is narrowed rather than deleted.** Re-producing the record (which SPEC/09's
+    Definition of done requires of PR 4) re-ran the estimate against the NEW
+    prompt and flipped the record's published `reading.answer` from **"no"** to
+    **"yes"** — an M08 conclusion reversed by an M09 prompt edit, with no
+    measurement taken. `residual_delta` moved from `[13, -1]` to `[38, 23]`
+    because `added_spec_tokens_est` fell 282 → 258 on a re-priced calibration
+    ratio, not because any run behaved differently.
+
+    So the three assertions here are:
+
+    - `catalog_search_toolspec` — the contract half — is **still** M02's, because
+      nothing in this milestone touches the tool plane;
+    - `tool_system_prompt` is **not**, and the record says `identical_to_head:
+      false` rather than reporting an identity it does not have;
+    - the reading is now the post-fix one, and **the M02-era reading is pinned
+      beside it**, so the reversal cannot be discovered later as a number that
+      always said "yes".
+
+    **The defect this leaves open is dated, not closed** (PR 4's PR body; a debt
+    to Platform Engineering + AI Quality): the reader recomputes a reading with
+    `identical_to_head` false instead of refusing to state one. A conclusion about
+    a run, re-derived against text that run never sent, is a counterfactual
+    wearing a measurement's record."""
     record = json.loads(RECORD.read_text(encoding="utf-8"))
     era = record["m02_era_text"]
     head = reader.head_text_digests()
-    for key, digest in era["rebuilt_text_sha256_at_m02"].items():
-        assert head[key] == digest, (
-            f"{key} at HEAD no longer digests to what it did at {era['commit'][:7]}; the "
-            "differential's subtraction assumed the same committed text on both sides")
-    assert era["identical_to_head"] is True
+
+    assert head["catalog_search_toolspec"] == \
+        era["rebuilt_text_sha256_at_m02"]["catalog_search_toolspec"], (
+        "the `catalog-search` toolspec at HEAD no longer digests to what it did at "
+        f"{era['commit'][:7]}. M09 moves no tool contract; if this is red, the tool "
+        "plane moved and the differential's subtraction lost its other half too.")
+    assert head["tool_system_prompt"] != \
+        era["rebuilt_text_sha256_at_m02"]["tool_system_prompt"], (
+        "HEAD's tool prompt is M02's again, so either the fix was reverted or this "
+        "narrowing is describing a divergence that is no longer there")
+    assert era["identical_to_head"] is False, (
+        "the record claims its M02-era text is identical to HEAD's while the digests "
+        "above disagree — which is the identity the subtraction rests on, asserted and "
+        "absent")
+    assert era["rebuilt_text_sha256_at_head"]["tool_system_prompt"] == \
+        head["tool_system_prompt"]
+
+    assert record["reading"]["answer"] == POST_FIX_READING, (
+        f"the differential's reading is {record['reading']['answer']!r}, not the "
+        f"{POST_FIX_READING!r} this record reads once the prompt moved.")
+    assert M02_ERA_READING != POST_FIX_READING, (
+        "the two pinned readings agree, so this test no longer records that an M08 "
+        "conclusion reversed under an M09 edit")
 
 
 def test_a_planted_token_count_changes_the_record(reader, monkeypatch):

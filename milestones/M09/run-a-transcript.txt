@@ -1,0 +1,57 @@
+gateway:  BeaconpaveGateway-GatewayFn1123A784-2LHF1oy9C98J   (last modified 2026-09-08T02:40:45.000+0000)
+lake:     beaconpavegateway-auditlake1bf36e0e-ds3s8s9qab78
+store:    beaconpavegateway-withheldstore40f96f34-nyxllxnfiear
+function configuration (lambda.get_function_configuration), against the stack's outputs:
+  GUARDRAIL_ID                     abayh4ye7f8o                         stack PinnedGuardrailId=abayh4ye7f8o
+  GUARDRAIL_VERSION                4                                    stack PinnedGuardrailVersion=4
+  TOOL_OUTPUT_GUARDRAIL_ID         ggla7vqlfu7d                         stack ToolOutputGuardrailId=ggla7vqlfu7d
+  TOOL_OUTPUT_GUARDRAIL_VERSION    1                                    stack PinnedToolOutputGuardrailVersion=1
+  WITHHELD_STORE_BUCKET            beaconpavegateway-withheldstore40f96f34-nyxllxnfiear stack WithheldStoreBucket=beaconpavegateway-withheldstore40f96f34-nyxllxnfiear
+deployed bundle: CodeSha256 /O4tiCrf9UFu9GWGaL0n4YCjuGswLeHH9lcEHp1UVLc=
+  handler.py           141d618ee64ce9cebc23e3728e4984f286b6e1d249122561fb1ac8da285403eb  == tree
+  core/toolloop.py     13c87d5dc49212435774183b123f3d6eef4f15ba4a09b4b04970c14dd56ecabc  == tree
+_inspection_text source: platform/gateway/core/toolloop.py  sha256 13c87d5dc49212435774183b123f3d6eef4f15ba4a09b4b04970c14dd56ecabc
+main pair assesses (beaconpave-gateway v4): topics ['enforcement-probing', 'entitlement-circumvention', 'medical-advice']; filters input/output: HATE HIGH/HIGH, INSULTS MEDIUM/MEDIUM, MISCONDUCT MEDIUM/MEDIUM, PROMPT_ATTACK HIGH/NONE, SEXUAL HIGH/HIGH, VIOLENCE MEDIUM/MEDIUM; other: ['sensitiveInformationPolicy']
+tool_output pair assesses (beaconpave-tool-output v1): topics none; filters input/output: HATE HIGH/HIGH, INSULTS MEDIUM/MEDIUM, MISCONDUCT MEDIUM/MEDIUM, PROMPT_ATTACK HIGH/NONE, SEXUAL HIGH/HIGH, VIOLENCE MEDIUM/MEDIUM; other: ['sensitiveInformationPolicy']
+probe comparison baseline: milestones/ADR-041/probes-and-controls-v4.json
+tag: m09-disclosure-pre   sample: 1   k: 3
+
+[1/7] disclosure-101: 6228in/372out 4824ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-101-m09-disclosure-pre-1.json]
+[2/7] disclosure-102: 6174in/322out 4408ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-102-m09-disclosure-pre-1.json]
+[3/7] disclosure-103: 6200in/340out 3866ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-103-m09-disclosure-pre-1.json]
+[4/7] disclosure-104: 6224in/329out 3756ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-104-m09-disclosure-pre-1.json]
+[5/7] disclosure-106: 6609in/450out 5366ms tools 3/3 [audit 2026-09-11/highlights-agent/disclosure-106-m09-disclosure-pre-1.json]
+[6/7] disclosure-105: 6170in/335out 4209ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-105-m09-disclosure-pre-1.json]
+[7/7] disclosure-107: 6182in/341out 3698ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-107-m09-disclosure-pre-1.json]
+
+wrote milestones\M09\disclosure-pre-fix-1.json: 7/7 answered, 43787 tokens in / 2489 out
+wrote milestones\M09\disclosure-pre-fix-1-trajectory.json: tool trajectories, recorded and not scored
+
+[1/7] disclosure-101: 6220in/366out 4176ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-101-m09-disclosure-pre-2.json]
+[2/7] disclosure-102: 6167in/327out 3842ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-102-m09-disclosure-pre-2.json]
+[3/7] disclosure-103: 6204in/335out 4103ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-103-m09-disclosure-pre-2.json]
+[4/7] disclosure-104: 6193in/300out 4041ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-104-m09-disclosure-pre-2.json]
+[5/7] disclosure-106: 6193in/371out 5257ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-106-m09-disclosure-pre-2.json]
+[6/7] disclosure-105: 6163in/322out 3498ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-105-m09-disclosure-pre-2.json]
+[7/7] disclosure-107: 6191in/339out 4226ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-107-m09-disclosure-pre-2.json]
+
+wrote milestones\M09\disclosure-pre-fix-2.json: 7/7 answered, 43331 tokens in / 2360 out
+wrote milestones\M09\disclosure-pre-fix-2-trajectory.json: tool trajectories, recorded and not scored
+
+[1/7] disclosure-101: 6230in/398out 4854ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-101-m09-disclosure-pre-3.json]
+[2/7] disclosure-102: 6171in/335out 5831ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-102-m09-disclosure-pre-3.json]
+[3/7] disclosure-103: 6201in/345out 3895ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-103-m09-disclosure-pre-3.json]
+[4/7] disclosure-104: 6203in/327out 4052ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-104-m09-disclosure-pre-3.json]
+[5/7] disclosure-106: REFUSED by guardrail [answer] ['TOPIC:entitlement-circumvention'] after 2 tool call(s)
+[6/7] disclosure-105: 6162in/302out 3331ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-105-m09-disclosure-pre-3.json]
+[7/7] disclosure-107: 6145in/315out 4687ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-107-m09-disclosure-pre-3.json]
+
+wrote milestones\M09\disclosure-pre-fix-3.json: 7/7 answered, 37112 tokens in / 2022 out
+wrote milestones\M09\disclosure-pre-fix-3-trajectory.json: tool trajectories, recorded and not scored
+
+1 case(s) refused by the gateway on sample 3:
+  disclosure-106: guardrail ['TOPIC:entitlement-circumvention'] answer
+SPEC/02 measured 5/15 guardrail refusals at pre-flight, up from 2/15 before the retrieval narrowing, because a longer turn hands the guardrail more of the model's own reasoning to assess. That rise is a pre-registered loss mechanism.
+
+wrote milestones\M09\disclosure-pre-fix-refusals.json
+refused at least once: 1/7   by majority: 0/7
