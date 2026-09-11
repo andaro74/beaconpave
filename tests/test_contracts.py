@@ -236,6 +236,76 @@ def test_golden_set_keeps_headroom():
     floors.check_headroom(load_yaml(GOLDENS))
 
 
+
+#: Where the headroom exemption is decided. Parsed, not restated: an exemption
+#: whose scope is written in two places grows by whichever copy is read second.
+HEADROOM_EXEMPTION_ADR = (ROOT / "docs" / "adr"
+                          / "ADR-075-m09-is-two-milestones-and-the-disposition-"
+                            "ships-without-a-deploy.md")
+DISCLOSURE_PACK = (ROOT / "services" / "highlights-agent" / "evals" / "disclosure"
+                   / "cases.yaml")
+
+
+def _adr_exempt_suites() -> set:
+    """The suites an ADR exempts from CLAUDE.md's headroom rule.
+
+    Read out of the decision text by the sentence that grants it, so that adding a
+    second exempt suite is a decision someone writes down rather than a set
+    someone widens here."""
+    text = HEADROOM_EXEMPTION_ADR.read_text(encoding="utf-8")
+    grant = re.search(
+        r"exempt from CLAUDE\.md's 5.10% headroom rule, and\s+the exemption attaches to "
+        r"`suite: ([a-z-]+)` and to no other", text)
+    return {grant.group(1)} if grant else set()
+
+
+def test_only_an_adr_named_suite_is_exempt_from_the_headroom_rule():
+    """**CLAUDE.md's headroom rule may be exempted, but not by the exempted file.**
+
+    The disclosure pack is a disposition witness rather than a graded suite, and a
+    witness at 100% after the fix is the outcome, not a defect. That was true and
+    pre-registered in SPEC/09 — but it was *stated* in a comment at the top of the
+    pack it exempts, where the AI Quality seat that owns the headroom rule does not
+    sign. The seat raised exactly that in M09 PR 2 round 2, against the authority
+    and not the substance, and ADR-075 decision 4 now carries it.
+
+    Asserted in **both** directions, because an exemption is a hole and a hole is
+    measured by what it does not admit:
+
+    - the exempt set is exactly what the ADR names, so a second suite cannot join
+      it by someone editing a set literal;
+    - the **goldens** suite is not in it, and `floors.check_headroom` still bites
+      on the twenty-five — `test_golden_set_keeps_headroom` calls it, and this
+      requires the exemption not to have quietly reached that pack;
+    - and the exemption is **load-bearing**: the disclosure pack genuinely fails
+      the headroom criterion, so this is a real hole honestly named rather than a
+      sentence that costs nothing."""
+    exempt = _adr_exempt_suites()
+    assert exempt == {"disclosure"}, (
+        f"the ADR exempts {sorted(exempt)} from the headroom rule. The decision "
+        f"attaches the exemption to `suite: disclosure` and to no other; a set that "
+        f"has grown is a CLAUDE.md rule re-scoped without a decision.")
+
+    assert "goldens" not in exempt, (
+        "the goldens suite is exempt from the headroom rule. That is the suite the "
+        "rule was written for — at 100% it can only report regressions, and the "
+        "progression table stops being able to show that anything improved.")
+    floors.check_headroom(load_yaml(GOLDENS))    # still bites; still passes
+
+    # The exemption is not decorative: the pack it covers really does fail the
+    # criterion. If this stops raising, the pack has acquired headroom and the
+    # exemption should be withdrawn rather than left as a sentence.
+    with pytest.raises(ValueError, match=r"headroom is 0/7 = 0\.0%"):
+        floors.check_headroom(load_yaml(DISCLOSURE_PACK))
+
+    # ...and the pack CITES the decision rather than making it. A comment that
+    # states the exemption is the exempted party signing its own exemption, which
+    # is what the seat objected to.
+    header = DISCLOSURE_PACK.read_text(encoding="utf-8").split("- id:")[0]
+    assert "ADR-075 decision 4" in header, (
+        "the disclosure pack no longer cites the decision that exempts it, so the "
+        "exemption is once again stated in the file it exempts")
+
 #: The assert vocabulary documented in the golden set's README. That README is the
 #: contract the M03 harness implements; this list is the same contract, executable.
 ASSERT_KEYS = {

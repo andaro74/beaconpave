@@ -197,6 +197,21 @@ and the gate cannot disagree about what a p95 is:
 n = 38 at 5241 and n = 70 at 6633 reproduce ADR-074 amendment 3 exactly, so the
 population is the one M08b read. **The condition holds under none of the five.**
 
+**And the rule now names which population it means, by cardinality and
+provenance.** ADR-075 decision 5 §4 said *"the most recent fresh mandated-shape
+population"*; it now says **the mandated-shape rows of every sample of the most
+recent fresh run set** — M08b, n = 38 over samples 1–3 — and *a single sample is
+not a population for this rule*. That is the table's first row, unchanged: the
+narrowing runs fail-closed and moves no number. The reading it closes is M08b
+**sample 3 alone** (n = 14, mandated p95 4542, derived point 6200, that sample's
+pooled p95 6315), under which the condition **fires** and yields a gate 1000 ms
+above the standing 5200. It fires only because the window was never searched —
+the condition fires for any p95 strictly inside **(3782, 4824)**, and all five
+populations above sit outside it, so *holds under none of the five* was true and
+incomplete at once. Recorded as considered and **refused**, with its arithmetic,
+in decision 5 §4 and asserted by three tests, because a pre-registered condition
+whose answer flips on a reading of its own wording is not pre-registered.
+
 **So `gates.budgets.p95_ms` stays 5200**, ADR-014's stability sentence is
 **withdrawn** (ADR-014 amendment 4), the gate is re-described there as a fixed
 ceiling with a recorded derivation rather than a share-of-population instrument,

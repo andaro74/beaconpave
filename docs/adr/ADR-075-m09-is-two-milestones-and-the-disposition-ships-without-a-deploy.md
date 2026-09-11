@@ -216,6 +216,31 @@ reason that has nothing to do with any system under test.
   file holds exactly 25 cases and that no case id matches the disclosure pack's
   prefix, so folding the pack in later is red by name rather than red as a
   changed number.
+- **A disposition witness is exempt from CLAUDE.md's 5–10% headroom rule, and
+  the exemption attaches to `suite: disclosure` and to no other.** The headroom
+  rule exists so that a suite can report an improvement and not only a
+  regression, which is a statement about a **graded** suite whose score is
+  tracked across milestones. This pack is not one: it is a witness that a
+  specific rule's disposition changed a specific behaviour, it is read twice —
+  once before the fix and once after — and **a witness at 100% after the fix is
+  the outcome, not a defect**. A witness carrying `expect_near_threshold` rows
+  would be a witness deliberately built to stay ambiguous.
+
+  **This is a relocation, not a new decision.** SPEC/09 pre-registered it before
+  either run, in the paragraph that makes the pack its own suite; the AI Quality
+  seat's objection in M09 PR 2 round 2 was to its **authority**, not its
+  substance — it was stated in a comment at the top of the very file it exempts,
+  where the seat that owns the headroom rule does not sign. It is therefore
+  written here, where that seat does, and `cases.yaml` now **cites** this
+  decision instead of stating it.
+
+  **Scoped by assertion rather than by adjective.**
+  `tests/test_contracts.py::test_only_an_adr_named_suite_is_exempt_from_the_headroom_rule`
+  parses the exempt set out of this paragraph and requires it to be exactly
+  `{disclosure}` — in both directions, so the goldens suite must **not** carry it
+  and `floors.check_headroom` must still bite on the twenty-five. An exemption
+  whose scope is a sentence is an exemption that grows by re-reading.
+
 - **`disclosure-004`'s reservation is resolved, not left.** The golden file says
   *"`disclosure-004` is reserved for M07 — the gap is the reservation"* and
   `evals/golden/README.md` repeats it. M07 is the guardrail milestone and no
@@ -316,8 +341,10 @@ a gate moved to clear a reading, which is the trade G9 exists to refuse.**
 **Pre-registered, and executed by a test rather than settled here:**
 
 > The suite `p95_ms` moves only if the point ADR-014's unchanged rule derives from
-> the most recent fresh mandated-shape population **still leaves the run that
-> population came from OVER the gate**. The disposition PR's test reads M08b's
+> **the mandated-shape rows of every sample of the most recent fresh run set**
+> (M08b: n = 38 over samples 1–3) **still leaves the run that
+> population came from OVER the gate**. *A single sample is not a population for
+> this rule.* The disposition PR's test reads M08b's
 > answered mandated-shape samples through `context_census.mandated_calls()`,
 > computes p95, floor `1.15×`, roof `1.60×`, the midpoint and the point rounded to
 > the nearest 100, and evaluates the condition. If it holds, the manifest moves to
@@ -335,6 +362,42 @@ this ADR: the population must be read from the answer files, not from a journal
 sentence, which is the compression error this repository has paid for repeatedly.
 **A disagreement between the test's number and any number quoted in prose is a
 finding about the prose.**
+
+**The population sentence was narrowed at M09 PR 2, and the single-sample reading
+it closes is recorded rather than deleted.** As first written the condition said
+*"the most recent **fresh** mandated-shape population"*, and that admits two
+readings. Read as the most recent **run set** it is n = 38 over samples 1–3, which
+is the population the five-population table's first row already evaluated. Read as
+the most recent **sample** it is M08b sample 3 alone: **n = 14, mandated p95 4542,
+derived point 6200**, against that sample's pooled p95 of **6315** — 6315 > 6200,
+so under that reading the condition **fires** and hands back a gate **1000 ms above
+the standing 5200**. That is the trade G9 exists to refuse, reached entirely
+through a reading of the condition's own words.
+
+It fires only because the window was never searched. The condition fires for any
+population whose p95 falls strictly inside **(3782, 4824)**, and all five of the
+table's populations sit outside it — so *"the condition holds under none of the
+five"* was true and told nobody that a sixth reading of the same sentence lands
+inside. **A pre-registered condition whose answer flips on a reading of its own
+wording is not pre-registered**, which is why this is a correction to the sentence
+and not to the number.
+
+**What makes this a wording fix and not a claim rewritten to match its outcome.**
+Three tests in `tests/test_m09_p95_condition.py`, not a paragraph:
+`test_the_corrected_wording_names_the_population_the_table_evaluated` asserts the
+newly-named population **is** the table's first row — same n, same p95, same
+derived point, same outcome, same gate — so the narrowing runs **fail-closed**;
+`test_the_single_sample_reading_fires_and_is_refused_with_its_number` asserts
+every number above, so the refusal carries its arithmetic and a reader need not
+re-derive it to find out whether refusing was safe; and
+`test_the_five_population_table_never_searched_the_firing_window` asserts no
+population drifts into the window, so a future one doing so is a red check rather
+than a paragraph nobody re-read. **Had the correction changed the answer it would
+not be admissible** — a condition re-worded into a different result is a condition
+chosen after the fact — and the milestone would close red instead of taking it.
+The answer is 5200 under both readings of the table and under the corrected
+wording, `gates.budgets.p95_ms` does not move, and neither digesting record is
+re-produced.
 
 ### 5. Handed to M09b, pre-registered here so it is inherited rather than invented
 
@@ -1700,12 +1763,12 @@ usually the test — it already exists, and it already ran.
 | The disclosure lane is wired into **no CI workflow**, and no PR is dated to wire it | Platform Engineering + AI Quality | PR 4b, or recorded as a cut |
 | `pave verify` cannot see the second pack and does not defer it by name | Tool Owner | the milestone that gives the pack a template |
 | The tool plane's recorded instrument input, its IAM test and both tool bundles are on **no rule** while the code they defend is three-key | Platform Engineering + Security | the next PR that opens the tool plane |
-| `ROLES.md`'s rows are transcribed rather than checked against `twokey.triggered` | Platform Engineering | a `test_contracts.py` PR of its own |
+| `ROLES.md`'s rows are transcribed rather than checked against `twokey.triggered` | Platform Engineering | the next PR that adds a row to that table |
 | `docs/governance/ROLES.md` — the table that publishes who holds a key over what — is on **no two-key rule**. Only `recordings.json` under `docs/governance/` is covered. The table can no longer contradict the enforced list silently (a check landed in this PR), but it is still the one file naming every key that needs none | Platform Eng + Security | the next PR that opens `pave/twokey.py` |
 | `pave/twokey.py`'s `DISPOSITION_RE` accepts any `[a-z-]+` as a seat, so an attestation naming a seat that does not exist blocks a PR forever with no diagnostic. `rules/schema.json` now refuses the same typo one file over; the two vocabularies still have no single source | Platform Eng + Legal/S&P | the milestone that touches attestation parsing |
 | `quality/judge/rubric-sports.md` states an activation *"at M07, when MER-AI-0001 is disposed"* that did not occur. Correcting it moves a frozen instrument, so it is **not** corrected here | AI Quality + Security | the milestone that re-freezes the judge |
 | `pave exception request` reports success for doing nothing, and `pave new --classification` is advertised and silently ignored on an exit-0 path | Service Team + Data Governance | the PR that opens `pave/exception.py` |
-| The pre-existing `rules/schema.json` `required`/enum surface is unasserted: removing `review_by` from `required`, `controls`' `minItems`, and the `type` and `owner_seat` enums are all silent | Legal/S&P + Security | a `rules/schema.json` PR of its own |
+| The pre-existing `rules/schema.json` `required`/enum surface is unasserted: removing `review_by` from `required`, `controls`' `minItems`, and the `type` and `owner_seat` enums are all silent | Legal/S&P + Security | the next PR that edits `rules/schema.json` |
 
 ### 10. What this PR changes about how the next one is written
 

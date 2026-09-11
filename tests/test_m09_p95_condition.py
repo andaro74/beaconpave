@@ -127,6 +127,10 @@ def rows(census):
                 continue
             out.append({
                 "id": f"{case_id} s{n}",
+                # Carried as a field rather than parsed back out of `id`. The
+                # single-sample reading below needs to partition by sample, and a
+                # test that re-parses its own key is one rename from silent.
+                "sample": n,
                 "calls": len(usage.get("calls") or []),
                 "mandated": census.mandated_calls(cases[case_id]),
                 "latency_ms": usage.get("latency_ms"),
@@ -365,3 +369,141 @@ def test_the_records_that_digest_the_manifest_were_not_re_produced():
             f"{record.name} digests a manifest that is not the committed one. Either the "
             "manifest moved in a PR that may not move it, or the record was re-produced "
             "for a condition that did not fire.")
+
+
+# --- the population, named by cardinality and provenance ----------------------
+#
+# **Decision 5 §4 said "the most recent fresh mandated-shape population", and that
+# admits two readings.** Read as the most recent RUN SET, it is the mandated-shape
+# rows of every sample of M08b's fresh run: n = 38. Read as the most recent
+# SAMPLE, it is sample 3 alone: n = 14 -- and under that reading the condition
+# FIRES and yields a point 1000 ms above the standing gate.
+#
+# The wording is corrected in ADR-075 decision 5 §4 and the single-sample reading
+# is recorded there as considered and refused. These two tests are what make that
+# a WORDING fix rather than a claim rewritten to match an outcome: the answer is
+# 5200 under the five-population table AND under the corrected wording, so the
+# narrowing runs fail-closed. Had it changed the answer, it would not be
+# admissible -- a condition re-worded into a different result is the condition
+# being chosen after the fact -- and the milestone would close red.
+
+#: The corrected wording, executable: every sample of the run set, mandated-shape
+#: rows only. Pinned so that re-reading it as one sample is a changed number here
+#: rather than a changed sentence somewhere else.
+RUN_SET_N = 38
+SAMPLES = (1, 2, 3)
+
+#: What the single-sample reading produces, as measured. Recorded because the
+#: refusal has to carry its number: a reading refused without one is refused on
+#: taste, and the next reader re-derives it.
+SAMPLE_3_MANDATED_N = 14
+SAMPLE_3_MANDATED_P95 = 4542
+SAMPLE_3_DERIVED_POINT = 6200
+SAMPLE_3_POOLED_P95 = 6315
+
+#: Any population whose p95 falls strictly inside this window derives a point the
+#: run's pooled p95 reads OVER, and the condition fires. The five-population table
+#: never searched it -- every one of the five sits outside, which is why the table
+#: could report "the condition holds under none of the five" and be true and
+#: incomplete at the same time.
+FIRING_WINDOW = (3782, 4824)
+
+
+def _mandated(rows: list[dict], sample: int | None = None) -> list[dict]:
+    population = _population(rows, "mandated shape")
+    return [r for r in population if sample is None or r["sample"] == sample]
+
+
+def test_the_corrected_wording_names_the_population_the_table_evaluated(rows):
+    """**The wording fix, and the proof that it is only a wording fix.**
+
+    The corrected sentence names the population by cardinality and provenance --
+    the mandated-shape rows of every sample of the most recent fresh run set,
+    M08b's, n = 38 -- rather than by an adjective two readings satisfy. This
+    asserts that the population so named is the one the five-population table's
+    first row already evaluated, so the correction moves no number: same n, same
+    p95, same derived point, same outcome, same gate."""
+    population = _mandated(rows)
+    assert len(population) == RUN_SET_N, (
+        f"the corrected wording names a population of {len(population)}, and the "
+        f"table's mandated-shape row is {RUN_SET_N}. A wording fix that changes the "
+        f"population is not a wording fix.")
+    assert {r["sample"] for r in population} == set(SAMPLES), (
+        "the run set is not every sample of the run -- the corrected wording says "
+        "EVERY sample, and that is the half that refuses the single-sample reading")
+
+    n, p95, floor, roof, midpoint, point = POPULATIONS["mandated shape"]
+    assert _p95(population) == p95 and n == RUN_SET_N
+    assert derive(_p95(population))[3] == point
+
+    # ...and therefore the same answer. `pooled > point` is the condition.
+    pooled = _p95(_population(rows, "pooled"))
+    assert not pooled > point, (
+        f"under the corrected wording the condition FIRES ({pooled} > {point}). It "
+        f"does not fire under the table, so the correction would have changed the "
+        f"answer -- which makes it a re-derivation dressed as a clarification, and "
+        f"the milestone closes red rather than taking it.")
+    assert yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))["gates"]["budgets"][
+        "p95_ms"] == CEILING_MS
+
+
+def test_the_single_sample_reading_fires_and_is_refused_with_its_number(rows):
+    """**The reading the correction closes, recorded rather than deleted.**
+
+    Sample 3's mandated-shape rows alone: n = 14, p95 4542, derived point 6200 --
+    and the run's pooled p95 for that sample is 6315, which reads OVER. The
+    condition fires and hands back a gate 1000 ms above the standing 5200. That is
+    the trade G9 exists to refuse, reached entirely through a reading of the
+    condition's own words.
+
+    It is refused by cardinality and provenance, not by preference: a single
+    sample is not a population for this rule. The numbers are asserted here so the
+    refusal carries them -- a reading refused without its number is refused on
+    taste, and the next reader has to re-derive it to find out whether the refusal
+    was safe."""
+    sample_3 = _mandated(rows, sample=3)
+    assert len(sample_3) == SAMPLE_3_MANDATED_N
+    assert _p95(sample_3) == SAMPLE_3_MANDATED_P95
+    assert derive(SAMPLE_3_MANDATED_P95)[3] == SAMPLE_3_DERIVED_POINT
+
+    pooled_3 = _p95([r for r in rows if r["sample"] == 3])
+    assert pooled_3 == SAMPLE_3_POOLED_P95
+    assert pooled_3 > SAMPLE_3_DERIVED_POINT, (
+        "sample 3 alone no longer fires the condition. The refusal in ADR-075 "
+        "decision 5 §4 rests on it firing -- if it stopped, the record is stale and "
+        "says the wrong thing about why the wording was narrowed.")
+    assert SAMPLE_3_DERIVED_POINT > CEILING_MS, (
+        "the single-sample reading no longer moves the gate upward, so the reason "
+        "given for refusing it is no longer the reason it was refused")
+
+    # The narrowing runs FAIL-CLOSED: every single-sample reading is excluded, and
+    # excluding them leaves the gate where it is rather than moving it.
+    for sample in SAMPLES:
+        assert len(_mandated(rows, sample=sample)) < RUN_SET_N, (
+            f"sample {sample} alone is the whole run set, so the corrected wording "
+            f"does not actually narrow anything")
+
+
+def test_the_five_population_table_never_searched_the_firing_window(rows):
+    """**Why the table could be true and incomplete at once.**
+
+    The condition fires for any population whose p95 lands strictly inside
+    (3782, 4824) -- below that the derived point sits under the pooled reading for
+    a different reason, above it the point clears the pooled p95. All five of the
+    table's populations sit outside that window, so *"the condition holds under
+    none of the five"* was true and told nobody that a sixth reading of the same
+    sentence lands inside it.
+
+    Asserted rather than narrated, so that a future population drifting into the
+    window is a red test and not a paragraph nobody re-read."""
+    low, high = FIRING_WINDOW
+    for name in POPULATIONS:
+        p95 = _p95(_population(rows, name))
+        assert not low < p95 < high, (
+            f"population {name!r} has p95 {p95}, inside the firing window "
+            f"{FIRING_WINDOW}. The condition now fires under a population the table "
+            f"reports as not firing: the table and the rule disagree, and that is a "
+            f"live decision for the seats rather than a test to relax.")
+    assert low < SAMPLE_3_MANDATED_P95 < high, (
+        "the recorded single-sample p95 is no longer inside the window the refusal "
+        "names, so one of the two is wrong")
