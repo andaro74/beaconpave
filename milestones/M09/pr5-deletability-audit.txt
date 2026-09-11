@@ -1,0 +1,33 @@
+working copies backed up to C:\Users\andar\AppData\Local\Temp\m09-pr5-audit-ncn9m_pz
+
+  [ 1] RED     the demo command loses --verdicts again (the defect this PR fixes)
+  [ 2] RED     the published exit code is changed and the command is not
+  [ 3] RED     the runner stops comparing the exit code and only checks the command ran
+  [ 4] RED     line continuations stop being joined, so run_evals runs with no --answers
+  [ 5] RED     a spec's demo block is quietly dropped from the scope
+  [ 6] RED     the scope assertion accepts a subset instead of the exact set
+  [ 7] RED     the vacuity floor drops to zero, so a reader that matches nothing is green
+  [ 8] RED     a command asking `echo "exit $?"` may go unanswered by the block below it
+  [ 9] RED     the expectation is read from the whole section, not the block that follows
+  [10] RED     the read-only assertion stops comparing the tree
+  [11] RED     README row 09 loses the seven-PRs cell while the breach record stands
+  [12] RED     README row 09's bold 10/25 is removed while the m09 entry stays on disk
+
+| # | mutation | result |
+|---|---|---|
+| 1 | the demo command loses --verdicts again (the defect this PR fixes) | **RED** |
+| 2 | the published exit code is changed and the command is not | **RED** |
+| 3 | the runner stops comparing the exit code and only checks the command ran | **RED** |
+| 4 | line continuations stop being joined, so run_evals runs with no --answers | **RED** |
+| 5 | a spec's demo block is quietly dropped from the scope | **RED** |
+| 6 | the scope assertion accepts a subset instead of the exact set | **RED** |
+| 7 | the vacuity floor drops to zero, so a reader that matches nothing is green | **RED** |
+| 8 | a command asking `echo "exit $?"` may go unanswered by the block below it | **RED** |
+| 9 | the expectation is read from the whole section, not the block that follows | **RED** |
+| 10 | the read-only assertion stops comparing the tree | **RED** |
+| 11 | README row 09 loses the seven-PRs cell while the breach record stands | **RED** |
+| 12 | README row 09's bold 10/25 is removed while the m09 entry stays on disk | **RED** |
+
+12 mutations, 12 RED, 0 SILENT
+
+every working copy restored from C:\Users\andar\AppData\Local\Temp\m09-pr5-audit-ncn9m_pz byte for byte (no `git checkout`)
