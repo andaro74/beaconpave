@@ -583,8 +583,8 @@ returning to the registry ·
 
 ```bash
 python -m pave.cli rules trace MER-AI-0001
-python -m pave.cli gate decide milestones/M09/verdict-pre-fix.json  ; echo "exit $?"
-python -m pave.cli gate decide milestones/M09/verdict-post-fix.json ; echo "exit $?"
+python -m pave.cli gate decide --verdicts milestones/M09/verdict-pre-fix.json  ; echo "exit $?"
+python -m pave.cli gate decide --verdicts milestones/M09/verdict-post-fix.json ; echo "exit $?"
 ```
 
 Predicted, not yet measured — the shape the run must produce, with `D`, `P` and
@@ -605,7 +605,7 @@ exit 0
 ```
 
 **The first command exists from PR 2** and prints the chain as far as the
-registry actually goes. Today that is:
+registry actually goes. **Between PR 2 and PR 4 that was:**
 
 ```
 MER-AI-0001  AI-generated recaps must carry a visible disclosure
@@ -616,10 +616,20 @@ MER-AI-0001  AI-generated recaps must carry a visible disclosure
 chain: NOT RESOLVED
 ```
 
-exit **1**, and that is correct rather than a defect: the rule is undisposed
+exit **1**, and that was correct rather than a defect: the rule was undisposed
 until PR 4, and a lookup reporting a resolved chain over the undisposed state
 would be reporting success over the very thing this milestone exists to change.
 The two verdict files do not exist until PR 4.
+
+**Since PR 4 it resolves**, which is the delta the act demonstrates: the title
+reads *AI-authored editorial copy must carry a visible disclosure*, `status` is
+`enforced`, the `scope`, `excludes`, `revives` and two `limit` records print
+beneath it, the control is `eval_pack
+services/highlights-agent/evals/disclosure/cases.yaml L3`, seven cases are
+walked by id, and the last line is `chain: RESOLVED` at **exit 0**. The
+pre-disposition block above is kept as the record of what it printed before,
+because the pair *is* the proof artifact claim 6 asks for. *(This paragraph is
+the close's, PR 5; the block above it is not rewritten.)*
 
 The goldens control run's line is `N/25` with 8 ≤ N ≤ 12 and 10 predicted — a
 **side-prediction** — read at PR 4b by `python milestones/M08b/fresh_join.py
