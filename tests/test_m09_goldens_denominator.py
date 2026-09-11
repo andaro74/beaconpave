@@ -341,39 +341,61 @@ def test_the_spec_names_every_record_the_cascade_moves():
             "collect keys for a record no clause told it to move.")
 
 
-def test_the_two_digested_sites_are_named_with_their_pr_rather_than_left_silent():
-    """**The sites this PR does not withdraw, asserted as dated rather than
-    forgotten.**
+def test_the_two_digested_sites_are_withdrawn_and_the_template_with_them():
+    """**The debt this test was written to date is paid, and this is its
+    successor.**
 
-    `cases.yaml`'s header comment and `answer.schema.json`'s `ai_disclosure`
-    description both still carry the withdrawn wording, because editing either
-    re-produces three committed records under `milestones/` and the second is
-    model-facing text SPEC/09 constraint 2 reserves to the fix.
+    Through PR 2 it asserted that `cases.yaml`'s header and
+    `answer.schema.json`'s `ai_disclosure` description still CARRIED the withdrawn
+    wording, and that the pack README named them — a pointer in the tree so that
+    nobody concluded from the README's own withdrawal that all four sites were
+    done. It also said, in as many words, that the day the fix's PR withdrew both
+    sites it would be the thing telling that PR to update the table. PR 4 withdrew
+    them; this is that update.
 
-    A debt that is dated in a document and invisible in the tree is one the next
-    reader has to already know about. This asserts the tree carries the pointer,
-    so that the day the fix's PR withdraws both sites, this test is what tells
-    that PR to update it — and until then, that nobody concludes from the
-    README's withdrawal that all four sites are done.
+    It asserts in both directions, because a withdrawal test that only checks the
+    old wording is gone is satisfied by deleting the comment entirely — and a
+    silent deletion restores the reservation by leaving the id unexplained:
 
-    The pointer lives in the **pack's** README rather than the golden one,
-    because the golden README is round-tripped byte for byte against the scaffold
-    template and M09's dated debts are not something every future service should
-    inherit."""
-    readme = PACK_README.read_text(encoding="utf-8")
-    for name in ("cases.yaml", "answer.schema.json"):
-        assert name in readme, (
-            f"the pack README no longer names {name} as a site still carrying the "
-            "withdrawn wording. Either it was withdrawn there — in which case update "
-            "this test and the README in that diff — or the pointer was lost.")
-    # And the two sites really do still carry it, so the pointer is not stale.
-    still_carrying = [
-        p.relative_to(ROOT) for p in (GOLDENS, ANSWER_SCHEMA)
-        if any(f in p.read_text(encoding="utf-8") for f in RESERVATION_FRAGMENTS)
-        or "Null until M07" in p.read_text(encoding="utf-8")
-    ]
-    assert len(still_carrying) == 2, (
-        f"{len(still_carrying)} of the two dated sites still carry the withdrawn wording: "
-        f"{still_carrying}. If the fix's PR withdrew them, delete this test and the "
-        "README's pointer in that diff — a pointer to a debt that is paid is the same "
-        "stale sentence one milestone later.")
+    - neither site carries any reservation fragment, and the schema no longer
+      says *"Null until M07"*;
+    - both still NAME `disclosure-004` and say it is withdrawn, so the id's
+      absence from the pack is explained where a reader joining the files looks;
+    - **the scaffold template moves with the schema.** It is the fifth site, and
+      the count of sites has now been wrong three times: two in ADR-075 D4, four
+      after amendment 1 found the golden README's template, five once the
+      schema's template is counted. It is asserted here rather than left to
+      `test_scaffold.py`'s round-trip, which says the two files agree and not
+      what they agree about.
+    """
+    schema_text = ANSWER_SCHEMA.read_text(encoding="utf-8")
+    golden_text = GOLDENS.read_text(encoding="utf-8")
+    template = ROOT / "templates" / "agent-tools" / "evals" / "answer.schema.json.tmpl"
+    template_text = template.read_text(encoding="utf-8")
+
+    for name, text in (("golden cases.yaml", golden_text),
+                       ("answer.schema.json", schema_text),
+                       ("answer.schema.json.tmpl", template_text)):
+        standing = [f for f in RESERVATION_FRAGMENTS if f in text]
+        assert not standing, f"{name} still states the reservation: {standing}"
+        assert "Null until M07" not in text, (
+            f"{name} still tells its reader the field stays null until M07. In the schema "
+            "that sentence is model-facing: it is rendered into the prompt through "
+            "`{schema}` and instructs the model to leave `ai_disclosure` null, which is "
+            "the behaviour run A recorded and the fix exists to change.")
+
+    assert "disclosure-004" in golden_text and "WITHDRAWN" in golden_text, (
+        "the golden header dropped the withdrawal instead of making it. Deleting the "
+        "sentence leaves the gap in the ids unexplained, which restores the reservation "
+        "by silence — the failure mode ADR-075 D4 named when it refused to reuse the id.")
+
+    # The schema and its template say the same thing about the field, which is what
+    # makes the fifth site a site at all.
+    import json as _json
+    live = _json.loads(schema_text)["properties"]["ai_disclosure"]["description"]
+    assert "generated by AI" in live and "Always emit the key" in live, live
+    assert live.replace('"', '\\"') in template_text, (
+        "the scaffold template's `ai_disclosure` description is not the reference's. "
+        "Every service scaffolded from this template inherits it, so a template left "
+        "behind hands the stale instruction to every future service — the fourth-site "
+        "shape ADR-075 amendment 1 found, one file over.")

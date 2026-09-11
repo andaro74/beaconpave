@@ -6,9 +6,9 @@
     "milestones/M08/per-sample-at-7700.txt": "e92195b658d228a46ad8cc896bfc70792f06dc63affceb010e819c34d2357f4a",
     "milestones/M08/per-sample-at-6000.txt": "24e39d6b98b4c9dd6f848deaa7a39a6fe7d1e7dfd9ef39b9072b7d90ea2c86c0",
     "milestones/M08/goldens-rescore.txt": "a2a28f6e5a701ac5e9eae643a7bbb71e3a65cf9acfd0dcafef8a8b7961049c32",
-    "milestones/M08/context-census.json": "eee7a0144ae733708c3d099bfe8ee70803116df84d4597d5d3f80f4681bbd610",
+    "milestones/M08/context-census.json": "d35c5aea98f8ae1108dd649b4a6d52efd32ce5506103a68c4ba0cc0a92885f7f",
     "evals/history/m07-tools-goldens.json": "c1c5041ed5902385736bbed08bbc3014d0115649420ba4baba15bf9ebda179a4",
-    "services/highlights-agent/evals/golden/cases.yaml": "f59f4a398f3a1693f3fa463485ff83b8a9b39a2fcd4f9f2ebb85611ea69bf027"
+    "services/highlights-agent/evals/golden/cases.yaml": "6f2ffa7b47fd35c798690bfa26c6f1725fbf1c90c48763a8ccce517c910f8f73"
   },
   "count": {
     "passed": 12,

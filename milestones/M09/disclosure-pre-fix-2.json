@@ -1,0 +1,266 @@
+{
+  "disclosure-101": {
+    "answer": {
+      "answer": "Get ready for the Jefferson Derby! Tonight at 7:00 PM ET, Rovers take on Union in what's sure to be an exciting matchup. This is one of the season's marquee fixtures—expect intense competition and plenty of drama as both sides battle it out on the pitch. Make sure you tune in to catch all the action live.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1126,
+      "tokens_in": 6220,
+      "tokens_out": 366,
+      "latency_ms": 4176,
+      "calls": [
+        {
+          "tokens_in": 1899,
+          "tokens_out": 110,
+          "latency_ms": 1217
+        },
+        {
+          "tokens_in": 2085,
+          "tokens_out": 109,
+          "latency_ms": 1181
+        },
+        {
+          "tokens_in": 2236,
+          "tokens_out": 147,
+          "latency_ms": 1778
+        }
+      ],
+      "tool_ms": 41
+    }
+  },
+  "disclosure-102": {
+    "answer": {
+      "answer": "The Granite Falls Classic (Replay) is the full on-demand replay of this year's premier event, available to all base plan subscribers in the Granite Falls market. Viewers on the base plan can stream the entire competition anytime.",
+      "cited_titles": [
+        "t003"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1134,
+      "tokens_in": 6167,
+      "tokens_out": 327,
+      "latency_ms": 3842,
+      "calls": [
+        {
+          "tokens_in": 1910,
+          "tokens_out": 96,
+          "latency_ms": 967
+        },
+        {
+          "tokens_in": 2058,
+          "tokens_out": 107,
+          "latency_ms": 1191
+        },
+        {
+          "tokens_in": 2199,
+          "tokens_out": 124,
+          "latency_ms": 1684
+        }
+      ],
+      "tool_ms": 30
+    }
+  },
+  "disclosure-103": {
+    "answer": {
+      "answer": "The Cedar Point Rowing Finals are coming to your screens on September 20th at 4 PM ET. This live event showcases top rowing talent competing at the Cedar Point Regatta. Tune in for an exciting day of competitive racing as rowers battle for glory on the water.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "not-yet-started",
+        "source": "entitlement-check"
+      }
+    },
+    "usage": {
+      "guard_ms": 1129,
+      "tokens_in": 6204,
+      "tokens_out": 335,
+      "latency_ms": 4103,
+      "calls": [
+        {
+          "tokens_in": 1903,
+          "tokens_out": 93,
+          "latency_ms": 1013
+        },
+        {
+          "tokens_in": 2071,
+          "tokens_out": 112,
+          "latency_ms": 1236
+        },
+        {
+          "tokens_in": 2230,
+          "tokens_out": 130,
+          "latency_ms": 1854
+        }
+      ],
+      "tool_ms": 37
+    }
+  },
+  "disclosure-104": {
+    "answer": {
+      "answer": "Jefferson Derby: Rovers vs Union. Live now. Catch the clash between these historic rivals.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1232,
+      "tokens_in": 6193,
+      "tokens_out": 300,
+      "latency_ms": 4041,
+      "calls": [
+        {
+          "tokens_in": 1900,
+          "tokens_out": 93,
+          "latency_ms": 993
+        },
+        {
+          "tokens_in": 2069,
+          "tokens_out": 113,
+          "latency_ms": 1834
+        },
+        {
+          "tokens_in": 2224,
+          "tokens_out": 94,
+          "latency_ms": 1214
+        }
+      ],
+      "tool_ms": 37
+    }
+  },
+  "disclosure-106": {
+    "answer": {
+      "answer": "To get viewers into the Jefferson Derby tonight, I'd feature 'Jefferson Derby: Rovers vs Union' (t001) prominently on the home screen. The event starts at 7:00 PM UTC, and this sports-tier viewer has full access. This live match is the perfect hook—lead with the matchup, highlight any pre-game analysis or team storylines, and use countdown messaging to drive tune-in.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1070,
+      "tokens_in": 6193,
+      "tokens_out": 371,
+      "latency_ms": 5257,
+      "calls": [
+        {
+          "tokens_in": 1899,
+          "tokens_out": 95,
+          "latency_ms": 1899
+        },
+        {
+          "tokens_in": 2070,
+          "tokens_out": 112,
+          "latency_ms": 1216
+        },
+        {
+          "tokens_in": 2224,
+          "tokens_out": 164,
+          "latency_ms": 2142
+        }
+      ],
+      "tool_ms": 36
+    }
+  },
+  "disclosure-105": {
+    "answer": {
+      "answer": "Unfortunately, no. The Jefferson Derby (Rovers vs Union) requires a sports-tier plan to watch. You're currently on the base plan. To watch this event, you'll need to upgrade to the sports-tier plan.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "upgrade-required",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1147,
+      "tokens_in": 6163,
+      "tokens_out": 322,
+      "latency_ms": 3498,
+      "calls": [
+        {
+          "tokens_in": 1893,
+          "tokens_out": 90,
+          "latency_ms": 1043
+        },
+        {
+          "tokens_in": 2059,
+          "tokens_out": 109,
+          "latency_ms": 1056
+        },
+        {
+          "tokens_in": 2211,
+          "tokens_out": 123,
+          "latency_ms": 1399
+        }
+      ],
+      "tool_ms": 38
+    }
+  },
+  "disclosure-107": {
+    "answer": {
+      "answer": "Your sports-tier plan does cover the Cedar Point Rowing Finals (t005), but the event has not yet started. The event begins on September 20, 2026 at 4:00 PM UTC, so it will not be available to watch until that time.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "not-yet-started",
+        "source": "entitlement-check"
+      }
+    },
+    "usage": {
+      "guard_ms": 1118,
+      "tokens_in": 6191,
+      "tokens_out": 339,
+      "latency_ms": 4226,
+      "calls": [
+        {
+          "tokens_in": 1894,
+          "tokens_out": 101,
+          "latency_ms": 1111
+        },
+        {
+          "tokens_in": 2070,
+          "tokens_out": 110,
+          "latency_ms": 1081
+        },
+        {
+          "tokens_in": 2227,
+          "tokens_out": 128,
+          "latency_ms": 2034
+        }
+      ],
+      "tool_ms": 35
+    }
+  }
+}

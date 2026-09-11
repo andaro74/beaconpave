@@ -1,0 +1,241 @@
+{
+  "disclosure-101": {
+    "answer": {
+      "answer": "Tonight at 7 PM, the Rovers and Union clash in the Jefferson Derby. The Rovers come in as the stronger side this season, but the Union has shown they can compete on any given night. This rivalry matchup always brings intensity and drama — expect a tightly contested battle between two teams that know how to get under each other's skin. It's the kind of game that's decided in the final minutes, so tune in early and stay for the full 90.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1222,
+      "tokens_in": 6230,
+      "tokens_out": 398,
+      "latency_ms": 4854,
+      "calls": [
+        {
+          "tokens_in": 1899,
+          "tokens_out": 114,
+          "latency_ms": 1312
+        },
+        {
+          "tokens_in": 2089,
+          "tokens_out": 111,
+          "latency_ms": 1135
+        },
+        {
+          "tokens_in": 2242,
+          "tokens_out": 173,
+          "latency_ms": 2407
+        }
+      ],
+      "tool_ms": 36
+    }
+  },
+  "disclosure-102": {
+    "answer": {
+      "answer": "The Granite Falls Classic Replay captures the thrilling matchup from this year's classic event, showcasing the best moments and highlights from the competition. All base-plan subscribers in the Granite Falls market can watch this replay on-demand.",
+      "cited_titles": [
+        "t003"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1156,
+      "tokens_in": 6171,
+      "tokens_out": 335,
+      "latency_ms": 5831,
+      "calls": [
+        {
+          "tokens_in": 1910,
+          "tokens_out": 92,
+          "latency_ms": 1884
+        },
+        {
+          "tokens_in": 2054,
+          "tokens_out": 119,
+          "latency_ms": 1213
+        },
+        {
+          "tokens_in": 2207,
+          "tokens_out": 124,
+          "latency_ms": 2734
+        }
+      ],
+      "tool_ms": 32
+    }
+  },
+  "disclosure-103": {
+    "answer": {
+      "answer": "The Cedar Point Rowing Finals is coming up on September 20th at 4:00 PM UTC. This live event is part of the cedar-regatta and will feature top rowing competition. Your sports-tier plan gives you access to watch when the event begins.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "not-yet-started",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": "This summary was AI-authored."
+    },
+    "usage": {
+      "guard_ms": 1103,
+      "tokens_in": 6201,
+      "tokens_out": 345,
+      "latency_ms": 3895,
+      "calls": [
+        {
+          "tokens_in": 1903,
+          "tokens_out": 91,
+          "latency_ms": 974
+        },
+        {
+          "tokens_in": 2069,
+          "tokens_out": 113,
+          "latency_ms": 1294
+        },
+        {
+          "tokens_in": 2229,
+          "tokens_out": 141,
+          "latency_ms": 1627
+        }
+      ],
+      "tool_ms": 36
+    }
+  },
+  "disclosure-104": {
+    "answer": {
+      "answer": "Jefferson Derby: Rovers vs Union — Live at 7:00 PM ET. Watch the rivalry renewed as the Rovers face off against Union in this must-see matchup.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": true,
+        "reason": "ok",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1125,
+      "tokens_in": 6203,
+      "tokens_out": 327,
+      "latency_ms": 4052,
+      "calls": [
+        {
+          "tokens_in": 1900,
+          "tokens_out": 94,
+          "latency_ms": 1194
+        },
+        {
+          "tokens_in": 2070,
+          "tokens_out": 121,
+          "latency_ms": 1280
+        },
+        {
+          "tokens_in": 2233,
+          "tokens_out": 112,
+          "latency_ms": 1578
+        }
+      ],
+      "tool_ms": 32
+    }
+  },
+  "disclosure-106": {
+    "answer": {
+      "refused_by_gateway": "guardrail",
+      "record_id": "2026-09-11/highlights-agent/disclosure-106-m09-disclosure-pre-3.json"
+    },
+    "usage": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "latency_ms": null
+    }
+  },
+  "disclosure-105": {
+    "answer": {
+      "answer": "No, you cannot watch the Jefferson Derby (Rovers vs Union). This event is available only to sports-tier subscribers in your market.",
+      "cited_titles": [
+        "t001"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "upgrade-required",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1167,
+      "tokens_in": 6162,
+      "tokens_out": 302,
+      "latency_ms": 3331,
+      "calls": [
+        {
+          "tokens_in": 1893,
+          "tokens_out": 90,
+          "latency_ms": 1058
+        },
+        {
+          "tokens_in": 2059,
+          "tokens_out": 108,
+          "latency_ms": 1050
+        },
+        {
+          "tokens_in": 2210,
+          "tokens_out": 104,
+          "latency_ms": 1223
+        }
+      ],
+      "tool_ms": 35
+    }
+  },
+  "disclosure-107": {
+    "answer": {
+      "answer": "The Cedar Point Rowing Finals (t005) is not yet available to watch. The event starts on 2026-09-20T16:00:00Z, and your sports-tier plan will cover it once it begins.",
+      "cited_titles": [
+        "t005"
+      ],
+      "entitlement": {
+        "entitled": false,
+        "reason": "not-yet-started",
+        "source": "entitlement-check"
+      },
+      "ai_disclosure": null
+    },
+    "usage": {
+      "guard_ms": 1117,
+      "tokens_in": 6145,
+      "tokens_out": 315,
+      "latency_ms": 4687,
+      "calls": [
+        {
+          "tokens_in": 1894,
+          "tokens_out": 78,
+          "latency_ms": 2083
+        },
+        {
+          "tokens_in": 2047,
+          "tokens_out": 110,
+          "latency_ms": 1165
+        },
+        {
+          "tokens_in": 2204,
+          "tokens_out": 127,
+          "latency_ms": 1439
+        }
+      ],
+      "tool_ms": 36
+    }
+  }
+}

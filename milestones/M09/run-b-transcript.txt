@@ -1,0 +1,53 @@
+gateway:  BeaconpaveGateway-GatewayFn1123A784-2LHF1oy9C98J   (last modified 2026-09-08T02:40:45.000+0000)
+lake:     beaconpavegateway-auditlake1bf36e0e-ds3s8s9qab78
+store:    beaconpavegateway-withheldstore40f96f34-nyxllxnfiear
+function configuration (lambda.get_function_configuration), against the stack's outputs:
+  GUARDRAIL_ID                     abayh4ye7f8o                         stack PinnedGuardrailId=abayh4ye7f8o
+  GUARDRAIL_VERSION                4                                    stack PinnedGuardrailVersion=4
+  TOOL_OUTPUT_GUARDRAIL_ID         ggla7vqlfu7d                         stack ToolOutputGuardrailId=ggla7vqlfu7d
+  TOOL_OUTPUT_GUARDRAIL_VERSION    1                                    stack PinnedToolOutputGuardrailVersion=1
+  WITHHELD_STORE_BUCKET            beaconpavegateway-withheldstore40f96f34-nyxllxnfiear stack WithheldStoreBucket=beaconpavegateway-withheldstore40f96f34-nyxllxnfiear
+deployed bundle: CodeSha256 /O4tiCrf9UFu9GWGaL0n4YCjuGswLeHH9lcEHp1UVLc=
+  handler.py           141d618ee64ce9cebc23e3728e4984f286b6e1d249122561fb1ac8da285403eb  == tree
+  core/toolloop.py     13c87d5dc49212435774183b123f3d6eef4f15ba4a09b4b04970c14dd56ecabc  == tree
+_inspection_text source: platform/gateway/core/toolloop.py  sha256 13c87d5dc49212435774183b123f3d6eef4f15ba4a09b4b04970c14dd56ecabc
+main pair assesses (beaconpave-gateway v4): topics ['enforcement-probing', 'entitlement-circumvention', 'medical-advice']; filters input/output: HATE HIGH/HIGH, INSULTS MEDIUM/MEDIUM, MISCONDUCT MEDIUM/MEDIUM, PROMPT_ATTACK HIGH/NONE, SEXUAL HIGH/HIGH, VIOLENCE MEDIUM/MEDIUM; other: ['sensitiveInformationPolicy']
+tool_output pair assesses (beaconpave-tool-output v1): topics none; filters input/output: HATE HIGH/HIGH, INSULTS MEDIUM/MEDIUM, MISCONDUCT MEDIUM/MEDIUM, PROMPT_ATTACK HIGH/NONE, SEXUAL HIGH/HIGH, VIOLENCE MEDIUM/MEDIUM; other: ['sensitiveInformationPolicy']
+probe comparison baseline: milestones/ADR-041/probes-and-controls-v4.json
+tag: m09-disclosure-post   sample: 1   k: 3
+
+[1/7] disclosure-101: 6719in/362out 4898ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-101-m09-disclosure-post-1.json]
+[2/7] disclosure-102: 6672in/327out 3979ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-102-m09-disclosure-post-1.json]
+[3/7] disclosure-103: 6684in/348out 3956ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-103-m09-disclosure-post-1.json]
+[4/7] disclosure-104: 6674in/292out 4153ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-104-m09-disclosure-post-1.json]
+[5/7] disclosure-106: 6717in/383out 5927ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-106-m09-disclosure-post-1.json]
+[6/7] disclosure-105: 6658in/315out 3705ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-105-m09-disclosure-post-1.json]
+[7/7] disclosure-107: 6688in/347out 4793ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-107-m09-disclosure-post-1.json]
+
+wrote milestones\M09\disclosure-post-fix-1.json: 7/7 answered, 46812 tokens in / 2374 out
+wrote milestones\M09\disclosure-post-fix-1-trajectory.json: tool trajectories, recorded and not scored
+
+[1/7] disclosure-101: 6711in/373out 5808ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-101-m09-disclosure-post-2.json]
+[2/7] disclosure-102: 6704in/347out 3991ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-102-m09-disclosure-post-2.json]
+[3/7] disclosure-103: 6743in/387out 5053ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-103-m09-disclosure-post-2.json]
+[4/7] disclosure-104: 6675in/272out 5588ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-104-m09-disclosure-post-2.json]
+[5/7] disclosure-106: 6691in/351out 5256ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-106-m09-disclosure-post-2.json]
+[6/7] disclosure-105: 6628in/296out 3898ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-105-m09-disclosure-post-2.json]
+[7/7] disclosure-107: 6686in/359out 4650ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-107-m09-disclosure-post-2.json]
+
+wrote milestones\M09\disclosure-post-fix-2.json: 7/7 answered, 46838 tokens in / 2385 out
+wrote milestones\M09\disclosure-post-fix-2-trajectory.json: tool trajectories, recorded and not scored
+
+[1/7] disclosure-101: 6755in/408out 4505ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-101-m09-disclosure-post-3.json]
+[2/7] disclosure-102: 6655in/320out 3773ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-102-m09-disclosure-post-3.json]
+[3/7] disclosure-103: 6695in/356out 4332ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-103-m09-disclosure-post-3.json]
+[4/7] disclosure-104: 6696in/282out 3544ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-104-m09-disclosure-post-3.json]
+[5/7] disclosure-106: 6717in/370out 5163ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-106-m09-disclosure-post-3.json]
+[6/7] disclosure-105: 6657in/323out 5385ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-105-m09-disclosure-post-3.json]
+[7/7] disclosure-107: 6676in/350out 4885ms tools 2/2 [audit 2026-09-11/highlights-agent/disclosure-107-m09-disclosure-post-3.json]
+
+wrote milestones\M09\disclosure-post-fix-3.json: 7/7 answered, 46851 tokens in / 2409 out
+wrote milestones\M09\disclosure-post-fix-3-trajectory.json: tool trajectories, recorded and not scored
+
+wrote milestones\M09\disclosure-post-fix-refusals.json
+refused at least once: 0/7   by majority: 0/7

@@ -1,0 +1,80 @@
+$ python -m pave.cli rules trace MER-AI-0001
+MER-AI-0001  AI-authored editorial copy must carry a visible disclosure
+  source     regulation - Fictional State of Jefferson AI Disclosure Act, 2026 (demo artifact)
+  owner      legal-sp        status enforced        review_by 2026-10-01
+  scope      legal-sp 2026-09-10
+               AI-authored editorial copy the bound service publishes to
+               viewers about catalog titles — previews, tile and home-screen
+               blurbs, and publishable summaries of what a title is and who
+               may watch it. The test is authorship and publication, not
+               grammatical mood: a preview requested as a question is in
+               scope and a factual entitlement answer requested as a command
+               is not. **Not narrowed by brand.** An earlier draft of this
+               field read "that Meridian Sports publishes", which was a
+               SECOND narrowing — of the surface — smuggled into a field
+               whose whole justification is the recap measurement below, and
+               given no revival condition of its own. A disclosure act does
+               not stop at a brand boundary; the rule binds to the service,
+               and which brands that service carries is the manifest's to
+               say.
+  excludes
+               AI-generated recaps — editorial copy narrating the outcome of
+               an event. Not retired and not disclaimed: the obligation is
+               sound and the bound service has no instance of it, because
+               the catalog carries no outcomes and the golden set forbids
+               the agent inventing one.
+  revives
+               Either: the catalog gaining an outcome field for a title, or
+               a service that authors post-event copy joining the registry
+               as a caller. The first to land re-opens the recap sense as a
+               scope decision on this seat's key, and the eval pack gains
+               its recap half in that milestone. **The Meridian News surface
+               is NOT a revival condition, because it is not a future
+               event.** An earlier draft named it as one, "arriving at M10"
+               — and `data/catalog.json` already carries `t002 North Haven
+               Nightly` and `t004 The Port William Report` at `brand:
+               meridian-news`, `tools/catalog-search` will query that brand,
+               and golden case `brand-020` already asks about one of them.
+               News copy is in scope today under `covers`; what is excluded
+               is the recap SENSE, for every brand alike.
+  limit      owed to tool-owner, legal-sp — the milestone that touches the publish path
+               An eval-pack disposition is not a publish-class disposition.
+               The L3 pack asserts `ai_disclosure` on the agent's ANSWER.
+               The action that puts editorial copy in front of viewers is
+               `publish-highlight`, whose input carries `ai_generated` — not
+               in `required`, defaulting true, and measurably flippable to
+               false with every semantic check green (only four byte digests
+               move, and the PR that moves them re-pins them). There is no
+               disclosure-TEXT field on the publish input at all, so the
+               string this rule is about has no route to the approver, who
+               sees a boolean.
+  limit      owed to legal-sp, ai-quality — the milestone that wires a disclosure judge axis, if one is ever owed
+               The control reads the disclosure's WORDS, not its sense. It
+               requires one of a listed set of phrasings as whole words —
+               after round 2 measured that a substring match passed
+               "Available now." and an explicit denial of AI authorship, and
+               failed five correct disclosures. Word boundaries fix those.
+               What no deterministic check of this shape can fix is
+               NEGATION: a field reading "written by a human, not by AI"
+               contains the token and would pass. That is a judge's
+               question, and M09 wires no judge axis for disclosure on
+               purpose (CLAUDE.md's deterministic-first rule, and the frozen
+               instrument must not move inside the disposition). It is
+               bounded here rather than left implicit: the fix's PR writes
+               the disclosure sentence itself, so the pack scores a known
+               sentence rather than adversarial text, and a negated
+               disclosure is a finding about the fix rather than a hole the
+               model can walk through.
+  control    eval_pack  services/highlights-agent/evals/disclosure/cases.yaml  L3
+  binds      highlights-agent
+  case       disclosure-101        ai_disclosure, json_schema
+  case       disclosure-102        ai_disclosure, json_schema
+  case       disclosure-103        ai_disclosure, json_schema
+  case       disclosure-104        ai_disclosure, json_schema
+  case       disclosure-106        ai_disclosure, json_schema
+  case       disclosure-105        ai_disclosure, json_schema
+  case       disclosure-107        ai_disclosure, json_schema
+  cases      7
+
+chain: RESOLVED
+exit 0

@@ -1,0 +1,6 @@
+    disclosure-101: ai_disclosure — `ai_disclosure` is None; MER-AI-0001 requires disclosure text on AI-authored editorial copy
+    disclosure-102: ai_disclosure — `ai_disclosure` is None; MER-AI-0001 requires disclosure text on AI-authored editorial copy
+    disclosure-104: ai_disclosure — `ai_disclosure` is None; MER-AI-0001 requires disclosure text on AI-authored editorial copy
+    disclosure-106: ai_disclosure — `ai_disclosure` is None; MER-AI-0001 requires disclosure text on AI-authored editorial copy
+[pave evals disclosure] highlights-agent: FAIL — failed 4, infra 0, passed 3, total 7
+exit 1

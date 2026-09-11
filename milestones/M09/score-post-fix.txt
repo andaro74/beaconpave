@@ -1,0 +1,2 @@
+[pave evals disclosure] highlights-agent: PASS — failed 0, infra 0, passed 7, total 7
+exit 0

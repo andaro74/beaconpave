@@ -2,40 +2,40 @@
   "_what_this_is": "ADR-074 decision 3 §4: the residual attributed by two exact numbers, produced by milestones/M08b/residual_attribution.py. A is the fresh run's round-1 tokens_in on the calibration case, B the calibration call's, E and S the census's estimates by key; D = B - E, F = A - B - S, A - E - S = D + F. Rounds two and three are recorded against the replayed transcript at the measured density, not ruled on.",
   "inputs_sha256": {
     "milestones/M08b/calibration.json": "675e56f0a5d2398632dd11d44974cfc34426a11933aad29e922d7fd1dfb6e6e7",
-    "milestones/M08/context-census.json": "eee7a0144ae733708c3d099bfe8ee70803116df84d4597d5d3f80f4681bbd610",
-    "services/highlights-agent/evals/golden/cases.yaml": "f59f4a398f3a1693f3fa463485ff83b8a9b39a2fcd4f9f2ebb85611ea69bf027",
+    "milestones/M08/context-census.json": "d35c5aea98f8ae1108dd649b4a6d52efd32ce5506103a68c4ba0cc0a92885f7f",
+    "services/highlights-agent/evals/golden/cases.yaml": "6f2ffa7b47fd35c798690bfa26c6f1725fbf1c90c48763a8ccce517c910f8f73",
     "milestones/M08b/goldens-run-1.json": "324fae8ef6000bf68c6b20d9a2dfebf343bf3eff11bb50f1adcc4c9702f0a4da",
     "milestones/M08b/goldens-run-2.json": "8e1c7de22a224f9457cb85ca0e4c193100910e94fc7f953bee84949c80463af7",
     "milestones/M08b/goldens-run-3.json": "db587e201fca83eb95ef7d59f400149e35ba9f67660b808ab8cd733c36f0a1ee",
-    "milestones/M08b/fresh-join.json": "b46ab44f5c4631b409b36bb7070a315a867499d29dbdfff5ecdf2a659b2c436b"
+    "milestones/M08b/fresh-join.json": "8b031a70e3468cc62c7a2ea10d54bc20af7f7913aff9e20fabd2c711cff1e72c"
   },
   "case": "blackout-008",
   "fallback_taken": false,
   "B_read_from": "usage.calls[0].tokens_in",
   "calibration_decision": "allowed",
   "estimates": {
-    "system_prompt_tokens_est": 793,
+    "system_prompt_tokens_est": 909,
     "system_prompt_band": [
-      789,
-      794
+      905,
+      910
     ],
     "viewer_turn_chars": 138,
-    "viewer_turn_tokens_est": 41,
+    "viewer_turn_tokens_est": 37,
     "viewer_turn_band": [
-      41,
-      41
+      37,
+      37
     ],
-    "E": 834,
+    "E": 946,
     "E_band": [
-      830,
-      835
+      942,
+      947
     ],
-    "S": 603,
+    "S": 552,
     "S_band": [
-      600,
-      604
+      549,
+      552
     ],
-    "committed_text_chars": 2813
+    "committed_text_chars": 3487
   },
   "attribution": {
     "A": 1900,
@@ -45,15 +45,15 @@
       1900
     ],
     "B": 796,
-    "D": -38,
+    "D": -150,
     "D_sign": "negative (the estimate over-counts)",
-    "F": 501,
+    "F": 552,
     "F_sign": "non-negative",
-    "residual_A_minus_E_minus_S": 463,
+    "residual_A_minus_E_minus_S": 402,
     "identity_holds": true,
     "shares_of_abs": {
-      "D": 0.071,
-      "F": 0.929
+      "D": 0.214,
+      "F": 0.786
     },
     "reading": "provider-side framing: what toolConfig costs beyond the specs' own text",
     "removable_by_the_agent": "neither D nor F is content the agent can stop sending",
@@ -64,7 +64,7 @@
   },
   "per_round_growth": {
     "available": true,
-    "chars_per_token_measured": 3.534,
+    "chars_per_token_measured": 4.381,
     "rows": [
       {
         "case": "blackout-001",
@@ -72,8 +72,8 @@
         "round": 2,
         "delta_tokens": 195,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.687
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.747
       },
       {
         "case": "blackout-001",
@@ -81,8 +81,8 @@
         "round": 3,
         "delta_tokens": 152,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.765
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.811
       },
       {
         "case": "blackout-006",
@@ -90,8 +90,8 @@
         "round": 2,
         "delta_tokens": 185,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.67
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.733
       },
       {
         "case": "blackout-006",
@@ -99,8 +99,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.768
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.813
       },
       {
         "case": "blackout-007",
@@ -108,8 +108,8 @@
         "round": 2,
         "delta_tokens": 177,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.655
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.721
       },
       {
         "case": "blackout-007",
@@ -117,8 +117,8 @@
         "round": 3,
         "delta_tokens": 152,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.777
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.82
       },
       {
         "case": "blackout-008",
@@ -126,8 +126,8 @@
         "round": 2,
         "delta_tokens": 187,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.673
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.736
       },
       {
         "case": "blackout-008",
@@ -135,8 +135,8 @@
         "round": 3,
         "delta_tokens": 161,
         "replayed_chars_added": 135,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.763
+        "explained_tokens_at_density": 31,
+        "unexplained_share": 0.809
       },
       {
         "case": "brand-020",
@@ -144,8 +144,8 @@
         "round": 2,
         "delta_tokens": 127,
         "replayed_chars_added": 125,
-        "explained_tokens_at_density": 35,
-        "unexplained_share": 0.721
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.775
       },
       {
         "case": "brand-020",
@@ -153,8 +153,8 @@
         "round": 3,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "brand-021",
@@ -162,8 +162,8 @@
         "round": 2,
         "delta_tokens": 173,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.647
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.715
       },
       {
         "case": "brand-021",
@@ -171,8 +171,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.78
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.822
       },
       {
         "case": "concise-022",
@@ -180,8 +180,8 @@
         "round": 2,
         "delta_tokens": 169,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.638
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.708
       },
       {
         "case": "concise-022",
@@ -189,8 +189,8 @@
         "round": 3,
         "delta_tokens": 149,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.772
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.816
       },
       {
         "case": "edge-024",
@@ -198,8 +198,8 @@
         "round": 2,
         "delta_tokens": 167,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.649
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.717
       },
       {
         "case": "edge-024",
@@ -207,8 +207,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.754
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.802
       },
       {
         "case": "edge-025",
@@ -216,8 +216,8 @@
         "round": 2,
         "delta_tokens": 266,
         "replayed_chars_added": 30,
-        "explained_tokens_at_density": 8,
-        "unexplained_share": 0.968
+        "explained_tokens_at_density": 7,
+        "unexplained_share": 0.974
       },
       {
         "case": "edge-025",
@@ -225,8 +225,8 @@
         "round": 3,
         "delta_tokens": 250,
         "replayed_chars_added": 30,
-        "explained_tokens_at_density": 8,
-        "unexplained_share": 0.966
+        "explained_tokens_at_density": 7,
+        "unexplained_share": 0.973
       },
       {
         "case": "entitlement-002",
@@ -234,8 +234,8 @@
         "round": 2,
         "delta_tokens": 153,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.617
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.691
       },
       {
         "case": "entitlement-002",
@@ -243,8 +243,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.756
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.803
       },
       {
         "case": "entitlement-010",
@@ -252,8 +252,8 @@
         "round": 2,
         "delta_tokens": 189,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.69
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.75
       },
       {
         "case": "entitlement-010",
@@ -261,8 +261,8 @@
         "round": 3,
         "delta_tokens": 157,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.762
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.808
       },
       {
         "case": "entitlement-011",
@@ -270,8 +270,8 @@
         "round": 2,
         "delta_tokens": 129,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.697
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.756
       },
       {
         "case": "entitlement-011",
@@ -279,8 +279,8 @@
         "round": 3,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "entitlement-012",
@@ -288,8 +288,8 @@
         "round": 2,
         "delta_tokens": 114,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "entitlement-012",
@@ -297,8 +297,8 @@
         "round": 3,
         "delta_tokens": 125,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.966
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.973
       },
       {
         "case": "grounded-016",
@@ -306,8 +306,8 @@
         "round": 2,
         "delta_tokens": 172,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.645
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.713
       },
       {
         "case": "grounded-017",
@@ -315,8 +315,8 @@
         "round": 2,
         "delta_tokens": 141,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.723
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.777
       },
       {
         "case": "grounded-017",
@@ -324,8 +324,8 @@
         "round": 3,
         "delta_tokens": 141,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.829
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.862
       },
       {
         "case": "grounded-018",
@@ -333,8 +333,8 @@
         "round": 2,
         "delta_tokens": 169,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.638
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.708
       },
       {
         "case": "grounded-018",
@@ -342,8 +342,8 @@
         "round": 3,
         "delta_tokens": 174,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.649
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.717
       },
       {
         "case": "grounded-018",
@@ -351,8 +351,8 @@
         "round": 4,
         "delta_tokens": 151,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.595
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.673
       },
       {
         "case": "grounded-019",
@@ -360,8 +360,8 @@
         "round": 2,
         "delta_tokens": 113,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.962
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "grounded-019",
@@ -369,8 +369,8 @@
         "round": 3,
         "delta_tokens": 129,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.967
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.973
       },
       {
         "case": "headroom-005",
@@ -378,8 +378,8 @@
         "round": 2,
         "delta_tokens": 353,
         "replayed_chars_added": 354,
-        "explained_tokens_at_density": 100,
-        "unexplained_share": 0.716
+        "explained_tokens_at_density": 81,
+        "unexplained_share": 0.771
       },
       {
         "case": "headroom-005",
@@ -387,8 +387,8 @@
         "round": 3,
         "delta_tokens": 308,
         "replayed_chars_added": 205,
-        "explained_tokens_at_density": 58,
-        "unexplained_share": 0.812
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.848
       },
       {
         "case": "headroom-026",
@@ -396,8 +396,8 @@
         "round": 2,
         "delta_tokens": 151,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.612
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.687
       },
       {
         "case": "headroom-026",
@@ -405,8 +405,8 @@
         "round": 3,
         "delta_tokens": 159,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.765
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.81
       },
       {
         "case": "multi-023",
@@ -414,8 +414,8 @@
         "round": 2,
         "delta_tokens": 150,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.593
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.671
       },
       {
         "case": "multi-023",
@@ -423,8 +423,8 @@
         "round": 3,
         "delta_tokens": 151,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.764
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.81
       },
       {
         "case": "multi-023",
@@ -432,8 +432,8 @@
         "round": 4,
         "delta_tokens": 148,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.971
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.977
       },
       {
         "case": "multi-023",
@@ -441,8 +441,8 @@
         "round": 5,
         "delta_tokens": 263,
         "replayed_chars_added": 30,
-        "explained_tokens_at_density": 8,
-        "unexplained_share": 0.968
+        "explained_tokens_at_density": 7,
+        "unexplained_share": 0.974
       },
       {
         "case": "recommend-013",
@@ -450,8 +450,8 @@
         "round": 2,
         "delta_tokens": 128,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.967
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.973
       },
       {
         "case": "recommend-013",
@@ -459,8 +459,8 @@
         "round": 3,
         "delta_tokens": 138,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.969
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.975
       },
       {
         "case": "recommend-013",
@@ -468,8 +468,8 @@
         "round": 4,
         "delta_tokens": 135,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.969
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.975
       },
       {
         "case": "recommend-014",
@@ -477,8 +477,8 @@
         "round": 2,
         "delta_tokens": 142,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.97
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.976
       },
       {
         "case": "recommend-014",
@@ -486,8 +486,8 @@
         "round": 3,
         "delta_tokens": 120,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.965
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.971
       },
       {
         "case": "recommend-014",
@@ -495,8 +495,8 @@
         "round": 4,
         "delta_tokens": 119,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.964
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.971
       },
       {
         "case": "recommend-015",
@@ -504,8 +504,8 @@
         "round": 2,
         "delta_tokens": 185,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.683
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.745
       },
       {
         "case": "recommend-015",
@@ -513,8 +513,8 @@
         "round": 3,
         "delta_tokens": 156,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.761
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.807
       },
       {
         "case": "blackout-001",
@@ -522,8 +522,8 @@
         "round": 2,
         "delta_tokens": 171,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.643
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.712
       },
       {
         "case": "blackout-001",
@@ -531,8 +531,8 @@
         "round": 3,
         "delta_tokens": 151,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.764
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.81
       },
       {
         "case": "blackout-006",
@@ -540,8 +540,8 @@
         "round": 2,
         "delta_tokens": 150,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.593
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.671
       },
       {
         "case": "blackout-006",
@@ -549,8 +549,8 @@
         "round": 3,
         "delta_tokens": 155,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.77
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.814
       },
       {
         "case": "blackout-007",
@@ -558,8 +558,8 @@
         "round": 2,
         "delta_tokens": 176,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.653
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.72
       },
       {
         "case": "blackout-007",
@@ -567,8 +567,8 @@
         "round": 3,
         "delta_tokens": 152,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.777
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.82
       },
       {
         "case": "blackout-008",
@@ -576,8 +576,8 @@
         "round": 2,
         "delta_tokens": 192,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.682
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.743
       },
       {
         "case": "blackout-008",
@@ -585,8 +585,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 135,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.75
+        "explained_tokens_at_density": 31,
+        "unexplained_share": 0.799
       },
       {
         "case": "brand-020",
@@ -594,8 +594,8 @@
         "round": 2,
         "delta_tokens": 144,
         "replayed_chars_added": 125,
-        "explained_tokens_at_density": 35,
-        "unexplained_share": 0.754
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.802
       },
       {
         "case": "brand-020",
@@ -603,8 +603,8 @@
         "round": 3,
         "delta_tokens": 143,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.832
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.864
       },
       {
         "case": "brand-021",
@@ -612,8 +612,8 @@
         "round": 2,
         "delta_tokens": 153,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.601
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.678
       },
       {
         "case": "concise-022",
@@ -621,8 +621,8 @@
         "round": 2,
         "delta_tokens": 169,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.638
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.708
       },
       {
         "case": "concise-022",
@@ -630,8 +630,8 @@
         "round": 3,
         "delta_tokens": 151,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.775
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.819
       },
       {
         "case": "edge-024",
@@ -639,8 +639,8 @@
         "round": 2,
         "delta_tokens": 151,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.612
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.687
       },
       {
         "case": "edge-024",
@@ -648,8 +648,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.756
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.803
       },
       {
         "case": "edge-025",
@@ -657,8 +657,8 @@
         "round": 2,
         "delta_tokens": 303,
         "replayed_chars_added": 30,
-        "explained_tokens_at_density": 8,
-        "unexplained_share": 0.972
+        "explained_tokens_at_density": 7,
+        "unexplained_share": 0.977
       },
       {
         "case": "edge-025",
@@ -666,8 +666,8 @@
         "round": 3,
         "delta_tokens": 122,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.965
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.972
       },
       {
         "case": "entitlement-002",
@@ -675,8 +675,8 @@
         "round": 2,
         "delta_tokens": 171,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.657
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.724
       },
       {
         "case": "entitlement-002",
@@ -684,8 +684,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.754
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.802
       },
       {
         "case": "entitlement-010",
@@ -693,8 +693,8 @@
         "round": 2,
         "delta_tokens": 170,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.655
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.722
       },
       {
         "case": "entitlement-010",
@@ -702,8 +702,8 @@
         "round": 3,
         "delta_tokens": 157,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.762
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.808
       },
       {
         "case": "entitlement-011",
@@ -711,8 +711,8 @@
         "round": 2,
         "delta_tokens": 151,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.741
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.791
       },
       {
         "case": "entitlement-011",
@@ -720,8 +720,8 @@
         "round": 3,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "entitlement-012",
@@ -729,8 +729,8 @@
         "round": 2,
         "delta_tokens": 114,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "entitlement-012",
@@ -738,8 +738,8 @@
         "round": 3,
         "delta_tokens": 98,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.957
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.965
       },
       {
         "case": "grounded-016",
@@ -747,8 +747,8 @@
         "round": 2,
         "delta_tokens": 172,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.645
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.713
       },
       {
         "case": "grounded-017",
@@ -756,8 +756,8 @@
         "round": 2,
         "delta_tokens": 129,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.697
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.756
       },
       {
         "case": "grounded-017",
@@ -765,8 +765,8 @@
         "round": 3,
         "delta_tokens": 144,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.833
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.865
       },
       {
         "case": "grounded-018",
@@ -774,8 +774,8 @@
         "round": 2,
         "delta_tokens": 189,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.677
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.739
       },
       {
         "case": "grounded-018",
@@ -783,8 +783,8 @@
         "round": 3,
         "delta_tokens": 200,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.694
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.753
       },
       {
         "case": "grounded-019",
@@ -792,8 +792,8 @@
         "round": 2,
         "delta_tokens": 112,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.962
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.969
       },
       {
         "case": "headroom-005",
@@ -801,8 +801,8 @@
         "round": 2,
         "delta_tokens": 363,
         "replayed_chars_added": 354,
-        "explained_tokens_at_density": 100,
-        "unexplained_share": 0.724
+        "explained_tokens_at_density": 81,
+        "unexplained_share": 0.777
       },
       {
         "case": "headroom-005",
@@ -810,8 +810,8 @@
         "round": 3,
         "delta_tokens": 308,
         "replayed_chars_added": 205,
-        "explained_tokens_at_density": 58,
-        "unexplained_share": 0.812
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.848
       },
       {
         "case": "headroom-026",
@@ -819,8 +819,8 @@
         "round": 2,
         "delta_tokens": 151,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.612
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.687
       },
       {
         "case": "headroom-026",
@@ -828,8 +828,8 @@
         "round": 3,
         "delta_tokens": 156,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.761
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.807
       },
       {
         "case": "multi-023",
@@ -837,8 +837,8 @@
         "round": 2,
         "delta_tokens": 169,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.638
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.708
       },
       {
         "case": "multi-023",
@@ -846,8 +846,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.768
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.813
       },
       {
         "case": "multi-023",
@@ -855,8 +855,8 @@
         "round": 4,
         "delta_tokens": 129,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.967
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.973
       },
       {
         "case": "multi-023",
@@ -864,8 +864,8 @@
         "round": 5,
         "delta_tokens": 115,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "multi-023",
@@ -873,8 +873,8 @@
         "round": 6,
         "delta_tokens": 107,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.96
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.968
       },
       {
         "case": "recommend-013",
@@ -882,8 +882,8 @@
         "round": 2,
         "delta_tokens": 111,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.962
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.969
       },
       {
         "case": "recommend-013",
@@ -891,8 +891,8 @@
         "round": 3,
         "delta_tokens": 117,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.964
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.971
       },
       {
         "case": "recommend-013",
@@ -900,8 +900,8 @@
         "round": 4,
         "delta_tokens": 108,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.961
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.968
       },
       {
         "case": "recommend-013",
@@ -909,8 +909,8 @@
         "round": 5,
         "delta_tokens": 89,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.952
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.962
       },
       {
         "case": "recommend-014",
@@ -918,8 +918,8 @@
         "round": 2,
         "delta_tokens": 146,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.971
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.977
       },
       {
         "case": "recommend-014",
@@ -927,8 +927,8 @@
         "round": 3,
         "delta_tokens": 118,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.964
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.971
       },
       {
         "case": "recommend-014",
@@ -936,8 +936,8 @@
         "round": 4,
         "delta_tokens": 114,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "recommend-015",
@@ -945,8 +945,8 @@
         "round": 2,
         "delta_tokens": 168,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.651
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.719
       },
       {
         "case": "recommend-015",
@@ -954,8 +954,8 @@
         "round": 3,
         "delta_tokens": 159,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.765
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.81
       },
       {
         "case": "blackout-001",
@@ -963,8 +963,8 @@
         "round": 2,
         "delta_tokens": 195,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.687
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.747
       },
       {
         "case": "blackout-001",
@@ -972,8 +972,8 @@
         "round": 3,
         "delta_tokens": 151,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.764
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.81
       },
       {
         "case": "blackout-006",
@@ -981,8 +981,8 @@
         "round": 2,
         "delta_tokens": 162,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.623
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.696
       },
       {
         "case": "blackout-006",
@@ -990,8 +990,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.768
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.813
       },
       {
         "case": "blackout-007",
@@ -999,8 +999,8 @@
         "round": 2,
         "delta_tokens": 190,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.678
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.74
       },
       {
         "case": "blackout-007",
@@ -1008,8 +1008,8 @@
         "round": 3,
         "delta_tokens": 152,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.777
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.82
       },
       {
         "case": "blackout-008",
@@ -1017,8 +1017,8 @@
         "round": 2,
         "delta_tokens": 170,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.64
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.71
       },
       {
         "case": "blackout-008",
@@ -1026,8 +1026,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 135,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.75
+        "explained_tokens_at_density": 31,
+        "unexplained_share": 0.799
       },
       {
         "case": "brand-020",
@@ -1035,8 +1035,8 @@
         "round": 2,
         "delta_tokens": 146,
         "replayed_chars_added": 125,
-        "explained_tokens_at_density": 35,
-        "unexplained_share": 0.758
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.805
       },
       {
         "case": "brand-020",
@@ -1044,8 +1044,8 @@
         "round": 3,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "brand-021",
@@ -1053,8 +1053,8 @@
         "round": 2,
         "delta_tokens": 153,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.601
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.678
       },
       {
         "case": "concise-022",
@@ -1062,8 +1062,8 @@
         "round": 2,
         "delta_tokens": 170,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.64
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.71
       },
       {
         "case": "concise-022",
@@ -1071,8 +1071,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.778
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.821
       },
       {
         "case": "edge-024",
@@ -1080,8 +1080,8 @@
         "round": 2,
         "delta_tokens": 151,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.612
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.687
       },
       {
         "case": "edge-024",
@@ -1089,8 +1089,8 @@
         "round": 3,
         "delta_tokens": 150,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.749
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.798
       },
       {
         "case": "edge-025",
@@ -1098,8 +1098,8 @@
         "round": 2,
         "delta_tokens": 145,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.971
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.976
       },
       {
         "case": "edge-025",
@@ -1107,8 +1107,8 @@
         "round": 3,
         "delta_tokens": 137,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.969
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.975
       },
       {
         "case": "edge-025",
@@ -1116,8 +1116,8 @@
         "round": 4,
         "delta_tokens": 115,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "entitlement-002",
@@ -1125,8 +1125,8 @@
         "round": 2,
         "delta_tokens": 171,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.657
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.724
       },
       {
         "case": "entitlement-002",
@@ -1134,8 +1134,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.756
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.803
       },
       {
         "case": "entitlement-010",
@@ -1143,8 +1143,8 @@
         "round": 2,
         "delta_tokens": 186,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.685
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.746
       },
       {
         "case": "entitlement-010",
@@ -1152,8 +1152,8 @@
         "round": 3,
         "delta_tokens": 157,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.762
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.808
       },
       {
         "case": "entitlement-011",
@@ -1161,8 +1161,8 @@
         "round": 2,
         "delta_tokens": 150,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.74
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.79
       },
       {
         "case": "entitlement-011",
@@ -1170,8 +1170,8 @@
         "round": 3,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "entitlement-012",
@@ -1179,8 +1179,8 @@
         "round": 2,
         "delta_tokens": 114,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "grounded-016",
@@ -1188,8 +1188,8 @@
         "round": 2,
         "delta_tokens": 172,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.645
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.713
       },
       {
         "case": "grounded-017",
@@ -1197,8 +1197,8 @@
         "round": 2,
         "delta_tokens": 142,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.725
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.778
       },
       {
         "case": "grounded-017",
@@ -1206,8 +1206,8 @@
         "round": 3,
         "delta_tokens": 144,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.833
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.865
       },
       {
         "case": "grounded-018",
@@ -1215,8 +1215,8 @@
         "round": 2,
         "delta_tokens": 165,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.63
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.701
       },
       {
         "case": "grounded-018",
@@ -1224,8 +1224,8 @@
         "round": 3,
         "delta_tokens": 202,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.697
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.756
       },
       {
         "case": "grounded-019",
@@ -1233,8 +1233,8 @@
         "round": 2,
         "delta_tokens": 95,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.955
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.964
       },
       {
         "case": "headroom-005",
@@ -1242,8 +1242,8 @@
         "round": 2,
         "delta_tokens": 385,
         "replayed_chars_added": 354,
-        "explained_tokens_at_density": 100,
-        "unexplained_share": 0.74
+        "explained_tokens_at_density": 81,
+        "unexplained_share": 0.79
       },
       {
         "case": "headroom-005",
@@ -1251,8 +1251,8 @@
         "round": 3,
         "delta_tokens": 315,
         "replayed_chars_added": 205,
-        "explained_tokens_at_density": 58,
-        "unexplained_share": 0.816
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.851
       },
       {
         "case": "headroom-026",
@@ -1260,8 +1260,8 @@
         "round": 2,
         "delta_tokens": 170,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.655
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.722
       },
       {
         "case": "headroom-026",
@@ -1269,8 +1269,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.756
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.803
       },
       {
         "case": "multi-023",
@@ -1278,8 +1278,8 @@
         "round": 2,
         "delta_tokens": 150,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.593
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.671
       },
       {
         "case": "multi-023",
@@ -1287,8 +1287,8 @@
         "round": 3,
         "delta_tokens": 152,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.765
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.811
       },
       {
         "case": "multi-023",
@@ -1296,8 +1296,8 @@
         "round": 4,
         "delta_tokens": 257,
         "replayed_chars_added": 30,
-        "explained_tokens_at_density": 8,
-        "unexplained_share": 0.967
+        "explained_tokens_at_density": 7,
+        "unexplained_share": 0.973
       },
       {
         "case": "recommend-003",
@@ -1305,8 +1305,8 @@
         "round": 2,
         "delta_tokens": 160,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.973
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.979
       },
       {
         "case": "recommend-003",
@@ -1314,8 +1314,8 @@
         "round": 3,
         "delta_tokens": 172,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.773
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.817
       },
       {
         "case": "recommend-003",
@@ -1323,8 +1323,8 @@
         "round": 4,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "recommend-013",
@@ -1332,8 +1332,8 @@
         "round": 2,
         "delta_tokens": 111,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.962
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.969
       },
       {
         "case": "recommend-013",
@@ -1341,8 +1341,8 @@
         "round": 3,
         "delta_tokens": 120,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.965
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.971
       },
       {
         "case": "recommend-013",
@@ -1350,8 +1350,8 @@
         "round": 4,
         "delta_tokens": 454,
         "replayed_chars_added": 60,
-        "explained_tokens_at_density": 17,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 14,
+        "unexplained_share": 0.97
       },
       {
         "case": "recommend-014",
@@ -1359,8 +1359,8 @@
         "round": 2,
         "delta_tokens": 110,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.961
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.969
       },
       {
         "case": "recommend-014",
@@ -1368,8 +1368,8 @@
         "round": 3,
         "delta_tokens": 116,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "recommend-014",
@@ -1377,8 +1377,8 @@
         "round": 4,
         "delta_tokens": 106,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.96
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.968
       },
       {
         "case": "recommend-014",
@@ -1386,8 +1386,8 @@
         "round": 5,
         "delta_tokens": 106,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.96
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.968
       },
       {
         "case": "recommend-015",
@@ -1395,8 +1395,8 @@
         "round": 2,
         "delta_tokens": 168,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.651
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.719
       },
       {
         "case": "recommend-015",
@@ -1404,8 +1404,8 @@
         "round": 3,
         "delta_tokens": 157,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.762
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.808
       }
     ],
     "more_than_a_quarter_unexplained": [
@@ -1415,8 +1415,8 @@
         "round": 2,
         "delta_tokens": 195,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.687
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.747
       },
       {
         "case": "blackout-001",
@@ -1424,8 +1424,8 @@
         "round": 3,
         "delta_tokens": 152,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.765
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.811
       },
       {
         "case": "blackout-006",
@@ -1433,8 +1433,8 @@
         "round": 2,
         "delta_tokens": 185,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.67
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.733
       },
       {
         "case": "blackout-006",
@@ -1442,8 +1442,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.768
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.813
       },
       {
         "case": "blackout-007",
@@ -1451,8 +1451,8 @@
         "round": 2,
         "delta_tokens": 177,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.655
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.721
       },
       {
         "case": "blackout-007",
@@ -1460,8 +1460,8 @@
         "round": 3,
         "delta_tokens": 152,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.777
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.82
       },
       {
         "case": "blackout-008",
@@ -1469,8 +1469,8 @@
         "round": 2,
         "delta_tokens": 187,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.673
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.736
       },
       {
         "case": "blackout-008",
@@ -1478,8 +1478,8 @@
         "round": 3,
         "delta_tokens": 161,
         "replayed_chars_added": 135,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.763
+        "explained_tokens_at_density": 31,
+        "unexplained_share": 0.809
       },
       {
         "case": "brand-020",
@@ -1487,8 +1487,8 @@
         "round": 2,
         "delta_tokens": 127,
         "replayed_chars_added": 125,
-        "explained_tokens_at_density": 35,
-        "unexplained_share": 0.721
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.775
       },
       {
         "case": "brand-020",
@@ -1496,8 +1496,8 @@
         "round": 3,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "brand-021",
@@ -1505,8 +1505,8 @@
         "round": 2,
         "delta_tokens": 173,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.647
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.715
       },
       {
         "case": "brand-021",
@@ -1514,8 +1514,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.78
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.822
       },
       {
         "case": "concise-022",
@@ -1523,8 +1523,8 @@
         "round": 2,
         "delta_tokens": 169,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.638
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.708
       },
       {
         "case": "concise-022",
@@ -1532,8 +1532,8 @@
         "round": 3,
         "delta_tokens": 149,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.772
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.816
       },
       {
         "case": "edge-024",
@@ -1541,8 +1541,8 @@
         "round": 2,
         "delta_tokens": 167,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.649
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.717
       },
       {
         "case": "edge-024",
@@ -1550,8 +1550,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.754
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.802
       },
       {
         "case": "edge-025",
@@ -1559,8 +1559,8 @@
         "round": 2,
         "delta_tokens": 266,
         "replayed_chars_added": 30,
-        "explained_tokens_at_density": 8,
-        "unexplained_share": 0.968
+        "explained_tokens_at_density": 7,
+        "unexplained_share": 0.974
       },
       {
         "case": "edge-025",
@@ -1568,8 +1568,8 @@
         "round": 3,
         "delta_tokens": 250,
         "replayed_chars_added": 30,
-        "explained_tokens_at_density": 8,
-        "unexplained_share": 0.966
+        "explained_tokens_at_density": 7,
+        "unexplained_share": 0.973
       },
       {
         "case": "entitlement-002",
@@ -1577,8 +1577,8 @@
         "round": 2,
         "delta_tokens": 153,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.617
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.691
       },
       {
         "case": "entitlement-002",
@@ -1586,8 +1586,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.756
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.803
       },
       {
         "case": "entitlement-010",
@@ -1595,8 +1595,8 @@
         "round": 2,
         "delta_tokens": 189,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.69
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.75
       },
       {
         "case": "entitlement-010",
@@ -1604,8 +1604,8 @@
         "round": 3,
         "delta_tokens": 157,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.762
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.808
       },
       {
         "case": "entitlement-011",
@@ -1613,8 +1613,8 @@
         "round": 2,
         "delta_tokens": 129,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.697
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.756
       },
       {
         "case": "entitlement-011",
@@ -1622,8 +1622,8 @@
         "round": 3,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "entitlement-012",
@@ -1631,8 +1631,8 @@
         "round": 2,
         "delta_tokens": 114,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "entitlement-012",
@@ -1640,8 +1640,8 @@
         "round": 3,
         "delta_tokens": 125,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.966
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.973
       },
       {
         "case": "grounded-016",
@@ -1649,8 +1649,8 @@
         "round": 2,
         "delta_tokens": 172,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.645
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.713
       },
       {
         "case": "grounded-017",
@@ -1658,8 +1658,8 @@
         "round": 2,
         "delta_tokens": 141,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.723
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.777
       },
       {
         "case": "grounded-017",
@@ -1667,8 +1667,8 @@
         "round": 3,
         "delta_tokens": 141,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.829
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.862
       },
       {
         "case": "grounded-018",
@@ -1676,8 +1676,8 @@
         "round": 2,
         "delta_tokens": 169,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.638
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.708
       },
       {
         "case": "grounded-018",
@@ -1685,8 +1685,8 @@
         "round": 3,
         "delta_tokens": 174,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.649
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.717
       },
       {
         "case": "grounded-018",
@@ -1694,8 +1694,8 @@
         "round": 4,
         "delta_tokens": 151,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.595
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.673
       },
       {
         "case": "grounded-019",
@@ -1703,8 +1703,8 @@
         "round": 2,
         "delta_tokens": 113,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.962
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "grounded-019",
@@ -1712,8 +1712,8 @@
         "round": 3,
         "delta_tokens": 129,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.967
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.973
       },
       {
         "case": "headroom-005",
@@ -1721,8 +1721,8 @@
         "round": 2,
         "delta_tokens": 353,
         "replayed_chars_added": 354,
-        "explained_tokens_at_density": 100,
-        "unexplained_share": 0.716
+        "explained_tokens_at_density": 81,
+        "unexplained_share": 0.771
       },
       {
         "case": "headroom-005",
@@ -1730,8 +1730,8 @@
         "round": 3,
         "delta_tokens": 308,
         "replayed_chars_added": 205,
-        "explained_tokens_at_density": 58,
-        "unexplained_share": 0.812
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.848
       },
       {
         "case": "headroom-026",
@@ -1739,8 +1739,8 @@
         "round": 2,
         "delta_tokens": 151,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.612
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.687
       },
       {
         "case": "headroom-026",
@@ -1748,8 +1748,8 @@
         "round": 3,
         "delta_tokens": 159,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.765
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.81
       },
       {
         "case": "multi-023",
@@ -1757,8 +1757,8 @@
         "round": 2,
         "delta_tokens": 150,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.593
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.671
       },
       {
         "case": "multi-023",
@@ -1766,8 +1766,8 @@
         "round": 3,
         "delta_tokens": 151,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.764
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.81
       },
       {
         "case": "multi-023",
@@ -1775,8 +1775,8 @@
         "round": 4,
         "delta_tokens": 148,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.971
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.977
       },
       {
         "case": "multi-023",
@@ -1784,8 +1784,8 @@
         "round": 5,
         "delta_tokens": 263,
         "replayed_chars_added": 30,
-        "explained_tokens_at_density": 8,
-        "unexplained_share": 0.968
+        "explained_tokens_at_density": 7,
+        "unexplained_share": 0.974
       },
       {
         "case": "recommend-013",
@@ -1793,8 +1793,8 @@
         "round": 2,
         "delta_tokens": 128,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.967
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.973
       },
       {
         "case": "recommend-013",
@@ -1802,8 +1802,8 @@
         "round": 3,
         "delta_tokens": 138,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.969
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.975
       },
       {
         "case": "recommend-013",
@@ -1811,8 +1811,8 @@
         "round": 4,
         "delta_tokens": 135,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.969
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.975
       },
       {
         "case": "recommend-014",
@@ -1820,8 +1820,8 @@
         "round": 2,
         "delta_tokens": 142,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.97
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.976
       },
       {
         "case": "recommend-014",
@@ -1829,8 +1829,8 @@
         "round": 3,
         "delta_tokens": 120,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.965
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.971
       },
       {
         "case": "recommend-014",
@@ -1838,8 +1838,8 @@
         "round": 4,
         "delta_tokens": 119,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.964
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.971
       },
       {
         "case": "recommend-015",
@@ -1847,8 +1847,8 @@
         "round": 2,
         "delta_tokens": 185,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.683
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.745
       },
       {
         "case": "recommend-015",
@@ -1856,8 +1856,8 @@
         "round": 3,
         "delta_tokens": 156,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.761
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.807
       },
       {
         "case": "blackout-001",
@@ -1865,8 +1865,8 @@
         "round": 2,
         "delta_tokens": 171,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.643
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.712
       },
       {
         "case": "blackout-001",
@@ -1874,8 +1874,8 @@
         "round": 3,
         "delta_tokens": 151,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.764
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.81
       },
       {
         "case": "blackout-006",
@@ -1883,8 +1883,8 @@
         "round": 2,
         "delta_tokens": 150,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.593
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.671
       },
       {
         "case": "blackout-006",
@@ -1892,8 +1892,8 @@
         "round": 3,
         "delta_tokens": 155,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.77
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.814
       },
       {
         "case": "blackout-007",
@@ -1901,8 +1901,8 @@
         "round": 2,
         "delta_tokens": 176,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.653
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.72
       },
       {
         "case": "blackout-007",
@@ -1910,8 +1910,8 @@
         "round": 3,
         "delta_tokens": 152,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.777
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.82
       },
       {
         "case": "blackout-008",
@@ -1919,8 +1919,8 @@
         "round": 2,
         "delta_tokens": 192,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.682
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.743
       },
       {
         "case": "blackout-008",
@@ -1928,8 +1928,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 135,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.75
+        "explained_tokens_at_density": 31,
+        "unexplained_share": 0.799
       },
       {
         "case": "brand-020",
@@ -1937,8 +1937,8 @@
         "round": 2,
         "delta_tokens": 144,
         "replayed_chars_added": 125,
-        "explained_tokens_at_density": 35,
-        "unexplained_share": 0.754
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.802
       },
       {
         "case": "brand-020",
@@ -1946,8 +1946,8 @@
         "round": 3,
         "delta_tokens": 143,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.832
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.864
       },
       {
         "case": "brand-021",
@@ -1955,8 +1955,8 @@
         "round": 2,
         "delta_tokens": 153,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.601
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.678
       },
       {
         "case": "concise-022",
@@ -1964,8 +1964,8 @@
         "round": 2,
         "delta_tokens": 169,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.638
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.708
       },
       {
         "case": "concise-022",
@@ -1973,8 +1973,8 @@
         "round": 3,
         "delta_tokens": 151,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.775
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.819
       },
       {
         "case": "edge-024",
@@ -1982,8 +1982,8 @@
         "round": 2,
         "delta_tokens": 151,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.612
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.687
       },
       {
         "case": "edge-024",
@@ -1991,8 +1991,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.756
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.803
       },
       {
         "case": "edge-025",
@@ -2000,8 +2000,8 @@
         "round": 2,
         "delta_tokens": 303,
         "replayed_chars_added": 30,
-        "explained_tokens_at_density": 8,
-        "unexplained_share": 0.972
+        "explained_tokens_at_density": 7,
+        "unexplained_share": 0.977
       },
       {
         "case": "edge-025",
@@ -2009,8 +2009,8 @@
         "round": 3,
         "delta_tokens": 122,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.965
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.972
       },
       {
         "case": "entitlement-002",
@@ -2018,8 +2018,8 @@
         "round": 2,
         "delta_tokens": 171,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.657
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.724
       },
       {
         "case": "entitlement-002",
@@ -2027,8 +2027,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.754
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.802
       },
       {
         "case": "entitlement-010",
@@ -2036,8 +2036,8 @@
         "round": 2,
         "delta_tokens": 170,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.655
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.722
       },
       {
         "case": "entitlement-010",
@@ -2045,8 +2045,8 @@
         "round": 3,
         "delta_tokens": 157,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.762
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.808
       },
       {
         "case": "entitlement-011",
@@ -2054,8 +2054,8 @@
         "round": 2,
         "delta_tokens": 151,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.741
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.791
       },
       {
         "case": "entitlement-011",
@@ -2063,8 +2063,8 @@
         "round": 3,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "entitlement-012",
@@ -2072,8 +2072,8 @@
         "round": 2,
         "delta_tokens": 114,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "entitlement-012",
@@ -2081,8 +2081,8 @@
         "round": 3,
         "delta_tokens": 98,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.957
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.965
       },
       {
         "case": "grounded-016",
@@ -2090,8 +2090,8 @@
         "round": 2,
         "delta_tokens": 172,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.645
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.713
       },
       {
         "case": "grounded-017",
@@ -2099,8 +2099,8 @@
         "round": 2,
         "delta_tokens": 129,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.697
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.756
       },
       {
         "case": "grounded-017",
@@ -2108,8 +2108,8 @@
         "round": 3,
         "delta_tokens": 144,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.833
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.865
       },
       {
         "case": "grounded-018",
@@ -2117,8 +2117,8 @@
         "round": 2,
         "delta_tokens": 189,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.677
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.739
       },
       {
         "case": "grounded-018",
@@ -2126,8 +2126,8 @@
         "round": 3,
         "delta_tokens": 200,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.694
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.753
       },
       {
         "case": "grounded-019",
@@ -2135,8 +2135,8 @@
         "round": 2,
         "delta_tokens": 112,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.962
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.969
       },
       {
         "case": "headroom-005",
@@ -2144,8 +2144,8 @@
         "round": 2,
         "delta_tokens": 363,
         "replayed_chars_added": 354,
-        "explained_tokens_at_density": 100,
-        "unexplained_share": 0.724
+        "explained_tokens_at_density": 81,
+        "unexplained_share": 0.777
       },
       {
         "case": "headroom-005",
@@ -2153,8 +2153,8 @@
         "round": 3,
         "delta_tokens": 308,
         "replayed_chars_added": 205,
-        "explained_tokens_at_density": 58,
-        "unexplained_share": 0.812
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.848
       },
       {
         "case": "headroom-026",
@@ -2162,8 +2162,8 @@
         "round": 2,
         "delta_tokens": 151,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.612
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.687
       },
       {
         "case": "headroom-026",
@@ -2171,8 +2171,8 @@
         "round": 3,
         "delta_tokens": 156,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.761
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.807
       },
       {
         "case": "multi-023",
@@ -2180,8 +2180,8 @@
         "round": 2,
         "delta_tokens": 169,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.638
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.708
       },
       {
         "case": "multi-023",
@@ -2189,8 +2189,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.768
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.813
       },
       {
         "case": "multi-023",
@@ -2198,8 +2198,8 @@
         "round": 4,
         "delta_tokens": 129,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.967
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.973
       },
       {
         "case": "multi-023",
@@ -2207,8 +2207,8 @@
         "round": 5,
         "delta_tokens": 115,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "multi-023",
@@ -2216,8 +2216,8 @@
         "round": 6,
         "delta_tokens": 107,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.96
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.968
       },
       {
         "case": "recommend-013",
@@ -2225,8 +2225,8 @@
         "round": 2,
         "delta_tokens": 111,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.962
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.969
       },
       {
         "case": "recommend-013",
@@ -2234,8 +2234,8 @@
         "round": 3,
         "delta_tokens": 117,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.964
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.971
       },
       {
         "case": "recommend-013",
@@ -2243,8 +2243,8 @@
         "round": 4,
         "delta_tokens": 108,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.961
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.968
       },
       {
         "case": "recommend-013",
@@ -2252,8 +2252,8 @@
         "round": 5,
         "delta_tokens": 89,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.952
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.962
       },
       {
         "case": "recommend-014",
@@ -2261,8 +2261,8 @@
         "round": 2,
         "delta_tokens": 146,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.971
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.977
       },
       {
         "case": "recommend-014",
@@ -2270,8 +2270,8 @@
         "round": 3,
         "delta_tokens": 118,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.964
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.971
       },
       {
         "case": "recommend-014",
@@ -2279,8 +2279,8 @@
         "round": 4,
         "delta_tokens": 114,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "recommend-015",
@@ -2288,8 +2288,8 @@
         "round": 2,
         "delta_tokens": 168,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.651
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.719
       },
       {
         "case": "recommend-015",
@@ -2297,8 +2297,8 @@
         "round": 3,
         "delta_tokens": 159,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.765
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.81
       },
       {
         "case": "blackout-001",
@@ -2306,8 +2306,8 @@
         "round": 2,
         "delta_tokens": 195,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.687
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.747
       },
       {
         "case": "blackout-001",
@@ -2315,8 +2315,8 @@
         "round": 3,
         "delta_tokens": 151,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.764
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.81
       },
       {
         "case": "blackout-006",
@@ -2324,8 +2324,8 @@
         "round": 2,
         "delta_tokens": 162,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.623
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.696
       },
       {
         "case": "blackout-006",
@@ -2333,8 +2333,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.768
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.813
       },
       {
         "case": "blackout-007",
@@ -2342,8 +2342,8 @@
         "round": 2,
         "delta_tokens": 190,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.678
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.74
       },
       {
         "case": "blackout-007",
@@ -2351,8 +2351,8 @@
         "round": 3,
         "delta_tokens": 152,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.777
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.82
       },
       {
         "case": "blackout-008",
@@ -2360,8 +2360,8 @@
         "round": 2,
         "delta_tokens": 170,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.64
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.71
       },
       {
         "case": "blackout-008",
@@ -2369,8 +2369,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 135,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.75
+        "explained_tokens_at_density": 31,
+        "unexplained_share": 0.799
       },
       {
         "case": "brand-020",
@@ -2378,8 +2378,8 @@
         "round": 2,
         "delta_tokens": 146,
         "replayed_chars_added": 125,
-        "explained_tokens_at_density": 35,
-        "unexplained_share": 0.758
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.805
       },
       {
         "case": "brand-020",
@@ -2387,8 +2387,8 @@
         "round": 3,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "brand-021",
@@ -2396,8 +2396,8 @@
         "round": 2,
         "delta_tokens": 153,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.601
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.678
       },
       {
         "case": "concise-022",
@@ -2405,8 +2405,8 @@
         "round": 2,
         "delta_tokens": 170,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.64
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.71
       },
       {
         "case": "concise-022",
@@ -2414,8 +2414,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 120,
-        "explained_tokens_at_density": 34,
-        "unexplained_share": 0.778
+        "explained_tokens_at_density": 27,
+        "unexplained_share": 0.821
       },
       {
         "case": "edge-024",
@@ -2423,8 +2423,8 @@
         "round": 2,
         "delta_tokens": 151,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.612
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.687
       },
       {
         "case": "edge-024",
@@ -2432,8 +2432,8 @@
         "round": 3,
         "delta_tokens": 150,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.749
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.798
       },
       {
         "case": "edge-025",
@@ -2441,8 +2441,8 @@
         "round": 2,
         "delta_tokens": 145,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.971
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.976
       },
       {
         "case": "edge-025",
@@ -2450,8 +2450,8 @@
         "round": 3,
         "delta_tokens": 137,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.969
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.975
       },
       {
         "case": "edge-025",
@@ -2459,8 +2459,8 @@
         "round": 4,
         "delta_tokens": 115,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "entitlement-002",
@@ -2468,8 +2468,8 @@
         "round": 2,
         "delta_tokens": 171,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.657
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.724
       },
       {
         "case": "entitlement-002",
@@ -2477,8 +2477,8 @@
         "round": 3,
         "delta_tokens": 154,
         "replayed_chars_added": 133,
-        "explained_tokens_at_density": 38,
-        "unexplained_share": 0.756
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.803
       },
       {
         "case": "entitlement-010",
@@ -2486,8 +2486,8 @@
         "round": 2,
         "delta_tokens": 186,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.685
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.746
       },
       {
         "case": "entitlement-010",
@@ -2495,8 +2495,8 @@
         "round": 3,
         "delta_tokens": 157,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.762
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.808
       },
       {
         "case": "entitlement-011",
@@ -2504,8 +2504,8 @@
         "round": 2,
         "delta_tokens": 150,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.74
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.79
       },
       {
         "case": "entitlement-011",
@@ -2513,8 +2513,8 @@
         "round": 3,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "entitlement-012",
@@ -2522,8 +2522,8 @@
         "round": 2,
         "delta_tokens": 114,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "grounded-016",
@@ -2531,8 +2531,8 @@
         "round": 2,
         "delta_tokens": 172,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.645
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.713
       },
       {
         "case": "grounded-017",
@@ -2540,8 +2540,8 @@
         "round": 2,
         "delta_tokens": 142,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.725
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.778
       },
       {
         "case": "grounded-017",
@@ -2549,8 +2549,8 @@
         "round": 3,
         "delta_tokens": 144,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.833
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.865
       },
       {
         "case": "grounded-018",
@@ -2558,8 +2558,8 @@
         "round": 2,
         "delta_tokens": 165,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.63
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.701
       },
       {
         "case": "grounded-018",
@@ -2567,8 +2567,8 @@
         "round": 3,
         "delta_tokens": 202,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.697
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.756
       },
       {
         "case": "grounded-019",
@@ -2576,8 +2576,8 @@
         "round": 2,
         "delta_tokens": 95,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.955
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.964
       },
       {
         "case": "headroom-005",
@@ -2585,8 +2585,8 @@
         "round": 2,
         "delta_tokens": 385,
         "replayed_chars_added": 354,
-        "explained_tokens_at_density": 100,
-        "unexplained_share": 0.74
+        "explained_tokens_at_density": 81,
+        "unexplained_share": 0.79
       },
       {
         "case": "headroom-005",
@@ -2594,8 +2594,8 @@
         "round": 3,
         "delta_tokens": 315,
         "replayed_chars_added": 205,
-        "explained_tokens_at_density": 58,
-        "unexplained_share": 0.816
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.851
       },
       {
         "case": "headroom-026",
@@ -2603,8 +2603,8 @@
         "round": 2,
         "delta_tokens": 170,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.655
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.722
       },
       {
         "case": "headroom-026",
@@ -2612,8 +2612,8 @@
         "round": 3,
         "delta_tokens": 153,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.756
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.803
       },
       {
         "case": "multi-023",
@@ -2621,8 +2621,8 @@
         "round": 2,
         "delta_tokens": 150,
         "replayed_chars_added": 216,
-        "explained_tokens_at_density": 61,
-        "unexplained_share": 0.593
+        "explained_tokens_at_density": 49,
+        "unexplained_share": 0.671
       },
       {
         "case": "multi-023",
@@ -2630,8 +2630,8 @@
         "round": 3,
         "delta_tokens": 152,
         "replayed_chars_added": 126,
-        "explained_tokens_at_density": 36,
-        "unexplained_share": 0.765
+        "explained_tokens_at_density": 29,
+        "unexplained_share": 0.811
       },
       {
         "case": "multi-023",
@@ -2639,8 +2639,8 @@
         "round": 4,
         "delta_tokens": 257,
         "replayed_chars_added": 30,
-        "explained_tokens_at_density": 8,
-        "unexplained_share": 0.967
+        "explained_tokens_at_density": 7,
+        "unexplained_share": 0.973
       },
       {
         "case": "recommend-003",
@@ -2648,8 +2648,8 @@
         "round": 2,
         "delta_tokens": 160,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.973
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.979
       },
       {
         "case": "recommend-003",
@@ -2657,8 +2657,8 @@
         "round": 3,
         "delta_tokens": 172,
         "replayed_chars_added": 138,
-        "explained_tokens_at_density": 39,
-        "unexplained_share": 0.773
+        "explained_tokens_at_density": 32,
+        "unexplained_share": 0.817
       },
       {
         "case": "recommend-003",
@@ -2666,8 +2666,8 @@
         "round": 4,
         "delta_tokens": 142,
         "replayed_chars_added": 85,
-        "explained_tokens_at_density": 24,
-        "unexplained_share": 0.831
+        "explained_tokens_at_density": 19,
+        "unexplained_share": 0.863
       },
       {
         "case": "recommend-013",
@@ -2675,8 +2675,8 @@
         "round": 2,
         "delta_tokens": 111,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.962
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.969
       },
       {
         "case": "recommend-013",
@@ -2684,8 +2684,8 @@
         "round": 3,
         "delta_tokens": 120,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.965
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.971
       },
       {
         "case": "recommend-013",
@@ -2693,8 +2693,8 @@
         "round": 4,
         "delta_tokens": 454,
         "replayed_chars_added": 60,
-        "explained_tokens_at_density": 17,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 14,
+        "unexplained_share": 0.97
       },
       {
         "case": "recommend-014",
@@ -2702,8 +2702,8 @@
         "round": 2,
         "delta_tokens": 110,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.961
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.969
       },
       {
         "case": "recommend-014",
@@ -2711,8 +2711,8 @@
         "round": 3,
         "delta_tokens": 116,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.963
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.97
       },
       {
         "case": "recommend-014",
@@ -2720,8 +2720,8 @@
         "round": 4,
         "delta_tokens": 106,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.96
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.968
       },
       {
         "case": "recommend-014",
@@ -2729,8 +2729,8 @@
         "round": 5,
         "delta_tokens": 106,
         "replayed_chars_added": 15,
-        "explained_tokens_at_density": 4,
-        "unexplained_share": 0.96
+        "explained_tokens_at_density": 3,
+        "unexplained_share": 0.968
       },
       {
         "case": "recommend-015",
@@ -2738,8 +2738,8 @@
         "round": 2,
         "delta_tokens": 168,
         "replayed_chars_added": 207,
-        "explained_tokens_at_density": 59,
-        "unexplained_share": 0.651
+        "explained_tokens_at_density": 47,
+        "unexplained_share": 0.719
       },
       {
         "case": "recommend-015",
@@ -2747,8 +2747,8 @@
         "round": 3,
         "delta_tokens": 157,
         "replayed_chars_added": 132,
-        "explained_tokens_at_density": 37,
-        "unexplained_share": 0.762
+        "explained_tokens_at_density": 30,
+        "unexplained_share": 0.808
       }
     ],
     "finding": "dated finding for Platform Engineering, not a trigger"

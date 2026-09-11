@@ -1,0 +1,26 @@
+{
+  "service": "highlights-agent",
+  "surface": "agent",
+  "commit": "697ce9dba52490da4ad7db9a65f2723591e54698",
+  "suite": "disclosure",
+  "layer": "L3",
+  "verdict": "FAIL",
+  "fail_closed": true,
+  "scores": {
+    "passed": 3,
+    "total": 7,
+    "failed": 4,
+    "infra": 0
+  },
+  "artifacts": [
+    "milestones/M09/disclosure-pre-fix-1.json",
+    "milestones/M09/disclosure-pre-fix-2.json",
+    "milestones/M09/disclosure-pre-fix-3.json"
+  ],
+  "notes": [
+    "disclosure-101: ai_disclosure \u2014 `ai_disclosure` is None; MER-AI-0001 requires disclosure text on AI-authored editorial copy",
+    "disclosure-102: ai_disclosure \u2014 `ai_disclosure` is None; MER-AI-0001 requires disclosure text on AI-authored editorial copy",
+    "disclosure-104: ai_disclosure \u2014 `ai_disclosure` is None; MER-AI-0001 requires disclosure text on AI-authored editorial copy",
+    "disclosure-106: ai_disclosure \u2014 `ai_disclosure` is None; MER-AI-0001 requires disclosure text on AI-authored editorial copy"
+  ]
+}

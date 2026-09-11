@@ -1,0 +1,20 @@
+{
+  "service": "highlights-agent",
+  "surface": "agent",
+  "commit": "55f32a8cce11b05cf7a0815bbf9600eba5ed74f3",
+  "suite": "disclosure",
+  "layer": "L3",
+  "verdict": "PASS",
+  "fail_closed": true,
+  "scores": {
+    "passed": 7,
+    "total": 7,
+    "failed": 0,
+    "infra": 0
+  },
+  "artifacts": [
+    "milestones/M09/disclosure-post-fix-1.json",
+    "milestones/M09/disclosure-post-fix-2.json",
+    "milestones/M09/disclosure-post-fix-3.json"
+  ]
+}

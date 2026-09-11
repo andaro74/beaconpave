@@ -113,15 +113,25 @@ found by running that check rather than by reading. Withdrawn in PR 2 alongside
 `evals/golden/README.md`, in the same diff, because the round-trip admits no
 other order.
 
-Two sites still carry the withdrawn wording and are **dated to the PR that
-carries the fix**:
+**All four sites are now withdrawn.** The two that were dated to the PR carrying
+the fix were withdrawn there, in the same diff as the fix and for the reasons
+that dated them:
 
-| site | why not here |
-|---|---|
-| `../golden/cases.yaml`'s header comment | `milestones/M08/context-census.json` digests the golden cases file, and `milestones/M08b/fresh-join.json` digests both that file and the census record. Editing a comment in it re-produces **five** committed records under `milestones/` — the closure is computed by `test_the_records_the_fix_moves_are_derived_and_not_listed`, after being hand-listed wrongly twice — which this milestone's Definition of done reserves to the PR that moves them anyway |
-| `../answer.schema.json`'s `ai_disclosure` description | the same cascade, **plus** it is model-facing: the file is rendered into both arms' prompts through `{schema}`, and it is the one stale-M07 site the model actually reads — *"Null until M07 disposes that rule"*, text telling the model to leave the field null. SPEC/09 constraint 2 reserves a change to what the model sees to the fix, so it moves **as part of** the fix and its cost is priced by the prompt-delta test |
+| site | withdrawn in | what it cost |
+|---|---|---|
+| `../golden/cases.yaml`'s header comment | M09 PR 4 | the edit re-produces **five** committed records under `milestones/` — the closure `test_the_records_the_fix_moves_are_derived_and_not_listed` computes, after being hand-listed wrongly twice. Those five move in this PR anyway, for the schema edit beside it |
+| `../answer.schema.json`'s `ai_disclosure` description | M09 PR 4 | the same cascade, **plus** it is model-facing: rendered into both arms' prompts through `{schema}`, and it carried *"Null until M07 disposes that rule"* — text instructing the model to leave the field null. SPEC/09 constraint 2 reserves a change to what the model sees to the fix, so it moved **as part of** the fix and its cost is priced by the prompt-delta test at **200 tokens per call of an admissible 306** |
 
-Both are asserted as still-carrying by
-`tests/test_m09_goldens_denominator.py::test_the_two_digested_sites_are_named_with_their_pr_rather_than_left_silent`,
-so the day they are withdrawn that test is what tells the PR to update this
-table — a pointer to a paid debt is the same stale sentence one milestone later.
+**And a FIFTH site the count missed**, found by running the scaffold's round-trip
+check rather than by reading: `templates/agent-tools/evals/answer.schema.json.tmpl`,
+which every future service inherits and which
+`tests/test_scaffold.py::test_the_answer_schema_round_trips_to_the_reference`
+couples byte for byte to the reference schema. It is the same shape as the fourth
+site ADR-075 amendment 1 found for the reservation — a scaffold template standing
+behind a service file nobody counted — and it was found the same way, one
+milestone later, by a check going red. Withdrawn in PR 4, in the same diff,
+because the round-trip admits no other order.
+
+`tests/test_m09_goldens_denominator.py::test_the_two_digested_sites_are_withdrawn_and_the_template_with_them`
+now asserts the withdrawal in all directions, so a site cannot quietly acquire the
+wording back.

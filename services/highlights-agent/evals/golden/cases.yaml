@@ -6,7 +6,13 @@
 #
 # Authored at M00a, BEFORE the control ran. Deterministic asserts carry the
 # blocking weight; the judge adds nuance and does not exist until M03 (ADR-012).
-# `disclosure-004` is reserved for M07 — the gap is the reservation.
+# **The `disclosure-004` reservation is WITHDRAWN** (M09 PR 4, ADR-075 D4). This line
+# held the id open for a milestone that never took it, through three renumberings — a
+# stated protection that is absent, which CLAUDE.md ranks worse than a missing one.
+# MER-AI-0001's cases live in `../disclosure/cases.yaml`, their own SUITE, numbered
+# from 101 so that no reader joining the two files can conclude the id was quietly
+# filled. The id is not reused anywhere; the gap in the numbering is a gap and
+# nothing more, and this denominator stays 25.
 #
 # Owning seat: AI Quality. Two-key on every change.
 

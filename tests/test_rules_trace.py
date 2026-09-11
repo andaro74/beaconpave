@@ -94,6 +94,36 @@ def _disposed(ref: str = PACK_REF) -> dict:
     return rule
 
 
+#: `disposition.decided_by` as the registry carried it from M00a until PR 4 --
+#: the state the `^unassigned\b` arm of the schema exists to keep sayable.
+#: **A literal, not a read of the committed rule.** Every assertion in this file
+#: that named the live registry's UNDISPOSED shape went red the moment PR 4
+#: disposed it, which is a guard coupled to its own data rather than to the
+#: property it names: the schema must accept an undisposed rule whether or not
+#: this registry happens to hold one today.
+UNDISPOSED_DECIDED_BY = "unassigned \u2014 logged by Legal/S&P, awaiting disposition"
+
+
+def _undisposed() -> dict:
+    """The committed rule as it stood BEFORE the disposition: `proposed`, with one
+    explicit reasoned `no-control` record.
+
+    Built here for the same reason `_disposed` was built here before PR 4 -- and
+    the mirror image of it. PR 4 flipped the registry, so the branches that read
+    the undisposed shape have to be planted or they stop being exercised at all;
+    deleting them instead would retire the `no-control` walk, `BY DESIGN`, and the
+    schema's `unassigned` arm together, in the diff that made them unreachable
+    from the live data."""
+    rule = json.loads(json.dumps(COMMITTED))
+    rule["status"] = "proposed"
+    rule["disposition"]["decided_by"] = UNDISPOSED_DECIDED_BY
+    rule["disposition"]["decided_on"] = "2026-08-15"
+    rule["disposition"]["controls"] = [
+        {"type": "no-control",
+         "ref": "none yet \u2014 the disposition PR replaces this with the L3 eval pack"}]
+    return rule
+
+
 # --- no immortal rules --------------------------------------------------------
 
 def test_source_effective_is_required_by_the_schema():
@@ -189,12 +219,37 @@ def test_the_missing_fields_sense_is_red_but_is_not_called_orphaning(tmp_path):
     assert rules.orphan_rules(directory, ROOT) == []
 
 
-def test_a_no_control_record_is_not_orphaning():
-    """The committed rule's shape since M00a, and reading it as orphaning would
-    refuse the very disposition the schema names as permitted — the honest
-    *we have not enforced this yet* record."""
+def test_a_no_control_record_is_not_orphaning(tmp_path):
+    """Reading a `no-control` record as orphaning would refuse the very
+    disposition the schema names as permitted — the honest *we have not enforced
+    this yet* record MER-AI-0001 carried from M00a to M09 PR 4.
+
+    **Planted, because PR 4 disposed the only rule in the registry.** Until then
+    this read `enforcing_controls(COMMITTED) == []` off the live file, and the
+    disposition made it red — the assertion was about this registry's state and
+    not about the property. The property is that a `no-control` record is not an
+    orphan, and it is now asserted on a rule that has one."""
+    assert rules.enforcing_controls(_undisposed()) == [], (
+        "a `no-control` record is being read as an enforcing control, so the honest "
+        "undisposed record would be reported as an orphan rule")
+    assert rules.orphan_rules(_registry(tmp_path, _undisposed()), ROOT) == []
+
+
+def test_the_committed_rules_enforcing_control_resolves_and_is_not_an_orphan():
+    """The other side of the same coin, on the live registry after PR 4.
+
+    `orphan_rules` bit on nothing while the only rule carried a `no-control`
+    record — this file's own module docstring recorded that vacuity and dated its
+    end to *"the disposition PR, which is the first time an enforcing ref
+    exists."* This is that assertion: the ref is enforcing, it resolves, and the
+    check that would refuse it has live input at last."""
+    controls = rules.enforcing_controls(COMMITTED)
+    assert [c["type"] for c in controls] == ["eval_pack"], controls
+    assert controls[0]["ref"] == PACK_REF and controls[0]["layer"] == "L3", controls[0]
+    assert rules._resolves(controls[0]["ref"], ROOT), (
+        f"the disposition names {controls[0]['ref']!r} and it does not resolve in this "
+        "tree — a named control that is not there is the orphan-rule shape")
     assert rules.orphan_rules(REGISTRY, ROOT) == []
-    assert rules.enforcing_controls(COMMITTED) == []
 
 
 def test_a_ref_escaping_the_repository_does_not_resolve(tmp_path):
@@ -258,20 +313,65 @@ def test_rules_validate_reports_both_halves(tmp_path, monkeypatch, capsys):
 
 # --- the chain ----------------------------------------------------------------
 
-def test_the_committed_rule_traces_as_far_as_it_goes_and_says_so():
-    """PR 2 disposes nothing: the rule is `proposed` with a `no-control` record,
-    so the walk stops at the control and reaches no case and no assert.
+def test_the_undisposed_rule_traces_as_far_as_it_goes_and_says_so(tmp_path):
+    """The walk over a `proposed` rule whose only record is `no-control`: it stops
+    at the control and reaches no case and no assert.
 
     **NOT RESOLVED, and exit 1.** A lookup that reported a resolved chain over
     the undisposed state would be reporting success over the very thing the
     milestone exists to change — and the first version of `Chain.resolved` did
-    exactly that, because it asked only whether there were defects."""
-    chain = rules.trace("MER-AI-0001", REGISTRY, ROOT)
+    exactly that, because it asked only whether there were defects.
+
+    **Planted at PR 4**, where it had read the committed registry. The rule is
+    disposed now, so reading it live would assert the opposite of what the file
+    says; the branch is the thing worth keeping, and it needs a rule in that state
+    to walk."""
+    chain = rules.trace("MER-AI-0001", _registry(tmp_path, _undisposed()), ROOT)
     assert chain.rule is not None and not chain.defects
     assert not chain.resolved
     kinds = [s.kind for s in chain.steps if s.kind not in ANNOTATIONS]
     assert kinds == ["source", "owner", "control"]
     assert "NOT RESOLVED" in rules.render(chain)
+
+
+def test_the_committed_rule_traces_from_the_rule_to_its_asserts():
+    """**Row 1a, over the real record.** The chain reader run on the registry as
+    PR 4 disposed it, with no step supplied by hand and no planted fixture: rule ->
+    `disposition.controls[].ref` -> a file that exists -> every case -> the assert
+    keys each carries.
+
+    This is the assertion the plan-walk table dates to PR 4 (*"a test walking
+    `disposition.controls[].ref` to a file that exists"*), and it is the one
+    reading in this file that would have been vacuous before the disposition and
+    is not now.
+
+    **And it reads ADR-075 decision 3's requirement off the render**, because that
+    decision says the disposition must *"say plainly which service and which
+    surface the rule binds"*: the service comes from the control's path and the
+    surface from the `scope` record PR 2 wrote, and a reader of `pave rules trace`
+    must meet both."""
+    chain = rules.trace("MER-AI-0001", REGISTRY, ROOT)
+    assert chain.rule is not None and not chain.defects, chain.defects
+    assert chain.resolved, "the committed disposition does not walk to an assert"
+    kinds = [s.kind for s in chain.steps if s.kind not in ANNOTATIONS]
+    assert kinds[:4] == ["source", "owner", "control", "binds"], kinds
+
+    committed_cases = yaml.safe_load((ROOT / PACK_REF).read_text(encoding="utf-8"))
+    cases = [s for s in chain.steps if s.kind == "case"]
+    assert len(cases) == len(committed_cases) >= 5, (
+        f"the walk reached {len(cases)} of the pack's {len(committed_cases)} cases")
+    assert all("ai_disclosure" in s.detail for s in cases), [s.detail for s in cases]
+
+    rendered = rules.render(chain)
+    assert "chain: RESOLVED" in rendered and "NOT RESOLVED" not in rendered
+    # The service, named by the disposition rather than inferred by the reader.
+    assert next(s for s in chain.steps if s.kind == "binds").ref == "highlights-agent"
+    assert "highlights-agent" in rendered
+    # The surface, named by the scope record the same lookup prints.
+    assert "editorial copy" in rendered and "previews" in rendered, (
+        "the lookup does not print the surface the rule binds, so a reader of the "
+        "disposition meets the service and not what it covers (ADR-075 decision 3)")
+    assert "status enforced" in rendered
 
 
 def test_a_disposed_rule_walks_all_the_way_to_the_asserts(tmp_path):
@@ -494,9 +594,15 @@ def _trace_exit(rule_id: str, registry=None) -> int:
 
 
 def test_a_resolved_chain_exits_zero(tmp_path, monkeypatch):
-    """Driven through `rules_trace` rather than the subprocess, because the
-    committed registry is undisposed until PR 4 and this is the branch that has
-    no committed input yet."""
+    """Driven through `rules_trace` rather than the subprocess, over a PLANTED
+    disposed registry.
+
+    It was written this way because the committed registry was undisposed and this
+    branch had no committed input. PR 4 gave it one, and the planted form is kept
+    rather than replaced: `test_the_committed_command_exits_zero_over_the_real_record`
+    below is the subprocess reading over the live file, and this one keeps the
+    branch exercised on a registry that is not this repository's, so the day the
+    live rule is retired the exit-0 path still has a test."""
     from pave import cli
 
     directory = _registry(tmp_path, _disposed())
@@ -513,14 +619,56 @@ def test_a_resolved_chain_exits_zero(tmp_path, monkeypatch):
     assert exc.value.code == 0
 
 
-def test_an_undisposed_rule_exits_one_and_says_it_is_by_design():
+def test_an_undisposed_rule_exits_one_and_says_it_is_by_design(tmp_path, monkeypatch):
     """Exit 1 is right — the chain does not resolve — but the OUTPUT must let a
-    reader tell "working as intended" from "broken". Today this is the only rule
-    in the registry, so the command's success rate on real input is 0%, and a
-    bare NOT RESOLVED reads as a defect in the command."""
-    assert _trace_exit("MER-AI-0001") == 1
-    rendered = rules.render(rules.trace("MER-AI-0001", REGISTRY, ROOT))
+    reader tell "working as intended" from "broken". While MER-AI-0001 was the
+    only rule in the registry the command's success rate on real input was 0%, and
+    a bare NOT RESOLVED read as a defect in the command.
+
+    **Planted at PR 4, in the diff that ended that state.** This read the live
+    registry and asserted exit 1; the disposition makes the live answer 0, so the
+    reading moved to a rule in the state the assertion is about. Deleting it
+    instead would have retired `BY DESIGN` — the whole of the distinction — in the
+    diff that made it unreachable from committed data, which is this milestone's
+    own *stated and absent* shape."""
+    from pave import cli
+
+    directory = _registry(tmp_path, _undisposed())
+    real_trace = rules.trace
+    monkeypatch.setattr(cli.rules_mod, "trace",
+                        lambda *a, **k: real_trace("MER-AI-0001", directory, ROOT))
+    with pytest.raises(SystemExit) as exc:
+        cli.rules_trace(["MER-AI-0001"])
+    assert exc.value.code == 1
+    rendered = rules.render(real_trace("MER-AI-0001", directory, ROOT))
     assert "BY DESIGN" in rendered and "NOT RESOLVED" in rendered
+
+
+def test_the_committed_command_exits_zero_over_the_real_record():
+    """**The demo artifact's first command, run against the disposed registry.**
+
+    `python -m pave.cli rules trace MER-AI-0001` in a subprocess — the real
+    command, the real file, no monkeypatch and no `tmp_path`. Until PR 4 this
+    command exited 1 on every input this repository had, and SPEC/09's *Demo
+    artifact* section published that as correct-for-now. This is the reading that
+    retires that sentence.
+
+    The subprocess matters: `test_a_resolved_chain_exits_zero` drives
+    `cli.rules_trace` in-process over a planted registry, so it cannot catch a
+    module-level failure — an import error, a missing dependency, a `__main__`
+    dispatch that never reaches the subcommand. This is the one assertion in the
+    file that the demo command actually runs."""
+    import subprocess
+
+    completed = subprocess.run(
+        [sys.executable, "-m", "pave.cli", "rules", "trace", "MER-AI-0001"],
+        cwd=str(ROOT), capture_output=True, text=True)
+    assert completed.returncode == 0, (
+        f"`pave rules trace MER-AI-0001` exited {completed.returncode} over the "
+        f"committed registry. MER-AI-0001 is disposed: a resolved chain exits 0, and "
+        f"claim 6's own demo command going red is the failure mode the WALKED state "
+        f"was introduced to avoid.\n{completed.stdout}\n{completed.stderr}")
+    assert "chain: RESOLVED" in completed.stdout, completed.stdout
 
 
 def test_the_registry_carries_the_dispositions_limit_and_the_lookup_prints_it():
@@ -766,11 +914,13 @@ def test_scope_and_disposition_decided_by_must_name_a_real_seat():
     # `unassigned — …` on the committed rule and must remain so: PR 2 disposes
     # nothing, and a schema that refused the state the registry is actually in
     # would have been closed by loosening it back to any string at all.
-    undisposed = _disposed()
-    undisposed["disposition"]["decided_by"] = COMMITTED["disposition"]["decided_by"]
+    undisposed = _undisposed()
     assert undisposed["disposition"]["decided_by"].startswith("unassigned")
     assert _validates(undisposed), (
-        "the schema refuses the undisposed disposition the registry carries today")
+        "the schema refuses an undisposed disposition. PR 4 disposed the only rule in "
+        "this registry and the arm must survive that: an undisposed rule is a state the "
+        "registry will be in again, and a schema that refuses it gets loosened back to "
+        "any string at all.")
 
 
 def test_rules_validate_refuses_a_date_that_is_not_one(tmp_path, monkeypatch):

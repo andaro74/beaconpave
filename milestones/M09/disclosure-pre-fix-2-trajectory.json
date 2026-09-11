@@ -1,0 +1,256 @@
+{
+  "disclosure-101": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Jefferson Derby tonight",
+          "brand": "meridian-sports",
+          "type": "live-event"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      },
+      {
+        "round": 2,
+        "seq": 2,
+        "tool": "entitlement-check",
+        "args": {
+          "title_id": "t001",
+          "plan": "sports-tier",
+          "dma": "north-haven"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      }
+    ],
+    "tool_records": [
+      "2026-09-11/highlights-agent/disclosure-101-m09-disclosure-pre-2.001.json",
+      "2026-09-11/highlights-agent/disclosure-101-m09-disclosure-pre-2.002.json"
+    ],
+    "decision": "allowed"
+  },
+  "disclosure-102": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Granite Falls Classic replay",
+          "brand": "meridian-sports",
+          "type": "vod"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      },
+      {
+        "round": 2,
+        "seq": 2,
+        "tool": "entitlement-check",
+        "args": {
+          "title_id": "t003",
+          "plan": "base",
+          "dma": "granite-falls"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      }
+    ],
+    "tool_records": [
+      "2026-09-11/highlights-agent/disclosure-102-m09-disclosure-pre-2.001.json",
+      "2026-09-11/highlights-agent/disclosure-102-m09-disclosure-pre-2.002.json"
+    ],
+    "decision": "allowed"
+  },
+  "disclosure-103": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Cedar Point Rowing Finals",
+          "brand": "meridian-sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      },
+      {
+        "round": 2,
+        "seq": 2,
+        "tool": "entitlement-check",
+        "args": {
+          "title_id": "t005",
+          "plan": "sports-tier",
+          "dma": "cedar-point"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      }
+    ],
+    "tool_records": [
+      "2026-09-11/highlights-agent/disclosure-103-m09-disclosure-pre-2.001.json",
+      "2026-09-11/highlights-agent/disclosure-103-m09-disclosure-pre-2.002.json"
+    ],
+    "decision": "allowed"
+  },
+  "disclosure-104": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Jefferson Derby",
+          "brand": "meridian-sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      },
+      {
+        "round": 2,
+        "seq": 2,
+        "tool": "entitlement-check",
+        "args": {
+          "title_id": "t001",
+          "plan": "sports-tier",
+          "dma": "lake-adair"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      }
+    ],
+    "tool_records": [
+      "2026-09-11/highlights-agent/disclosure-104-m09-disclosure-pre-2.001.json",
+      "2026-09-11/highlights-agent/disclosure-104-m09-disclosure-pre-2.002.json"
+    ],
+    "decision": "allowed"
+  },
+  "disclosure-106": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Jefferson Derby",
+          "brand": "meridian-sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      },
+      {
+        "round": 2,
+        "seq": 2,
+        "tool": "entitlement-check",
+        "args": {
+          "title_id": "t001",
+          "plan": "sports-tier",
+          "dma": "north-haven"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      }
+    ],
+    "tool_records": [
+      "2026-09-11/highlights-agent/disclosure-106-m09-disclosure-pre-2.001.json",
+      "2026-09-11/highlights-agent/disclosure-106-m09-disclosure-pre-2.002.json"
+    ],
+    "decision": "allowed"
+  },
+  "disclosure-105": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Jefferson Derby",
+          "brand": "meridian-sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      },
+      {
+        "round": 2,
+        "seq": 2,
+        "tool": "entitlement-check",
+        "args": {
+          "title_id": "t001",
+          "plan": "base",
+          "dma": "port-william"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      }
+    ],
+    "tool_records": [
+      "2026-09-11/highlights-agent/disclosure-105-m09-disclosure-pre-2.001.json",
+      "2026-09-11/highlights-agent/disclosure-105-m09-disclosure-pre-2.002.json"
+    ],
+    "decision": "allowed"
+  },
+  "disclosure-107": {
+    "trajectory": [
+      {
+        "round": 1,
+        "seq": 1,
+        "tool": "catalog-search",
+        "args": {
+          "query": "Cedar Point Rowing Finals",
+          "brand": "meridian-sports"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      },
+      {
+        "round": 2,
+        "seq": 2,
+        "tool": "entitlement-check",
+        "args": {
+          "title_id": "t005",
+          "plan": "sports-tier",
+          "dma": "cedar-point"
+        },
+        "decision": "allowed",
+        "mechanism": "none",
+        "reasons": [],
+        "executed": true
+      }
+    ],
+    "tool_records": [
+      "2026-09-11/highlights-agent/disclosure-107-m09-disclosure-pre-2.001.json",
+      "2026-09-11/highlights-agent/disclosure-107-m09-disclosure-pre-2.002.json"
+    ],
+    "decision": "allowed"
+  }
+}

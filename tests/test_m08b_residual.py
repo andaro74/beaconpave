@@ -70,21 +70,79 @@ def test_the_two_identities_and_the_reading(reader):
     assert rec["B_read_from"] == "usage.calls[0].tokens_in"
     # E and S by key from the census record: the system block's estimate plus
     # the case's own viewer turn at the census's chars-per-token; the specs' total.
-    assert est["system_prompt_tokens_est"] == 793 and est["S"] == 603
-    assert est["viewer_turn_tokens_est"] == 41 and est["E"] == 834
-    assert est["E_band"] == [830, 835] and est["S_band"] == [600, 604]
+    assert est["system_prompt_tokens_est"] == 909 and est["S"] == 552
+    assert est["viewer_turn_tokens_est"] == 37 and est["E"] == 946
+    assert est["E_band"] == [942, 947] and est["S_band"] == [549, 552]
+    # **A and B are MEASURED and did not move.** Everything above is estimated from
+    # HEAD's committed prompt, and M09 PR 4 moved that prompt — so every estimate
+    # on this record was re-priced by an edit in a later milestone while the two
+    # figures the run actually produced stood still. That contrast is the point of
+    # asserting them together.
     assert att["A"] == 1980 and att["A_values"] == [1980, 1980, 1980] and att["B"] == 1470
-    assert att["D"] == 636 and att["F"] == -93
-    assert att["residual_A_minus_E_minus_S"] == 543 == att["D"] + att["F"]
+    assert att["D"] == 524 and att["F"] == -42
+    assert att["residual_A_minus_E_minus_S"] == 482 == att["D"] + att["F"]
     assert att["identity_holds"]
     assert att["F_sign"] == "negative" and att["D_sign"] == "non-negative"
-    assert att["shares_of_abs"] == {"D": 0.872, "F": 0.128}
+    assert att["shares_of_abs"] == {"D": 0.926, "F": 0.074}
     assert att["reading"].startswith("tokeniser density")
     assert att["downward_trigger"]["armed"] is False
     growth = rec["per_round_growth"]
-    assert growth["available"] and growth["chars_per_token_measured"] == 1.914
-    assert len(growth["rows"]) == 121 and len(growth["more_than_a_quarter_unexplained"]) == 10
+    assert growth["available"] and growth["chars_per_token_measured"] == 2.372
+    assert len(growth["rows"]) == 121 and len(growth["more_than_a_quarter_unexplained"]) == 18
     assert growth["finding"].startswith("dated finding")
+
+
+#: What this record read before M09 PR 4 moved `TOOL_SYSTEM`, and what it reads
+#: after. **No run was taken between the two.**
+PRE_FIX_SHARES = {"D": 0.071, "F": 0.929}
+POST_FIX_SHARES = {"D": 0.214, "F": 0.786}
+
+
+def test_the_estimates_are_priced_against_heads_prompt_and_this_record_has_no_era_guard(reader):
+    """**The finding PR 4 leaves behind, asserted so it cannot be forgotten.**
+
+    `milestones/M08/residual-differential.json` carries an `m02_era_text` block:
+    it rebuilds the prompt as it stood at the run's commit, compares it to HEAD,
+    and sets `identical_to_head`. When M09 PR 4 moved `TOOL_SYSTEM`, that record
+    went red on its own guard and the divergence is now on the record.
+
+    **This record has no such block.** `E` and `S` are estimated from HEAD's
+    committed prompt and joined to `A` and `B`, which M08b measured. Moving the
+    prompt therefore re-prices M08b's published attribution with nothing to say
+    it happened: the committed record read *"the residual is provider-side
+    framing, 501 of 463 signed (92.9%)"* and re-derives to **552 of 402 (78.6%)**
+    after a prompt edit in a later milestone. On the planted fixture the same
+    edit moved the shares from `{PRE_FIX_SHARES}` to `{POST_FIX_SHARES}`.
+
+    Two sibling records, one input, one identical hazard — and only one of them
+    guarded. That is CLAUDE.md's *stated and absent* ranking with the roles
+    reversed: here the protection is not stated at all, which is the honest
+    failure, and the reason this test states it.
+
+    **It asserts the gap rather than closing it.** Closing it means giving this
+    reader an era block, which edits a file under `milestones/M08b/` that SPEC/09's
+    Definition of done reserves to re-production — so it is a dated debt (Platform
+    Engineering + AI Quality; trigger: the next PR that opens
+    `milestones/M08b/residual_attribution.py`) and this is the check that makes
+    the next reader meet it."""
+    committed = json.loads(RECORD.read_text(encoding="utf-8"))
+    assert "m02_era_text" not in committed and "era_text" not in committed, (
+        "this record has grown an era block. If a PR closed the debt, delete this test "
+        "in that diff and assert the guard instead — a pointer to a paid debt is the "
+        "same stale sentence one milestone later.")
+
+    differential = json.loads(
+        (ROOT / "milestones" / "M08" / "residual-differential.json").read_text(encoding="utf-8"))
+    assert differential["m02_era_text"]["identical_to_head"] is False, (
+        "the sibling's era guard reports identity with HEAD, so the divergence this "
+        "test describes is gone and the contrast it draws is stale")
+
+    # And the record really is priced against HEAD's prompt rather than the run's:
+    # the estimate follows the committed text, so it moved when the text did.
+    assert committed["estimates"]["system_prompt_tokens_est"] == 909, (
+        "the system-prompt estimate is not the post-fix one, so this record is not "
+        "being derived from HEAD's prompt and the hazard above is not the live one")
+    assert PRE_FIX_SHARES != POST_FIX_SHARES
 
 
 def test_a_calibration_that_offered_tools_is_refused(reader, planted):
