@@ -1,7 +1,7 @@
 {
   "service": "highlights-agent",
   "surface": "agent",
-  "commit": "697ce9dba52490da4ad7db9a65f2723591e54698",
+  "commit": "55f32a8cce11b05cf7a0815bbf9600eba5ed74f3",
   "suite": "disclosure",
   "layer": "L3",
   "verdict": "PASS",
