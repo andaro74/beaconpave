@@ -303,21 +303,21 @@ goldens evidence*; *the M08 census — the reader and record the `tokens_in` cei
 derived from, and M08b's and M09's readers, records, fixture and tests*.
 
 Two-Key-Disposition: ai-quality
-Rationale: The entry is a control run recorded as-run and not edited; the baseline it
+Two-Key-Rationale: The entry is a control run recorded as-run and not edited; the baseline it
 is read against is M08b's published entry, byte for byte, and no case, tier,
 threshold or baseline moved. F4 fired and is recorded as fired; the count is reported
 after it and labelled a side-prediction, with a check pinning that order. The 10/25
 in row 09 is what the entry records.
 
 Two-Key-Disposition: platform-eng
-Rationale: The pre-flight is identical to PR 4's on all sixteen lines, the deployed
+Two-Key-Rationale: The pre-flight is identical to PR 4's on all sixteen lines, the deployed
 bundle digests equal the tree, no deploy was taken, and the diff over the guardrail,
 policy, corpora, tiers, topics, catalog and both model-facing sites is empty. The
 `fresh_join.py` change is the render path only and moves no record; `f4.py` writes
 nothing. `gates.budgets.p95_ms` and `tokens_in` do not move.
 
 Two-Key-Disposition: security
-Rationale: No guardrail, policy, corpus or topic moved and no probe ran. The refusal
+Two-Key-Rationale: No guardrail, policy, corpus or topic moved and no probe ran. The refusal
 census is recorded as-run: 1 by majority in band, and two newly-refused cases on
 `TOPIC:entitlement-circumvention` on the answer channel are handed to M09b as a topic
 false-positive finding rather than diagnosed here. The G4 store-reach guard refused
