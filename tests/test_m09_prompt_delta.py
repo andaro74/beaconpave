@@ -51,6 +51,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import pathlib
+import subprocess
 import sys
 
 import pytest
@@ -210,6 +211,16 @@ PRE_FIX_TOOL_SPECS_SHA256 = "40152facb40524ae1d3a4d83d5dab8c785db036b47f72a434a2
 PRE_FIX_CHARS_PER_TOKEN = 3.373
 
 
+#: The committed synth snapshot, and the one `tests/test_iam_assertions.py`
+#: drift-gates. **Not `platform/infra/cdk.out/`**, which `.gitignore` excludes:
+#: the first version of the derivation below read that path, which exists on a
+#: machine where a synth has run and in no clone at all, so the test passed here
+#: and failed on CI with `FileNotFoundError`. A derivation that reads a build
+#: artifact is a hand-typed tuple with extra steps.
+GATEWAY_SNAPSHOT = (ROOT / "platform" / "infra" / "tests" / "fixtures"
+                    / "BeaconpaveGateway.template.json")
+
+
 def routed_tools() -> tuple:
     """The tools the gateway routes, read from the committed synth snapshot.
 
@@ -225,8 +236,8 @@ def routed_tools() -> tuple:
     unpriced. `pave.infra.routed_tools` reads the snapshot ADR-017 already
     drift-gates against a re-synthesis, so the deployment is the authority."""
     from pave import infra
-    snapshot = ROOT / "platform" / "infra" / "cdk.out" / "BeaconpaveGateway.template.json"
-    return tuple(sorted(infra.routed_tools(json.loads(snapshot.read_text(encoding="utf-8")))))
+    return tuple(sorted(infra.routed_tools(json.loads(
+        GATEWAY_SNAPSHOT.read_text(encoding="utf-8")))))
 
 
 def rendered_per_call_payload(census) -> str:
@@ -553,3 +564,42 @@ def test_the_committed_prompts_delta_fits(census):
         f"a per-call delta of {delta} puts {who} at {over}, over the {CEILING} ceiling. "
         f"The admissible delta is {ADMISSIBLE_DELTA}. The ceiling does not move for a fix "
         "(SPEC/09 constraint 1): the FIX is rewritten.")
+
+
+def test_the_snapshot_the_estimator_reads_is_committed_and_not_a_build_artifact():
+    """**`exists()` is the wrong question, and asking it is how this shipped.**
+
+    The derivation below replaced a hand-typed tuple with "read it from the
+    committed synth snapshot" and pointed at `platform/infra/cdk.out/`, which
+    `.gitignore` excludes. That directory exists on a machine where a synth has
+    run -- this one -- and in no clone and on no CI runner, so the local suite
+    passed and CI failed with `FileNotFoundError`. Restoring the bad path here is
+    **silent** against any test that only reads the file, because on this machine
+    both paths resolve.
+
+    So the question is asked of git rather than of the filesystem: is this path
+    tracked? A derivation that reads an untracked build artifact is a hand-typed
+    tuple with extra steps and a worse failure mode -- it does not go stale, it
+    goes missing, and only somewhere else."""
+    rel = GATEWAY_SNAPSHOT.relative_to(ROOT).as_posix()
+    tracked = subprocess.run(["git", "ls-files", "--error-unmatch", rel],
+                             cwd=str(ROOT), capture_output=True, text=True)
+    assert tracked.returncode == 0, (
+        f"the estimator reads {rel!r}, which git does not track. It resolves here "
+        f"because a build has run in this checkout; in a fresh clone and on CI it "
+        f"is not there, so the bound this file computes cannot be computed at all.")
+
+    ignored = subprocess.run(["git", "check-ignore", rel],
+                             cwd=str(ROOT), capture_output=True, text=True)
+    assert ignored.returncode != 0, (
+        f"{rel!r} is matched by .gitignore. Even tracked, that is a path whose "
+        f"contents a reader cannot rely on being the committed ones.")
+
+    # ...and it is the snapshot the drift gate reads, not a second copy of it.
+    # Two snapshots would drift, and the one this file prices against would be the
+    # one nothing re-synthesises (ADR-017).
+    assert GATEWAY_SNAPSHOT == (ROOT / "platform" / "infra" / "tests" / "fixtures"
+                                / "BeaconpaveGateway.template.json"), (
+        "the estimator no longer reads the snapshot `tests/test_iam_assertions.py` "
+        "drift-gates, so the tools it prices and the tools CI re-synthesises can "
+        "differ with both green.")

@@ -86,15 +86,37 @@ import sys
 import urllib.request
 import zipfile
 
-import boto3
 import yaml
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
-import gateway_client as gw  # noqa: E402
+#: **`boto3` and `gateway_client` are imported where they are used, not here.**
+#: Both sat at module scope, and `gateway_client` imports `boto3` too, so on a
+#: machine without the AWS SDK this file died on `ModuleNotFoundError` before
+#: `main()` ran -- taking every `--cases` refusal with it. The refusals are the
+#: cheap half of this script and the half a developer hits most: a missing pack,
+#: a pack outside the tree, a pack that is not a list of cases. None of them
+#: needs a cloud account to decide, and G8 says the hermetic surface must not
+#: import the SDK to find that out. Measured on CI, which has no boto3: four
+#: refusal tests failed with a traceback from line 89 instead of the refusal
+#: they assert. The local suite passed, because the SDK is installed here -- an
+#: environment answering for a guard is the same shape as a guard answering for
+#: a guard, one layer further out.
+gw = None
 
 from evals.refusals import census_from_samples  # noqa: E402
+
+
+def _gateway_client():
+    """Bind `gw` on first use. Everything above the first cloud call runs without
+    it, which is what makes `--preflight-only` and every refusal hermetic."""
+    global gw
+    if gw is None:
+        import gateway_client
+        gw = gateway_client
+    return gw
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CASES = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
@@ -156,6 +178,8 @@ def preflight(outputs: dict, tag: str, sample: int, k: int) -> dict:
     says what the seats reviewed. A run is a reading only when all three agree,
     and the header records that they did."""
     function_name = outputs["GatewayFunctionName"]
+    import boto3
+
     lam = boto3.client("lambda")
     config = lam.get_function_configuration(FunctionName=function_name)
     env = (config.get("Environment") or {}).get("Variables") or {}
@@ -190,6 +214,8 @@ def preflight(outputs: dict, tag: str, sample: int, k: int) -> dict:
     # channel table says which pair a channel gets; this says what that pair
     # is, so a coverage change on a channel is on the record in the header
     # rather than inferred from a version number.
+    import boto3
+
     bedrock = boto3.client("bedrock")
     policies = {}
     for label, id_key, version_key in (("main", "GUARDRAIL_ID", "GUARDRAIL_VERSION"),
@@ -312,6 +338,7 @@ def calibrate(case: dict, deployed: dict, header: dict, tag: str, path: pathlib.
     from either copy, which is the fallback SPEC/08b pre-registers before the
     re-issue on the next case."""
     viewer = case.get("viewer") or {}
+    _gateway_client()
     text = gw.user_turn(case["input"], viewer.get("plan"), viewer.get("dma"))
     system = gw.build_tool_prompt()
     request_id = f"{case['id']}-{tag}-{CALIBRATION_SAMPLE}"
@@ -443,6 +470,7 @@ def main(argv=None) -> int:
         if not cases:
             sys.exit(f"no such case: {args.only}")
 
+    _gateway_client()
     deployed = gw.resources()
     function_name = deployed["GatewayFunctionName"]
     bucket = deployed["AuditLakeBucket"]

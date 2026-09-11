@@ -30,6 +30,7 @@ Engineering (the mechanism) · Security.
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -1009,3 +1010,52 @@ def test_the_runner_refuses_a_malformed_pack_that_is_inside_the_tree(fixture):
     assert "--cases" in output and "outside" not in output, (
         f"the refusal reads {output.strip()[:200]!r} — an in-tree pack must be "
         f"refused for its SHAPE, not for where it is.")
+
+
+def test_every_preflight_refusal_works_with_no_aws_sdk_installed(tmp_path):
+    """**The local suite passed and CI failed, and the difference was boto3.**
+
+    `run_with_tools.py` imported `boto3` and `gateway_client` (which imports it
+    too) at module scope, so on a machine without the AWS SDK the process died on
+    `ModuleNotFoundError` at the import line -- before `main()` ran, and every
+    `--cases` refusal lives inside `main()`. Four refusal tests asserted a message
+    naming `--cases` and got a traceback instead. They passed here because the SDK
+    is installed on this machine.
+
+    That is the masking this PR is about, one layer further out: not a guard
+    answered for by the guard beside it, but a guard answered for by the
+    ENVIRONMENT. And it is G8's own claim -- the hermetic surface does not import
+    the cloud SDK -- failing in the direction that makes a developer's first
+    experience of the tool a stack trace.
+
+    So the SDK is made unimportable and the refusals are required to still be
+    refusals. A stub `boto3` that raises on import reproduces CI exactly, and
+    needs no network to do it."""
+    stub = tmp_path / "stub"
+    stub.mkdir()
+    (stub / "boto3.py").write_text(
+        'raise ImportError("no boto3 on this machine -- and no refusal may need one")\n',
+        encoding="utf-8")
+    env = dict(os.environ, PYTHONPATH=str(stub))
+
+    # The stub bites: importing it must fail, or this test is vacuous and would
+    # pass against the very module-scope import it exists to refuse.
+    probe = subprocess.run([sys.executable, "-c", "import boto3"],
+                           capture_output=True, text=True, env=env, cwd=str(ROOT))
+    assert probe.returncode != 0 and "no boto3" in probe.stderr, (
+        "the boto3 stub is not on the path, so this test proves nothing")
+
+    for label, argv in (
+            ("missing", ["--cases", str(tmp_path / "nope.yaml")]),
+            ("out of tree", ["--cases", str(_outside(tmp_path))]),
+            ("a mapping", ["--cases", str(FIXTURES / "malformed-mapping.yaml")]),
+            ("no id", ["--cases", str(FIXTURES / "malformed-idless.yaml")])):
+        proc = subprocess.run([sys.executable, str(RUNNER), *argv, "--preflight-only"],
+                              capture_output=True, text=True, env=env, cwd=str(ROOT))
+        output = proc.stderr + proc.stdout
+        assert proc.returncode != 0, f"{label}: accepted with no SDK installed"
+        assert "ModuleNotFoundError" not in output and "ImportError" not in output, (
+            f"{label}: the refusal is unreachable without the AWS SDK -- the process "
+            f"died on an import before `main()` ran:\n{output.strip()[:300]}")
+        assert "--cases" in output, (
+            f"{label}: refusal does not name --cases:\n{output.strip()[:300]}")

@@ -1739,6 +1739,64 @@ registry whose guards are decorative is worse for that PR than no registry, whic
 is CLAUDE.md's ranking applied to the instrument rather than to the thing it
 measures.
 
+### 11. What CI found that the audit could not — the environment as the masking guard
+
+**The first CI run of this branch failed, with `make check` green on the author's
+machine and 55 of 57 mutations red.** Two defects, both this PR's, both invisible
+to every instrument above because both were masked not by another guard but by
+**the machine the guards were measured on**.
+
+**(a) Every pre-flight refusal was unreachable without the AWS SDK.**
+`run_with_tools.py` imported `boto3` at module scope, and `gateway_client` — which
+imports it too — beside it. On a runner with no SDK the process died at the import
+line before `main()` ran, and every `--cases` refusal lives inside `main()`. Four
+refusal tests asserted a message naming `--cases` and got a `ModuleNotFoundError`
+traceback. They passed locally because boto3 is installed here.
+
+The refusals are the cheap half of that script and the half a developer meets
+first: a missing pack, a pack outside the tree, a pack that is not a list of
+cases. **None of them needs a cloud account to decide**, and G8 says the hermetic
+surface does not import the SDK to find that out. Both imports are now bound at
+the point of use, and the refusals are exercised with a stub `boto3` that raises
+on import — CI's condition, reproduced locally and hermetically, with the stub
+itself asserted to bite so the test cannot go vacuous.
+
+`gateway_client.py` is deliberately **not** touched, though it has the same
+import: `milestones/M08/context-census.json` and `residual-differential.json` both
+digest its bytes, and this milestone reserves moving those records to PR 4. The
+debt is recorded rather than paid.
+
+**(b) The estimator read a gitignored build directory.** §2(d)'s fix replaced a
+hand-typed tuple with *"read from the committed synth snapshot ADR-017 already
+drift-gates"* and pointed at `platform/infra/cdk.out/`, which `.gitignore` line 7
+excludes. It resolves on a machine where a synth has run — this one — and in no
+clone and on no runner. The committed snapshot, the one `test_iam_assertions.py`
+actually drift-gates, is in `platform/infra/tests/fixtures/`.
+
+**This is the fifth false claim in §2's family, written by the fix for the
+fourth.** And it is the one the deletability audit provably could not catch:
+restoring the bad path is **SILENT** on this machine, because both paths resolve
+here. Measured — the mutation was run and reported SILENT at 73 passed. The check
+that closes it therefore asks **git** rather than the filesystem: is this path
+tracked, and is it matched by `.gitignore`? A derivation that reads an untracked
+build artifact is a hand-typed tuple with extra steps and a worse failure mode —
+it does not go stale, it goes missing, and only somewhere else.
+
+**The rule this adds to §10.** A guard can be answered for by another guard —
+§8's table — and it can be answered for by the **environment**, which no
+single-machine instrument can see. Where a check reads the world rather than the
+tree (a file's existence, an importable module, a platform's path rules), the
+test must constrain *which* world: ask git whether a path is committed, make the
+optional dependency unimportable and require the refusal anyway. The audit
+measures whether a check is load-bearing **here**. Only CI measures whether
+"here" was the question.
+
+And the ordering that follows from it: **this PR's first CI run should have
+preceded its last seat round, not followed its merge command.** Six seats, two
+rounds, 57 mutations and a green `make check` all ran on one machine before
+anything ran on a second. The cost was two defects found by the operator reading
+a red check rather than by any instrument this PR built.
+
 ### What this amendment does not change
 
 The claim and its five falsifiers as amendment 2 left them. Decisions 1–4 and 6.
