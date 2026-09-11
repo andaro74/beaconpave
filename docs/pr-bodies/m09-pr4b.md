@@ -282,11 +282,13 @@ mutation that silently changed nothing cannot be counted RED for free.
 
 ## 12. Checks
 
-- `make check`: **PASS — 4402 passed, 6 skipped**. Main at `369c8ba` measures
-  **4323 passed, 6 skipped** on the same command; the brief's 4213 is a count from an
-  earlier point in the milestone. Delta +79, which is 18 new tests plus the
-  per-citation parametrisation in `tests/test_cited_commits_resolve.py` picking up
-  this PR's documents.
+- `make check`: **PASS — 4419 passed, 6 skipped** on the final tree. Main at
+  `369c8ba` measures **4323 passed, 6 skipped** on the same command; the brief's
+  4213 is a count from an earlier point in the milestone. Delta **+96**: 18 new
+  tests (12 in `tests/test_m09_f4.py`, 4 on the render path, 2 on the era debt) plus
+  78 from the per-citation parametrisation in `tests/test_cited_commits_resolve.py`,
+  which grows a case per citation in this PR's ADR amendment, README paragraph and
+  PR body.
 - `tests/test_cited_commits_resolve.py`: 137 passed. Commits cited — PR 1 `66bb114`,
   PR 2 `666a7de`, PR 7 `6644c1d`, PR 4 `369c8ba` — all reachable from `main`.
 - `python -m pave.cli gate two-key --changed <the 30 changed paths>`: four rules
