@@ -1869,3 +1869,114 @@ six, spent. The `p95_ms` **answer** — the gate does not move in this milestone
 M09b hand-off in decision 5 §5. Nothing under `milestones/` or `evals/history/`
 except `evals/history/schema.json`'s `suite` enum, which carries the new suite's
 name and is called out in the PR body.
+
+
+---
+
+## Amendment 4 — M09 takes a seventh PR against a cap of six, recorded as a breach before it opens
+
+**Written 2026-09-11, before PR 7 opens.** The DMA rename's fifth slide is the
+precedent and the standard: a slide is recorded in the document that set the
+bound, **before** the PR that takes it, not discovered at the close. This is that
+record. Zero model calls.
+
+### 1. The fact
+
+*Bounded* says: **cap six PRs — PR 1, PR 1b, PR 2, PR 4, PR 4b, PR 5** — there is
+no PR 3, its slot vacated by the DMA rename leaving the milestone and spent on
+PR 4b. It also says *"reaching the cap again closes the milestone, red if
+necessary."* The cap was spent at **PR 1b**, and the fallback it armed was
+recorded as armed and unspent.
+
+**This is the seventh.** Read literally, *Bounded*'s sentence ends M09 here —
+before PR 4, which is the run, which is the claim. The milestone would close red
+having built the instrument and never used it.
+
+**The rule is not reinterpreted to avoid that.** The cap stays six, *Bounded* is
+not retro-edited, and the breach is recorded against the rule as written. A cap
+edited to match what happened is the thing this milestone exists to refuse; it is
+the same move as a baseline reset to clear a regression, one document up.
+
+### 2. Why the breach is taken rather than the rule bent
+
+Four corrections, each **dispositioned by the operator** before PR 2 merged:
+the `p95_ms` population ambiguity, the headroom exemption's relocation, and two
+debt rows naming a PR shape where every other row names a trigger. They missed
+PR 2's diff for a reason that is not scope: **PR 2 merged while the handoff
+recording those dispositions was being written.** A merge race.
+
+What the seventh PR contains, measured rather than asserted:
+
+| | |
+|---|---|
+| tests added | **+4** (three on the p95 wording, one on the headroom exemption's scope) |
+| `gates.budgets.p95_ms` | **5200**, unmoved |
+| manifest diff | **empty** |
+| `milestones/` diff | **empty** |
+| `evals/history/` diff | **empty** |
+| the two records digesting the manifest | **unchanged**, both still carrying the committed digest |
+| new capability | **none** |
+| cases edited, thresholds moved, baselines reset, instrument digests moved | **none** |
+
+**And why it is not folded into PR 4, which would have cost no slot.** Two
+reasons, both about PR 4 rather than about convenience:
+
+- The diff edits `services/highlights-agent/evals/disclosure/cases.yaml`. Folding
+  puts an edit to the disclosure pack **inside the PR that runs the pack**.
+  Constraint 3 says the pack is authored before the disposition and never edited
+  to make a run pass, and the only instrument a reader has for that is the diff.
+  *"It was only a comment"* is not a defence this repository accepts anywhere
+  else.
+- PR 4 asserts against the `p95_ms` wording. Folding lands the wording **and the
+  assert that reads it** in one attested diff — both sides of the assertion
+  editable together, which is the fault `PIN_FLOOR` exists for and which Security
+  planted and proved green at M04.
+
+So the cap is spent honestly: a seventh PR, recorded, rather than a clean count
+bought by putting two provenance violations inside the run.
+
+### 3. The finding, which is about the cap rule and not about this PR
+
+**The cap counts PRs as a proxy for scope, and the proxy has no concept of a
+correction to an already-merged PR.** Every other bound in this milestone names
+what it limits — model calls, turns, seat rounds, populations. The PR cap names a
+container, and containers are not what the cap is protecting against: it exists
+because M06b grew by discovering more work inside each PR, and an unbounded PR
+count is how that growth showed up. A correction to work already merged and
+already dispositioned is not that. **A merge race is not scope growth.**
+
+Carried forward to **M09b**, whose cap is written after this: count **spend
+events** — the things that actually cost, model calls and deploys and seat rounds
+— or count **planned work**, the boxes in the Definition of done, and let a
+correction to merged work be scoped by what it may contain rather than by which
+container it arrives in. A cap that admits *"no new capability, no number moved,
++N tests, corrections to a merged PR"* as a category is a cap that can be obeyed;
+one that counts containers forces the choice this amendment records — breach the
+cap, or hide the correction in a PR whose diff is the evidence for something
+else.
+
+The proxy is not deleted here. It is recorded as a proxy, with what it should
+count instead, so M09b's cap is **written with the distinction rather than
+inheriting it**.
+
+### 4. The other thing this milestone got wrong about its own state
+
+The PR 2 follow-up instruction was written as *"final work before the PR opens"*
+and directed that everything land in PR 2's diff. **PR 2 had already merged, as
+`666a7de`**, with both checks green. The instruction's premise was false when it
+was written, and the work was done on a branch off `main` rather than in a diff
+that no longer existed. It joins the four false claims amendment 3 §2 records and
+the fifth in §11: **six statements this milestone made about its own state that
+were not true when made**, every one of them found by running or reading a check
+rather than by re-reading the sentence.
+
+That is the pattern worth carrying more than any individual correction: this
+milestone's prose about itself has been wrong six times, and its measurements
+have been wrong none.
+
+### What this amendment does not change
+
+The cap, which stays six. *Bounded*, which is not retro-edited — it gains an
+acknowledgement that cites this amendment and no change to its number. The claim,
+its falsifiers, and every decision 1–6. The `p95_ms` answer, which is 5200 and is
+unmoved by the wording correction that occasioned this PR.

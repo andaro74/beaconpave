@@ -559,6 +559,22 @@ returning to the registry ·
   fallback is therefore recorded as armed and unspent**, and *no immortal rules*
   never gave way. **Any other slide is a finding**, and the DMA rename's fifth is
   recorded as exactly that.
+- **Breached once, at PR 7, recorded rather than absorbed (ADR-075 amendment
+  4).** The cap above is **not raised** and this list is **not rewritten**: the
+  plan was six and the milestone took seven, and the gap between those two
+  sentences is the record. PR 7 carries four corrections the operator
+  dispositioned before PR 2 merged and which missed that diff because PR 2 merged
+  while the handoff was being written — a **merge race, which is not scope
+  growth**. Measured: +4 tests, no number moved, no new capability, empty diffs
+  over the manifest, `milestones/` and `evals/history/`. It is a separate PR
+  rather than folded into PR 4 because folding would edit the disclosure pack
+  inside the PR that runs it (constraint 3's only instrument is the diff) and
+  would land the `p95_ms` wording beside the assert that reads it, both editable
+  together — the fault `PIN_FLOOR` exists for. **The finding is against the cap
+  rule, not against this PR**: the cap counts PRs as a proxy for scope and has no
+  concept of a correction to already-merged work, and M09b's cap is to be written
+  counting spend events or planned work instead of containers.
+  `tests/test_m09_cap.py` holds the number and this record to each other.
 - **Seats on PR 2 only, two rounds.**
 - **Model calls in PR 4 and PR 4b only, ceiling 180 turns across both.**
 - A discovered defect is recorded with a deadline and left alone.
@@ -661,6 +677,17 @@ round on the guardrail* (M09 moves no guardrail).
       land in PR 2's diff**, on this box's own precedent — a Definition of done
       corrected after its PR prints is a checkbox rewritten to match the
       outcome.
+- [ ] **PR 7** (breach, recorded): the four corrections the operator
+      dispositioned before PR 2 merged and which missed that diff — the `p95_ms`
+      population named by cardinality and provenance with the single-sample
+      reading refused **carrying its arithmetic**, the headroom exemption
+      relocated from the file it exempts into ADR-075 decision 4 and scoped by an
+      assertion in `tests/test_contracts.py`, and two debt rows given triggers in
+      the shape every other row uses. **ADR-075 amendment 4 written before the PR
+      opens**, recording the breach against the cap as written; *Bounded*'s number
+      **not** raised and its list **not** rewritten. No number moved:
+      `gates.budgets.p95_ms` 5200, empty manifest, `milestones/` and
+      `evals/history/` diffs, both digesting records unchanged.
 - [ ] **PR 2:** the disclosure suite built — pack, sufficiency assert, runner
       path, lane, verdict, `suite` enum with `SCHEMA_DIGEST` moved beside it — and
       the gate proved to block on it; **no comparator pin**, with the reason
