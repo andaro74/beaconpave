@@ -2164,3 +2164,266 @@ fit with 318 tokens to spare, and the ceiling was never a candidate to move. The
 disclosure pack, which is not edited. Decisions 1–6 and amendments 1–4, none of
 which is rewritten: this amendment fills decision 5's sentences with the numbers it
 said PR 4 would fill in, and records that the first of its falsifiers fired.
+
+## Amendment 6 — the goldens control run, and F4 fired too: the falsifier set is closed and the claim is FAILED
+
+**Written at M09 PR 4b, after the control run and before the PR opens.** PR 4 read
+F1, F2, F3 and F5 and recorded **F4 as DEFERRED, never as clean**, because it needs
+a goldens run PR 4 does not take. This is that run and that reading. Every number
+below is read out of a committed artifact by committed code:
+`milestones/M09/goldens-run-{1,2,3}.json`, `milestones/M09/goldens-score.txt`,
+`milestones/M09/fresh-join.json` (written by M08b's own `fresh_join.py`),
+`milestones/M09/f4.py` and `evals/history/m09-tools-goldens.json`. Nothing here was
+approved in conversation.
+
+Commits cited are reachable from `main`: PR 1 is `66bb114`, PR 2 is `666a7de`,
+PR 7 is `6644c1d`, PR 4 is `369c8ba` (SPEC/09 constraint 11).
+
+### 1. The control, and the two things that make it one
+
+A control run answers one question — *did PR 4's one disclosure sentence move
+anything but the disclosure pack* — and it only answers it if the deployment and
+the inputs are the ones run B saw.
+
+**The pre-flight is PR 4's, line for line.** `run_with_tools.py --preflight-only`
+was taken before the first call and the run printed its own header again; both were
+compared against run A's and run B's committed headers, and the sixteen pre-flight
+lines are **identical** on all four (line seventeen is each run's own `tag`,
+`sample` and `k`, which is per-run by construction). Gateway
+`BeaconpaveGateway-GatewayFn1123A784-2LHF1oy9C98J`, main pair `abayh4ye7f8o` **v4**,
+tool-output pair `ggla7vqlfu7d` **v1** read from the function's own configuration,
+bundle `CodeSha256 /O4tiCrf9UFu9GWGaL0n4YCjuGswLeHH9lcEHp1UVLc=` with `handler.py`
+and `core/toolloop.py` both `== tree`. No deploy was taken in this milestone and
+none was needed.
+
+**Nothing the model sees moved since run B, and the check includes the fix
+itself.** `milestones/M09/nothing-moved-since-run-b.{sh,txt}` diffs `369c8ba` — PR
+4's merge, the commit run B's prompt was committed at — against this branch point
+over the guardrail, `platform/gateway/`, `platform/gateway/policy/`,
+`platform/infra/lib/gateway-stack.ts` and its synth fixture, `quality/adversarial/`,
+`data/catalog.json`, the manifest, the golden cases file **and the two model-facing
+sites `TOOL_SYSTEM` and `answer.schema.json`**. Empty on all twelve paths, and the
+working tree equals HEAD over the same list. PR 4 excluded those last two because
+they **were** the fix; here they are the variable under test and are frozen, which
+is the difference between a control and a second experiment.
+
+**The run.** 25 cases × k=3 = 75 samples, `--tag m09-goldens-control`, **no INFRA
+sample**, so SPEC/09 constraint 5's re-run headroom was not spent.
+
+### 2. F4, read against all three of its clauses
+
+| clause | reading |
+|---|---|
+| **F4.1** — a ≤3-call answered sample over 7700 that was under it at M08b | **clean.** 61 answered samples at ≤3 calls, largest **7280**; 8 at ≥4 calls, smallest **8949**. The per-sample claim holds at 7700 and the two falsifier lists in `fresh-join.json` are empty |
+| **F4.2** — a case that passed 3-of-3 at M08b fails by majority | **FIRED on `grounded-017`.** M08b `[PASS PASS PASS]` → M09 `[PASS FAIL FAIL]` |
+| **F4.3** — a case that failed 0-of-3 at M08b passes by majority | **clean.** All 12 such cases still fail by majority |
+
+**F4 fired. The claim was already failed on F1; it is now failed on two
+falsifiers.** `grounded-017` fails on `tokens_out=337 over 300` and
+`tokens_out=390 over 300` at a tier nothing in this milestone touched. At M08b its
+three samples were **288, 289, 298** — every one under a tier of 300, by between 2
+and 12 tokens.
+
+**The count did not notice, and that is the finding this run was designed to
+produce.** `N = 10/25` — inside the band [8, 12] and **exactly the predicted 10**,
+which is also exactly what M08b published. Two cases moved in opposite directions
+underneath it: `grounded-017` lost its majority and `entitlement-011` gained one
+(M08b `[PASS FAIL FAIL]` → M09 `[PASS PASS FAIL]`). A reader of the count alone
+would report *no change*. This is the compensating movement SPEC/09's falsifier
+table described when it moved the two direction predicates **into** F4 and demoted
+`N` to a side-prediction in all three of its sites — *"three cases newly failing
+and three newly passing leaves `N` exactly where it was, inside the band, with six
+cases having moved on a prompt change"*. It happened at two cases on the first run
+after the change, and the instrument that caught it is the one that was promoted.
+
+### 3. Every case, and each failure against M08b's named causes
+
+Read by `milestones/M09/f4.py` from the causes' own records — the refusal census,
+`fresh-join.json`'s `tokens_out` trigger, and ADR-074 decision 2's seven browse-gap
+cases — never from a list in a document.
+
+| M08b | M09 control | cases | note |
+|---|---|---|---|
+| `guardrail_topic_refusal` | same | `blackout-009` | refused 3 of 3 in both runs |
+| `tokens_out` at unchanged tiers | same | `blackout-001`, `blackout-006`, `blackout-007`, `blackout-008`, `entitlement-002`, `concise-022`, and on the ≥4-call cases beside the ceiling | the twelve M08b widened the five to |
+| browse gap / the ceiling | same | `recommend-013`, `recommend-014`, `grounded-018`, `multi-023`, `edge-025`, `recommend-003` | every `tokens_in` failure here is at 4+ calls |
+| **named by no M08b cause** | — | `entitlement-012`, **`grounded-017`** | `entitlement-012` failed 0-of-3 at M08b too and is not a move; `grounded-017` **is** the move |
+
+**`recommend-003` changed how it fails without changing whether it fails.** At M08b
+it was refused 2 of 3 and failed by majority on the refusal; here it is refused 1 of
+3 and fails on content. Same verdict, different cause, and F4 has no clause for it —
+recorded because a reader comparing only verdicts would see a case that did not
+move.
+
+### 4. The prompt delta, measured live for the first time
+
+PR 4 priced the delta from the committed prompt by the census's own estimator and
+spent run B against it. The control run measures it, because round 1 of every case
+is deterministic — the request is fixed — and the two runs differ in exactly that
+prompt.
+
+| | |
+|---|---|
+| priced, per call (amendment 5) | **200** |
+| **measured, per call** | **165** |
+| admissible (`max(tokens_in + delta × len(calls)) ≤ 7700`) | **306** |
+| cases with a deterministic round 1 on both runs | **24 of 24**, delta `{165}` with no variance |
+| binding sample, M08b → M09 | `headroom-005` s3 **6782** → s1 **7280**, 3 calls |
+| predicted worst case at delta 200 | 7382 |
+| **measured worst case** | **7280**, **420 under the ceiling** |
+
+**The estimator over-predicted by 35 tokens per call, in the conservative
+direction**, and the test that priced the fix before a call was spent was right
+about the sign, the magnitude and the outcome. `tokens_in` stays 7700 and was never
+a candidate to move.
+
+**And the fix reached the twenty-five, without moving a verdict.** Across 75
+committed M08b answers **0** carried a non-null `ai_disclosure`; across the control
+run's 75, **7** do — `headroom-005` and `headroom-026` on all three samples and
+`brand-021` on one, all of them editorial-copy requests, all with the same sentence.
+None of the three changed verdict. So the disposition's instruction is visible in
+the goldens arm and is not what moved `grounded-017`: that case's failing samples
+carry `null` on sample 2 and the key **absent** on sample 3, with no disclosure text
+in the answer at all.
+
+### 5. The falsifier set, closed
+
+| | falsifier | reading | where |
+|---|---|---|---|
+| **F1** | a positive disclosure case passes before the fix | **FIRED** — `disclosure-103`, 2 of 3 | PR 4, amendment 5 |
+| **F2** | a positive case fails after the fix | clean | PR 4 |
+| **F3** | the gate does not block then permit | clean — exit 1, then exit 0 | PR 4 |
+| **F4** | the fix moved something else | **FIRED** — `grounded-017`, clause 2 | **PR 4b, here** |
+| **F5** | the negative case discloses after the fix | clean | PR 4 |
+
+**The claim is FAILED.** It was failed when F1 fired and it is failed now; F4 is a
+second falsifier and not a re-reading of the first. Nothing in this PR offsets F1,
+and the count landing on its predicted value is a side-prediction hitting, not a
+partial success — SPEC/09's *What must not happen* forbids a claim rewritten to
+match its outcome in either direction. The close writes ❌ and names **both** cases.
+
+### 6. Side-predictions, and the readings that are not falsifiers
+
+- **Count.** `N = 10/25`, band [8, 12], predicted 10. In band, on the number. Read
+  after F4 and labelled, because the number that hit is the number that missed the
+  movement.
+- **Refusals.** **1 of 25 by majority** (`blackout-009`, 3 of 3) against the band
+  0–2: in band, and down from M08b's 2. But **4 of 25 refused at least once** —
+  ADR-035's own estimator — against M08b's 2: `recommend-003` (1 of 3, was 2 of 3),
+  and **`brand-021` and `concise-022` newly**, both on
+  `TOPIC:entitlement-circumvention` on the **answer** channel. Three cases now
+  separate the two estimators where none did at M08b. Decision 5 §3 pre-registered
+  the disposition: a topic false positive is **recorded for Security and handed to
+  M09b, not diagnosed here**, and M09b's pre-registered success reading already
+  requires `F = 0 with G ≥ 8` after its deploy.
+- **p95.** Pooled **5630 ms OVER 5200** (n=69); mandated shape **4900 ms within**
+  (n=36). That is the *share* reading ADR-014's rule was written to report — the
+  browse gap's — and it is the first time since M07 that the two numbers have
+  separated. It also makes the mandated shape's tail read **3769 → 5241 → 4900**
+  across three runs, which is further evidence for the premise ADR-014 amendment 4
+  withdrew rather than against it. **`gates.budgets.p95_ms` does not move** (SPEC/09
+  constraint 1, decision 5 §4): no number is re-derived here, and 4900 sits outside
+  the condition's firing window (3782, 4824) in any case. The 09c re-derivation
+  inherits a third population, not a second.
+
+### 7. The cascade debt, re-dated with a trigger that can arrive in time
+
+Amendment 5 §4(a) opened it and dated it *"the next PR that opens
+`milestones/M08b/residual_attribution.py`"*. **That trigger cannot arrive in time**,
+and PR 4 is the proof: nobody opened the reader, a prompt constant moved, and M08b's
+published attribution went from *"provider-side framing, 501 of 463 signed
+(92.9%)"* to 552 of 402 (78.6%) with no run taken between the two readings. A
+trigger that fires after the re-pricing records the damage; it does not prevent it.
+
+**Re-dated: owner AI Quality + Platform Engineering; trigger — before the first PR
+that edits any prompt constant.** Not *M09b's work*, and not a milestone: the first
+such edit. It is enforced rather than tabled —
+`tests/test_m08b_residual.py::test_a_prompt_constant_may_not_move_before_this_records_era_debt_is_paid`
+pins `gateway_client.py`, `answer.schema.json` and
+`milestones/M08/context-census.json` at their PR 4b digests and goes red on that
+edit, naming the debt and refusing the obvious remedy: **re-pinning the digests to
+the new prompt is the guard being deleted by the change it exists to catch.** Pay it
+with an era block on the reader, or re-publish the figure with its era beside it.
+
+**And the figure itself is annotated rather than changed.** `milestones/M08b/README.md`
+now says, beside the number, that **92.9% is era-pinned to M08b's prompt** and that
+re-producing the record against a later prompt yields a different figure by
+construction. **92.9% is not corrected** — it is the reading of that run and it
+stands. **78.6% is the artifact**, of a prompt that run never sent.
+
+### 8. Findings PR 4b leaves behind
+
+**(a) The committed reader's direction predicates are against the wrong baseline,
+and reading F4 out of its record would have reported clean.**
+`milestones/M08b/fresh_join.py` writes a `count.falsifiers` block carrying
+`3_of_3_pass_at_m08_failing_by_majority` and `0_of_3_fail_at_m08_passing_by_majority`
+— and its comparison base is a module constant pointing at
+`milestones/M08/rescore-join.json`, **M08's re-reading**. Run over
+`milestones/M09/`, it therefore reports both lists **empty**, which is true of M08
+and false of M08b: against M08, `grounded-017` did not pass 3-of-3. F4's clauses are
+against M08b by name. A reader who took the record's own `falsifiers` block at face
+value would have published *F4 clean* over a fired falsifier. `milestones/M09/f4.py`
+exists for that reason and reads the baseline from
+`evals/history/m08b-tools-goldens.json`, the entry `README_GOLDENS` pins the `m08b`
+row to. **Owner: AI Quality + Platform Engineering. Trigger: the next milestone that
+re-runs the goldens as a control** — the reader should take its baseline as an
+argument rather than as a constant, and no milestone should read a direction
+falsifier out of a block whose base it did not choose.
+
+**(b) F4 cannot separate the prompt delta from run-to-run generation drift, and it
+was never able to.** A single post-fix run compared against a pre-fix run confounds
+the two: the only way to separate them is a second arm at the pre-fix prompt on the
+same day, which no milestone has budgeted. The precedent is on the record —
+M08b's own count moved two cases against M08 *"on generation drift on `tokens_out`"*
+with the prompt unchanged, and both movers sat within a sample's margin of a tier,
+exactly as `grounded-017` did. **This is not a reason to re-read F4.** F4 is
+pre-registered, it fired on its own terms, and re-reading a falsifier until it stops
+firing is on SPEC/09's forbidden list by name. It is a finding about what F4 can
+establish: it detects movement, and it attributes none. **Owner: AI Quality.
+Trigger: the pre-registration of the next milestone whose claim is *nothing else
+moved*** — such a claim needs a paired arm or it needs to say out loud that it
+measures movement and not cause.
+
+**(c) `grounded-017` and the margin, recorded and not diagnosed.** Its M08b samples
+sat 2–12 tokens under a 300-token tier. Run-wide mean `tokens_out` moved +6.6 tokens
+(346.8 → 353.4) between the two runs; `grounded-017`'s own moved +50.7. A tier that
+a case clears by two tokens is not an instrument that can survive a run, which is
+the `tokens_out` debt **09c** already owns and the second time this repository has
+recorded a majority moving on a single-sample margin. Added to 09c's inheritance as
+a **read**, not a diagnosis (SPEC/09 constraint 9).
+
+### 9. The disclosure comparator pin: offered to this PR, and not taken
+
+SPEC/09's PR 4b box says *"the disclosure comparator pin, **if it is taken**, lands
+here — where committed disclosure runs exist for it to pin."* It is not taken, and
+the reason is recorded rather than left as a silence.
+
+A comparator is *what committed answers score today*, enforced as a floor. Two
+things make one wrong to add here. It needs a **generic suite lane** in
+`pave/cli.py`, which today calls `_suite_pin(…, "goldens")` and
+`_suite_pin(…, "adversarial")` as two literals — new capability, in the PR whose
+whole job is to read a falsifier, in a milestone that is red and whose cap is spent.
+And the value it would pin is **7/7**, over a pack this milestone has just recorded
+as unstable on one of its seven: amendment 5 records `disclosure-106` passing 2 of 3
+after the fix, emitting `null` once where a disclosure was owed. A floor at 7/7 over
+an instrument known to return 6/7 is a check that goes red on its own noise, and the
+first person to meet it will move the floor — which is the trade G9 refuses, reached
+by a pin nobody needed.
+
+**Re-dated: owner AI Quality + Legal/S&P; trigger — the first PR that takes a second
+disclosure run.** That PR has two committed runs to pin between and a measured
+answer to *how stable is 7/7*, neither of which exists today. M09b is the likely
+one, since it deploys the guardrail line `MER-AI-0001` also disposes into.
+
+### What this amendment does not change
+
+The claim, which is failed, and its five falsifiers, which are not re-read or
+re-scoped. `gates.budgets.p95_ms`, which stays **5200** on a run whose mandated
+shape reads within it — the gate does not move to clear a reading, and it does not
+move to follow one either. `tokens_in`, which stays **7700**. Every tier, every
+topic, the guardrail, the policy, the corpora and `data/catalog.json`, none of which
+moved at any point in this milestone. The disclosure pack, which is not edited, and
+`disclosure-101`'s near miss, which belongs to PR 5's close and M09b's
+pre-registration and is not re-opened here. The cap, which stays six with amendment
+4's breach recorded against it. M08b's published **92.9%**, which is annotated and
+not corrected. Decisions 1–6 and amendments 1–5, none of which is rewritten.

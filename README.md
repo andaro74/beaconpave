@@ -45,7 +45,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 07 | The guardrail, applied per channel by the gateway ✚ | six PRs ✚ | `m07` | **2/25** ✚ | not judged ✧ | 7/11, not recorded ✚ | ✅ |
 | 08 | The tools arm's budget: the context or the ceiling ✜ | six PRs ✜ | `m08` | **12/25** ✜ | not judged ✧ | not run ✜ | ✅ |
 | 08b | The ceiling, measured on samples it was not derived from ❁ | six PRs ❁ | `m08b` | **10/25** ❁ | not judged ✧ | not run ❁ | ✅ |
-| 09 | The rule is disposed, and the service goes red ❉ | `m09-rules` | `m09` | –/25 ❉ | – | – | ⬜ |
+| 09 | The rule is disposed, and the service goes red ❉ | `m09-rules` | `m09` | **10/25** ❉ | – | – | ⬜ |
 | 09b | The guardrail line the same rule disposes into ❉ | `m09b-guardrail` | `m09b` | – | – | – | ⬜ |
 | 09c | Answer quality: the browse gap and the tiers ❋ | `m09c-answer-quality` | `m09c` | –/25 ❋ | – | – | ⬜ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
@@ -529,6 +529,20 @@ row 09 shifts: **surfaces stays M10, the drill M11, self-heal M12**, and the sev
 falsifiers, the two bands, the prompt-delta test and the `p95_ms` condition are in
 ADR-075 decision 5, written before any code or call; the numbers arrive at close,
 never before. `SPEC/09-rules-registry-and-the-disposition.md`.
+
+**The cell is the goldens control run, and the claim is failed.** `10/25` is not a
+result about this milestone's work: it is the twenty-five re-run at k=3 through the
+same deployment after the fix, taken to answer **F4** — did one disclosure sentence
+in `TOOL_SYSTEM` move anything else. **F4 fired**, on `grounded-017`, a case that
+passed 3 of 3 at M08b and fails by majority here; and **the count did not notice**,
+because `entitlement-011` moved the other way and `10/25` is what M08b published.
+That is the exact insensitivity SPEC/09 named when it moved the two direction
+predicates into F4 and demoted the count to a side-prediction — recorded here
+because the cell a reader sees is the number that missed it. The claim was already
+**FAILED** on **F1** at PR 4 (`disclosure-103`: the pre-fix service disclosed
+unprompted on two of three samples, so the control was already satisfied there).
+F4 is a second falsifier, not a re-reading of the first, and nothing in this cell
+offsets either. ADR-075 amendment 6.
 
 ❋ **Answer quality is scheduled for the first time, as `09c` (ADR-075
 decision 2).** ADR-074 decision 2 made the browse gap and the `tokens_out` tiers

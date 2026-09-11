@@ -10,5 +10,6 @@
   "m06-goldens.json": "4a21537742591663c28355d9da70b1b421f1a502ce9ff387535714004f957c7a",
   "m07-tools-goldens.json": "c1c5041ed5902385736bbed08bbc3014d0115649420ba4baba15bf9ebda179a4",
   "m08-tools-reread-goldens.json": "f1c101d622c9a2c7b8e4dccb24657d1c363720f94871e628ecc8029b7892f46e",
-  "m08b-tools-goldens.json": "1b74d05a254068c60c4f70b332ee35574aadf50edca1c00389805326a66b09c2"
+  "m08b-tools-goldens.json": "1b74d05a254068c60c4f70b332ee35574aadf50edca1c00389805326a66b09c2",
+  "m09-tools-goldens.json": "9f62c2d6c55d2cbdebe2272c0dfbb9acc8809662d9ee263b4bd699a5874a9f27"
 }

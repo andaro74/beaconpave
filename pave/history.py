@@ -206,6 +206,14 @@ README_GOLDENS = {
     # clause above does not apply to it; the `m08` row it stands beside stays
     # pinned for its own reason.
     "m08b": "m08b-tools-goldens.json",
+    # **A control run, and the only goldens row whose cell is filled while its
+    # milestone is still open** (SPEC/09, PR 4b). The twenty-five re-run at k=3
+    # after M09's fix, to answer whether the fix moved anything but the disclosure
+    # pack. It carries no `rereads`: it is a fresh run at the same ceiling, not a
+    # second reading of M08b's samples, and the `m08b` row it stands beside is the
+    # baseline F4 was read against. The row lands in PR 4b with the entry because
+    # `check_readme` refuses a goldens entry whose row is pinned to none.
+    "m09": "m09-tools-goldens.json",
 }
 
 

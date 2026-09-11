@@ -1,0 +1,43 @@
+working copies backed up to C:\Users\andar\AppData\Local\Temp\m09-pr4b-audit-bsk60rx6
+
+  [ 1] RED     f4: clause 1 (a <=3-call sample over 7700 that was under it at M08b) returns []
+  [ 2] RED     f4: clause 2 (a 3-of-3 M08b pass failing by majority) returns [] -- the clause that FIRED
+  [ 3] RED     f4: clause 3 (a 0-of-3 M08b fail passing by majority) returns []
+  [ 4] RED     f4: the case-set guard stops refusing a baseline that is missing a case
+  [ 5] RED     f4: the count loses its SIDE-PREDICTION label and reads as a falsifier
+  [ 6] RED     f4: the reading stops saying the claim was already FAILED on F1
+  [ 7] RED     f4: a case id typed in beside the baseline instead of read from the entry
+  [ 8] RED     f4: the browse-gap seven quietly become six
+  [ 9] RED     fresh_join: the cp1252 fallback removed -- emit() becomes print()
+  [10] RED     fresh_join: the fallback keeps the exception away but loses the relation (errors='replace')
+  [11] RED     fresh_join: the fallback runs on EVERY stream, not only the one that refused
+  [12] RED     history: README_GOLDENS stops pinning m09, so the published 10/25 backs onto no entry
+  [13] RED     README: row 09's bold 10/25 removed while the entry stays on disk
+  [14] RED     M08b README: the era line beside the published 92.9% removed
+  [15] RED     the era-debt trigger: a prompt constant moves (the event the trigger exists for)
+  [16] RED     the cascade: a record outside the governed directories digests the prompt
+  [17] RED     ADR-075 stops naming milestones/M09/fresh-join.json, the record this PR adds to the cascade
+
+| # | mutation | caught by | result |
+|---|---|---|---|
+| 1 | f4: clause 1 (a <=3-call sample over 7700 that was under it at M08b) returns [] | test_every_clause_is_reachable_and_none_is_decorative | **RED** |
+| 2 | f4: clause 2 (a 3-of-3 M08b pass failing by majority) returns [] -- the clause that FIRED | test_clause_2_fired_on_grounded_017 | **RED** |
+| 3 | f4: clause 3 (a 0-of-3 M08b fail passing by majority) returns [] | test_every_clause_is_reachable_and_none_is_decorative | **RED** |
+| 4 | f4: the case-set guard stops refusing a baseline that is missing a case | test_the_reader_refuses_a_baseline_and_a_run_with_different_case_sets | **RED** |
+| 5 | f4: the count loses its SIDE-PREDICTION label and reads as a falsifier | test_the_count_is_printed_after_the_falsifier_and_labelled | **RED** |
+| 6 | f4: the reading stops saying the claim was already FAILED on F1 | test_the_count_is_printed_after_the_falsifier_and_labelled | **RED** |
+| 7 | f4: a case id typed in beside the baseline instead of read from the entry | test_the_baseline_is_the_published_entry_and_not_a_list_in_the_reader | **RED** |
+| 8 | f4: the browse-gap seven quietly become six | test_the_seven_browse_gap_cases_are_seven_real_cases | **RED** |
+| 9 | fresh_join: the cp1252 fallback removed -- emit() becomes print() | test_the_render_path_survives_a_cp1252_console | **RED** |
+| 10 | fresh_join: the fallback keeps the exception away but loses the relation (errors='replace') | test_the_fallback_keeps_the_relation_rather_than_replacing_it | **RED** |
+| 11 | fresh_join: the fallback runs on EVERY stream, not only the one that refused | test_a_stream_that_can_carry_the_report_is_written_once_and_unchanged | **RED** |
+| 12 | history: README_GOLDENS stops pinning m09, so the published 10/25 backs onto no entry | check_readme's exact-set, both directions | **RED** |
+| 13 | README: row 09's bold 10/25 removed while the entry stays on disk | check_readme: a goldens entry whose row is pinned to none | **RED** |
+| 14 | M08b README: the era line beside the published 92.9% removed | test_the_published_figure_names_its_era | **RED** |
+| 15 | the era-debt trigger: a prompt constant moves (the event the trigger exists for) | test_a_prompt_constant_may_not_move_before_this_records_era_debt_is_paid | **RED** |
+| 16 | the cascade: a record outside the governed directories digests the prompt | test_the_records_the_fix_moves_are_derived_and_not_listed (the `rest` clause) | **RED** |
+| 17 | ADR-075 stops naming milestones/M09/fresh-join.json, the record this PR adds to the cascade | test_the_spec_names_every_record_the_cascade_moves (the ADR branch) | **RED** |
+
+17 mutations, 17 RED, 0 SILENT
+
+every working copy restored from C:\Users\andar\AppData\Local\Temp\m09-pr4b-audit-bsk60rx6 byte for byte (no `git checkout`)

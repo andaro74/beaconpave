@@ -21,6 +21,17 @@ defensively; hands claim 6 a measured arm)
 > (92.9%)**, and neither half is content the agent can stop sending. Six PRs of a cap
 > of six, spent at PR 1b on a cold read of the plan, which is why the DMA rename slid
 > a fourth time — by name, as pre-registered.
+>
+> **That 92.9% is era-pinned to M08b's prompt, and the number is not a standing
+> property of the system.** `E` and `S` are estimated from the committed prompt
+> text and joined to `A` and `B`, which this run measured; re-producing
+> `residual-attribution.json` against a later prompt therefore yields a different
+> figure **by construction**, and M09 PR 4's two model-facing edits already moved
+> it to 552 of 402 (78.6%) with no run taken between the two readings. **92.9% is
+> the reading of this run and stands; 78.6% is the artifact of a prompt this run
+> never sent.** ADR-075 amendment 5 §4(a) records the mechanism, amendment 6
+> re-dates the fix, and `tests/test_m08b_residual.py` goes red before the next
+> prompt constant moves.
 
 ## What can I demo right now?
 

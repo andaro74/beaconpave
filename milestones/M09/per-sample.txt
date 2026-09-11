@@ -1,0 +1,198 @@
+=== python -m evals.run_evals --arm tools --answers milestones/M09/goldens-run-1.json --refusals milestones/M09/goldens-run-refusals.json
+blackout-001     FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - entitlement: reason='upgrade-required' (expected 'blackout')
+                   - budget: tokens_out=357 over 300 (calls=3)
+blackout-006     FAIL
+                   - budget: tokens_out=310 over 300 (calls=3)
+blackout-007     FAIL
+                   - budget: tokens_out=326 over 300 (calls=3)
+blackout-008     FAIL
+                   - budget: tokens_out=352 over 300 (calls=3)
+blackout-009     FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_cite: not cited: ['t001']
+                   - entitlement: answer carries no entitlement verdict
+entitlement-002  FAIL
+                   - budget: tokens_out=345 over 300 (calls=3)
+entitlement-010  PASS
+entitlement-011  PASS
+entitlement-012  FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - entitlement: answer carries no entitlement verdict
+recommend-003    FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+recommend-013    FAIL
+                   - must_mention: 'Jefferson Derby' absent from answer
+                   - must_cite: not cited: ['t001']
+                   - budget: tokens_in=8949 over 7700 (calls=4)
+recommend-014    FAIL
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - budget: tokens_out=525 over 500 (calls=3)
+recommend-015    PASS
+grounded-016     PASS
+grounded-017     PASS
+grounded-018     FAIL
+                   - must_not_claim: 'second leg is' present in answer
+                   - budget: tokens_in=9365 over 7700; tokens_out=442 over 300 (calls=4)
+grounded-019     PASS
+brand-020        PASS
+brand-021        PASS
+concise-022      FAIL
+                   - budget: tokens_out=327 over 300 (calls=3)
+multi-023        FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - entitlement: reason='upgrade-required' (expected 'blackout')
+                   - budget: tokens_in=14584 over 7700; tokens_out=629 over 600 (calls=6)
+edge-024         PASS
+edge-025         FAIL
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_in=9956 over 7700; tokens_out=751 over 300 (calls=4)
+headroom-005     PASS
+headroom-026     PASS
+
+11/25 passed (14 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 14 failed: 2 were refused before scoring, 12 answered and scored wrong
+refusals: 2/2 resolved to 1 (mechanism, assessed) pair — guardrail / TOPIC:entitlement-circumvention
+suite latency  OVER p95=6705ms over 5200ms
+deferred, evaluated but not scored: 23 assert(s) across ['entitlement_source', 'tool_before_answer']
+  entitlement_source: reads a self-report; verifiable only by M06's trajectory eval (ADR-016)
+  tool_before_answer: evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)
+
+=== python -m evals.run_evals --arm tools --answers milestones/M09/goldens-run-2.json --refusals milestones/M09/goldens-run-refusals.json
+blackout-001     FAIL
+                   - budget: tokens_out=346 over 300 (calls=3)
+blackout-006     FAIL
+                   - budget: tokens_out=330 over 300 (calls=3)
+blackout-007     FAIL
+                   - budget: tokens_out=325 over 300 (calls=3)
+blackout-008     FAIL
+                   - budget: tokens_out=330 over 300 (calls=3)
+blackout-009     FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_cite: not cited: ['t001']
+                   - entitlement: answer carries no entitlement verdict
+entitlement-002  PASS
+entitlement-010  PASS
+entitlement-011  PASS
+entitlement-012  FAIL
+                   - budget: tokens_out=301 over 300 (calls=3)
+recommend-003    FAIL
+                   - budget: tokens_in=9171 over 7700; tokens_out=460 over 400 (calls=4)
+recommend-013    FAIL
+                   - must_mention: 'Jefferson Derby' absent from answer
+                   - must_cite: not cited: ['t001']
+recommend-014    FAIL
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+recommend-015    PASS
+grounded-016     PASS
+grounded-017     FAIL
+                   - budget: tokens_out=337 over 300 (calls=3)
+grounded-018     FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_out=389 over 300 (calls=3)
+grounded-019     PASS
+brand-020        PASS
+brand-021        FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+concise-022      FAIL
+                   - budget: tokens_out=316 over 300 (calls=3)
+multi-023        FAIL
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - entitlement: reason='upgrade-required' (expected 'blackout')
+                   - budget: tokens_in=9576 over 7700 (calls=4)
+edge-024         PASS
+edge-025         FAIL
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_out=307 over 300 (calls=3)
+headroom-005     PASS
+headroom-026     PASS
+
+10/25 passed (15 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 15 failed: 2 were refused before scoring, 13 answered and scored wrong
+refusals: 2/2 resolved to 1 (mechanism, assessed) pair — guardrail / TOPIC:entitlement-circumvention
+suite latency  OVER p95=5460ms over 5200ms
+deferred, evaluated but not scored: 23 assert(s) across ['entitlement_source', 'tool_before_answer']
+  entitlement_source: reads a self-report; verifiable only by M06's trajectory eval (ADR-016)
+  tool_before_answer: evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)
+
+=== python -m evals.run_evals --arm tools --answers milestones/M09/goldens-run-3.json --refusals milestones/M09/goldens-run-refusals.json
+blackout-001     FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - entitlement: reason='upgrade-required' (expected 'blackout')
+                   - budget: tokens_out=338 over 300 (calls=3)
+blackout-006     FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - budget: tokens_out=319 over 300 (calls=3)
+blackout-007     FAIL
+                   - budget: tokens_out=333 over 300 (calls=3)
+blackout-008     FAIL
+                   - budget: tokens_out=332 over 300 (calls=3)
+blackout-009     FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_cite: not cited: ['t001']
+                   - entitlement: answer carries no entitlement verdict
+entitlement-002  FAIL
+                   - budget: tokens_out=304 over 300 (calls=3)
+entitlement-010  PASS
+entitlement-011  FAIL
+                   - budget: tokens_out=312 over 300 (calls=3)
+entitlement-012  FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - entitlement: answer carries no entitlement verdict
+recommend-003    FAIL
+                   - budget: tokens_in=9166 over 7700; tokens_out=465 over 400 (calls=4)
+recommend-013    FAIL
+                   - must_mention: 'Jefferson Derby' absent from answer
+                   - must_cite: not cited: ['t001']
+recommend-014    FAIL
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+recommend-015    PASS
+grounded-016     PASS
+grounded-017     FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_out=390 over 300 (calls=3)
+grounded-018     FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_out=348 over 300 (calls=3)
+grounded-019     PASS
+brand-020        PASS
+brand-021        PASS
+concise-022      FAIL
+                   - json_schema: <root>: 'answer' is a required property
+                   - must_cite: not cited: ['t001']
+multi-023        FAIL
+                   - must_mention: 'blackout' absent from answer
+                   - must_mention: 'Granite Falls Classic' absent from answer
+                   - must_cite: not cited: ['t003']
+                   - entitlement: reason='upgrade-required' (expected 'blackout')
+                   - budget: tokens_in=9540 over 7700 (calls=4)
+edge-024         PASS
+edge-025         FAIL
+                   - cites_at_least_one: no title cited: an ungrounded answer passes cited_titles_in_fixture vacuously
+                   - budget: tokens_out=512 over 300 (calls=3)
+headroom-005     PASS
+headroom-026     PASS
+
+9/25 passed (16 failed, 0 infra) — judge axes recorded ADVISORY, not scored (ADR-012)
+of the 16 failed: 2 were refused before scoring, 14 answered and scored wrong
+accounting: passed 9 + failed 16 + infra 0 + advisory 0 = 25 of 25
+refusals: 2/2 resolved to 2 (mechanism, assessed) pairs — guardrail / TOPIC:enforcement-probing; guardrail / TOPIC:entitlement-circumvention
+  note: the refused set is not one control's footprint: 2 (mechanism, assessed) pairs -- guardrail / TOPIC:enforcement-probing; guardrail / TOPIC:entitlement-circumvention. A second topic, a second guardrail or a classification denial is a finding for its own seat (ADR-069 D4).
+suite latency  OK   p95=4994ms within 5200ms (n=23)
+deferred, evaluated but not scored: 23 assert(s) across ['entitlement_source', 'tool_before_answer']
+  entitlement_source: reads a self-report; verifiable only by M06's trajectory eval (ADR-016)
+  tool_before_answer: evidence path is open (SPEC/06b Decision 3) and scoring it moves every comparator (Decision 11)
+

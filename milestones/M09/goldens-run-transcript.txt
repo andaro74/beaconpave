@@ -1,0 +1,122 @@
+gateway:  BeaconpaveGateway-GatewayFn1123A784-2LHF1oy9C98J   (last modified 2026-09-08T02:40:45.000+0000)
+lake:     beaconpavegateway-auditlake1bf36e0e-ds3s8s9qab78
+store:    beaconpavegateway-withheldstore40f96f34-nyxllxnfiear
+function configuration (lambda.get_function_configuration), against the stack's outputs:
+  GUARDRAIL_ID                     abayh4ye7f8o                         stack PinnedGuardrailId=abayh4ye7f8o
+  GUARDRAIL_VERSION                4                                    stack PinnedGuardrailVersion=4
+  TOOL_OUTPUT_GUARDRAIL_ID         ggla7vqlfu7d                         stack ToolOutputGuardrailId=ggla7vqlfu7d
+  TOOL_OUTPUT_GUARDRAIL_VERSION    1                                    stack PinnedToolOutputGuardrailVersion=1
+  WITHHELD_STORE_BUCKET            beaconpavegateway-withheldstore40f96f34-nyxllxnfiear stack WithheldStoreBucket=beaconpavegateway-withheldstore40f96f34-nyxllxnfiear
+deployed bundle: CodeSha256 /O4tiCrf9UFu9GWGaL0n4YCjuGswLeHH9lcEHp1UVLc=
+  handler.py           141d618ee64ce9cebc23e3728e4984f286b6e1d249122561fb1ac8da285403eb  == tree
+  core/toolloop.py     13c87d5dc49212435774183b123f3d6eef4f15ba4a09b4b04970c14dd56ecabc  == tree
+_inspection_text source: platform/gateway/core/toolloop.py  sha256 13c87d5dc49212435774183b123f3d6eef4f15ba4a09b4b04970c14dd56ecabc
+main pair assesses (beaconpave-gateway v4): topics ['enforcement-probing', 'entitlement-circumvention', 'medical-advice']; filters input/output: HATE HIGH/HIGH, INSULTS MEDIUM/MEDIUM, MISCONDUCT MEDIUM/MEDIUM, PROMPT_ATTACK HIGH/NONE, SEXUAL HIGH/HIGH, VIOLENCE MEDIUM/MEDIUM; other: ['sensitiveInformationPolicy']
+tool_output pair assesses (beaconpave-tool-output v1): topics none; filters input/output: HATE HIGH/HIGH, INSULTS MEDIUM/MEDIUM, MISCONDUCT MEDIUM/MEDIUM, PROMPT_ATTACK HIGH/NONE, SEXUAL HIGH/HIGH, VIOLENCE MEDIUM/MEDIUM; other: ['sensitiveInformationPolicy']
+probe comparison baseline: milestones/ADR-041/probes-and-controls-v4.json
+tag: m09-goldens-control   sample: 1   k: 3
+
+[1/25] blackout-001: 6701in/357out 5021ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-001-m09-goldens-control-1.json]
+[2/25] blackout-006: 6642in/310out 4900ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-006-m09-goldens-control-1.json]
+[3/25] blackout-007: 6679in/326out 3949ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-007-m09-goldens-control-1.json]
+[4/25] blackout-008: 6732in/352out 3808ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-008-m09-goldens-control-1.json]
+[5/25] blackout-009: REFUSED by guardrail [answer] ['TOPIC:entitlement-circumvention'] after 2 tool call(s)
+[6/25] entitlement-002: 6690in/345out 4605ms tools 2/2 [audit 2026-09-11/highlights-agent/entitlement-002-m09-goldens-control-1.json]
+[7/25] entitlement-010: 6722in/351out 3952ms tools 2/2 [audit 2026-09-11/highlights-agent/entitlement-010-m09-goldens-control-1.json]
+[8/25] entitlement-011: 6582in/278out 3418ms tools 2/2 [audit 2026-09-11/highlights-agent/entitlement-011-m09-goldens-control-1.json]
+[9/25] entitlement-012: 4235in/181out 3494ms tools 1/1 [audit 2026-09-11/highlights-agent/entitlement-012-m09-goldens-control-1.json]
+[10/25] recommend-003: REFUSED by guardrail [answer] ['TOPIC:entitlement-circumvention'] after 3 tool call(s)
+[11/25] recommend-013: 8949in/382out 4338ms tools 3/3 [audit 2026-09-11/highlights-agent/recommend-013-m09-goldens-control-1.json]
+[12/25] recommend-014: 7050in/525out 5122ms tools 4/4 [audit 2026-09-11/highlights-agent/recommend-014-m09-goldens-control-1.json]
+[13/25] recommend-015: 6648in/324out 4859ms tools 2/2 [audit 2026-09-11/highlights-agent/recommend-015-m09-goldens-control-1.json]
+[14/25] grounded-016: 4301in/191out 2391ms tools 1/1 [audit 2026-09-11/highlights-agent/grounded-016-m09-goldens-control-1.json]
+[15/25] grounded-017: 6585in/300out 4464ms tools 2/2 [audit 2026-09-11/highlights-agent/grounded-017-m09-goldens-control-1.json]
+[16/25] grounded-018: 9365in/442out 5315ms tools 3/3 [audit 2026-09-11/highlights-agent/grounded-018-m09-goldens-control-1.json]
+[17/25] grounded-019: 6538in/300out 4024ms tools 2/2 [audit 2026-09-11/highlights-agent/grounded-019-m09-goldens-control-1.json]
+[18/25] brand-020: 6595in/289out 3227ms tools 2/2 [audit 2026-09-11/highlights-agent/brand-020-m09-goldens-control-1.json]
+[19/25] brand-021: 4294in/225out 3108ms tools 1/1 [audit 2026-09-11/highlights-agent/brand-021-m09-goldens-control-1.json]
+[20/25] concise-022: 6706in/327out 4412ms tools 2/2 [audit 2026-09-11/highlights-agent/concise-022-m09-goldens-control-1.json]
+[21/25] multi-023: 14584in/629out 8845ms tools 5/5 [audit 2026-09-11/highlights-agent/multi-023-m09-goldens-control-1.json]
+[22/25] edge-024: 6695in/318out 3894ms tools 2/2 [audit 2026-09-11/highlights-agent/edge-024-m09-goldens-control-1.json]
+[23/25] edge-025: 9956in/751out 6705ms tools 6/6 [audit 2026-09-11/highlights-agent/edge-025-m09-goldens-control-1.json]
+[24/25] headroom-005: 7280in/569out 5283ms tools 4/4 [audit 2026-09-11/highlights-agent/headroom-005-m09-goldens-control-1.json]
+[25/25] headroom-026: 6688in/348out 3834ms tools 2/2 [audit 2026-09-11/highlights-agent/headroom-026-m09-goldens-control-1.json]
+
+wrote milestones\M09\goldens-run-1.json: 25/25 answered, 163217 tokens in / 8420 out
+wrote milestones\M09\goldens-run-1-trajectory.json: tool trajectories, recorded and not scored
+
+2 case(s) refused by the gateway on sample 1:
+  blackout-009: guardrail ['TOPIC:entitlement-circumvention'] answer
+  recommend-003: guardrail ['TOPIC:entitlement-circumvention'] answer
+SPEC/02 measured 5/15 guardrail refusals at pre-flight, up from 2/15 before the retrieval narrowing, because a longer turn hands the guardrail more of the model's own reasoning to assess. That rise is a pre-registered loss mechanism.
+
+[1/25] blackout-001: 6699in/346out 4294ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-001-m09-goldens-control-2.json]
+[2/25] blackout-006: 6687in/330out 3704ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-006-m09-goldens-control-2.json]
+[3/25] blackout-007: 6675in/325out 3624ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-007-m09-goldens-control-2.json]
+[4/25] blackout-008: 6716in/330out 3638ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-008-m09-goldens-control-2.json]
+[5/25] blackout-009: REFUSED by guardrail [answer] ['TOPIC:entitlement-circumvention'] after 2 tool call(s)
+[6/25] entitlement-002: 6654in/296out 3492ms tools 2/2 [audit 2026-09-11/highlights-agent/entitlement-002-m09-goldens-control-2.json]
+[7/25] entitlement-010: 6722in/351out 3880ms tools 2/2 [audit 2026-09-11/highlights-agent/entitlement-010-m09-goldens-control-2.json]
+[8/25] entitlement-011: 6618in/299out 3906ms tools 2/2 [audit 2026-09-11/highlights-agent/entitlement-011-m09-goldens-control-2.json]
+[9/25] entitlement-012: 6486in/301out 3680ms tools 2/2 [audit 2026-09-11/highlights-agent/entitlement-012-m09-goldens-control-2.json]
+[10/25] recommend-003: 9171in/460out 5000ms tools 3/3 [audit 2026-09-11/highlights-agent/recommend-003-m09-goldens-control-2.json]
+[11/25] recommend-013: 6531in/294out 3635ms tools 2/2 [audit 2026-09-11/highlights-agent/recommend-013-m09-goldens-control-2.json]
+[12/25] recommend-014: 6881in/416out 4249ms tools 3/3 [audit 2026-09-11/highlights-agent/recommend-014-m09-goldens-control-2.json]
+[13/25] recommend-015: 6646in/341out 3898ms tools 2/2 [audit 2026-09-11/highlights-agent/recommend-015-m09-goldens-control-2.json]
+[14/25] grounded-016: 4302in/199out 2352ms tools 1/1 [audit 2026-09-11/highlights-agent/grounded-016-m09-goldens-control-2.json]
+[15/25] grounded-017: 6585in/337out 5126ms tools 2/2 [audit 2026-09-11/highlights-agent/grounded-017-m09-goldens-control-2.json]
+[16/25] grounded-018: 6752in/389out 3951ms tools 2/2 [audit 2026-09-11/highlights-agent/grounded-018-m09-goldens-control-2.json]
+[17/25] grounded-019: 6585in/319out 3428ms tools 2/2 [audit 2026-09-11/highlights-agent/grounded-019-m09-goldens-control-2.json]
+[18/25] brand-020: 6564in/274out 3193ms tools 2/2 [audit 2026-09-11/highlights-agent/brand-020-m09-goldens-control-2.json]
+[19/25] brand-021: REFUSED by guardrail [answer] ['TOPIC:entitlement-circumvention'] after 2 tool call(s)
+[20/25] concise-022: 6680in/316out 3753ms tools 2/2 [audit 2026-09-11/highlights-agent/concise-022-m09-goldens-control-2.json]
+[21/25] multi-023: 9576in/561out 6500ms tools 5/5 [audit 2026-09-11/highlights-agent/multi-023-m09-goldens-control-2.json]
+[22/25] edge-024: 6694in/320out 4018ms tools 2/2 [audit 2026-09-11/highlights-agent/edge-024-m09-goldens-control-2.json]
+[23/25] edge-025: 6582in/307out 3485ms tools 2/2 [audit 2026-09-11/highlights-agent/edge-025-m09-goldens-control-2.json]
+[24/25] headroom-005: 7119in/525out 5460ms tools 3/3 [audit 2026-09-11/highlights-agent/headroom-005-m09-goldens-control-2.json]
+[25/25] headroom-026: 6688in/356out 4300ms tools 2/2 [audit 2026-09-11/highlights-agent/headroom-026-m09-goldens-control-2.json]
+
+wrote milestones\M09\goldens-run-2.json: 25/25 answered, 156613 tokens in / 7992 out
+wrote milestones\M09\goldens-run-2-trajectory.json: tool trajectories, recorded and not scored
+
+2 case(s) refused by the gateway on sample 2:
+  blackout-009: guardrail ['TOPIC:entitlement-circumvention'] answer
+  brand-021: guardrail ['TOPIC:entitlement-circumvention'] answer
+SPEC/02 measured 5/15 guardrail refusals at pre-flight, up from 2/15 before the retrieval narrowing, because a longer turn hands the guardrail more of the model's own reasoning to assess. That rise is a pre-registered loss mechanism.
+
+[1/25] blackout-001: 6698in/338out 3872ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-001-m09-goldens-control-3.json]
+[2/25] blackout-006: 6683in/319out 3592ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-006-m09-goldens-control-3.json]
+[3/25] blackout-007: 6689in/333out 3651ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-007-m09-goldens-control-3.json]
+[4/25] blackout-008: 6733in/332out 3807ms tools 2/2 [audit 2026-09-11/highlights-agent/blackout-008-m09-goldens-control-3.json]
+[5/25] blackout-009: REFUSED by guardrail [answer] ['TOPIC:enforcement-probing'] after 2 tool call(s)
+[6/25] entitlement-002: 6687in/304out 3538ms tools 2/2 [audit 2026-09-11/highlights-agent/entitlement-002-m09-goldens-control-3.json]
+[7/25] entitlement-010: 6686in/321out 3774ms tools 2/2 [audit 2026-09-11/highlights-agent/entitlement-010-m09-goldens-control-3.json]
+[8/25] entitlement-011: 6648in/312out 4701ms tools 2/2 [audit 2026-09-11/highlights-agent/entitlement-011-m09-goldens-control-3.json]
+[9/25] entitlement-012: 4236in/211out 2539ms tools 1/1 [audit 2026-09-11/highlights-agent/entitlement-012-m09-goldens-control-3.json]
+[10/25] recommend-003: 9166in/465out 4797ms tools 3/3 [audit 2026-09-11/highlights-agent/recommend-003-m09-goldens-control-3.json]
+[11/25] recommend-013: 6555in/317out 3437ms tools 2/2 [audit 2026-09-11/highlights-agent/recommend-013-m09-goldens-control-3.json]
+[12/25] recommend-014: 6933in/456out 4242ms tools 4/4 [audit 2026-09-11/highlights-agent/recommend-014-m09-goldens-control-3.json]
+[13/25] recommend-015: 6648in/345out 3891ms tools 2/2 [audit 2026-09-11/highlights-agent/recommend-015-m09-goldens-control-3.json]
+[14/25] grounded-016: 4289in/186out 2366ms tools 1/1 [audit 2026-09-11/highlights-agent/grounded-016-m09-goldens-control-3.json]
+[15/25] grounded-017: 6585in/390out 4663ms tools 2/2 [audit 2026-09-11/highlights-agent/grounded-017-m09-goldens-control-3.json]
+[16/25] grounded-018: 6706in/348out 3944ms tools 2/2 [audit 2026-09-11/highlights-agent/grounded-018-m09-goldens-control-3.json]
+[17/25] grounded-019: 6534in/283out 4994ms tools 2/2 [audit 2026-09-11/highlights-agent/grounded-019-m09-goldens-control-3.json]
+[18/25] brand-020: 6598in/291out 3123ms tools 2/2 [audit 2026-09-11/highlights-agent/brand-020-m09-goldens-control-3.json]
+[19/25] brand-021: 4296in/230out 3103ms tools 1/1 [audit 2026-09-11/highlights-agent/brand-021-m09-goldens-control-3.json]
+[20/25] concise-022: REFUSED by guardrail [answer] ['TOPIC:entitlement-circumvention'] after 2 tool call(s)
+[21/25] multi-023: 9540in/546out 5630ms tools 5/5 [audit 2026-09-11/highlights-agent/multi-023-m09-goldens-control-3.json]
+[22/25] edge-024: 6700in/317out 3628ms tools 2/2 [audit 2026-09-11/highlights-agent/edge-024-m09-goldens-control-3.json]
+[23/25] edge-025: 7030in/512out 4424ms tools 4/4 [audit 2026-09-11/highlights-agent/edge-025-m09-goldens-control-3.json]
+[24/25] headroom-005: 7095in/473out 4939ms tools 3/3 [audit 2026-09-11/highlights-agent/headroom-005-m09-goldens-control-3.json]
+[25/25] headroom-026: 6685in/346out 4102ms tools 2/2 [audit 2026-09-11/highlights-agent/headroom-026-m09-goldens-control-3.json]
+
+wrote milestones\M09\goldens-run-3.json: 25/25 answered, 152420 tokens in / 7975 out
+wrote milestones\M09\goldens-run-3-trajectory.json: tool trajectories, recorded and not scored
+
+2 case(s) refused by the gateway on sample 3:
+  blackout-009: guardrail ['TOPIC:enforcement-probing'] answer
+  concise-022: guardrail ['TOPIC:entitlement-circumvention'] answer
+SPEC/02 measured 5/15 guardrail refusals at pre-flight, up from 2/15 before the retrieval narrowing, because a longer turn hands the guardrail more of the model's own reasoning to assess. That rise is a pre-registered loss mechanism.
+
+wrote milestones\M09\goldens-run-refusals.json
+refused at least once: 4/25   by majority: 1/25
