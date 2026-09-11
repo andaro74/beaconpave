@@ -216,6 +216,31 @@ reason that has nothing to do with any system under test.
   file holds exactly 25 cases and that no case id matches the disclosure pack's
   prefix, so folding the pack in later is red by name rather than red as a
   changed number.
+- **A disposition witness is exempt from CLAUDE.md's 5–10% headroom rule, and
+  the exemption attaches to `suite: disclosure` and to no other.** The headroom
+  rule exists so that a suite can report an improvement and not only a
+  regression, which is a statement about a **graded** suite whose score is
+  tracked across milestones. This pack is not one: it is a witness that a
+  specific rule's disposition changed a specific behaviour, it is read twice —
+  once before the fix and once after — and **a witness at 100% after the fix is
+  the outcome, not a defect**. A witness carrying `expect_near_threshold` rows
+  would be a witness deliberately built to stay ambiguous.
+
+  **This is a relocation, not a new decision.** SPEC/09 pre-registered it before
+  either run, in the paragraph that makes the pack its own suite; the AI Quality
+  seat's objection in M09 PR 2 round 2 was to its **authority**, not its
+  substance — it was stated in a comment at the top of the very file it exempts,
+  where the seat that owns the headroom rule does not sign. It is therefore
+  written here, where that seat does, and `cases.yaml` now **cites** this
+  decision instead of stating it.
+
+  **Scoped by assertion rather than by adjective.**
+  `tests/test_contracts.py::test_only_an_adr_named_suite_is_exempt_from_the_headroom_rule`
+  parses the exempt set out of this paragraph and requires it to be exactly
+  `{disclosure}` — in both directions, so the goldens suite must **not** carry it
+  and `floors.check_headroom` must still bite on the twenty-five. An exemption
+  whose scope is a sentence is an exemption that grows by re-reading.
+
 - **`disclosure-004`'s reservation is resolved, not left.** The golden file says
   *"`disclosure-004` is reserved for M07 — the gap is the reservation"* and
   `evals/golden/README.md` repeats it. M07 is the guardrail milestone and no
@@ -316,8 +341,10 @@ a gate moved to clear a reading, which is the trade G9 exists to refuse.**
 **Pre-registered, and executed by a test rather than settled here:**
 
 > The suite `p95_ms` moves only if the point ADR-014's unchanged rule derives from
-> the most recent fresh mandated-shape population **still leaves the run that
-> population came from OVER the gate**. The disposition PR's test reads M08b's
+> **the mandated-shape rows of every sample of the most recent fresh run set**
+> (M08b: n = 38 over samples 1–3) **still leaves the run that
+> population came from OVER the gate**. *A single sample is not a population for
+> this rule.* The disposition PR's test reads M08b's
 > answered mandated-shape samples through `context_census.mandated_calls()`,
 > computes p95, floor `1.15×`, roof `1.60×`, the midpoint and the point rounded to
 > the nearest 100, and evaluates the condition. If it holds, the manifest moves to
@@ -335,6 +362,42 @@ this ADR: the population must be read from the answer files, not from a journal
 sentence, which is the compression error this repository has paid for repeatedly.
 **A disagreement between the test's number and any number quoted in prose is a
 finding about the prose.**
+
+**The population sentence was narrowed at M09 PR 2, and the single-sample reading
+it closes is recorded rather than deleted.** As first written the condition said
+*"the most recent **fresh** mandated-shape population"*, and that admits two
+readings. Read as the most recent **run set** it is n = 38 over samples 1–3, which
+is the population the five-population table's first row already evaluated. Read as
+the most recent **sample** it is M08b sample 3 alone: **n = 14, mandated p95 4542,
+derived point 6200**, against that sample's pooled p95 of **6315** — 6315 > 6200,
+so under that reading the condition **fires** and hands back a gate **1000 ms above
+the standing 5200**. That is the trade G9 exists to refuse, reached entirely
+through a reading of the condition's own words.
+
+It fires only because the window was never searched. The condition fires for any
+population whose p95 falls strictly inside **(3782, 4824)**, and all five of the
+table's populations sit outside it — so *"the condition holds under none of the
+five"* was true and told nobody that a sixth reading of the same sentence lands
+inside. **A pre-registered condition whose answer flips on a reading of its own
+wording is not pre-registered**, which is why this is a correction to the sentence
+and not to the number.
+
+**What makes this a wording fix and not a claim rewritten to match its outcome.**
+Three tests in `tests/test_m09_p95_condition.py`, not a paragraph:
+`test_the_corrected_wording_names_the_population_the_table_evaluated` asserts the
+newly-named population **is** the table's first row — same n, same p95, same
+derived point, same outcome, same gate — so the narrowing runs **fail-closed**;
+`test_the_single_sample_reading_fires_and_is_refused_with_its_number` asserts
+every number above, so the refusal carries its arithmetic and a reader need not
+re-derive it to find out whether refusing was safe; and
+`test_the_five_population_table_never_searched_the_firing_window` asserts no
+population drifts into the window, so a future one doing so is a red check rather
+than a paragraph nobody re-read. **Had the correction changed the answer it would
+not be admissible** — a condition re-worded into a different result is a condition
+chosen after the fact — and the milestone would close red instead of taking it.
+The answer is 5200 under both readings of the table and under the corrected
+wording, `gates.budgets.p95_ms` does not move, and neither digesting record is
+re-produced.
 
 ### 5. Handed to M09b, pre-registered here so it is inherited rather than invented
 
@@ -1700,12 +1763,12 @@ usually the test — it already exists, and it already ran.
 | The disclosure lane is wired into **no CI workflow**, and no PR is dated to wire it | Platform Engineering + AI Quality | PR 4b, or recorded as a cut |
 | `pave verify` cannot see the second pack and does not defer it by name | Tool Owner | the milestone that gives the pack a template |
 | The tool plane's recorded instrument input, its IAM test and both tool bundles are on **no rule** while the code they defend is three-key | Platform Engineering + Security | the next PR that opens the tool plane |
-| `ROLES.md`'s rows are transcribed rather than checked against `twokey.triggered` | Platform Engineering | a `test_contracts.py` PR of its own |
+| `ROLES.md`'s rows are transcribed rather than checked against `twokey.triggered` | Platform Engineering | the next PR that adds a row to that table |
 | `docs/governance/ROLES.md` — the table that publishes who holds a key over what — is on **no two-key rule**. Only `recordings.json` under `docs/governance/` is covered. The table can no longer contradict the enforced list silently (a check landed in this PR), but it is still the one file naming every key that needs none | Platform Eng + Security | the next PR that opens `pave/twokey.py` |
 | `pave/twokey.py`'s `DISPOSITION_RE` accepts any `[a-z-]+` as a seat, so an attestation naming a seat that does not exist blocks a PR forever with no diagnostic. `rules/schema.json` now refuses the same typo one file over; the two vocabularies still have no single source | Platform Eng + Legal/S&P | the milestone that touches attestation parsing |
 | `quality/judge/rubric-sports.md` states an activation *"at M07, when MER-AI-0001 is disposed"* that did not occur. Correcting it moves a frozen instrument, so it is **not** corrected here | AI Quality + Security | the milestone that re-freezes the judge |
 | `pave exception request` reports success for doing nothing, and `pave new --classification` is advertised and silently ignored on an exit-0 path | Service Team + Data Governance | the PR that opens `pave/exception.py` |
-| The pre-existing `rules/schema.json` `required`/enum surface is unasserted: removing `review_by` from `required`, `controls`' `minItems`, and the `type` and `owner_seat` enums are all silent | Legal/S&P + Security | a `rules/schema.json` PR of its own |
+| The pre-existing `rules/schema.json` `required`/enum surface is unasserted: removing `review_by` from `required`, `controls`' `minItems`, and the `type` and `owner_seat` enums are all silent | Legal/S&P + Security | the next PR that edits `rules/schema.json` |
 
 ### 10. What this PR changes about how the next one is written
 
@@ -1806,3 +1869,114 @@ six, spent. The `p95_ms` **answer** — the gate does not move in this milestone
 M09b hand-off in decision 5 §5. Nothing under `milestones/` or `evals/history/`
 except `evals/history/schema.json`'s `suite` enum, which carries the new suite's
 name and is called out in the PR body.
+
+
+---
+
+## Amendment 4 — M09 takes a seventh PR against a cap of six, recorded as a breach before it opens
+
+**Written 2026-09-11, before PR 7 opens.** The DMA rename's fifth slide is the
+precedent and the standard: a slide is recorded in the document that set the
+bound, **before** the PR that takes it, not discovered at the close. This is that
+record. Zero model calls.
+
+### 1. The fact
+
+*Bounded* says: **cap six PRs — PR 1, PR 1b, PR 2, PR 4, PR 4b, PR 5** — there is
+no PR 3, its slot vacated by the DMA rename leaving the milestone and spent on
+PR 4b. It also says *"reaching the cap again closes the milestone, red if
+necessary."* The cap was spent at **PR 1b**, and the fallback it armed was
+recorded as armed and unspent.
+
+**This is the seventh.** Read literally, *Bounded*'s sentence ends M09 here —
+before PR 4, which is the run, which is the claim. The milestone would close red
+having built the instrument and never used it.
+
+**The rule is not reinterpreted to avoid that.** The cap stays six, *Bounded* is
+not retro-edited, and the breach is recorded against the rule as written. A cap
+edited to match what happened is the thing this milestone exists to refuse; it is
+the same move as a baseline reset to clear a regression, one document up.
+
+### 2. Why the breach is taken rather than the rule bent
+
+Four corrections, each **dispositioned by the operator** before PR 2 merged:
+the `p95_ms` population ambiguity, the headroom exemption's relocation, and two
+debt rows naming a PR shape where every other row names a trigger. They missed
+PR 2's diff for a reason that is not scope: **PR 2 merged while the handoff
+recording those dispositions was being written.** A merge race.
+
+What the seventh PR contains, measured rather than asserted:
+
+| | |
+|---|---|
+| tests added | **+4** (three on the p95 wording, one on the headroom exemption's scope) |
+| `gates.budgets.p95_ms` | **5200**, unmoved |
+| manifest diff | **empty** |
+| `milestones/` diff | **empty** |
+| `evals/history/` diff | **empty** |
+| the two records digesting the manifest | **unchanged**, both still carrying the committed digest |
+| new capability | **none** |
+| cases edited, thresholds moved, baselines reset, instrument digests moved | **none** |
+
+**And why it is not folded into PR 4, which would have cost no slot.** Two
+reasons, both about PR 4 rather than about convenience:
+
+- The diff edits `services/highlights-agent/evals/disclosure/cases.yaml`. Folding
+  puts an edit to the disclosure pack **inside the PR that runs the pack**.
+  Constraint 3 says the pack is authored before the disposition and never edited
+  to make a run pass, and the only instrument a reader has for that is the diff.
+  *"It was only a comment"* is not a defence this repository accepts anywhere
+  else.
+- PR 4 asserts against the `p95_ms` wording. Folding lands the wording **and the
+  assert that reads it** in one attested diff — both sides of the assertion
+  editable together, which is the fault `PIN_FLOOR` exists for and which Security
+  planted and proved green at M04.
+
+So the cap is spent honestly: a seventh PR, recorded, rather than a clean count
+bought by putting two provenance violations inside the run.
+
+### 3. The finding, which is about the cap rule and not about this PR
+
+**The cap counts PRs as a proxy for scope, and the proxy has no concept of a
+correction to an already-merged PR.** Every other bound in this milestone names
+what it limits — model calls, turns, seat rounds, populations. The PR cap names a
+container, and containers are not what the cap is protecting against: it exists
+because M06b grew by discovering more work inside each PR, and an unbounded PR
+count is how that growth showed up. A correction to work already merged and
+already dispositioned is not that. **A merge race is not scope growth.**
+
+Carried forward to **M09b**, whose cap is written after this: count **spend
+events** — the things that actually cost, model calls and deploys and seat rounds
+— or count **planned work**, the boxes in the Definition of done, and let a
+correction to merged work be scoped by what it may contain rather than by which
+container it arrives in. A cap that admits *"no new capability, no number moved,
++N tests, corrections to a merged PR"* as a category is a cap that can be obeyed;
+one that counts containers forces the choice this amendment records — breach the
+cap, or hide the correction in a PR whose diff is the evidence for something
+else.
+
+The proxy is not deleted here. It is recorded as a proxy, with what it should
+count instead, so M09b's cap is **written with the distinction rather than
+inheriting it**.
+
+### 4. The other thing this milestone got wrong about its own state
+
+The PR 2 follow-up instruction was written as *"final work before the PR opens"*
+and directed that everything land in PR 2's diff. **PR 2 had already merged, as
+`666a7de`**, with both checks green. The instruction's premise was false when it
+was written, and the work was done on a branch off `main` rather than in a diff
+that no longer existed. It joins the four false claims amendment 3 §2 records and
+the fifth in §11: **six statements this milestone made about its own state that
+were not true when made**, every one of them found by running or reading a check
+rather than by re-reading the sentence.
+
+That is the pattern worth carrying more than any individual correction: this
+milestone's prose about itself has been wrong six times, and its measurements
+have been wrong none.
+
+### What this amendment does not change
+
+The cap, which stays six. *Bounded*, which is not retro-edited — it gains an
+acknowledgement that cites this amendment and no change to its number. The claim,
+its falsifiers, and every decision 1–6. The `p95_ms` answer, which is 5200 and is
+unmoved by the wording correction that occasioned this PR.

@@ -6,9 +6,14 @@
 # first three lines of a two-key control artifact is the cheapest thing in the
 # file to get wrong and the most likely to be believed.)
 #
-# **This is a disposition witness, not a graded suite.** CLAUDE.md's 5-10%
-# headroom rule is written for the twenty-five goldens and does not apply here: a
-# witness at 100% after the fix is the outcome, not a defect. It is its own
+# **This is a disposition witness, not a graded suite, and CLAUDE.md's 5-10%
+# headroom rule does not apply here: see ADR-075 decision 4.** The reasoning lives
+# there and not in this comment, deliberately. An exemption from a CLAUDE.md rule,
+# written at the top of the file it exempts, is the exempted party signing its own
+# exemption -- the AI Quality seat owns that rule and raised exactly this in M09
+# PR 2 round 2, against the authority and not the substance.
+# `tests/test_contracts.py` asserts that only the suite the ADR names carries it.
+# It is its own
 # SUITE (`disclosure`), not an arm and not part of the goldens — `arm` means
 # *which system produced these answers* over one case set, and the goldens
 # denominator stays 25 so that M09's count is comparable to m00b through m08b
