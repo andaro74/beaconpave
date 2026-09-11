@@ -203,6 +203,136 @@ class Scorer:
         ]
         return AssertResult("entitlement", not diffs, "; ".join(diffs))
 
+    #: What `ai_disclosure` may demand. Two values, and the pair is the assert:
+    #: one half alone lets a fix that discloses on every answer pass everything
+    #: (ADR-048 decision 3), which is the PR #13 defect in a fourth place.
+    AI_DISCLOSURE_MODES = ("required", "not_required")
+
+    @staticmethod
+    def _visible(text: str) -> str:
+        """`text` with everything a reader cannot see removed.
+
+        **`str.strip()` is not enough, and the gap was measured rather than
+        imagined.** The Legal/S&P seat drove `"\\u200b"` -- a zero-width space --
+        through the real lane on `c917c11` and scored **5/5 PASS**: `strip()`
+        removes ASCII whitespace and leaves every Unicode format character
+        standing, so a disclosure nobody can see satisfied a rule whose title is
+        *AI-generated recaps must carry a **visible** disclosure*. `"\\u00a0"`
+        happened to fail and `"\\u200b"` happened to pass, which is the giveaway
+        that the old check was reading an accident of `strip()`'s table rather
+        than visibility.
+
+        `Cf` (format), `Cc` (control) and `Cs` (surrogate) go; then whitespace.
+        """
+        import unicodedata
+        return "".join(c for c in text
+                       if unicodedata.category(c) not in ("Cf", "Cc", "Cs")).strip()
+
+    def ai_disclosure(self, answer: dict, spec) -> AssertResult:
+        """MER-AI-0001's executable control (M09; ADR-075 decision 3).
+
+        `required` -- the key is PRESENT and holds a non-empty, non-whitespace
+        string. `not_required` -- the key is PRESENT and is `null`.
+
+        **Both test key presence rather than truthiness, and that is the whole of
+        the negative half's value.** `ai_disclosure` is not in
+        `answer.schema.json`'s `required` list and the answer object is
+        `additionalProperties: false`, so an answer that never emits the key at
+        all validates cleanly. A negative assert written as *no disclosure text
+        is present* would therefore be satisfied by a model that simply stopped
+        emitting the field -- a vacuous pass, and one that reads as the fix
+        working. `not_required` demands the agent say *no disclosure is owed
+        here* rather than say nothing. The vacuity plant SPEC/09 constraint 7
+        names is exactly this, with ADR-075 amendment 1 fact 9's schema reading
+        behind it.
+
+        A whitespace-only string fails `required` for the same reason: `" "` is
+        a present key carrying no disclosure, and a control satisfied by it is
+        measuring the field's existence rather than the disclosure.
+
+        An unknown mode is a FAILURE, never a skip. `test_contracts` holds the
+        vocabulary, but a scorer that silently ignored a mode it did not know
+        would report a passing case that checked nothing -- the shape the
+        `unknown assert` branch in `score_case` exists to refuse, one level in.
+        """
+        # `spec` is either a mode string or `{mode: [tokens]}`. The TOKENS are
+        # policy -- what a disclosure must actually say -- and they live in the
+        # case file, not here, so that Legal/S&P's key reaches them: this module
+        # is the goldens scorer at (ai-quality, platform-eng) and holds the
+        # MECHANISM, on `pave/floors.py`'s criteria-versus-mechanism split. The
+        # authoritative token list moves into `rules/MER-AI-0001.yaml` at the
+        # disposition, where the rule's owner writes it.
+        tokens: list = []
+        if isinstance(spec, dict):
+            if len(spec) != 1:
+                return AssertResult("ai_disclosure", False,
+                                    f"expected one mode, got {sorted(spec)}")
+            mode, tokens = next(iter(spec.items()))
+            tokens = list(tokens or [])
+        else:
+            mode = spec
+        if mode not in self.AI_DISCLOSURE_MODES:
+            return AssertResult(
+                "ai_disclosure", False,
+                f"unknown mode {mode!r}; expected one of {list(self.AI_DISCLOSURE_MODES)}",
+            )
+        present = "ai_disclosure" in answer
+        value = answer.get("ai_disclosure")
+        if mode == "required":
+            if not present:
+                return AssertResult("ai_disclosure", False,
+                                    "the answer carries no `ai_disclosure` key at all")
+            if not isinstance(value, str):
+                return AssertResult("ai_disclosure", False,
+                                    f"`ai_disclosure` is {value!r}; MER-AI-0001 requires "
+                                    f"disclosure text on AI-authored editorial copy")
+            visible = self._visible(value)
+            if not visible:
+                return AssertResult(
+                    "ai_disclosure", False,
+                    f"`ai_disclosure` is {value!r}, which renders to nothing a reader can "
+                    f"see. MER-AI-0001 requires a VISIBLE disclosure.")
+            if tokens and not _says_one_of(visible, tokens):
+                # **A disclosure that does not say what it discloses is not one** --
+                # and getting THAT right took two goes, the second measured by the
+                # AI Quality seat in round 2.
+                #
+                # The first version required every token as a case-insensitive
+                # SUBSTRING. Against the committed `[AI]` that is the letters `ai`
+                # anywhere in ordinary English, so the control passed
+                # *"Editorial detail."*, *"Available now."*, *"Said so."* and --
+                # decisively -- *"Contains no automated content whatsoever; written
+                # by a human staff writer. Available now."*, an explicit DENIAL of
+                # AI authorship satisfying MER-AI-0001. It failed *"This summary was
+                # generated automatically."*, *"Machine-generated copy."* and
+                # *"This blurb was produced by a language model."* -- five correct
+                # disclosures refused. It measured a substring, in both directions.
+                #
+                # Two changes. **Word boundaries**, so `ai` in `available` is not a
+                # disclosure. And **any-of rather than all-of**: the tokens are
+                # accepted PHRASINGS, not a conjunction, because F2 asks whether the
+                # fix worked and must not turn on which wording the model chose.
+                return AssertResult(
+                    "ai_disclosure", False,
+                    f"`ai_disclosure` is {value!r} and says none of {tokens}. A "
+                    f"disclosure that does not disclose what the rule is about clears "
+                    f"the field's existence, not the obligation. Matching is on whole "
+                    f"words: `ai` inside `available` is not a disclosure.")
+            return AssertResult("ai_disclosure", True)
+        if not present:
+            return AssertResult(
+                "ai_disclosure", False,
+                "the answer carries no `ai_disclosure` key at all. This case requires the "
+                "key PRESENT and null — an omitted key is not a recorded 'no disclosure "
+                "owed', and accepting it would let a model satisfy the negative half by "
+                "dropping the field (the field is not `required` in the schema)",
+            )
+        if value is not None:
+            return AssertResult("ai_disclosure", False,
+                                f"`ai_disclosure` is {value!r}; this case carries no "
+                                f"AI-authored editorial copy and must not disclose")
+        return AssertResult("ai_disclosure", True)
+
     def entitlement_source(self, answer: dict, expected: str) -> AssertResult:
         """Evaluated for the record; **not scored** until M06 (ADR-016).
 
@@ -394,6 +524,8 @@ class Scorer:
                     results.append(self.cited_titles_empty(answer, value))
                 elif key == "entitlement":
                     results.append(self.entitlement(answer, value))
+                elif key == "ai_disclosure":
+                    results.append(self.ai_disclosure(answer, value))
                 elif key == "entitlement_source":
                     # Evaluated for the record, kept out of the score (ADR-016).
                     deferred.append(self.entitlement_source(answer, value))
@@ -424,6 +556,182 @@ class Scorer:
 
     def score_suite(self, cases: list, answers: dict, catalog: dict) -> list[CaseResult]:
         return [self.score_case(c, answers.get(c["id"]), catalog) for c in cases]
+
+
+def _says_one_of(text: str, phrases: list) -> bool:
+    """Whether `text` contains any of `phrases` as WHOLE WORDS.
+
+    `"AI" in "available"` is true and is not a disclosure; `re.escape` plus
+    `(?<![A-Za-z])` / `(?![A-Za-z])` is the difference. Letters only in the
+    guards, so a hyphenated or possessive form (`AI-generated`, `AI's`) still
+    matches the bare token, and a multi-word phrase is matched on its own
+    boundaries rather than word by word.
+    """
+    import re
+    for phrase in phrases:
+        pattern = r"(?<![A-Za-z])" + re.escape(str(phrase).strip()) + r"(?![A-Za-z])"
+        if re.search(pattern, text, flags=re.IGNORECASE):
+            return True
+    return False
+
+
+def disclosure_sufficiency(cases: list) -> AssertResult:
+    """Whether the disclosure pack still has both halves (ADR-048 decision 4).
+
+    **A pack that has gone vacuous must not be able to do it silently.** The
+    positive half alone is passed by a fix that emits a disclosure on every
+    answer -- ADR-048 decision 3's sentence exactly, and the PR #13 defect this
+    repository has now met in three places. The negative half alone is passed by
+    a system that never discloses anything, which is the state the pack was
+    written to find the service in.
+
+    So the cheapest way to make a disclose-on-everything fix look correct is to
+    delete the one negative case, and the cheapest way to make a
+    disclose-on-nothing service look correct is to delete the positive ones.
+    Both are one line. This returns FAIL for either, and the caller reports
+    **INFRA** rather than FAIL -- the pack could not establish anything, which
+    pages the platform rather than the service team, and is never a PASS.
+
+    Counts MODES, not cases: five cases all carrying `required` is a pack with
+    one half, however many rows it has.
+    """
+    modes = set()
+    for case in cases:
+        for assertion in case.get("asserts") or []:
+            for key, spec in assertion.items():
+                if key != "ai_disclosure":
+                    continue
+                # the assert takes either `mode` or `{mode: [tokens]}`; a
+                # sufficiency check that understood only one shape would report a
+                # pack half-empty the day the other shape was used
+                modes.add(next(iter(spec)) if isinstance(spec, dict) else spec)
+    # **A case that asserts no disclosure at all is a vacuous row**, and counting
+    # modes alone could not see it: `score_case` returns PASS for an empty
+    # `asserts` list, so a sixth case with `asserts: []` scored PASS and the lane
+    # reported `passed 6, total 6` (AI Quality seat, round 1). Only a per-pack
+    # test hard-coded to one service caught it; the instrument now refuses it, so
+    # a second service's pack is covered by construction.
+    vacuous = [case.get("id") for case in cases
+               if not any("ai_disclosure" in a for a in case.get("asserts") or [])]
+    # **A `required` case naming no token accepts any visible string**, which the
+    # Security seat drove through the real lane: every positive case at
+    # `{required: []}`, every answer `"."`, and the lane reported **PASS 7/7 at
+    # exit 0** with the gate green. Round 1 moved the vacuous-case check out of a
+    # per-pack test and into the instrument for exactly this reason, and left the
+    # token half behind in a test hard-scoped to one service. Same finding, one
+    # field over.
+    toothless = []
+    for case in cases:
+        for assertion in case.get("asserts") or []:
+            spec = assertion.get("ai_disclosure") if isinstance(assertion, dict) else None
+            if isinstance(spec, dict) and "required" in spec and not (spec["required"] or []):
+                toothless.append(case.get("id"))
+    if toothless:
+        return AssertResult(
+            "disclosure_sufficiency", False,
+            f"case(s) {toothless} require a disclosure but name no phrasing it must "
+            f"carry, so any visible string satisfies them. A control that checks the "
+            f"field exists is not a control on the obligation.")
+    if vacuous:
+        return AssertResult(
+            "disclosure_sufficiency", False,
+            f"case(s) {vacuous} carry no `ai_disclosure` assert. A case in a disclosure "
+            f"pack that does not assert a disclosure passes every run and measures nothing.")
+    missing = [m for m in Scorer.AI_DISCLOSURE_MODES if m not in modes]
+    if missing:
+        return AssertResult(
+            "disclosure_sufficiency", False,
+            f"the pack carries no case asserting {', '.join(repr(m) for m in missing)}; "
+            f"a pack with one half passes against nothing (ADR-048 decision 3). "
+            f"Found modes: {sorted(modes) or 'none'} over {len(cases)} case(s)",
+        )
+    return AssertResult("disclosure_sufficiency", True,
+                        f"{len(cases)} case(s), both halves present")
+
+
+def decide_disclosure(cases: list, results: list | None,
+                      missing: list | None = None) -> tuple[str, dict, list]:
+    """What a disclosure run decided: `(verdict, scores, notes)`.
+
+    **This lives here and not in `pave/cli.py`, and three seats are the reason.**
+    The first version put these branches in the CLI, which matches no
+    `pave/twokey.py` rule -- and two seats independently measured what that
+    bought: deleting the INFRA branch left **49 tests passing** while the lane
+    reported `PASS` at exit 0 over a run where every case established nothing;
+    flipping the sufficiency failure from INFRA to FAIL was **SILENT**; and
+    stubbing `disclosure_sufficiency` to always-true was **SILENT at 92 passed**.
+    Three of the four statements that decide what a disclosure verdict MEANS were
+    editable on no key and checked by nothing. That is ADR-037's finding in a new
+    place, and `pave/verify.py`'s precedent is the fix: the criteria live in the
+    module the seats hold, the CLI keeps the dispatch.
+
+    The order of the branches is the contract, and each is load-bearing:
+
+    1. **A pack that cannot decide is INFRA**, never FAIL and never PASS. A
+       one-sided pack establishes nothing about the service -- the positive half
+       alone is passed by a disclose-on-everything fix -- so it pages the platform
+       rather than the service team. FAIL would route it to the team as a quality
+       regression they cannot fix.
+    2. **A run that did not arrive is INFRA.**
+    3. **Any case that established nothing makes the suite INFRA**, before any
+       PASS/FAIL count is read. A run of five INFRA cases scored `passed 0,
+       failed 0` and, without this, reported PASS.
+    4. Only then FAIL on any failure, else PASS.
+    """
+    notes: list[str] = []
+    scores: dict = {}
+
+    sufficiency = disclosure_sufficiency(cases)
+    if not sufficiency.passed:
+        return INFRA, scores, [sufficiency.detail]
+    if missing:
+        return INFRA, scores, [f"committed run(s) missing {sorted(missing)}"]
+    if not results:
+        return INFRA, scores, ["nothing was scored"]
+
+    # **`results` arrives already reduced across k, and this module must not know
+    # how.** `test_the_sampling_did_not_touch_the_scorer` forbids this file from
+    # naming the reduction at all, and it is right to: k-sampling is a reporting
+    # discipline in the run harness, so moving it here would mean each sample
+    # stops being scored by the code path a single run uses -- and the arms stop
+    # being comparable to m00b and m01. The first version of this function took
+    # the raw per-run lists and reduced them itself; that check caught it, which
+    # is a protection test doing exactly its job on a file it did not anticipate.
+    # The DECISION stays here, where the seats hold keys on it; the reduction
+    # stays in the caller, as it does for the goldens lane.
+    #
+    # (The check is a substring scan over this source, so it cannot tell a comment
+    # explaining the invariant from code breaking it. That is why this paragraph
+    # is worded around the names rather than quoting them -- recorded as an
+    # observation, not worked around: loosening a three-key protection test to
+    # make a comment readable is the wrong trade.)
+    if len(results) != len(cases):
+        # `scores["total"]` is `len(cases)` while the counts come from `results`,
+        # so a mismatched pair reported PASS over a partial scoring — `2 cases, 1
+        # result` returned `PASS, {passed: 1, total: 2}`. Not reachable through
+        # the CLI when this was written, and `--pack` made it reachable by a
+        # caller (AI Quality, round 2).
+        scored = {getattr(r, "id", None) for r in results}
+        return INFRA, scores, [
+            f"{len(results)} result(s) for {len(cases)} case(s); no verdict is derivable "
+            f"from a partial scoring. Missing: "
+            f"{sorted({c.get('id') for c in cases} - scored)}"]
+    counts = tally(results)
+    scores = {"passed": counts["passed"], "total": len(cases),
+              "failed": counts["failed"], "infra": counts["infra"]}
+
+    for result in results:
+        for assertion in result.asserts:
+            if not assertion.passed:
+                # The failing assert, named per case. Row 1a's chain ends here,
+                # and a verdict recording only a count leaves the last link of it
+                # to whoever writes the journal.
+                notes.append(f"{result.id}: {assertion.kind} — {assertion.detail}")
+
+    if counts["infra"]:
+        notes.insert(0, f"{counts['infra']} of {len(cases)} case(s) established nothing")
+        return INFRA, scores, notes
+    return (FAIL if counts["failed"] else PASS), scores, notes
 
 
 def suite_latency(answers: dict, ceiling_ms: int | None) -> AssertResult:

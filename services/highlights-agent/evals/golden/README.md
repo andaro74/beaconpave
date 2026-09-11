@@ -1,11 +1,25 @@
 # Golden set — highlights-agent (Meridian Sports)
 
-**Owning seat:** AI Quality. Two-key (`Two-Key-Disposition: ai-quality`) on every
-change, enforced by the `two-key` check.
+**Owning seat:** AI Quality, and **one key** — `Two-Key-Disposition: ai-quality`,
+enforced by the `two-key` check through `^services/[^/]+/evals/`.
 
-25 cases. `disclosure-004` is deliberately absent — M07 adds it as the
-MER-AI-0001 disposition, which is claim 6. The gap in the numbering is the
-reservation.
+This said *"Two-key"* until M09 PR 2 round 1, and it was not: the rule names one
+seat. A path described as two-key that takes one is a stated protection that is
+absent, which stops the next reader looking for the real one. A disposition's
+eval pack — the executable form of a rule in `rules/` — does take two, because it
+discharges another seat's obligation; a golden set is AI Quality's own.
+
+**A disposed rule's eval pack is its own suite, never a case in this file.**
+When a rule in `rules/` is disposed into an eval pack, that pack gets its own
+case file, its own verdict and its own history entry, so disposing a rule never
+moves this file's denominator and never makes a recorded `N/<total>` mean
+something new.
+
+This file once reserved the id `disclosure-004` for such a disposition and said
+the gap in the numbering *was* the reservation. **That reservation is
+withdrawn.** A reservation outlives the milestone that named it, and a gap in a
+numbering is not a protection — it is a gap. Disposition packs live beside this
+directory, not in it.
 
 ## The rule that matters most
 

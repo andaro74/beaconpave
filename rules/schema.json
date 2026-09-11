@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://beaconpave/rules/schema.json",
   "title": "Rule Record (Rules Registry)",
-  "description": "Every rule has an owner, a source, a disposition into an enforcing control, and a review-by date. No orphan rules, no immortal rules (G7). This is the regdelta pattern: external change -> named owner -> disposition -> executable control.",
+  "description": "Every rule has a named owner, a source, a disposition into an enforcing control, and a review-by date. This is the regdelta pattern: external change -> named owner -> disposition -> executable control.\n\n**G7's two halves, and what each word means here.**\n\n*No immortal rules*: `review_by` is required, and so is `source.effective`. Until M09 `effective` was optional and the review-by assertion in `tests/test_contracts.py` was guarded `if effective:`, so a rule that simply omitted the field was never examined -- ADR-053 planted `effective` deleted, `status: enforced`, `review_by: \"2099-01-01\"` and measured 2079 passed on a literally immortal enforced rule. Requiring the field closes that door and leaves the other one ADR-053 named OPEN: the review-by assertion still exempts `status: enforced`, so an enforced rule may still carry a distant `review_by`. Bounding that needs a horizon Legal/S&P chooses, and it is recorded as open rather than reported as done (ADR-075 amendment 2).\n\n*No orphan rules* means ONE thing, and this sentence is the definition: **an orphan rule is a rule whose disposition names an enforcing control -- any `controls[].type` other than `no-control` -- whose `ref` does not resolve to a path in this tree.** The rule is written down, the control is named, and the control is not there.\n\nThe term used to cover a second sense too: a rule missing an owner, a disposition or a review-by date. That sense is real and it is enforced -- by `required` below and by `disposition.controls`'s `minItems` -- but it is NOT called orphaning, because a term meaning two things lets the cheap half be closed while the expensive half is reported as done, which is the inheritance ADR-053 refused to hand M07. Missing fields are refused by this schema; orphaning is refused by `pave/rules.py::orphan_rules`, which JSON Schema cannot express because it cannot resolve a path. The schema carries the definition, the check carries the enforcement, and they say the same sentence (ADR-075 amendment 2).",
   "type": "object",
   "required": ["rule", "title", "source", "owner_seat", "severity", "disposition", "status", "review_by"],
   "properties": {
@@ -10,11 +10,24 @@
     "title": { "type": "string" },
     "source": {
       "type": "object",
-      "required": ["type", "ref"],
+      "required": ["type", "ref", "effective"],
       "properties": {
         "type": { "type": "string", "enum": ["regulation", "contract", "union", "incident", "red-team", "policy"] },
         "ref": { "type": "string" },
-        "effective": { "type": "string", "format": "date" }
+        "effective": { "type": "string", "format": "date", "description": "Mandatory from M09 (ADR-053's owe, ADR-075 amendment 2): the date the source becomes binding. Required rather than optional so that a rule cannot switch off its own review clock by omitting the field it is checked against." }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "description": "What the rule reaches, in the terms of the system it is enforced against — and what it does NOT, with what would bring an excluded sense back. **A rule re-scoped by its owning seat says so here rather than by a quiet edit to `title`.** M09 met the need at MER-AI-0001: the rule was written for AI-generated *recaps*, was disposed against a service that produces no recappable content — `data/catalog.json` carries no outcome field for any title, and `grounded-017` requires the agent NOT to narrate a result — so a recap-shaped control could only ever have failed for a reason that was not the control. Re-scoping the rule to the editorial copy the bound service actually authors is a Legal/S&P decision; recording it as a field is what stops the next reader taking `title` for the whole of it (ADR-075 amendment 3).",
+      "required": ["covers", "excludes", "revives", "decided_by", "decided_on"],
+      "additionalProperties": false,
+      "properties": {
+        "covers": { "type": "string", "minLength": 1, "description": "What the rule reaches now. `minLength` because two seats measured that this file said \"Never blank\" twice and enforced it nowhere -- the same stated-and-absent shape round 1 fixed one field over, when `format: date` turned out to be decoration without a checker." },
+        "excludes": { "type": "string", "minLength": 1, "description": "A sense the rule no longer reaches, named rather than deleted. A scope narrowed by silence cannot be audited" },
+        "revives": { "type": "string", "minLength": 1, "description": "What would bring the excluded sense back into force. Never blank: an exclusion with no revival condition is a retirement wearing a narrower name" },
+        "decided_by": { "type": "string", "enum": ["platform-eng", "ai-quality", "security", "legal-sp", "data-governance", "tool-owner", "service-team"], "description": "The seat that took the scoping decision. An `enum` because `owner_seat` and `limits[].owed_to` both have one and this did not: a re-scope could name `\"whoever gets to it\"` and validate." },
+        "decided_on": { "type": "string", "format": "date" }
       }
     },
     "owner_seat": {
@@ -26,12 +39,29 @@
       "type": "object",
       "required": ["decided_by", "decided_on", "controls"],
       "properties": {
-        "decided_by": { "type": "string" },
+        "decided_by": { "type": "string", "anyOf": [
+          { "enum": ["platform-eng", "ai-quality", "security", "legal-sp", "data-governance", "tool-owner", "service-team"] },
+          { "pattern": "^unassigned\\b" }
+        ], "description": "The seat that disposed the rule, or `unassigned` followed by who is holding it and when. **Given this by the test written for `scope.decided_by`** (ADR-075 amendment 3): the audit closed the new field, and the check written for it immediately found the OLDER and more load-bearing one unconstrained \u2014 so `decided_by: \"legal-and-sp\"` validated and the disposition read as taken by a seat that does not exist, while `pave/twokey.py`'s `DISPOSITION_RE` accepts any `[a-z-]+` and turns the same typo one file over into a PR no attestation can satisfy. The `unassigned` arm is not a hole: an undisposed rule is a real state this registry is in right now, and naming it is the difference between a state and any string at all." },
         "decided_on": { "type": "string", "format": "date" },
+        "limits": {
+          "type": "array",
+          "description": "What this disposition does NOT cover, each owed to a seat and dated. **A disposition records its own boundary, or the registry reports a rule discharged that is only partly discharged.** M09 met this at MER-AI-0001: an L3 eval pack asserts the disclosure field on an ANSWER, and the publish-class action that puts editorial copy in front of viewers carries a separate `ai_generated` flag that can be defaulted false with every semantic check green. `pave rules trace` prints these beside the controls, so a reader of the registry lookup sees the boundary at the same moment as the chain (ADR-075 amendment 3; Tool Owner seat, M09 PR 2 round 1).",
+          "items": {
+            "type": "object",
+            "required": ["limit", "owed_to", "dated"],
+            "additionalProperties": false,
+            "properties": {
+              "limit": { "type": "string", "minLength": 1, "description": "What the disposition does not reach, in the terms the rule uses" },
+              "owed_to": { "type": "array", "minItems": 1, "items": { "type": "string", "enum": ["platform-eng", "ai-quality", "security", "legal-sp", "data-governance", "tool-owner", "service-team"] } },
+              "dated": { "type": "string", "minLength": 1, "description": "The milestone or trigger that closes it. Never blank: an undated limit is a residual nobody inherits" }
+            }
+          }
+        },
         "controls": {
           "type": "array",
           "minItems": 1,
-          "description": "At least one enforcing control, or an explicit reasoned 'no-control' record",
+          "description": "At least one enforcing control, or an explicit reasoned 'no-control' record. Every `ref` on a control whose `type` is not `no-control` must resolve to a path in this tree; one that does not is an ORPHAN RULE, in this file's one sense of that term (see the top-level description). JSON Schema cannot check it, so `pave/rules.py::orphan_rules` does.",
           "items": {
             "type": "object",
             "required": ["type", "ref"],

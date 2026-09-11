@@ -61,8 +61,13 @@ ADR043_SEATS = {
     "conftest.py": {"platform-eng", "security"},
     "pave/tests/conftest.py": {"platform-eng", "security"},
     "pytest.ini": {"platform-eng", "security"},
+    # `data-governance` joined at M09 PR 2 by the mechanism below, not by
+    # preference: G5's router got its first rule in that diff and
+    # `test_this_file_is_itself_on_a_rule_that_carries_securitys_key` went red by
+    # name until this file collected the new seat's key too. ADR-053 recorded the
+    # only previous instance, when `legal-sp` arrived the same way.
     "tests/test_twokey_seats.py": {"ai-quality", "security", "platform-eng",
-                                   "tool-owner", "legal-sp"},
+                                   "tool-owner", "legal-sp", "data-governance"},
     "platform/gateway/core/toolplane.py": {"platform-eng", "security", "tool-owner"},
     "tests/test_toolplane.py": {"platform-eng", "security", "tool-owner"},
     # --- ADR-044 ---
@@ -75,7 +80,11 @@ ADR043_SEATS = {
     "tests/test_calibration_corpus.py": {"ai-quality", "platform-eng"},
     "tests/test_judge.py": {"ai-quality", "platform-eng"},
     "tests/test_tool_loop.py": {"platform-eng", "security"},
-    "tests/test_gateway_core.py": {"platform-eng", "security"},
+    # M09 PR 2 round 1 (Data Governance): the only live witness that G5 refuses
+    # `sensitive` by design gains the seat that owns G5. Edited in place rather
+    # than added below — a second entry for the same key silently shadows the
+    # first and leaves the ADR-044 line dead (ruff F601 caught exactly that).
+    "tests/test_gateway_core.py": {"platform-eng", "security", "data-governance"},
     "tests/test_gateway_run_parity.py": {"platform-eng", "security"},
     # ADR-048: added to ADR-042's enumerated protection-test rule, whose
     # membership ADR-044 pins member by member.
@@ -199,11 +208,78 @@ ADR043_SEATS = {
     "tests/test_m08b_fresh_join.py": {"ai-quality", "platform-eng", "security"},
     # round 2 (AI Quality): the scorer's own test, on the scorer's rule
     "tests/test_deterministic_runner.py": {"ai-quality", "platform-eng"},
+    # --- M09 PR 2 (ADR-075 amendment 1 asks 8 and the spec's own debt rows) ---
+    #
+    # The chain reader is the WHOLE of claim 6's row 1a: it decides what
+    # *traceable* means, from the rule to the failing assert. Measured on
+    # `479972e`: `two-key: not required`, on the file the milestone's one claim
+    # is read through. Legal/S&P owns the registry, Security is its counterweight
+    # on `^rules/`, Platform Engineering the mechanism.
+    "pave/rules.py": {"legal-sp", "security", "platform-eng"},
+    "tests/test_rules_trace.py": {"legal-sp", "security", "platform-eng"},
+    # The system block every governed run sends, on no rule while its five
+    # template siblings took four keys each. Put on a rule in PR 2, one PR BEFORE
+    # the PR that edits it — which is the whole reason the debt is dated there.
+    "services/highlights-agent/gateway_client.py": {"platform-eng", "security"},
+    # G5's router, and the first rule in this repository to name Data Governance.
+    # Measured on `479972e`: `two-key: not required` — the file that implements an
+    # invariant and supplies `classify_sha256` to every adversarial entry.
+    "platform/gateway/core/classify.py": {"data-governance", "security"},
+    # M09's readers, records and pins on the census rule, widened in the diff that
+    # creates them and before the data they read exists — M08b's precedent, and
+    # the reason it is here rather than in PR 4.
+    "tests/test_m09_disclosure.py": {"ai-quality", "platform-eng", "security"},
+    # Round 2 (Security): the disposition-pack rule had no representative here, so
+    # the ratchet above could not exercise it — and narrowing it to one filename
+    # was silent at 3951 passed. The pack is the executable form of a Legal/S&P
+    # rule; that seat's key is the whole of what this pin holds.
+    "services/highlights-agent/evals/disclosure/cases.yaml": {"ai-quality", "legal-sp"},
+    "milestones/M09/verdict-pre-fix.json": {"ai-quality", "platform-eng", "security"},
 }
 
 
 def _seats_for(path: str) -> set:
     return {seat for rule, _ in twokey.triggered([path]) for seat in rule.seats}
+
+
+#: Seats that may not be dropped from a named rule without the drop being spelled
+#: out. `ADR043_SEATS` plus `test_this_file_is_itself_on_a_rule_that_carries_securitys_key`
+#: ratchet a seat IN — and the Security seat measured that they do not hold it:
+#: removing `data-governance` from the router rule, from THIS file's rule, and
+#: from both pins in one diff left **4124 passed**, because the agreement check
+#: only asks that the two lists match and they matched after the removal.
+#:
+#: The second-order consequence is what makes it a G9 finding rather than a
+#: bookkeeping one: after that one diff `platform/gateway/core/classify.py` is
+#: single-key and the key is `security` — the seat whose ten probes a wider router
+#: satisfies, holding sole control of the router's strength.
+SEATS_THAT_MAY_NOT_BE_DROPPED = {
+    "platform/gateway/core/classify.py": {"data-governance"},
+    # Round 2 (Security): the ratchet was written and immediately not applied to
+    # three of its own four occasions. All three gained `data-governance` in the
+    # diff that created the constant, for reasons that diff argues at length —
+    # and each was droppable without the constant noticing.
+    "platform/gateway/core/__init__.py": {"data-governance"},
+    "platform/gateway/core/classify_terms.py": {"data-governance"},
+    "tests/test_gateway_core.py": {"data-governance"},
+    "services/highlights-agent/evals/disclosure/cases.yaml": {"legal-sp"},
+    "services/highlights-agent/gateway_client.py": {"platform-eng", "security"},
+    "pave/rules.py": {"legal-sp", "security", "platform-eng"},
+}
+
+
+def test_a_seat_cannot_be_dropped_from_a_rule_without_naming_it_here():
+    """The ratchet in the removal direction, by name.
+
+    Dropping a seat now costs an explicit edit to this constant that names the
+    seat being dropped — which is the whole of what makes it a decision rather
+    than a diff."""
+    for path, required_seats in SEATS_THAT_MAY_NOT_BE_DROPPED.items():
+        missing = sorted(required_seats - _seats_for(path))
+        assert not missing, (
+            f"{path} no longer collects {missing}. That seat was added by a recorded "
+            "decision; dropping it is another one. If it is intended, remove it from "
+            "SEATS_THAT_MAY_NOT_BE_DROPPED in this diff and say why in the ADR.")
 
 
 def test_the_seat_sets_adr043_decided_are_exactly_these():
@@ -266,11 +342,23 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                                           "the goldens scorer",
                                           # M08b PR 2, seat round 1
                                           "the held-text readings",
-                                          "the refusal estimator"))]
-    assert len(added) == 24, (
+                                          "the refusal estimator",
+                                          # M09 PR 2, ADR-075 amendment 1 ask 8
+                                          # and SPEC/09's own debt rows
+                                          "the registry chain reader",
+                                          "the caller's system prompt",
+                                          "G5's router",
+                                          # round 2 (Security): the rule this PR
+                                          # added for Legal/S&P's key was the one
+                                          # rule the ratchet did not hold — the
+                                          # `added` list is opt-in by label, and
+                                          # narrowing the pattern to one filename
+                                          # was silent at 3951 passed.
+                                          "a disposition's eval pack"))]
+    assert len(added) == 28, (
         f"expected ADR-043's five, ADR-044's two, ADR-046's two, ADR-047's one, "
         f"ADR-049's three, ADR-052's two, ADR-053's two, ADR-072's one, SPEC/08's "
-        f"two, ADR-014 amendment 2's one and M08b PR 2's three, found "
+        f"two, ADR-014 amendment 2's one, M08b PR 2's three and M09 PR 2's four, found "
         f"{[r.what[:40] for r in added]}. If a rule was renamed, update this ratchet in "
         "the same diff — it is what stops the pin below being emptied."
     )
@@ -391,7 +479,60 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
                            "tests/test_m08b_p95.py",
                            "tests/fixtures/m08b/build_planted.py",
                            "tests/fixtures/m08b/planted/fresh-join.json",
-                           "tests/fixtures/m08b/planted/goldens-run-1.json"],
+                           "tests/fixtures/m08b/planted/goldens-run-1.json",
+                           # M09 PR 2 (ADR-075 amendment 1 ask 8). The verdicts F1,
+                           # F2, F3 and F5 are read from, a reader shape and a
+                           # record shape that need not exist yet, and the test
+                           # shapes — pinned so that narrowing the M09 clause back
+                           # to a list of today's filenames is red rather than
+                           # silent, which is what the M08b clause's own round-2
+                           # finding measured one milestone earlier.
+                           "milestones/M09/verdict-pre-fix.json",
+                           "milestones/M09/verdict-post-fix.json",
+                           "milestones/M09/disclosure_join.py",
+                           # Shapes that cannot be enumerated in advance: the
+                           # Security seat re-narrowed the M09 clause from a
+                           # character class to a closed list of the seven names
+                           # pinned here, at 4124 passed, after which
+                           # `milestones/M09/disclosure-run-2.json` matched
+                           # nothing. These two exist to make that narrowing red.
+                           "milestones/M09/a-record-not-written-yet.json",
+                           "milestones/M09/disclosure-run-2.json",
+                           "milestones/M09/residual_join2.py",
+                           "tests/test_m09_disclosure.py",
+                           "tests/test_m09_p95_condition.py",
+                           "tests/test_m09_a_test_not_written_yet.py"],
+        # M09 PR 2. The reader that decides what *traceable* means, and its only
+        # reader — ADR-043 decision 1's "weakened together or not at all", which is
+        # why both are required rather than the module alone.
+        "the registry chain reader": ["pave/rules.py", "tests/test_rules_trace.py"],
+        # M09 PR 2. A path pattern, so a second service's client lands on the rule
+        # the day it is written; the non-existent path pins the SHAPE, on the
+        # goldens producer's precedent.
+        # Named, not a shape path: round 1 narrowed this rule to the measured
+        # service, so a non-existent path here would assert the opposite of the
+        # decision. `test_every_measured_client_is_on_this_rule` is what makes a
+        # second service join, and it reads the records rather than a regex.
+        "the caller's system prompt": ["services/highlights-agent/gateway_client.py"],
+        # Member by member: narrowing the alternation to drop the package
+        # `__init__` restores a complete G5 bypass at zero keys, and dropping the
+        # witness leaves the seat that owns G5 unable to defend its only test.
+        # Shape paths, because the rule is a prefix and the pack for a service
+        # that does not exist yet must land on it the day it is written. Narrowing
+        # to `^services/highlights-agent/evals/disclosure/cases\.yaml$` left the
+        # pack's README on no rule and a second service's pack on AI Quality
+        # alone, at 3951 passed (Security, round 2).
+        "a disposition's eval pack": [
+            "services/highlights-agent/evals/disclosure/cases.yaml",
+            "services/highlights-agent/evals/disclosure/README.md",
+            "services/a-service-that-does-not-exist-yet/evals/disclosure/cases.yaml"],
+        "G5's router": ["platform/gateway/core/classify.py",
+                        "platform/gateway/core/__init__.py",
+                        # A sibling holding the term lists: measured to leave
+                        # `classify_sha256` byte-identical, so neither the rule
+                        # nor the instrument saw the widening.
+                        "platform/gateway/core/classify_terms.py",
+                        "tests/test_gateway_core.py"],
         # M08b PR 2. The scorer every goldens verdict comes from, and (round 2)
         # the test that pins its comparison.
         "the goldens scorer": ["evals/deterministic.py", "tests/test_deterministic_runner.py"],
@@ -451,10 +592,22 @@ def test_the_seat_pin_covers_every_rule_this_adr_added():
     # census's rule (13); the goldens scorer (1); the two grants files on the
     # held-text readings rule and the estimator on its own (3). 88 -> 91 at
     # round 2: two digit-bearing shape paths on the census rule and the
-    # scorer's test on the scorer's.
-    assert total == 91, (
+    # scorer's test on the scorer's. 91 -> 103 at M09 PR 2 (the arithmetic in this
+    # comment said 102 for one round and the assert said 103 — summary drift in the
+    # constant whose comment is its own audit trail, which is ADR-037's subject): seven M09 paths on
+    # the census rule (two verdicts, a reader shape, a record shape and three
+    # test shapes), the chain reader and its only reader (2), the caller's system
+    # prompt (1 -- named rather than a shape path, round 1), and G5's router (3
+    # after round 1: the module, the package `__init__` a bypass lived in, and the
+    # only live witness, plus a term-list sibling). 107 -> 110 in round 2: the
+    # disposition-pack rule's three, added because the ratchet's label list is
+    # opt-in and this PR's own new rule was the one it did not hold.
+    # 104 -> 107 in round 1: two M09 shape paths that cannot
+    # be enumerated in advance, so re-narrowing the clause to a closed list of
+    # today's filenames is red rather than silent.
+    assert total == 110, (
         f"`required` holds {total} paths across {len(required)} rules, expected "
-        "91. Deleting a required path in the same diff that "
+        "110. Deleting a required path in the same diff that "
         "narrows a rule is the one-edit bypass this pin exists to make two — if a "
         "path was added on purpose, raise the constant in this diff and say why."
     )
@@ -700,6 +853,175 @@ def test_the_goldens_scorer_collects_ai_quality_and_platform_eng():
     assert _seats_for("evals/run_evals.py") == {"ai-quality", "security", "platform-eng"}
 
 
+def test_the_chain_reader_collects_the_registry_seats_and_the_mechanism():
+    """M09 PR 2 (ADR-075 amendment 1 fact 5, ask 8). Measured on `479972e` over
+    PR 2's file list: `pave/rules.py` and `tests/test_rules_trace.py` matched
+    **no rule** — the reader that decides what *traceable* means, which is the
+    whole of claim 6's row 1a, editable on one key by any seat. ADR-037's
+    finding at the file the milestone's one claim is read through.
+
+    The seats that gain from a reader reporting a chain that does not hold are
+    Legal/S&P (the rule looks disposed) and AI Quality (its pack looks reached),
+    so G9 says neither may hold the only key: Legal/S&P owns the registry,
+    Security is already its counterweight on `^rules/`, and Platform Engineering
+    owns the mechanism.
+
+    `pave/cli.py` is deliberately NOT on this rule and must not become so —
+    ADR-041 decision 7 refuses to key it, and `pave/verify.py`'s precedent is
+    that the criteria live in the keyed module while the dispatch line does
+    not."""
+    for path in ("pave/rules.py", "tests/test_rules_trace.py"):
+        _blocked_for([path], {"legal-sp", "security", "platform-eng"})
+    assert _seats_for("pave/cli.py") == set(), (
+        "pave/cli.py has acquired a key. ADR-041 decision 7 refuses exactly that: "
+        "gating ~1200 lines of command dispatch teaches people to attest past a rule "
+        "without reading it. The deciding logic moves to a keyed module instead.")
+
+
+def test_the_system_block_every_governed_run_sends_collects_two_seats():
+    """M09 PR 2, SPEC/09's own debt row. Measured on `479972e`:
+    `services/highlights-agent/gateway_client.py` on **no rule**, `two-key: not
+    required` — while its five siblings under `templates/agent-tools/` took four
+    keys each and `tests/test_gateway_run_parity.py`'s own docstring calls
+    editing the prompt *"changing the system under measurement ... an ADR-021
+    event"*.
+
+    Dated to PR 2 and not to the PR that edits it, which is the point: a file
+    joins a rule BEFORE the diff that changes it, or the rule is written by
+    whoever wanted the change.
+
+    A path pattern, so a service that does not exist yet lands on the rule the
+    day its client is written — the goldens producer's shape, for the goldens
+    producer's reason."""
+    _blocked_for(["services/highlights-agent/gateway_client.py"],
+                 {"platform-eng", "security"})
+    # **A scaffolded client is NOT on this rule, and that is round 1's finding.**
+    # The first version was `^services/[^/]+/gateway_client\.py$`, which keyed a
+    # file `pave new` renders — so Platform Engineering and Security had to sign a
+    # machine render of a template they already hold four keys on, on every new
+    # service's first PR. Every reason for keying this file names one service; a
+    # scaffolded client is pinned by no parity test and digested by no record.
+    assert _seats_for("services/sportscast-agent/gateway_client.py") == set(), (
+        "a scaffolded service's client is back on the rule. That is a mandatory "
+        "rubber stamp on a byte-for-byte render, which is the attest-without-reading "
+        "habit ADR-047 refused (Service Team, M09 PR 2 round 1).")
+    # narrow: the template's copy keeps the scaffold's four seats
+    assert _seats_for("templates/agent-tools/gateway_client.py.tmpl") == \
+        {"platform-eng", "ai-quality", "tool-owner", "security"}
+
+
+def test_every_measured_client_is_on_this_rule():
+    """**The invariant the path regex was standing in for, as a check.**
+
+    What deserves a key is not "every file called `gateway_client.py`" but "every
+    client whose text a committed record digests" — those are the ones where a
+    reworded prompt moves what a recorded number means with nothing else going
+    red. So the rule names services, and this walks the records to find the ones
+    that must be named.
+
+    A second service joins the day it acquires a recorded control, in the diff
+    that creates that record — the same "keyed before the PR that edits it"
+    discipline the first one got, and red here rather than noticed later."""
+    import json as _json
+
+    measured = set()
+    for record in ROOT.glob("milestones/**/*.json"):
+        try:
+            doc = _json.loads(record.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            continue
+        inputs = doc.get("inputs_sha256") if isinstance(doc, dict) else None
+        if isinstance(inputs, dict):
+            measured.update(p for p in inputs if p.endswith("gateway_client.py"))
+
+    assert measured, (
+        "no committed record digests a `gateway_client.py`, so this check is vacuous. "
+        "If the census stopped digesting the prompt, the rule below is guarding a file "
+        "nothing measures and the reasoning needs re-reading.")
+    for path in sorted(measured):
+        assert _seats_for(path) == {"platform-eng", "security"}, (
+            f"{path} is digested by a committed record and is not on the caller's-prompt "
+            f"rule: it collects {sorted(_seats_for(path))}. A client whose text a recorded "
+            "number depends on may not be reworded on one key.")
+
+
+def test_g5s_router_collects_data_governance_and_security():
+    """M09 PR 2, SPEC/09's debt row, owed to Data Governance since M07. Measured
+    on `479972e`: `platform/gateway/core/classify.py` on **no rule** — the file
+    that implements G5, where `sensitive` is refused by design.
+
+    **The first rule in this repository to name `data-governance`**, and it names
+    it because the file's own docstring does. Security is the counterweight for
+    the instrument half: `classify_sha256` sits in every adversarial entry **that
+    carries an instrument block** — one of the three committed — and in all nine
+    registered instruments; a classification refusal IS a policy denial, so it can
+    satisfy the **ten of eleven** probes declaring the broad semantics, and
+    widening the router's terms changes what ten probes mean.
+
+    (Counted in round 1 rather than quoted. The wording inherited from
+    `evals/history/schema.json` said *every* entry and *nine of the ten*; two of
+    the three committed adversarial entries carry no `instrument` key at all, and
+    the corpus has been eleven since ADR-041. Security's key is also not merely
+    balance: Security's scored number goes **up** when the router widens, because
+    a wider refusal satisfies more probes with no system improving.)
+
+    `requires_adr` is OFF, and that is ADR-052 decision 2 rather than a
+    preference: a rule that gives a NEW seat an ADR requirement turns
+    `test_the_definition_of_a_decision_record_carries_every_adr_rules_seats` red
+    until that seat can also defend what satisfying it means, and handing Data
+    Governance an ADR requirement in the same diff that gives it its first key is
+    that trade exactly."""
+    _blocked_for(["platform/gateway/core/classify.py"], {"data-governance", "security"})
+    # **The package `__init__`, and it is not decoration.** Measured on `c917c11`
+    # by the Data Governance seat: a shim in that 14-line file setting
+    # `SUBJECT_TERMS = ()` behind `if "pytest" not in sys.modules` turned G5 off
+    # at run time with `classify_sha256` byte-identical — **4124 passed, zero
+    # keys**. It runs on every `from core import classify`. ADR-052 closed the
+    # identical hole in `pave/__init__.py`; this is the same fix one package over.
+    _blocked_for(["platform/gateway/core/__init__.py"], {"data-governance", "security"})
+    # A sibling module holding the router's term lists. Measured by the Security
+    # seat: moving them there and widening them left `classify_sha256`
+    # byte-identical, so the instrument could not see it either.
+    _blocked_for(["platform/gateway/core/classify_terms.py"],
+                 {"data-governance", "security"})
+    rules = [rule for rule, _ in twokey.triggered(["platform/gateway/core/classify.py"])]
+    assert not any(rule.requires_adr for rule in rules), (
+        "the router's rule now requires an ADR. That turns the decision-record test red "
+        "until Data Governance also holds a key on what discharges one (ADR-052 "
+        "decision 2) — do both in one diff or neither.")
+
+
+def test_m09s_readers_records_and_pins_collect_the_census_seats():
+    """M09 PR 2 (ADR-075 amendment 1 fact 5 and ask 8). Measured on `479972e`
+    over PR 2's and PR 4's file lists before this widening: every one of these
+    `two-key: not required`. The census rule names `milestones/M08/`,
+    `milestones/M08b/` and `tests/test_m08b_*` **by name** and had no `M09`
+    clause at all, so `milestones/M09/verdict-pre-fix.json`,
+    `verdict-post-fix.json` and the run-A answer files — the evidence F1, F2, F3
+    and F5 are read FROM — matched nothing. The goldens-evidence rule catches
+    `goldens-run*.json` and the control run only.
+
+    Widened in the diff that creates the readers, before the data exists, which
+    is M08b's precedent and ADR-060's. The shape paths are pinned for the reason
+    M08b's round 2 measured one milestone earlier: a name with a digit matched
+    nothing under `[a-z_]+`, and a clause narrowed back to today's filenames
+    drops the next reader silently."""
+    for name in ("verdict-pre-fix.json", "verdict-post-fix.json", "disclosure-run-1.json",
+                 "disclosure_join.py", "a-record-not-written-yet.json", "p95_join.py"):
+        _blocked_for([f"milestones/M09/{name}"], {"ai-quality", "platform-eng", "security"})
+    for path in ("tests/test_m09_disclosure.py", "tests/test_m09_prompt_delta.py",
+                 "tests/test_m09_p95_condition.py", "tests/test_m09_goldens_denominator.py",
+                 "tests/test_m09_a_test_not_written_yet.py"):
+        _blocked_for([path], {"ai-quality", "platform-eng", "security"})
+    # the rule stays narrow: M09's transcripts are prose, as M08b's are
+    for transcript in ("per-sample.txt", "goldens-score.txt", "README.md",
+                       "gate-pre-fix.txt", "gate-post-fix.txt"):
+        assert _seats_for(f"milestones/M09/{transcript}") == set()
+    # and the goldens control run keeps the goldens-evidence rule's own seats
+    assert _seats_for("milestones/M09/goldens-run-1.json") == \
+        {"ai-quality", "platform-eng", "security"}
+
+
 def test_a_forged_permit_from_the_generator_collects_four_seats():
     """Measured: two lines in `cedar.py:generate()` put
     `permit(principal == Service::"attacker-svc", ...)` into the deployed policy
@@ -786,8 +1108,15 @@ def test_the_sole_g5_by_design_witness_collects_security():
     classification assertion green, and that one red.
 
     It is also the witness a singleton `DECLARABLE_LEVELS` cannot reach, because
-    it passes `declared="sensitive"` — a value the manifest will refuse."""
-    _blocked_for(["tests/test_gateway_core.py"], {"platform-eng", "security"})
+    it passes `declared="sensitive"` — a value the manifest will refuse.
+
+    **`data-governance` joined at M09 PR 2 round 1.** The seat that owns G5 held
+    the thermostat (`classify.py`) and none of the thermometers, so
+    `(platform-eng, security)` could have deleted every witness to G5 in one diff
+    without the seat that owns the invariant being asked — ADR-035's asymmetry
+    with the halves swapped."""
+    _blocked_for(["tests/test_gateway_core.py"],
+                 {"platform-eng", "security", "data-governance"})
 
 
 def test_deleting_the_transport_parity_pin_collects_security():
@@ -1845,3 +2174,102 @@ def test_the_rename_bypass_stays_closed_for_the_line_ending_rule():
                      ("tests/test_line_endings.py", "tests/test_line_endings_v2.py")):
         assert twokey.triggered([old, new]), (
             f"renaming {old} walks around its rule; the old path must still match.")
+
+
+#: How the published table spells a seat, and what `pave/twokey.py` calls it. The
+#: table is prose and the module is code; the mapping is the only place the two
+#: vocabularies meet, so it lives here rather than being inferred.
+ROLES_SEAT_NAMES = {
+    "AI Quality": "ai-quality",
+    "Security": "security",
+    "Platform Eng": "platform-eng",
+    "Legal/S&P": "legal-sp",
+    "Data Governance": "data-governance",
+    "Tool owner": "tool-owner",
+    "Service Team": "service-team",
+}
+
+#: A service name that is deliberately NOT the one service this repository has.
+#: A row published as `services/*/…` must hold for a service that does not exist
+#: yet, because that is the whole content of the asterisk.
+_OTHER_SERVICE = "zzz-not-highlights-agent"
+
+
+def _row_paths(cell: str) -> list[str]:
+    """Concrete example paths for the backticked path expressions in a table cell.
+
+    A trailing `/` is a directory class and gets a plausible file; a `*` is
+    expanded to a service that is not the one the repository happens to hold."""
+    out = []
+    for token in re.findall(r"`([^`]+)`", cell):
+        if "/" not in token:
+            continue
+        token = token.replace("*", _OTHER_SERVICE)
+        if token.endswith("/"):
+            token += "cases.yaml" if "evals" in token else "MER-PROBE-0001.yaml"
+        out.append(token)
+    return out
+
+
+def _two_key_rows() -> list[tuple[str, list[str], set]]:
+    """`(change, example paths, seats)` for every row of ROLES.md's two-key table."""
+    text = ROLES.read_text(encoding="utf-8")
+    table = text.split("## Two-key rules (G9)", 1)[1].split("\n\n**This table", 1)[0]
+    rows = []
+    for line in table.splitlines():
+        if not line.startswith("|") or line.startswith("|---") or "Keys required" in line:
+            continue
+        change, keys = [c.strip() for c in line.strip("|").split("|")][:2]
+        seats = {slug for name, slug in ROLES_SEAT_NAMES.items() if name in keys}
+        rows.append((change, _row_paths(change), seats))
+    return rows
+
+
+def test_every_path_the_published_table_names_is_on_the_rule_it_claims():
+    """**ROLES.md's table is a published protection, and nothing checked it.**
+
+    Round 1 narrowed the caller's-system-prompt rule to
+    the exact path `services/highlights-agent/gateway_client.py` on the Service Team's finding
+    and left the table saying `services/*/gateway_client.py` — a protection
+    published over every service that the enforced list gives to one. The Security
+    seat raised it in both rounds. The deletability audit then put the old wording
+    back and the whole suite stayed at **4168 passed**: the table could say
+    anything at all.
+
+    `test_every_seat_string_is_a_seat_roles_md_lists` compares the two
+    *vocabularies* and `tests/test_evals_lane.py` compares the comparator row. No
+    check compared the **paths**, which is the half that says who holds a key over
+    what. ADR-037's finding is that this summary drifts from the enforced list —
+    twice, measured — and a drift check that reads only the seat names cannot see
+    the drift that actually happened.
+
+    Read as "⊇" rather than "==": `pave/twokey.py` being the **stricter** of the
+    two is the fail-closed direction and needs no row. The table promising a key
+    the module does not collect is the direction that hurts."""
+    rows = _two_key_rows()
+    checked = 0
+    for change, paths, seats in rows:
+        if not paths or not seats:
+            continue                    # a prose class ("Eval threshold"), not a path
+        for path in paths:
+            collected = _seats_for(path)
+            checked += 1
+            assert collected, (
+                f"ROLES.md publishes {path!r} as two-key ({change!r}) and "
+                f"`pave/twokey.py` puts it on NO rule. A table promising a second "
+                f"key over a path the enforced list does not cover is a protection "
+                f"stated and absent — worse than a missing one, because it stops "
+                f"the next reader looking for the real rule.")
+            assert seats <= collected, (
+                f"ROLES.md publishes {path!r} as needing {sorted(seats)} "
+                f"({change!r}); `pave/twokey.py` collects {sorted(collected)}. "
+                f"Missing: {sorted(seats - collected)}.")
+
+    # **Anti-vacuity.** A parser that silently stops matching rows turns this into
+    # a test that asserts nothing, which is the failure it exists to name. Nine
+    # rows carry a path today; the floor is set below that so a row may be added
+    # or reworded without a false red, and far enough above zero that the parser
+    # going blind is loud.
+    assert checked >= 12, (
+        f"only {checked} published paths were checked across {len(rows)} rows — "
+        f"the table parser is stale and this test is measuring nothing.")

@@ -86,15 +86,37 @@ import sys
 import urllib.request
 import zipfile
 
-import boto3
 import yaml
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
-import gateway_client as gw  # noqa: E402
+#: **`boto3` and `gateway_client` are imported where they are used, not here.**
+#: Both sat at module scope, and `gateway_client` imports `boto3` too, so on a
+#: machine without the AWS SDK this file died on `ModuleNotFoundError` before
+#: `main()` ran -- taking every `--cases` refusal with it. The refusals are the
+#: cheap half of this script and the half a developer hits most: a missing pack,
+#: a pack outside the tree, a pack that is not a list of cases. None of them
+#: needs a cloud account to decide, and G8 says the hermetic surface must not
+#: import the SDK to find that out. Measured on CI, which has no boto3: four
+#: refusal tests failed with a traceback from line 89 instead of the refusal
+#: they assert. The local suite passed, because the SDK is installed here -- an
+#: environment answering for a guard is the same shape as a guard answering for
+#: a guard, one layer further out.
+gw = None
 
 from evals.refusals import census_from_samples  # noqa: E402
+
+
+def _gateway_client():
+    """Bind `gw` on first use. Everything above the first cloud call runs without
+    it, which is what makes `--preflight-only` and every refusal hermetic."""
+    global gw
+    if gw is None:
+        import gateway_client
+        gw = gateway_client
+    return gw
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CASES = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
@@ -156,6 +178,8 @@ def preflight(outputs: dict, tag: str, sample: int, k: int) -> dict:
     says what the seats reviewed. A run is a reading only when all three agree,
     and the header records that they did."""
     function_name = outputs["GatewayFunctionName"]
+    import boto3
+
     lam = boto3.client("lambda")
     config = lam.get_function_configuration(FunctionName=function_name)
     env = (config.get("Environment") or {}).get("Variables") or {}
@@ -190,6 +214,8 @@ def preflight(outputs: dict, tag: str, sample: int, k: int) -> dict:
     # channel table says which pair a channel gets; this says what that pair
     # is, so a coverage change on a channel is on the record in the header
     # rather than inferred from a version number.
+    import boto3
+
     bedrock = boto3.client("bedrock")
     policies = {}
     for label, id_key, version_key in (("main", "GUARDRAIL_ID", "GUARDRAIL_VERSION"),
@@ -312,6 +338,7 @@ def calibrate(case: dict, deployed: dict, header: dict, tag: str, path: pathlib.
     from either copy, which is the fallback SPEC/08b pre-registers before the
     re-issue on the next case."""
     viewer = case.get("viewer") or {}
+    _gateway_client()
     text = gw.user_turn(case["input"], viewer.get("plan"), viewer.get("dma"))
     system = gw.build_tool_prompt()
     request_id = f"{case['id']}-{tag}-{CALIBRATION_SAMPLE}"
@@ -386,6 +413,18 @@ def main(argv=None) -> int:
                              "the M02 value so committed workflows write the keys they "
                              "wrote; a stage run names its own so a same-day re-run cannot "
                              "overwrite a discarded run's records (M07 PR 4)")
+    # **The default is the golden file, byte for byte.** M09's disclosure suite is a
+    # second case set through the SAME producer rather than a second producer: this
+    # file is on `^services/[^/]+/run_with_tools\.py$` at (platform-eng, ai-quality)
+    # and writes every goldens evidence file, so a new runner beside it would be a
+    # fresh file deciding what a recorded run contains on no key at all -- ADR-037's
+    # finding, which this repository has now paid for in four places. The flag adds a
+    # path and changes nothing else; `tests/test_m09_disclosure.py` pins that the
+    # default resolves to the golden pack.
+    parser.add_argument("--cases", default=str(CASES), metavar="PATH",
+                        help="the case file to run. Defaults to the golden set, so every "
+                             "committed goldens workflow runs exactly as it did; M09's "
+                             "disclosure pack passes its own path (SPEC/09 PR 2)")
     parser.add_argument("--preflight-only", dest="preflight_only", action="store_true",
                         help="print the deployed function, both guardrail versions read "
                              "from its configuration, the bundle digests and the source "
@@ -395,12 +434,43 @@ def main(argv=None) -> int:
     if args.k < 1:
         parser.error(f"k={args.k}; a case needs at least one sample")
 
-    cases = yaml.safe_load(CASES.read_text(encoding="utf-8"))
+    case_file = pathlib.Path(args.cases)
+    if not case_file.is_file():
+        # Refusal, not an empty run. A missing case file that produced zero cases
+        # would write an answer file recording that nothing was asked, and every
+        # assertion about it would pass -- `rules_validate`'s empty-registry
+        # argument, one directory over.
+        parser.error(f"--cases {args.cases}: no such file. A run over no cases establishes "
+                     f"nothing and must not write one.")
+    # **Contained, like a control ref.** A pack outside the repository is read
+    # today and produces committed evidence whose case set is not in the tree —
+    # so the run cannot be re-derived, and claim 6's chain ends at a case nobody
+    # else has (Security and Platform Engineering, round 1).
+    if ROOT.resolve() not in case_file.resolve().parents:
+        parser.error(f"--cases {args.cases}: outside the repository. A recorded run's "
+                     f"case set must be committed, or the evidence cannot be re-derived.")
+    cases = yaml.safe_load(case_file.read_text(encoding="utf-8"))
+    if not cases:
+        parser.error(f"--cases {args.cases}: holds no cases. A run over an empty pack "
+                     f"answers every question about it and measures none of them.")
+    # Shape, BEFORE `gw.resources()`. A mapping and a case list with no `id` both
+    # cleared the existence check, reached the cloud, printed the pre-flight and
+    # then died on an uncaught TypeError / KeyError — a shape refusal should not
+    # need a round-trip to discover.
+    if not isinstance(cases, list) or not all(
+            isinstance(c, dict) and c.get("id") and c.get("input") for c in cases):
+        parser.error(f"--cases {args.cases}: is not a list of cases carrying `id` and "
+                     f"`input`. A run over a malformed pack establishes nothing.")
+    duplicates = sorted({c["id"] for c in cases if [x["id"] for x in cases].count(c["id"]) > 1})
+    if duplicates:
+        parser.error(f"--cases {args.cases}: duplicate case id(s) {duplicates}. Two cases "
+                     f"under one id make one of them unreadable in the answer file.")
     if args.only:
         cases = [c for c in cases if c["id"] == args.only]
         if not cases:
             sys.exit(f"no such case: {args.only}")
 
+    _gateway_client()
     deployed = gw.resources()
     function_name = deployed["GatewayFunctionName"]
     bucket = deployed["AuditLakeBucket"]
@@ -596,6 +666,13 @@ def main(argv=None) -> int:
             "guardrail block was a refusal of the viewer's question or of content the "
             "platform was about to put in the model's context (ADR-035)."),
         "_k": args.k,
+        # **Which pack produced this run.** Before `--cases` the case set was a
+        # compile-time constant and needed no record; it is a degree of freedom
+        # now, and two runs from different packs were indistinguishable in
+        # committed evidence. Claim 6's chain ends at *the case*, so a recorded
+        # run whose case provenance is unrecorded breaks it at that link.
+        "_cases": str(case_file.resolve().relative_to(ROOT.resolve())).replace("\\", "/"),
+        "_cases_sha256": _sha256(case_file.read_bytes()),
         "samples": list(samples),
         # What the pre-flight printed before the first call: the function, both
         # pairs from its configuration, the bundle digests, the serialiser's

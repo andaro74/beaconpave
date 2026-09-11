@@ -1,0 +1,8 @@
+# Planted pack, committed inside the tree — see `malformed-mapping.yaml` for why.
+#
+# Cases carrying an `id` and no `input`. `pave/cli.py`'s lane requires both: a
+# case with nothing to send is scored against an answer produced by something
+# else, which is a verdict about a run that did not happen.
+- id: disclosure-101
+  asserts:
+    - json_schema: answer.schema.json

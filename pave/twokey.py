@@ -546,15 +546,202 @@ RULES: tuple[Rule, ...] = (
         # thermostat guarded and thermometer free, inverted. A reader's pattern
         # rather than three names, so a fourth reader under `milestones/M08b/`
         # lands on the rule the day it is written (Platform Engineering, round 1).
+        # **And M09's readers, records and pins (M09 PR 2, ADR-075 amendment 1
+        # ask 8).** Measured over PR 2's and PR 4's file lists on `479972e`
+        # before this widening: `pave/cli.py` and `pave/rules.py` -- the chain
+        # reader, which is the WHOLE of claim 6's row 1a -- matched no rule, and
+        # neither did `tests/test_m09_disclosure.py` or `tests/test_rules_trace.py`;
+        # over PR 4's list, `milestones/M09/verdict-pre-fix.json`,
+        # `verdict-post-fix.json` and the run-A answer files matched none either,
+        # and those are the evidence F1, F2, F3 and F5 are read FROM. The
+        # goldens-evidence rule catches `goldens-run*.json` and nothing catches a
+        # disclosure run or a verdict. This clause names `milestones/M09/` and
+        # `tests/test_m09_*` the way M08b's names its own, and it is added in the
+        # diff that creates the readers rather than in the one that fills them --
+        # ADR-060's precedent, and the reason M08b's widening arrived before its
+        # data existed.
+        #
+        # `[a-z0-9-]+\.json` rather than a list of filenames: the M08b clause
+        # enumerates five records and a sixth would have landed on no rule the day
+        # it was written, which is the failure mode a pattern removes. `.txt`
+        # transcripts stay prose here for M08b's stated reason -- the numbers in
+        # them are reconciled against the records and the answer files, so a
+        # one-key transcript cannot move a reading alone.
         "the M08 census — the reader and record the tokens_in ceiling is derived from, "
-        "and M08b's readers, records, fixture and tests",
+        "and M08b's and M09's readers, records, fixture and tests",
         re.compile(r"^(milestones/M08/(context_census\.py|context-census\.json"
                    r"|residual_differential\.py|residual-differential\.json"
                    r"|rescore_join\.py|rescore-join\.json)"
                    r"|milestones/M08b/([a-z0-9_]+\.py|fresh-join\.json"
                    r"|residual-attribution\.json|answer-channel\.json|calibration\.json)"
-                   r"|tests/test_m08b_[a-z0-9_]+\.py|tests/fixtures/m08b/.+)$"),
+                   r"|milestones/M09/([a-z0-9_]+\.py|[a-z0-9-]+\.json)"
+                   r"|tests/test_m08b_[a-z0-9_]+\.py|tests/test_m09_[a-z0-9_]+\.py"
+                   r"|tests/fixtures/m08b/.+)$"),
         ("ai-quality", "platform-eng", "security"),
+    ),
+    Rule(
+        # **A disposition pack takes its rule's owner too (M09 PR 2, round 1 —
+        # Legal/S&P, Tool Owner and Platform Engineering, independently).**
+        # `^services/[^/]+/evals/` is AI Quality's, written for the goldens. The
+        # disclosure pack is the executable form of a REGULATORY rule Legal/S&P
+        # owns, and it sat on that one key: the seat whose rule it discharges held
+        # none on what discharges it.
+        #
+        # `disclosure_sufficiency` defends the crude attack -- deleting the
+        # negative half -- and cannot defend the precise one. Reword
+        # `disclosure-105`'s input from a factual entitlement question into
+        # editorial copy and leave the mode at `not_required`: both halves still
+        # count, and the pack now asserts that AI-authored copy must NOT disclose.
+        # One key, in the file the rule's whole discharge rests on.
+        #
+        # G9's sentence decides the second seat: whoever feels the control's pain
+        # never solely controls its strength. AI Quality feels it -- the pack is
+        # its suite and its cases -- so the counterweight is the seat that owns
+        # the obligation and not the measurement. This rule sits ABOVE the goldens
+        # rule's entry only in reading order; both match, and the seats union.
+        "a disposition's eval pack — the executable form of a rule in the registry",
+        re.compile(r"^services/[^/]+/evals/disclosure/"),
+        ("ai-quality", "legal-sp"),
+    ),
+    Rule(
+        # **The chain reader (M09 PR 2, ADR-075 amendment 1 ask 8).** `pave/rules.py`
+        # walks rule -> `disposition.controls[].ref` -> the pack -> the case ->
+        # the assert, and claim 6's row 1a is *nothing else*: it is the file that
+        # decides what **traceable** means. Measured on `479972e` over PR 2's file
+        # list: `two-key: not required`. A reader that supplies a step itself when
+        # a ref does not resolve makes a broken disposition render exactly like a
+        # working one, and the seat round is told to plant precisely that.
+        #
+        # **Legal/S&P, Security, Platform Engineering, and the seat that is NOT
+        # here is the argument.** The seats that gain from a reader reporting a
+        # chain that does not hold are Legal/S&P -- the rule looks disposed -- and
+        # AI Quality, whose pack looks reached; G9 says neither may be the only
+        # key. Legal/S&P holds one as the registry's owner, and the counterweights
+        # are Security (already the registry rule's second key, on `^rules/`) and
+        # Platform Engineering (the mechanism). Whether AI Quality belongs here as
+        # a fourth is put to the seat round rather than settled here: it owns the
+        # pack the reader walks INTO, which is an argument both ways.
+        #
+        # `requires_adr` is OFF. `^rules/` already collects the ADR for a
+        # disposition, and a second ADR-requiring rule over the same PR would
+        # demand two decision records for one decision -- the reasoning the
+        # comparator rule records, one file over.
+        "the registry chain reader — what *traceable* means, from the rule to the assert",
+        re.compile(r"^(pave/rules\.py|tests/test_rules_trace\.py)$"),
+        ("legal-sp", "security", "platform-eng"),
+    ),
+    Rule(
+        # **The caller's system prompt (M09 PR 2; SPEC/09's own debt row).**
+        # `TOOL_SYSTEM` is the system block every governed run sends, it is the
+        # system under measurement by `tests/test_gateway_run_parity.py`'s own
+        # docstring -- *"you are changing the system under measurement ... an
+        # ADR-021 event"* -- and the file sat on no rule while its five siblings
+        # under `templates/agent-tools/` took four keys each. Found by reading for
+        # SPEC/09 rather than by a seat, and dated to PR 2 **before** the PR that
+        # edits it, which is the whole of why it is here and not there.
+        #
+        # **Named, NOT `[^/]+`, and the Service Team seat is the reason (round
+        # 1).** The first version was a path pattern on the goldens producer's
+        # precedent. Measured against the evidence, every stated reason for keying
+        # this file names ONE service: `tests/test_gateway_run_parity.py` and
+        # `tests/test_transport_parity.py` both pin
+        # `services/highlights-agent/gateway_client.py` by name, and
+        # `milestones/M08/context-census.json` and `residual-differential.json`
+        # are the only records that digest a client -- both that one.
+        #
+        # A SCAFFOLDED client is read by none of them. It is not the system under
+        # measurement, no record digests it, no parity test pins it, and `pave
+        # new` deploys nothing -- ADR-047 decision 9 says exactly that inside the
+        # template the wide rule would have keyed. Keying it made Platform
+        # Engineering and Security sign, on every new service's first PR, a
+        # byte-for-byte machine render of a template they already hold four keys
+        # on: a mandatory rubber stamp, which is the *habit of attesting without
+        # reading* ADR-047 refused, arriving through the door trigger-count was
+        # only ever a proxy for.
+        #
+        # The defence offered for the wide pattern was that `onboarding_seats`
+        # computes the count from these rules, so the banner followed. That is
+        # circular -- it followed a rule written to match it. ADR-047 built the
+        # computation so the banner cannot drift from the rules, never as an
+        # argument that any rule set is therefore right.
+        #
+        # **The real invariant is coverage of what is MEASURED, and it is a test
+        # rather than a regex**: `test_every_measured_client_is_on_this_rule`
+        # requires every `gateway_client.py` named in a committed record's
+        # `inputs_sha256` to match here, so a second service joins the day it
+        # acquires a recorded control -- in the diff that creates it, which is the
+        # same "keyed before the PR that edits it" discipline this rule applies to
+        # the first one.
+        #
+        # Platform Engineering owns the gateway and the prompt's lineage pin;
+        # Security is the counterweight, because the prompt is what reaches the
+        # model and a sentence added to it moves every recorded observation's
+        # meaning while no instrument digest moves.
+        "the caller's system prompt — the system block every governed run sends",
+        re.compile(r"^services/highlights-agent/gateway_client\.py$"),
+        ("platform-eng", "security"),
+    ),
+    Rule(
+        # **G5's router (M09 PR 2; SPEC/09's debt row, owed to Data Governance).**
+        # `classify.py` decides what may reach a model at all, and `sensitive` is
+        # refused by design. Measured on `479972e`: `two-key: not required` -- the
+        # file that implements an invariant, editable on one key by any seat.
+        #
+        # It is also read as an adversarial instrument: `classify_sha256` is in
+        # every adversarial entry **that carries an instrument block** -- one of
+        # the three committed, plus all nine registered instruments -- and a
+        # classification refusal IS a policy denial, so it can satisfy the **ten
+        # of eleven** probes declaring `guardrail_blocked_or_denied_and_logged`.
+        # Widening the router's terms is a change to what ten probes mean.
+        # (Counted rather than quoted, in round 1: the wording inherited from
+        # `evals/history/schema.json` said *nine of the ten* and the corpus has
+        # been eleven since ADR-041.)
+        #
+        # And that is why Security's key here is not merely balance: Security's
+        # scored number goes **up** when the router widens, because a wider
+        # refusal satisfies more probes with no system improving.
+        #
+        # **The first rule in this list to name `data-governance`**, and it names
+        # it because the file's own docstring does: *"Owning seat: Data
+        # Governance"*, and the policy is written from the data-governance
+        # position rather than from the probe corpus. Security is the
+        # counterweight for the instrument half. `requires_adr` is OFF
+        # deliberately: ADR-052 decision 2 -- *a rule that gives a NEW seat an ADR
+        # requirement turns `test_the_definition_of_a_decision_record_carries_every_adr_rules_seats`
+        # red until that seat can also defend what satisfying it means* -- and
+        # handing Data Governance an ADR requirement in the same diff that gives
+        # it its first key is that trade exactly.
+        # **`__init__.py` and the witness joined in round 1, both measured.**
+        #
+        # The first version named `classify.py` alone. The Data Governance seat
+        # planted a shim in `platform/gateway/core/__init__.py` -- 14 lines of
+        # docstring, on **no rule**, which runs on every `from core import
+        # classify` -- setting `SUBJECT_TERMS = ()` behind `if "pytest" not in
+        # sys.modules`. G5 fully off at run time, `classify_sha256` byte-identical
+        # so every adversarial entry goes on fingerprinting a router that no
+        # longer decides anything: **4124 passed, zero keys.** That is ADR-052's
+        # `pave/__init__.py` finding one package over, and ADR-052 closed it the
+        # same way -- by putting the package's `__init__` on the rule.
+        #
+        # `tests/test_gateway_core.py` joins because `twokey.py`'s own comment
+        # calls it *the repository's ONLY live witness that G5 refuses `sensitive`
+        # by design*, and it took `(platform-eng, security)` while the thing it
+        # witnesses took Data Governance's. ADR-035's thermometer/thermostat
+        # asymmetry with the halves swapped: without this, those two seats could
+        # delete every witness to G5 in one diff and the seat that owns G5 would
+        # not be asked.
+        "G5's router — what classification lets reach a model, and what ten probes mean",
+        # `classify.*\.py`, not the one filename: the Security seat moved the
+        # router's term lists into `platform/gateway/core/classify_terms.py`,
+        # widened them there, and measured `classify_sha256` **byte-identical** —
+        # the rule bought one filename and the instrument digests one file, so a
+        # legitimate refactor-and-re-register leaves the terms one-key and
+        # instrument-invisible. Whether `classify_sha256` should digest the
+        # directory is Security's and is recorded as open; the rule not being the
+        # narrower of the two is free.
+        re.compile(r"^(platform/gateway/core/(classify[a-z_]*|__init__)\.py"
+                   r"|tests/test_gateway_core\.py)$"),
+        ("data-governance", "security"),
     ),
     Rule(
         # **The held-text readings (M08b PR 2, Legal/S&P seat, round 1).** One
@@ -1239,9 +1426,22 @@ RULES: tuple[Rule, ...] = (
         # hold other rules' seat sets, so every seat whose key it pins signs its
         # removal. `ai-quality` is here because `twokey.py`'s own docstring names
         # it as the owner of the rules list.
+        # **`data-governance` joined at M09 PR 2, and it is an output of the
+        # mechanism rather than a preference expressed here.** G5's router got its
+        # first rule in that diff, naming Data Governance; the property this rule
+        # states -- *a file holding every rule's seat set must be removable only by
+        # every seat it pins* -- then went red by name, because the router's rule
+        # and this pin could otherwise be thinned in one diff without the seat
+        # losing its key ever being asked. ADR-053 met this exactly once before,
+        # when `legal-sp` arrived by the same route, and recorded it as *the first
+        # time in this repository that a seat has been added because a check
+        # demanded it rather than because an ADR argued for it*. This is the
+        # second. Six seats on one small file is heavy and correct for the reason
+        # above it: its whole job is to hold other rules' seat sets.
         "the seat-set pins — every rule's seats, held where each of those seats must sign",
         re.compile(r"^tests/test_twokey_seats\.py$"),
-        ("ai-quality", "security", "platform-eng", "tool-owner", "legal-sp"),
+        ("ai-quality", "security", "platform-eng", "tool-owner", "legal-sp",
+         "data-governance"),
     ),
     Rule(
         # **The plane that RELEASES the interlock, found by Security against the

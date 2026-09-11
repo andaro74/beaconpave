@@ -83,10 +83,58 @@ def test_it_renders_no_probe_runner(tmp_path, monkeypatch):
     root = tmp_path / "services" / "sportscast-agent"
     probes = [p.name for p in root.rglob("run_probes*.py")]
     assert not probes, probes
+    # **The cost per file, not a set of seats.** Round 1 replaced a blanket
+    # exception list with a seat cap, `ONBOARDABLE = {ai-quality, tool-owner,
+    # legal-sp}`. Round 2 measured that the cap answers the wrong question.
+    #
+    # The Service Team seat put a THREE-seat rule on
+    # `^services/[^/]+/evals/golden/README\.md$` — three mandatory attestations
+    # on a byte-for-byte machine render of a template, on the file the banner
+    # tells teams to read first — and the suite was **4149 passed, identical to
+    # baseline**. The cap passed, because all three seats were inside it. That is
+    # the rubber stamp round 1 removed, walked back in through the front door.
+    #
+    # And the Data Governance seat measured the cap's other half: because
+    # `data-governance` is OUTSIDE the set, adding that seat to the rule covering
+    # `pave.manifest.yaml` — which carries `classification:`, the `declared`
+    # argument to `classify.route`, and is the first question that seat's charter
+    # asks — became a RED test whose message told the next reader not to widen the
+    # set. An omission asserted green.
+    #
+    # Round 1 asked "which seats"; the finding was about "how much". So the pin is
+    # the exact cost of each rendered file. A rule that raises one is red with the
+    # file named, whichever seat it names — and a seat can join a rule without
+    # asking permission from a set it was never in.
+    ONBOARDING_COST = {
+        "pave.manifest.yaml": {"ai-quality", "tool-owner"},
+        "gateway_client.py": set(),
+        "evals/answer.schema.json": {"ai-quality"},
+        "evals/golden/cases.yaml": {"ai-quality"},
+        "evals/golden/README.md": {"ai-quality"},
+    }
+    assert sorted(ONBOARDING_COST) == sorted(dest for _, dest in scaffold.RENDERED), (
+        "a rendered file has no onboarding cost pinned. A new destination joins "
+        "`scaffold.RENDERED` unpriced, and the first thing a team learns about it is a "
+        "blocked PR.")
     for _, destination in scaffold.RENDERED:
-        assert not twokey.triggered([f"services/sportscast-agent/{destination}"]) or \
-            destination == "pave.manifest.yaml" or destination.startswith("evals/"), (
-            f"{destination} lands on a two-key rule a scaffolding team cannot satisfy")
+        seats = {s for r, _ in twokey.triggered([f"services/sportscast-agent/{destination}"])
+                 for s in r.seats}
+        assert seats == ONBOARDING_COST[destination], (
+            f"{destination} now costs a scaffolding team {sorted(seats)}, pinned at "
+            f"{sorted(ONBOARDING_COST[destination])}. Every seat here signs a "
+            f"byte-for-byte machine render on every new service's first PR, which is "
+            f"the attest-without-reading habit ADR-047 refused. If the rule is right, "
+            f"move this pin in the same diff and say what a team gains by being asked.")
+
+    # The union is what the banner prints, and it is pinned as a number so that a
+    # widening cannot arrive as a one-token edit inside a test body: measured at
+    # 4149 passed when `ONBOARDABLE` was widened with no rule to match it.
+    union = {s for seats in ONBOARDING_COST.values() for s in seats}
+    assert len(union) == 2 and union == {"ai-quality", "tool-owner"}, (
+        f"a scaffolding team's first PR now needs {sorted(union)}. That is a change to "
+        "what the paved road costs, and ADR-047 built `onboarding_seats` to compute it "
+        "so the banner follows the rules — not so the number could be edited to follow "
+        "a new rule.")
 
 
 # --- the pairwise checks: template vs the service it was cut from ----------------
@@ -309,7 +357,17 @@ def test_the_printed_steps_name_both_refusals_and_the_computed_seat_count():
     attest past rules it never triggered.
 
     So the count is computed at print time, and this asserts the computation rather
-    than a number."""
+    than a number.
+
+    **It moved 3 -> 5 at M09 PR 2, and the movement is the mechanism working.**
+    `services/[^/]+/gateway_client.py` joined a `(platform-eng, security)` rule in
+    that diff — the system block every governed run sends, on no rule while its
+    template sibling took four keys — and the scaffold renders that file. So a
+    scaffolded team now genuinely triggers five seats, and the banner says five.
+    This is not the over-statement ADR-047 refused: over-stating meant naming
+    seats the rendered files do NOT trigger, which teaches teams to attest past
+    rules. Naming a seat the rendered files DO trigger is the count being
+    correct."""
     steps = scaffold.next_steps("sportscast-agent")
     seats = scaffold.onboarding_seats("sportscast-agent")
     assert seats == ["ai-quality", "legal-sp", "tool-owner"], seats

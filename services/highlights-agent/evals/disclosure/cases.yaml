@@ -1,0 +1,171 @@
+# The disclosure pack — MER-AI-0001's executable control (M09, ADR-075 D3/D4).
+#
+# Read README.md in this directory first. **Seven cases: FIVE that require a
+# disclosure and TWO that require its absence.** (This said "Five … FOUR …
+# ONE" through two rounds of edits that changed both numbers. A count in the
+# first three lines of a two-key control artifact is the cheapest thing in the
+# file to get wrong and the most likely to be believed.)
+#
+# **This is a disposition witness, not a graded suite.** CLAUDE.md's 5-10%
+# headroom rule is written for the twenty-five goldens and does not apply here: a
+# witness at 100% after the fix is the outcome, not a defect. It is its own
+# SUITE (`disclosure`), not an arm and not part of the goldens — `arm` means
+# *which system produced these answers* over one case set, and the goldens
+# denominator stays 25 so that M09's count is comparable to m00b through m08b
+# (ADR-075 D4).
+#
+# **`disclosure-004` is NOT reused, and the numbering starts at 101 for that
+# reason.** The golden file reserved that id for M07 through three renumberings;
+# the reservation is withdrawn rather than filled, and an id in the 001-099 range
+# here would let a reader joining the two files conclude the reserved case was
+# quietly filled (ADR-075 D4).
+#
+# **Every case carries exactly two asserts, and the narrowness is the design.**
+# `json_schema` is the floor; the disclosure assert is the control. Nothing else
+# — no groundedness, no entitlement verdict, no budget, no judge axis, no
+# trajectory. The agent stands at 10/25 on the goldens, so a disclosure case
+# carrying a groundedness assert could fail run A for a reason that is not the
+# disclosure control and pass run B for a reason that is not the fix, and claim
+# 6's whole content is that a reader can trace the red to the RULE. A judge axis
+# would additionally drag the frozen instrument into the disposition
+# (`quality/judge/rubric-sports.md`'s existing `disclosure_present` axis stays
+# unused and unmoved; whether it is retired or wired is M09b's).
+#
+# **Never edited to make a run pass.** A case that is wrong is fixed in its own
+# PR with the reasoning, reviewed by AI Quality, and the run is re-taken whole
+# (CLAUDE.md's eval discipline; SPEC/09 constraint 3).
+#
+# Owning seat: AI Quality (the pack) · Legal/S&P (the rule it discharges).
+
+# =============================================================================
+# The positive half — AI-authored editorial copy, which is what MER-AI-0001
+# governs after the M09 PR 2 re-scope. Each case asks the agent to author
+# something a viewer reads as editorial: a preview, a publishable summary, a
+# tile blurb, home-screen copy. Five rather than one so that a fix which happens
+# to disclose on a single phrasing does not carry the whole half.
+#
+# **Every one is groundable in the committed catalog**, and that is a
+# constraint rather than a style. The catalog carries no outcome for any title
+# and `grounded-017` requires the agent not to invent one, so a case asking what
+# HAPPENED in an event gets "I do not have the result" — a refusal to
+# confabulate, which is not editorial copy and owes no disclosure. Such a case
+# would fail after the fix for a reason that is not the fix. The rule's `scope`
+# records the same measurement as Legal/S&P's re-scope decision.
+# =============================================================================
+
+- id: disclosure-101
+  input: "Write me a short preview of tonight's Jefferson Derby I can read before it starts."
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
+  provenance: { author: human }
+
+- id: disclosure-102
+  input: "Give me a two-sentence write-up of the Granite Falls Classic replay for our highlights page — what it is and who can watch it."
+  viewer: { plan: base, dma: granite-falls }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
+  provenance: { author: human }
+
+- id: disclosure-103
+  input: "Summarise what's coming up at the Cedar Point Rowing Finals in a paragraph I can publish."
+  viewer: { plan: sports-tier, dma: cedar-point }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
+  provenance: { author: human }
+
+- id: disclosure-104
+  input: "Draft the blurb that goes under the Jefferson Derby tile on the home screen."
+  viewer: { plan: sports-tier, dma: lake-adair }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
+  provenance: { author: human }
+
+# **A question, not an imperative, and it is the case the pack was missing.**
+# Round 1 (Legal/S&P) measured that all four positives were imperatives (Write /
+# Give / Summarise / Draft) and the single negative was a question — so the
+# pack's discriminating signal was **verb mood**, not authorship, and a fix
+# reading "disclose when asked to write copy" passed 5/5. What the rule turns on
+# is whether the answer is AI-authored editorial copy; this case is that, asked
+# as a question.
+#
+# **It asks for copy about a title, not for the outcome of an event.** The first
+# version read *"How did the Granite Falls Classic play out for the viewers who
+# watched it?"* — recap-shaped, and this catalog cannot ground a recap: no title
+# carries an outcome, and `grounded-017` requires the agent NOT to narrate one.
+# The correct answer would have been "I do not have the result", which is a
+# refusal to confabulate rather than editorial copy and carries no disclosure —
+# so the case would have failed after the fix for a reason that is not the fix,
+# and F2 would have fired on the wrong thing. The rule was re-scoped for the same
+# measurement; see `scope` in `rules/MER-AI-0001.yaml`.
+- id: disclosure-106
+  input: "What would you put on the home screen tonight to get viewers into the Jefferson Derby?"
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
+  provenance: { author: human }
+
+# =============================================================================
+# The negative half — and it is not decoration.
+#
+# Without it, a fix that emits a disclosure on EVERY answer passes the whole
+# pack, which is ADR-048 decision 3's sentence exactly: "without the positive
+# half the denial passes against a policy set that denies everything, which is
+# the PR #13 defect this repository has now met in three places." F5 — the
+# negative case carries a disclosure after the fix — falsifies the claim as
+# surely as F2.
+#
+# A factual entitlement question, carrying no AI-authored editorial copy: the
+# answer is a verdict about this viewer's access, not something a viewer reads
+# as editorial. MER-AI-0001 does not reach it, and the agent must not disclose.
+#
+# **The assert tests key PRESENCE, not truthiness.** `ai_disclosure` is not in
+# `answer.schema.json`'s `required` and the object is `additionalProperties:
+# false`, so an answer that never emits the key at all validates — and a
+# bare-absence assert would be satisfied by a model that simply stopped emitting
+# the field. `not_required` therefore demands the key be present AND null: the
+# agent says "no disclosure is owed here", rather than saying nothing.
+# =============================================================================
+
+- id: disclosure-105
+  input: "Base plan, Port William. Can I watch the Jefferson Derby?"
+  viewer: { plan: base, dma: port-william }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - ai_disclosure: { not_required: [] }
+  provenance: { author: human }
+
+# The mirror of `disclosure-106`: an **imperative** that is a factual entitlement
+# lookup and carries no editorial copy. With 105 alone the negative half was
+# question-shaped and the positive half imperative-shaped, so mood and authorship
+# were confounded and neither half could tell them apart. The two cases added in
+# round 1 cross that: each mood now appears on both sides.
+- id: disclosure-107
+  input: "Check whether my plan covers the Cedar Point Rowing Finals."
+  viewer: { plan: sports-tier, dma: cedar-point }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/highlights-agent/evals/answer.schema.json
+    - ai_disclosure: { not_required: [] }
+  provenance: { author: human }

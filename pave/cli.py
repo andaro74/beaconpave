@@ -1,8 +1,9 @@
 """
 pave — the paved-road CLI for beaconpave.
 
-Implemented: `rules validate` (G7), `gate decide` / `gate comment` (G2), `check`
-(G8), `evals run` (L2, M03), `adversarial run` (L5, M04). The rest are stubs that
+Implemented: `rules validate` and `rules trace` (G7, claim 6), `gate decide` /
+`gate comment` (G2), `check` (G8), `evals run` (L2, M03), `evals disclosure`
+(L3, M09), `adversarial run` (L5, M04). The rest are stubs that
 print what they WOULD do and name the milestone that implements them, so the repo
 stays runnable and self-documenting. A command that blocks merges is not a stub,
 and leaving it described as one is how the help text stops being read.
@@ -10,10 +11,15 @@ and leaving it described as one is how the help text stops being read.
   pave new <name> --brand <b> --classification <c>   scaffold a governed service
   pave check                                          hermetic local checks
   pave evals run|dryrun <service>                     run/dry-run the eval harness
+  pave evals disclosure <service> --answers ...       L3: score a disclosure run and
+                                                      write its verdict (M09)
   pave adversarial run <service>                      L5: re-score the pinned probe
                                                       observations and assert what G4
                                                       means (hermetic, no model call)
   pave rules validate                                 validate the rules registry (G7)
+  pave rules trace <RULE-ID>                          walk rule -> control -> case ->
+                                                      assert; exit 1 if it does not
+                                                      resolve, 2 if the id is unknown
   pave infra snapshot [--check] [--from <dir>]        record / verify the synth snapshot (G1)
   pave policy generate [--check]                      generate / verify Cedar from the registry (G3)
   pave gate comment|decide --verdicts ...             post score-diff / fail-closed
@@ -32,6 +38,7 @@ import time
 
 from pave import floors as floors_mod
 from pave import gate as gate_mod
+from pave import rules as rules_mod
 from pave import scaffold as scaffold_mod
 from pave import twokey, twokeycli
 from pave import verdict as verdict_mod
@@ -85,19 +92,76 @@ def rules_validate():
     if not files:
         _die("no rule files found (rules/*.yaml) — an empty rules registry is a failure, not a pass (G7)")
 
+    # **`format_checker=`, and without it the date formats are decoration.**
+    # Draft-07 `format` is annotation-only unless a checker is supplied, so
+    # `rules/schema.json`'s `"format": "date"` on `source.effective`, `review_by`
+    # and `disposition.decided_on` validated ANY string. Measured by the Legal/S&P
+    # seat on `c917c11`: `effective: ""`, `"whenever"` and `"2026-13-45"` each
+    # validated, and an empty string additionally defeats
+    # `test_contracts.py`'s `if effective:` guard -- so ADR-053's immortal-rule
+    # plant came straight back with `status: enforced` and
+    # `review_by: "2099-01-01"` at `rules registry valid`, on a schema whose own
+    # description claims to refuse it. Requiring the field closed the
+    # delete-the-key route and nothing else; this closes the rest.
+    checker = jsonschema.FormatChecker()
     problems = []
     for f in files:
         name = pathlib.Path(f).name
         doc = yaml.safe_load(pathlib.Path(f).read_text(encoding="utf-8"))
         try:
-            jsonschema.validate(doc, schema)
+            jsonschema.validate(doc, schema, format_checker=checker)
         except jsonschema.ValidationError as exc:
             where = "/".join(str(p) for p in exc.absolute_path) or "<root>"
             problems.append(f"{name}: {where}: {exc.message}")
 
+    # **Both halves of G7, in one command.** The schema decides *no immortal
+    # rules* -- `source.effective` and `review_by` are required, so a rule cannot
+    # switch off its own clock by omitting the field it is checked against. It
+    # cannot decide *no orphan rules*, because JSON Schema cannot resolve a path,
+    # and a validator reporting "valid" over a registry naming controls that are
+    # not there is the stated-protection-that-is-absent shape. The definition
+    # lives in the schema's `description` in one sense; `orphan_rules` enforces
+    # that sentence (ADR-053's owe, ADR-075 amendment 2).
+    problems.extend(rules_mod.orphan_rules(ROOT / "rules", ROOT))
+
     if problems:
         _die("rules registry invalid:\n  " + "\n  ".join(problems))
-    print(f"rules registry valid: {len(files)} rule(s), all with owner + control + review-by")
+    print(f"rules registry valid: {len(files)} rule(s), all with owner + control + review-by, "
+          f"no orphaned control refs")
+
+
+def rules_trace(argv):
+    """`pave rules trace <RULE-ID>` — the registry lookup, claim 6's row 1a.
+
+    Walks rule -> disposition -> control -> case -> assert with **no step
+    supplied by hand**, and exits non-zero when a link does not resolve. The
+    walk itself is `pave/rules.py`, which carries the seats; this is the dispatch
+    line, on `pave verify`'s precedent and for its reason (ADR-041 decision 7
+    refuses to key this file)."""
+    wanted = [a for a in argv if not a.startswith("--")]
+    if not wanted:
+        _die("rules trace: expected a rule id, e.g. `pave rules trace MER-AI-0001`",
+             gate_mod.EXIT_CONTRACT)
+    chain = rules_mod.trace(wanted[0], ROOT / "rules", ROOT)
+    _emit(rules_mod.render(chain))
+    # **Three states, three codes, and the middle one was collapsing into the
+    # third** (Service Team, round 1). A chain that does not resolve exits 1. A
+    # rule id that does not exist is a CONTRACT failure — the caller mistyped, and
+    # the gate's own split is that "could not establish the fact" pages the
+    # platform rather than reading as a quality result. Sharing exit 1 with a real
+    # orphan made a typo indistinguishable from a broken disposition.
+    if chain.rule is None:
+        sys.exit(gate_mod.EXIT_CONTRACT)
+    # `trace` on a rule whose disposition is an honest `no-control` record
+    # resolves nothing and exits 1, which is correct: MER-AI-0001 is undisposed
+    # until PR 4, and a lookup that exited 0 over it would report a chain that
+    # does not exist yet. The RENDER says which of the two it is, so a reader can
+    # tell "working as intended" from "broken."
+    # WALKED exits 0: every link was located and one control type has no deeper
+    # walker. That is a reader limitation, not a broken disposition, and exiting
+    # 1 on it would make M09b's stronger control read as a failure.
+    sys.exit(gate_mod.EXIT_OK if (chain.resolved or chain.walked)
+             else gate_mod.EXIT_QUALITY)
 
 
 
@@ -491,6 +555,123 @@ def evals_run(argv=()):
         # reader sees is not the copy anyone maintains.
         _emit(f"    {remediation}")
     return 1 if failures else 0
+
+
+def evals_disclosure(argv=()):
+    """`pave evals disclosure <service> --answers a.json [b.json c.json] [--out v.json]`.
+
+    The L3 lane MER-AI-0001 disposes into (SPEC/09; ADR-075 decisions 3 and 4).
+    It scores a committed disclosure run and writes a `suite: "disclosure"`
+    verdict the gate blocks on.
+
+    **It costs the gate nothing to read.** `quality/verdicts/schema.json` types
+    `suite` as a free string and `pave/gate.py` never enumerates suites, so a
+    FAIL here is exit 1 by the same path a goldens FAIL is. What it did cost is
+    one enum entry in `evals/history/schema.json`, which is where a *recorded*
+    disclosure row lands.
+
+    **No comparator.** A comparator is *what committed runs score today*, and
+    there is no committed disclosure run until the run PR: a pin added here
+    would pin nothing and be read by nothing, which is ADR-048's T1 in a new
+    place (ADR-075 amendment 1 fact 8). It is dated to PR 4b, where the runs it
+    would pin exist. This lane therefore decides on the pack alone, which is
+    what a disposition witness is.
+
+    **Sufficiency first, and its failure is INFRA rather than FAIL.** A pack that
+    has lost a half establishes nothing about the service, so it pages the
+    platform rather than the service team -- and, decisively, it is never a PASS.
+    Deleting the single negative case is the cheapest way to make a
+    disclose-on-everything fix look correct.
+    """
+    import yaml as _yaml
+
+    from evals.deterministic import Scorer, decide_disclosure
+    from pave import verdict as verdict_mod
+
+    out = _flag_values(argv, "--out")
+    answers_paths = _flag_values(argv, "--answers")
+    # **`--pack` exists so a test can drive a DIFFERENT pack through this lane.**
+    # Without it every lane test used the committed pack, so deleting the
+    # sufficiency branch below was SILENT at 34 passed and a one-sided pack plus a
+    # disclose-on-everything system reported PASS 5/5 at exit 0 (Legal/S&P seat,
+    # round 1). That is the identical defect `test_rules_validate_reports_both_halves`
+    # was rewritten to close, in the same diff, one command over: `trace` and
+    # `orphan_rules` take their registry as an argument and this did not.
+    pack_override = _flag_values(argv, "--pack")
+    consumed = set(answers_paths) | set(pack_override) | {out[0] if out else None}
+    positional = [a for a in argv if not a.startswith("--") and a not in consumed]
+    service = pathlib.Path(positional[0]).name if positional else "highlights-agent"
+
+    pack = (pathlib.Path(pack_override[0]) if pack_override
+            else ROOT / "services" / service / "evals" / "disclosure" / "cases.yaml")
+    if not pack.is_file():
+        _die(f"evals disclosure: no pack at {pack}. A lane that reported "
+             f"success over a pack that is not there would report success after somebody "
+             f"deletes it.", gate_mod.EXIT_CONTRACT)
+    # **The same three refusals `--cases` got, and for the same reasons.** Round 1
+    # hardened the RUNNER's pack flag — containment, shape, duplicate ids — and
+    # added this one without any of them, so a mapping or a list of strings
+    # reached `disclosure_sufficiency` and died on an uncaught `AttributeError` at
+    # exit 1, indistinguishable by exit code from a clean disclosure FAIL, and an
+    # out-of-tree pack was read without complaint in the milestone whose own
+    # finding was that a recorded run's case set must be committed.
+    if ROOT.resolve() not in pack.resolve().parents:
+        _die(f"evals disclosure: --pack {pack} is outside the repository. A verdict "
+             f"scored against a case set nobody else has cannot be re-derived.",
+             gate_mod.EXIT_CONTRACT)
+    cases = _yaml.safe_load(pack.read_text(encoding="utf-8")) or []
+    if not isinstance(cases, list) or not all(
+            isinstance(c, dict) and c.get("id") and c.get("input") for c in cases):
+        _die(f"evals disclosure: --pack {pack} is not a list of cases carrying `id` and "
+             f"`input`. A malformed pack is a CONTRACT failure, not a quality result.",
+             gate_mod.EXIT_CONTRACT)
+    ids = [c["id"] for c in cases]
+    if len(ids) != len(set(ids)):
+        _die(f"evals disclosure: --pack {pack} has duplicate case id(s) "
+             f"{sorted({i for i in ids if ids.count(i) > 1})}.", gate_mod.EXIT_CONTRACT)
+    catalog = json.loads((ROOT / "data" / "catalog.json").read_text(encoding="utf-8"))
+
+    if not answers_paths:
+        _die("evals disclosure: --answers is required. A lane handed no run cannot report "
+             "anything about one.", gate_mod.EXIT_CONTRACT)
+
+    # **The decision is `evals/deterministic.py`'s, not this file's.** Three of
+    # the four branches that decide what a disclosure verdict means used to live
+    # here, on no two-key rule, and two seats measured each of them deletable in
+    # silence. This function loads, scores and writes; `decide_disclosure` says
+    # what the result was (ADR-041 decision 7's split, `pave/verify.py`'s shape).
+    missing = [p for p in answers_paths if not pathlib.Path(p).is_file()]
+    results = None
+    # **Only `missing` is pre-checked here, and only because reading a file that
+    # is not there raises.** The first version also pre-checked sufficiency, which
+    # made `decide_disclosure`'s own sufficiency branch redundant — and therefore
+    # deletable in silence, which the Security seat measured: two places deciding
+    # one thing, one of them exercised. The decision has one home.
+    if not missing:
+        from evals.run_evals import summarise
+        scorer = Scorer(root=ROOT)
+        loaded = [json.loads(pathlib.Path(p).read_text(encoding="utf-8"))
+                  for p in answers_paths]
+        # The k-sampling lives HERE and not in the scorer, exactly as it does for
+        # the goldens lane: `evals/deterministic.py` may not know that sampling
+        # exists, or each sample stops being scored by the code path a single run
+        # uses (`test_the_sampling_did_not_touch_the_scorer`).
+        per_sample = [scorer.score_suite(cases, answers, catalog) for answers in loaded]
+        results, _ = (summarise(per_sample, [c["id"] for c in cases])
+                      if len(per_sample) > 1 else (per_sample[0], {}))
+    decided, scores, notes = decide_disclosure(cases, results, missing)
+
+    if out:
+        verdict_mod.write(out[0], verdict_mod.build(
+            service=service, surface="agent", suite="disclosure", layer="L3",
+            verdict=decided, fail_closed=True, scores=scores, notes=notes,
+            artifacts=list(answers_paths)))
+
+    for line in notes:
+        _emit(f"    {line}")
+    _emit(f"[pave evals disclosure] {service}: {decided} — "
+          + (", ".join(f"{k} {v}" for k, v in sorted(scores.items())) or "nothing scored"))
+    return 0 if decided == "PASS" else 1
 
 
 def adversarial_backfill_asked(argv=()):
@@ -1502,6 +1683,14 @@ def main(argv):
     cmd, *rest = argv
     if cmd == "rules" and rest[:1] == ["validate"]:
         rules_validate()
+    elif cmd == "rules" and rest[:1] == ["trace"]:
+        # `return`, like every other lane in this block. `rules_trace` ends in
+        # `sys.exit`, so this worked -- and converting that one call to a `return`,
+        # which is the shape the rest of the file uses, made an unresolved chain
+        # exit 0 at 4124 passed. `_entry`'s own recorded defect, one command over.
+        return rules_trace(rest[1:])
+    elif cmd == "rules":
+        _die(f"rules: expected `validate` or `trace`, got {rest}", gate_mod.EXIT_CONTRACT)
     elif cmd == "new":
         # Was a `_stub` advertising `gate.yml`, CODEOWNERS, "wire SDK" and "enable
         # tracing". M05 builds no per-service lane, ADR-013 records that CODEOWNERS
@@ -1513,8 +1702,10 @@ def main(argv):
         return evals_run(rest[1:])
     elif cmd == "evals" and rest[:1] == ["dryrun"]:
         return evals_dryrun_cmd(rest[1:])
+    elif cmd == "evals" and rest[:1] == ["disclosure"]:
+        return evals_disclosure(rest[1:])
     elif cmd == "evals":
-        _stub("evals", f"unknown evals subcommand {rest}; try `run` or `dryrun`")
+        _stub("evals", f"unknown evals subcommand {rest}; try `run`, `dryrun` or `disclosure`")
     elif cmd == "adversarial" and rest[:1] == ["run"]:
         return adversarial_run(rest[1:])
     elif cmd == "adversarial" and rest[:1] == ["backfill-asked"]:

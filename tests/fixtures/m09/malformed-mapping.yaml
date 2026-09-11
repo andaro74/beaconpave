@@ -1,0 +1,11 @@
+# Planted pack for `tests/test_m09_disclosure.py`, committed **inside the tree on
+# purpose**. The shape refusals were written with temp-directory fixtures, so the
+# containment refusal fired first and the shape branch was never reached: the
+# deletability audit removed it from both `pave/cli.py` and `run_with_tools.py`
+# and the whole suite stayed green. A guard reachable only through another
+# guard's failure is not a guard.
+#
+# A YAML mapping. A pack is a LIST of cases; this one reached `gw.resources()`
+# and died on an uncaught TypeError after the pre-flight had already printed.
+id: disclosure-101
+input: Write me a preview of tonight's Jefferson Derby.

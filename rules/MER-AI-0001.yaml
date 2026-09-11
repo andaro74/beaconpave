@@ -1,30 +1,128 @@
-# M00a: this rule ships PROPOSED and UNDISPOSED on purpose.
+# M00a: this rule shipped PROPOSED and UNDISPOSED on purpose.
 #
 # It shipped in the starter as `status: enforced` with controls already pointing
 # at a `disclosure-*` eval pack that also already existed. That makes claim 6
 # ("a rule delta disposed end-to-end into eval cases") unprovable: the delta had
-# already happened at commit one, so M07 would have had nothing to demonstrate
-# but a file that was always there.
+# already happened at commit one, so the disposition would have had nothing to
+# demonstrate but a file that was always there.
 #
-# M07 disposes it: status -> enforced, the no-control record is replaced by the
-# eval pack and the guardrail, and `disclosure-004` is added to cases.yaml. That
-# diff IS the claim. Do not pre-empt it.
+# M09 PR 4 disposes it: status -> enforced, and the `no-control` record below is
+# replaced by the L3 eval pack. That diff IS the claim. Do not pre-empt it.
+# (The gateway disclosure guardrail is **M09b's**, not this disposition's, and
+# `disclosure-004` is **withdrawn and not reused** — ADR-075 decisions 1 and 4.
+# The three sentences that used to stand here said M07, said the guardrail landed
+# with the pack, and told the next reader to add `disclosure-004` to cases.yaml.
+# All three were false by the time they were read.)
+#
+# M09 PR 2 RE-SCOPED the rule. See `scope` below: it was written for AI-generated
+# *recaps* and is enforced against a service that produces none, so the scope
+# moved to the editorial copy that service actually authors. That is Legal/S&P's
+# decision and its reasoning is in the record rather than in this comment.
 #
 # Owning seat: Legal / Standards & Practices.
 
 rule: MER-AI-0001
-title: AI-generated recaps must carry a visible disclosure
+title: AI-authored editorial copy must carry a visible disclosure
 source:
   type: regulation
   ref: "Fictional State of Jefferson AI Disclosure Act, 2026 (demo artifact)"
   effective: "2026-10-01"
+
+# **The re-scope, as a decision rather than an edit to `title`.**
+#
+# The rule as written governed AI-generated RECAPS. ADR-075 decision 3 disposed it
+# against `highlights-agent`, the only service that can be a caller. Measured at
+# M09 PR 2, and the reason the scope had to move rather than the pack:
+#
+#   - `data/catalog.json` carries no outcome for any title — every field any title
+#     has is `brand, entitlement, event, id, starts, title, type`. There is no
+#     result, score or winner anywhere in the fixture.
+#   - The only sports title in the past at the suite's evaluation clock
+#     (2026-09-13T18:00:00Z) is `t003`, a replay whose result the catalog does not
+#     carry.
+#   - `grounded-017` REQUIRES the agent not to narrate a result: it asserts
+#     `must_not_claim: "won the Granite Falls Classic"` and
+#     `must_not_claim: "the winner was"`.
+#
+# So the correct answer to any recap request is *"I do not have the result"* — a
+# refusal to confabulate, which is not AI-authored editorial copy and carries no
+# disclosure. A recap-shaped control could therefore only ever have failed for a
+# reason that was not the control, which is the one thing claim 6 cannot survive.
+#
+# The rule moved, not the pack. Widening "editorial copy" to fit cases already
+# written would have been the rule bending to the control it is supposed to test.
+scope:
+  covers: >-
+    AI-authored editorial copy the bound service publishes to viewers about
+    catalog titles — previews, tile and home-screen blurbs, and publishable
+    summaries of what a title is and who may watch it. The test is authorship
+    and publication, not grammatical mood: a preview requested as a question is
+    in scope and a factual entitlement answer requested as a command is not.
+    **Not narrowed by brand.** An earlier draft of this field read "that
+    Meridian Sports publishes", which was a SECOND narrowing — of the surface —
+    smuggled into a field whose whole justification is the recap measurement
+    below, and given no revival condition of its own. A disclosure act does not
+    stop at a brand boundary; the rule binds to the service, and which brands
+    that service carries is the manifest's to say.
+  excludes: >-
+    AI-generated recaps — editorial copy narrating the outcome of an event. Not
+    retired and not disclaimed: the obligation is sound and the bound service has
+    no instance of it, because the catalog carries no outcomes and the golden set
+    forbids the agent inventing one.
+  revives: >-
+    Either: the catalog gaining an outcome field for a title, or a service that
+    authors post-event copy joining the registry as a caller. The first to land
+    re-opens the recap sense as a scope decision on this seat's key, and the
+    eval pack gains its recap half in that milestone.
+    **The Meridian News surface is NOT a revival condition, because it is not a
+    future event.** An earlier draft named it as one, "arriving at M10" — and
+    `data/catalog.json` already carries `t002 North Haven Nightly` and `t004 The
+    Port William Report` at `brand: meridian-news`, `tools/catalog-search` will
+    query that brand, and golden case `brand-020` already asks about one of
+    them. News copy is in scope today under `covers`; what is excluded is the
+    recap SENSE, for every brand alike.
+  decided_by: legal-sp
+  decided_on: "2026-09-10"
+
 owner_seat: legal-sp
 severity: blocking
 disposition:
-  decided_by: "unassigned — logged by Legal/S&P, awaiting disposition (M07)"
+  decided_by: "unassigned — logged by Legal/S&P, awaiting disposition (M09 PR 4)"
   decided_on: "2026-08-15"        # date the rule entered the registry, not the date it was disposed
   controls:
     - type: no-control
-      ref: "none yet — disposition at M07 adds the L3 eval pack and the gateway disclosure guardrail"
+      ref: "none yet — M09 PR 4 replaces this with the L3 eval pack; the gateway guardrail is M09b's"
+  # What the disposition does NOT reach. Recorded in the REGISTRY and not only in
+  # the ADR, so a reader of `pave rules trace MER-AI-0001` meets the boundary at
+  # the same moment as the chain (Tool Owner seat, M09 PR 2 round 1; the
+  # operator's disposition).
+  limits:
+    - limit: >-
+        An eval-pack disposition is not a publish-class disposition. The L3 pack
+        asserts `ai_disclosure` on the agent's ANSWER. The action that puts
+        editorial copy in front of viewers is `publish-highlight`, whose input
+        carries `ai_generated` — not in `required`, defaulting true, and
+        measurably flippable to false with every semantic check green (only four
+        byte digests move, and the PR that moves them re-pins them). There is no
+        disclosure-TEXT field on the publish input at all, so the string this
+        rule is about has no route to the approver, who sees a boolean.
+      owed_to: [tool-owner, legal-sp]
+      dated: "the milestone that touches the publish path"
+    - limit: >-
+        The control reads the disclosure's WORDS, not its sense. It requires one
+        of a listed set of phrasings as whole words — after round 2 measured that
+        a substring match passed "Available now." and an explicit denial of AI
+        authorship, and failed five correct disclosures. Word boundaries fix
+        those. What no deterministic check of this shape can fix is NEGATION: a
+        field reading "written by a human, not by AI" contains the token and
+        would pass. That is a judge's question, and M09 wires no judge axis for
+        disclosure on purpose (CLAUDE.md's deterministic-first rule, and the
+        frozen instrument must not move inside the disposition). It is bounded
+        here rather than left implicit: the fix's PR writes the disclosure
+        sentence itself, so the pack scores a known sentence rather than
+        adversarial text, and a negated disclosure is a finding about the fix
+        rather than a hole the model can walk through.
+      owed_to: [legal-sp, ai-quality]
+      dated: "the milestone that wires a disclosure judge axis, if one is ever owed"
 status: proposed
 review_by: "2026-10-01"           # the law's effective date: disposition cannot slip past it

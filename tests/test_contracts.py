@@ -249,6 +249,12 @@ ASSERT_KEYS = {
     "entitlement",
     "entitlement_source",
     "budget",
+    # M09. MER-AI-0001's executable control, used by the `disclosure` suite and
+    # by no golden case -- asserted below, because a golden case carrying it
+    # would move the goldens instrument inside the milestone that disposes the
+    # rule (SPEC/09: every instrument digest but the judge's is what PR 1 left
+    # it).
+    "ai_disclosure",
 }
 
 
@@ -578,7 +584,11 @@ def test_every_rule_validates_against_the_rules_schema():
     files = list((ROOT / "rules").glob("*.yaml"))
     assert files, "empty rules registry"
     for path in files:
-        jsonschema.validate(load_yaml(path), schema)
+        # `format_checker=`: without it draft-07 `format` is annotation-only and
+        # every `"format": "date"` in the schema accepts any string (Legal/S&P
+        # seat, M09 PR 2 round 1).
+        jsonschema.validate(load_yaml(path), schema,
+                            format_checker=jsonschema.FormatChecker())
 
 
 def test_no_rule_is_reviewed_after_its_source_takes_effect():
@@ -588,7 +598,16 @@ def test_no_rule_is_reviewed_after_its_source_takes_effect():
     for path in (ROOT / "rules").glob("*.yaml"):
         rule = load_yaml(path)
         effective = rule.get("source", {}).get("effective")
-        if effective and rule["status"] != "enforced":
+        # `is None`, not truthiness. `effective: ""` is falsy, so the old guard
+        # SKIPPED the assertion entirely and handed back ADR-053's immortal-rule
+        # plant with one keystroke changed -- the field present, empty, and never
+        # examined. It is `required` from M09 and format-checked, so absence is
+        # already refused upstream; this branch is the belt.
+        assert effective is not None, (
+            f"{rule['rule']}: no `source.effective`. The field is required from M09 "
+            "(ADR-075 amendment 2) precisely so this assertion cannot be switched off "
+            "by omitting the date it reads.")
+        if rule["status"] != "enforced":
             assert rule["review_by"] <= effective, (
                 f"{rule['rule']}: review_by {rule['review_by']} is after its source takes "
                 f"effect on {effective}, and it is not yet enforced"

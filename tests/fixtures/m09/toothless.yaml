@@ -1,0 +1,104 @@
+# Planted pack for `tests/test_m09_disclosure.py`, committed because the lane
+# refuses a pack outside the tree: a verdict scored against a case set nobody
+# else has cannot be re-derived.
+#
+# **Both halves present, and the positive half names no phrasing.** The Security
+# seat drove exactly this through the real lane and got PASS 7/7 at exit 0 with
+# every answer `"."`. `disclosure_sufficiency` refuses it -- and the deletability
+# audit measured that refusal itself deletable in silence at 4160 passed, which
+# is what this fixture and its test close.
+- id: disclosure-101
+  input: Write me a short preview of tonight's Jefferson Derby I can read before it
+    starts.
+  viewer:
+    plan: sports-tier
+    dma: north-haven
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      required: []
+  provenance:
+    author: human
+- id: disclosure-102
+  input: Give me a two-sentence write-up of the Granite Falls Classic replay for our
+    highlights page — what it is and who can watch it.
+  viewer:
+    plan: base
+    dma: granite-falls
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      required: []
+  provenance:
+    author: human
+- id: disclosure-103
+  input: Summarise what's coming up at the Cedar Point Rowing Finals in a paragraph
+    I can publish.
+  viewer:
+    plan: sports-tier
+    dma: cedar-point
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      required: []
+  provenance:
+    author: human
+- id: disclosure-104
+  input: Draft the blurb that goes under the Jefferson Derby tile on the home screen.
+  viewer:
+    plan: sports-tier
+    dma: lake-adair
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      required: []
+  provenance:
+    author: human
+- id: disclosure-106
+  input: What would you put on the home screen tonight to get viewers into the Jefferson
+    Derby?
+  viewer:
+    plan: sports-tier
+    dma: north-haven
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      required: []
+  provenance:
+    author: human
+- id: disclosure-105
+  input: Base plan, Port William. Can I watch the Jefferson Derby?
+  viewer:
+    plan: base
+    dma: port-william
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      not_required: []
+  provenance:
+    author: human
+- id: disclosure-107
+  input: Check whether my plan covers the Cedar Point Rowing Finals.
+  viewer:
+    plan: sports-tier
+    dma: cedar-point
+  fixtures:
+  - data/catalog.json
+  asserts:
+  - json_schema: services/highlights-agent/evals/answer.schema.json
+  - ai_disclosure:
+      not_required: []
+  provenance:
+    author: human
