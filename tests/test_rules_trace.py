@@ -476,21 +476,205 @@ def test_an_enforcing_control_of_another_type_resolves_and_does_not_exit_one(tmp
 
 def test_a_two_control_disposition_resolves(tmp_path):
     """The shape the committed rule's own header promises — the eval pack **and**
-    the gateway guardrail — and the shape ADR-075 gives M09b."""
+    the gateway guardrail — and the shape ADR-075 gives M09b.
+
+    **Until M09b PR 3 this asserted WALKED**, over a guardrail at
+    `platform/gateway/policy/guardrail.json` the reader could not follow. The walker
+    exists now, and the guardrail home is the stack file. So the same two-control
+    shape RESOLVES when both controls reach something that asserts."""
     root = _planted_tree(tmp_path, [{"id": "disclosure-101", "input": "x",
                                      "asserts": [{"ai_disclosure": {"required": ["AI"]}}]}])
-    guard = root / "platform" / "gateway" / "policy" / "guardrail.json"
-    guard.parent.mkdir(parents=True, exist_ok=True)
-    guard.write_text("{}", encoding="utf-8")
+    _guardrail_tree(tmp_path)
     rule = _typed("eval_pack", PACK_REF)
     rule["disposition"]["controls"].append(
-        {"type": "guardrail", "ref": "platform/gateway/policy/guardrail.json", "layer": "L1"})
+        {"type": "guardrail", "ref": STACK_REF, "layer": "L1", "selector": TOPIC})
     chain = rules.trace("MER-AI-0001", _registry(tmp_path, rule), root)
-    # An eval pack that reaches its asserts, PLUS a guardrail the reader cannot
-    # follow: WALKED, because one control short of a full walk is not a full walk.
-    assert not chain.defects
-    assert chain.walked and not chain.resolved
+    assert not chain.defects, chain.defects
+    assert chain.resolved and not chain.walked
     assert [s.kind for s in chain.steps].count("case") == 1
+
+
+# --- the guardrail walker (M09b PR 3; ADR-076 decision 4; SPEC/09b's fourth gap) --
+
+STACK_REF = "platform/infra/lib/gateway-stack.ts"
+TOPIC = "authorship-misrepresentation"
+
+#: A stack file in `gateway-stack.ts`'s own shape, with one topic that exists only in
+#: a comment and a second real topic whose name contains the first one's.
+STACK = """      topicPolicyConfig: {
+        topicsConfig: [
+          {
+            // A comment that names no topic.
+            name: 'authorship-misrepresentation',
+            type: 'DENY',
+            definition:
+              'Editorial copy that says a person wrote it. Disclosing that AI did is not.',
+          },
+          {
+            name: 'authorship',
+            type: 'DENY',
+            definition: 'A second topic, so a substring match has something to find.',
+          },
+          // name: 'commented-out', type: 'DENY', definition: 'never deployed',
+          /* name: 'block-commented', type: 'DENY', definition: 'never deployed', */
+        ],
+      },
+"""
+
+
+def _guardrail_tree(tmp_path: pathlib.Path, *, stack_ref: str = STACK_REF, rows: list | None = None,
+                    reader: str | None = 'CORPUS = "planted.yaml"\n\n\ndef test_rows():\n'
+                                         '    assert CORPUS\n') -> pathlib.Path:
+    """A repository root with a stack file, one corpus and, unless `reader` is None,
+    one test module that reads the corpus."""
+    tree = tmp_path / "tree"
+    stack = tree / stack_ref
+    stack.parent.mkdir(parents=True, exist_ok=True)
+    stack.write_text(STACK, encoding="utf-8")
+    corpus = tree / "quality" / "adversarial" / "planted.yaml"
+    corpus.parent.mkdir(parents=True, exist_ok=True)
+    corpus.write_text(yaml.safe_dump({"rows": rows if rows is not None else [
+        {"id": "R-1", "expect": "blocked", "topic": TOPIC, "text": "denies AI wrote it"},
+        {"id": "R-2", "expect": "allowed", "act": TOPIC, "text": "discloses correctly"},
+        {"id": "R-3", "expect": "blocked", "topic": "authorship-other", "text": "another"},
+    ]}, sort_keys=False), encoding="utf-8")
+    if reader is not None:
+        (tree / "tests").mkdir(parents=True, exist_ok=True)
+        (tree / "tests" / "test_planted.py").write_text(reader, encoding="utf-8")
+    return tree
+
+
+def _guardrail_rule(selector: str | None = TOPIC, ref: str = STACK_REF) -> dict:
+    rule = _typed("guardrail", ref, "L1")
+    if selector is not None:
+        rule["disposition"]["controls"][0]["selector"] = selector
+    return rule
+
+
+def _walk(tmp_path, rule=None, **tree) -> rules.Chain:
+    root = _guardrail_tree(tmp_path, **tree)
+    return rules.trace("MER-AI-0001", _registry(tmp_path, rule or _guardrail_rule()), root)
+
+
+def test_a_guardrail_control_walks_to_the_rows_naming_its_topic_and_the_test_that_reads_them(tmp_path):
+    """Guardrail artifact -> `selector` -> the corpus rows naming that topic -> the
+    test that reads them, every link read out of the tree. Rows are found in
+    `topic` and in `act`, the two spellings committed corpora use."""
+    chain = _walk(tmp_path)
+    assert not chain.defects, chain.defects
+    assert chain.resolved and not chain.walked
+    by_kind = {s.kind: s for s in chain.steps}
+    assert by_kind["topic"].ref == TOPIC
+    assert by_kind["rows"].ref == "quality/adversarial/planted.yaml"
+    assert by_kind["rows"].detail == "2 name this topic (1 blocked, 1 allowed)"
+    assert by_kind["asserted"].ref == "tests/test_planted.py"
+    rendered = rules.render(chain)
+    assert "chain: RESOLVED" in rendered and f"selector {TOPIC}" in rendered
+
+
+def test_a_guardrail_control_is_never_walked(tmp_path):
+    """**The fourth gap and the walker are not separable, and this is where that is
+    measured.** With the home widened and the walker removed, every variant below is
+    WALKED at exit 0 with no defect: a guardrail control admissible with nothing
+    reading it, which is the relaxation of row 1a ADR-076 decision 4 names. With the
+    walker in place each one resolves or is a defect."""
+    variants = {
+        "resolves": {},
+        "no selector": {"rule": _guardrail_rule(selector=None)},
+        "undefined topic": {"rule": _guardrail_rule(selector="no-such-topic")},
+        "no row names it": {"rows": [{"id": "R-1", "expect": "blocked", "topic": "other"}]},
+        "no test reads the corpus": {"reader": None},
+    }
+    for name, kwargs in variants.items():
+        planted = tmp_path / name.replace(" ", "-")
+        planted.mkdir()
+        chain = _walk(planted, **kwargs)
+        assert not chain.walked, f"{name}: a guardrail control read WALKED"
+        assert chain.resolved == (name == "resolves"), (name, chain.defects)
+        assert bool(chain.defects) == (name != "resolves"), (name, chain.defects)
+
+
+def test_a_missing_selector_is_red(tmp_path):
+    chain = _walk(tmp_path, rule=_guardrail_rule(selector=None))
+    assert any("names no `selector`" in d for d in chain.defects), chain.defects
+    assert not chain.resolved
+
+
+def test_a_selector_naming_a_topic_the_stack_does_not_define_is_red(tmp_path):
+    chain = _walk(tmp_path, rule=_guardrail_rule(selector="no-such-topic"))
+    assert any("defines no DENY topic by that name" in d for d in chain.defects), chain.defects
+
+
+@pytest.mark.parametrize("selector", ["commented-out", "block-commented"])
+def test_a_topic_that_exists_only_in_a_comment_is_not_defined(tmp_path, selector):
+    chain = _walk(tmp_path, rule=_guardrail_rule(selector=selector),
+                  rows=[{"id": "R-1", "expect": "blocked", "topic": selector}])
+    assert any("defines no DENY topic by that name" in d for d in chain.defects), chain.defects
+
+
+def test_a_selector_naming_a_topic_no_corpus_row_names_is_red(tmp_path):
+    """The seat plant SPEC/09b names: a walker reporting RESOLVED for a `selector`
+    naming a topic no corpus row mentions."""
+    chain = _walk(tmp_path, rows=[{"id": "R-1", "expect": "blocked", "topic": "authorship-other"}])
+    assert any("no row under quality/adversarial/ names topic" in d for d in chain.defects)
+    assert not chain.resolved
+
+
+def test_rows_name_a_topic_by_equality_and_never_by_substring(tmp_path):
+    """`authorship` is defined, and every planted row names a topic containing it.
+    None names it."""
+    chain = _walk(tmp_path, rule=_guardrail_rule(selector="authorship"))
+    assert any("no row under quality/adversarial/ names topic 'authorship'" in d
+               for d in chain.defects), chain.defects
+
+
+def test_a_corpus_no_test_reads_is_red(tmp_path):
+    chain = _walk(tmp_path, reader=None)
+    assert any("no test under tests/ reads that file" in d for d in chain.defects), chain.defects
+
+
+@pytest.mark.parametrize("reader", [
+    '"""Reads planted.yaml, it says."""\n\n\ndef test_rows():\n    assert True\n',
+    '# planted.yaml\n\n\ndef test_rows():\n    assert True\n',
+    'CORPUS = "planted.yaml"\n',
+], ids=["named-only-in-a-docstring", "named-only-in-a-comment", "no-test-function"])
+def test_a_module_that_names_the_corpus_without_reading_it_in_a_test_is_not_its_test(tmp_path, reader):
+    chain = _walk(tmp_path, reader=reader)
+    assert any("no test under tests/ reads that file" in d for d in chain.defects), chain.defects
+
+
+@pytest.mark.parametrize("stack_ref", [
+    "platform/infra/lib/other-stack.ts",
+    "platform/gateway/policy/guardrail.ts",
+    "platform/infra/lib/gateway-stack.ts.d/x.ts",
+])
+def test_the_guardrail_home_is_the_stack_file_and_nothing_wider(tmp_path, stack_ref):
+    """The seat plant SPEC/09b names: a `CONTROL_ARTIFACTS` entry that admits any
+    path under `platform/`. Each file here defines the topic, has rows and a test,
+    and is not where the guardrail is synthesized from."""
+    chain = _walk(tmp_path, rule=_guardrail_rule(ref=stack_ref), stack_ref=stack_ref)
+    assert any("declared 'guardrail'" in d for d in chain.defects), chain.defects
+    assert not chain.resolved
+
+
+def test_the_committed_stack_walks_entitlement_circumvention_over_the_committed_corpora(tmp_path):
+    """The real path, not a planted one. A registry under `tmp_path` and the
+    repository's own tree: `gateway-stack.ts` defines the topic, `phrasings.yaml`
+    names it on rows, and `tests/test_phrasings.py` reads that file.
+
+    And ADR-076 decision 4's measured row, reversed. `platform/gateway/policy/tools.contracts.json`
+    read *guardrail-control admissible: True* and is now refused."""
+    chain = rules.trace("MER-AI-0001", _registry(tmp_path, _guardrail_rule(
+        selector="entitlement-circumvention")), ROOT)
+    assert not chain.defects, chain.defects
+    assert chain.resolved
+    assert ("rows", "quality/adversarial/phrasings.yaml") in {(s.kind, s.ref) for s in chain.steps}
+    assert ("asserted", "tests/test_phrasings.py") in {(s.kind, s.ref) for s in chain.steps}
+
+    (tmp_path / "old").mkdir()
+    old = rules.trace("MER-AI-0001", _registry(tmp_path / "old", _guardrail_rule(
+        selector="entitlement-circumvention", ref="platform/gateway/policy/tools.contracts.json")), ROOT)
+    assert any("declared 'guardrail'" in d for d in old.defects), old.defects
 
 
 def test_a_control_declared_one_type_and_pointing_at_another_is_red(tmp_path):
