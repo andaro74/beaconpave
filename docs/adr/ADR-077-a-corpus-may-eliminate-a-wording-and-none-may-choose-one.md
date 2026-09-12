@@ -63,6 +63,7 @@ licensed for neither and are read as diagnostics that decide nothing.
 | `phrasings.yaml` — **yes, in both directions** | **no** | `phrasings.yaml:21-26`: two properties, each falsifiable — *"the topics generalize"* (a `blocked` phrasing allowed is a failure) and *"the topics do not swallow the product"* (an `allowed` phrasing blocked is a failure). Neither is a count |
 | `data/catalog.json`, the clean catalog — **yes** | **no** | ADR-035 amendment 4 row 28:989 (*"the clean catalog data alone: still allowed"*, falsified by *"blocked"*); `topic-attacks.yaml:38-41` names it and `PHR-004` as the evidence *"neither of which anyone chose after seeing a result"* |
 | the 25 golden **questions** at INPUT — **yes, for the additive topic only** | **no** | ADR-035 amendment 4 row 25:986 — *"0 of 25, unchanged… any blocked — the new topic has false positives on a corpus nobody chose for it, and that is **disqualifying** however well it does on rows 22–23."* Decision 3 §6 scopes it; decision 5 states why it is not a leak |
+| `disclosure-shapes.yaml` — **yes, for the additive topic only** | **no** | ADR-076 amendment 2:749-759 freezes it as the additive topic's corpus and :773-789 fixes the partition gate 7 reads it through; `disclosure-shapes.yaml:108-111`, its own decision rule, holds both halves — *"this file may strike a candidate and may never prefer one"*. **Added at amendment 1**: gate 7 read this corpus from the day decision 3 was written, and this table did not list it |
 | `refusal-shapes.yaml` — **no** | **no** | ADR-067:88-89: *"Any candidate wording is judged by the frozen corpora, never by this file."* This is the inverted citation the withdrawn rule selected on |
 | `answer-decomposition.yaml` — **no** | **no** | ADR-068:94-95: *"a wording revised against these rows is fitted to them"* — the **identical** prohibition, which is why inverting the two does not repair anything (ADR-076:216) |
 | `probes.yaml` — **no** | **no** | Declined **on the confound, not on a missing freeze**: `phrasings.yaml:28-30` — *"ADV-006 and ADV-009 both fire `PROMPT_ATTACK` independently of any topic, so neither can isolate whether `entitlement-circumvention` is doing anything"* (ADR-076:494) |
@@ -424,3 +425,127 @@ corpus predates the wording it judges, by a day and by two commits.
 **The declaration is the claim; the commits are what makes it checkable.** The file now
 says so in its own header, which is the form the other five have and the form a reader
 can hold the history to.
+
+---
+
+## Amendment 1 (2026-09-12, M09b PR 3, before any candidate exists or is swept): five candidates per topic are WITHDRAWN for one, and the throwaway guardrail goes with them
+
+**Decision 2's five candidates per topic is WITHDRAWN and replaced by one candidate per
+topic.** Decision 3's premise that every gate is *"swept against a throwaway guardrail
+at zero model calls"* (:179) is dropped with it. **The gates are unchanged, and they are
+read after the deploy, on the pinned guardrail.** Nothing else in decisions 1, 5 or 6
+moves.
+
+### The reason is measured, not preferred
+
+**The instrument decision 3 sweeps against does not exist in this repository.**
+Measured on `main` at `7b53fe2`, before this amendment was written:
+
+- `throwaway-gate` is `979fbb2`, *"exhibits: verify the gate blocks"*, and its whole diff
+  is `tests/test_contracts.py | 4 ++++`. It is a contract exhibit and builds no guardrail.
+- `tools/sweep_sixteen.py:13` says of itself *"**Reporting only.** Nothing scores, gates or
+  decides on this."*
+- `git grep -i "create_guardrail\|CreateGuardrail"` matches one prose line,
+  ADR-064:218, plus the two documents that quote that measurement. No code calls it.
+- `services/highlights-agent/topic_baseline.py:446` binds `PinnedGuardrailId`. Its
+  `--guardrail-version` asks for a RETAINed version of **that** guardrail and can sweep no
+  other. The two arms M09b PR 2b added bind it too.
+
+**Building one costs more than the measurement it would serve.** A throwaway would be
+a guardrail lifecycle outside the stack: create, version, sweep and tear down per
+candidate, with its own IAM, its own test and its own failure mode. It would serve ten
+sweeps of corpora that may only strike. That comparison is a judgement, and the
+measured half of it is this. SPEC/09b's **F2** (:90) already pre-registers a
+post-deploy sweep of every row gates 3, 4 and 5 read, at the same k, against the
+pre-deploy sweep PR 2b committed. So a throwaway sweep of one candidate reads those rows a
+second time.
+
+### One candidate, one deploy — ADR-035 amendment 4's rule, and its price, returned to
+
+ADR-035 amendment 4:975-978 pre-registered **one candidate, one deploy**, for a reason
+decision 2 argued past and this amendment does not: *"Iterating wordings against a
+frozen corpus until one passes is fitting to it by a slower route, and it would destroy
+that file's value permanently. **If this candidate fails, the next one is a new ADR and a
+new held-out set, not a retry.**"*
+
+Decision 2's *departure from ADR-035 amendment 4* (:151-170) is withdrawn with the five,
+and so is its stated cost. The frozen rows are now drawn once per topic, which is what
+amendment 4 planned.
+
+**The price, stated at full strength.** The gates are read post-deploy, so a candidate
+that fails one has already been deployed. **There is no retry. A failed gate means a new
+ADR and a new held-out set, and in this milestone it means the term closes RED.** It
+does not route to a second candidate, a second set, a re-worded carve-out or a second
+deploy (SPEC/09b constraint 2). It closes red through falsifiers already written, each
+read as written:
+
+- **Gates 3, 4 and 5** are F2's own rows: every frozen attack row blocked 3 of 3
+  pre-deploy, `PHR-002`/`PHR-003` blocked, `PHR-004`/`PHR-005` and the clean catalog
+  allowed (SPEC/09b:90).
+- **Gates 6 and 7** are not F2's rows: the 25 questions at INPUT, and
+  `disclosure-shapes.yaml`, whose rows were all allowed pre-deploy. A failure there makes
+  the deployed definition *"not the one `tests/test_m09b_admission.py` admits from the
+  committed candidate set"*. That is **F4's** first clause (SPEC/09b:92), unchanged.
+- Any one of them *"fails the claim and closes the milestone red with the row or case
+  named"* (SPEC/09b:84-85).
+
+**No falsifier is re-read, re-scoped or added here, and no claim term is added.** F1 in
+particular is untouched.
+
+### Decision 3, with one clause replaced
+
+The seven gates, unanimity at k=3, *a split fails* and *an unreadable row fails* all
+stand. What changes is **where** each gate is read:
+
+| gates | read | by |
+|---|---|---|
+| 1 (≤ 200 characters), 2 (the prohibited-source declaration) | **pre-deploy.** They read no guardrail | `tests/test_m09b_admission.py` over `milestones/M09b/candidates.json`, in this PR |
+| 3, 4, 5, 6, 7 | **post-deploy**, on the pinned guardrail at its new version, each row *still* or *not still* against the pre-deploy sweep PR 2b committed (`milestones/M09b/topic-baseline-pre.json`, `topic-baseline-pre-phrasings-disclosure.json`, `preflight-pre.json`) | not built here |
+
+The fail-closed clause loses *"a throwaway that would not build"* (:217), because nothing
+is built. Every other unreadable case still fails the candidate.
+
+### Decision 4, as far as one candidate reaches it
+
+- **The shortest-survivor separator and the equal-length branch are unreachable** with
+  one candidate per topic, and they are withdrawn with decision 2. So is the
+  Consequences paragraph on *"what would falsify the shape of this ADR"* (:386-390), which
+  was about that separator.
+- **The no-winner branch survives only before the deploy**, on gates 1 and 2. A candidate
+  over 200 characters, or with an unjustified presumed-drawn term, is no winner for its
+  topic, and that topic does not deploy. The two topics are still decided independently.
+- **After the deploy there is no no-winner branch, and decision 4's *"cheap branch"* does
+  not exist for gates 3–7.** That is the cost above, not a gap to design around.
+- **The length separator's F-4 limit becomes an axis-choice limit.** Decision 2's axis
+  tables were alternatives, one candidate per axis. With one candidate per topic, which
+  axis a candidate sits on is the author's choice, and nothing separates that choice from
+  what the author had read. When the axis was chosen, no candidate wording of either
+  topic had been swept, because none existed. `tests/test_m09b_ordering.py` still holds
+  commitment order and nothing more (ADR-076 amendment 1:438-446).
+
+### What each candidate record carries, unchanged from decision 2 §2
+
+Its text, its character count, its axis cited to the owning line decision 2's table
+licenses it at, and its prohibited-source declaration executing ADR-024:84-88.
+**Plus `disclosure-shapes.yaml` on the source list**, which ADR-076 amendment 2:800-803
+found no rule names. That corpus's own header already says a term appearing only there
+is presumed drawn from it (`disclosure-shapes.yaml:138-143`). The candidates follow that
+sentence here, and ADR-024 is not edited.
+
+### What does not move
+
+Decision 1's line and its licence table (one row added, below). Decision 5's barred
+inputs and the one golden artefact. Decision 6's refusal to mint a corpus. The prohibited-source
+rule. *No retry*. F1–F5. The three claim terms.
+
+**`SPEC/09b` still summarises five per topic and the throwaway sweeps, and is not edited
+here.** `SPEC/09b:200-201` makes this ADR the rule where the two differ.
+
+### The licence table gains a row, in this diff
+
+`disclosure-shapes.yaml` is licensed to eliminate for the additive topic only, and to
+choose never, sourced to ADR-076 amendment 2 at line. Gate 7 read a corpus that decision
+1's table did not list. Inserting the row moves every later line of this file down by
+one. The one line citation into this file from elsewhere,
+`milestones/M09b/journal-notes.md:184`'s *ADR-077:178*, now reads at :179, which the
+journal notes record rather than edit.
