@@ -441,8 +441,11 @@ moves.
 **The instrument decision 3 sweeps against does not exist in this repository.**
 Measured on `main` at `7b53fe2`, before this amendment was written:
 
-- `throwaway-gate` is `979fbb2`, *"exhibits: verify the gate blocks"*, and its whole diff
-  is `tests/test_contracts.py | 4 ++++`. It is a contract exhibit and builds no guardrail.
+- `throwaway-gate` is a branch whose tip is 979fbb2, *"exhibits: verify the gate
+  blocks"*, and its whole diff is `tests/test_contracts.py | 4 ++++`. It is a contract
+  exhibit and builds no guardrail. Cited unbackticked, because neither `main` nor any
+  tag contains it and `tests/test_cited_commits_resolve.py` rightly refuses a citation a
+  fresh clone may not hold.
 - `tools/sweep_sixteen.py:13` says of itself *"**Reporting only.** Nothing scores, gates or
   decides on this."*
 - `git grep -i "create_guardrail\|CreateGuardrail"` matches one prose line,
