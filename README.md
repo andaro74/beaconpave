@@ -46,7 +46,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 08 | The tools arm's budget: the context or the ceiling ✜ | six PRs ✜ | `m08` | **12/25** ✜ | not judged ✧ | not run ✜ | ✅ |
 | 08b | The ceiling, measured on samples it was not derived from ❁ | six PRs ❁ | `m08b` | **10/25** ❁ | not judged ✧ | not run ❁ | ✅ |
 | 09 | The rule is disposed, and the service goes red ❉ | seven PRs ❉ | `m09` | **10/25** ❉ | not judged ✧ | not run ❉ | ✅ |
-| 09b | The rule's second control, and the topic reworded under a rule written first ❊ | `m09b-guardrail` | `m09b` | –/25 ❊ | – | – | ⬜ |
+| 09b | The rule's second control, and the topic reworded under a rule written first ❊ | seven PRs ❊ | `m09b` | not run ❊ | not judged ✧ | not run ❊ | ✅ **RED** ❊ |
 | 09c | Answer quality: the browse gap and the tiers ❋ | `m09c-answer-quality` | `m09c` | –/25 ❋ | – | – | ⬜ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
@@ -586,6 +586,19 @@ word-boundary match. Beside it, `entitlement-circumvention` is recalibrated, the
 topic that has refused the product's most basic question 1 in 3, classified the
 product's own catalog as circumvention, and refused **3 of 8** of the judge's own
 calls at M03.
+
+**Closed RED on 2026-09-12. No deploy was taken, and the claim was not measured**
+(`milestones/M09b/README.md`). **Term 1:** the additive topic's one candidate was refused
+before any sweep. Its text carries an eight-word run that appears in the header of the
+corpus that would have judged it and in no other file (ADR-077 amendment 2). **Terms 2
+and 3:** not measured. The recalibration's candidate passed gates 1 and 2 and was not
+deployed. Four things needed to read it after a deploy do not exist: nothing executes
+the post-deploy gates; F4's second clause reads a field no file carries; F5's
+denominator counts samples nothing defines; and the definition that moves `F` and `G`
+was due at a check nobody wrote. **Zero model calls in the milestone. No goldens,
+adversarial or disclosure run, and no history entry.** The paragraphs below are the
+open's pre-registration, left as written. ADR-077 amendment 1 cut the candidates from
+ten to two before any existed.
 
 **The hazard is named in the spec rather than met at the close.** M09b rewords a
 guardrail topic so that cases stop being wrongly refused, and those cases then stop
