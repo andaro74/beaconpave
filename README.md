@@ -578,7 +578,7 @@ diagnosed — SPEC/09 decision 5 §3), Security's two `tool_request` probes, the
 owner and trigger.
 
 ❊ **`09b` takes the rule's second control and the topic, and carries no claim of
-the twelve (ADR-076, `SPEC/09b`).** `MER-AI-0001` disposes into a **guardrail
+the twelve (ADR-076, ADR-077, `SPEC/09b`).** `MER-AI-0001` disposes into a **guardrail
 line** as well as the L3 eval pack: a DENY topic on the **negation** hole the
 deterministic control cannot reach, which the rule's own `limits` record names — a
 field reading *"written by a human, not by AI"* contains the token and passes a
@@ -590,17 +590,43 @@ calls at M03.
 **The hazard is named in the spec rather than met at the close.** M09b rewords a
 guardrail topic so that cases stop being wrongly refused, and those cases then stop
 being refused — **a topic reworded until cases pass is a threshold moved to clear a
-reading**, the trade M09 failed a claim rather than take. So the wording of both
-topics is chosen by a derivation rule **committed and executed before any candidate
-is measured**, whose inputs exclude the golden set by name, whose corpora are frozen
-in an earlier PR than the candidates with the order checked against `git log`, and
-whose bypass is a falsifier rather than a warning. **Priced before a call is
-spent:** the deployed definition is **191 characters of a 200 cap**, so a widening
-cannot be bought by adding a topic the way ADR-035 bought a tightening, ADR-035 rows
-12, 17, 18 and 19 stop holding by construction, and **if no admissible candidate
-fits, that is published and the recalibration does not deploy.** And the count is
-pre-registered **not to move**: only `blackout-009` can move it, so a jump is a
-finding about the wording rather than a success.
+reading**, the trade M09 failed a claim rather than take.
+
+**The first answer to that hazard was withdrawn, before any measurement, and the
+withdrawal is on the record rather than tidied away.** ADR-076 decision 2 and the
+spec's *derivation rule* had a corpus **select** the wording — and `refusal-shapes.yaml`,
+the corpus it selected on, is forbidden by its own ADR from judging a candidate fix.
+The general fact behind that: **no corpus in this repository is permitted to select a
+wording, and the rule assumed one was.** No sweep, candidate or number was ever
+produced under it (ADR-076 amendment 1).
+
+**The replacement ADMITS rather than selects (ADR-077).** A corpus may strike a
+candidate that is *worse than the deployed wording* on a row it already holds — which
+is what `topic-attacks.yaml` says about itself in its own header — and **no corpus may
+prefer one candidate over another, by any count, in any direction.** Ten candidates,
+five per topic, one per named mechanism axis, committed by digest before the first
+sweep and swept once with no retry; admissibility fail-closed and pass/fail in both
+directions, so a topic that blocks everything fails it and one that blocks nothing
+fails it too; one survivor wins **by elimination**, several are separated by **the
+shortest**, which reads no corpus, and **no winner is a real, pre-registered and
+deliberately cheaper outcome**. No goldens answer file enters it at any point — a
+blocked answer is never committed, so such an arm is blind to the very case the
+milestone is about. **Priced before a call is spent:** the deployed definition is
+**191 characters of a 200 cap**, so a widening cannot be bought by adding a topic the
+way ADR-035 bought a tightening, ADR-035 rows 12, 17, 18 and 19 stop holding by
+construction, and **if no admissible candidate fits, that is published and the
+recalibration does not deploy.** And the count is pre-registered **not to move**: only
+`blackout-009` can move it, so a jump is a finding about the wording rather than a
+success.
+
+**Three limits are published rather than solved**, and they are limits of the claim:
+an ordering check constrains *commitment* and never *authorship*, and no test can
+close that because the evidence is not in the repository; **nothing committed measures
+whether the loosening goes too far**, which is the mirror of what `topic-attacks.yaml`
+already records about ADR-035's tightening, and minting a corpus mid-milestone to
+close it is refused; and F1 rests on grant booleans over text the guardrail withheld,
+so it takes **two independent readings** committed separately, which makes it
+*checkable* and never outsider-verifiable.
 
 **None of the twelve, decided rather than inherited.** ADR-075 decision 1 said
 M09b carries none *"because claim 6 is proven by then"* — and claim 6 **failed**.
