@@ -30,7 +30,7 @@ docstring plant the audit found silent, and the walker finding for the additive 
 PROPERTY PASS
 -------------
 
-27 property plants, 27 CAUGHT (P11 SILENT on first run, test written, CAUGHT on re-run); 2 gate plants, 2 red.
+26 property plants, 26 CAUGHT (P1-P14, A1-A11, F1) (P11 SILENT on first run, test written, CAUGHT on re-run); 2 gate plants, 2 red.
 
 pave/rules.py — rule gap 4 and the walker, against tests/test_rules_trace.py
 
