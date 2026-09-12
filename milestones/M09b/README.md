@@ -252,7 +252,7 @@ close edits only SPEC/09b's status line, so the summary stays stale beside a poi
 | PR 2 | done across two containers, PR 2 (#144) and PR 2b (#145). The four rule gaps: three closed at PR 2b; the fourth, with the walker, at PR 3 |
 | PR 3 | **partial** (#146): two candidates rather than ten (ADR-077 amendment 1), gates 1–2, the walker and home. Not built: see *What broke* 4 |
 | PR 4 | **not taken.** No deploy, no sweeps, no runs, no withheld readings, no comparator pin, no `bash` demo block |
-| PR 5 | this close: `close-milestone` in order; step 6b not taken (below); row and cell filled; tag `m09b` is the operator's |
+| PR 5 | this close: `close-milestone` in order. Steps 2 and 6b and the artifact are **NOT EXERCISED** (below). The row and its goldens cell are filled. Tag `m09b` is the operator's |
 | Nothing under `milestones/M07/`, `M08/`, `M08b/` or `M09/` changed; `SPEC/09` not edited | **one exception, pre-registered:** `git diff --stat 52edc27 HEAD` over those paths returns `milestones/M08b/residual-attribution.json` and `residual_attribution.py`, which are the era pin SPEC/09b constraint 1 required at PR 1. `SPEC/09` is unchanged |
 | No prompt constant, tier, ceiling, `p95_ms`, comparator, catalog row, golden case or judge instrument moved; `frozen.json` byte-identical | holds. The same diff over those paths, plus `evals/history`, `rules/`, `gateway-stack.ts`, the synth fixtures and the four frozen corpora, returns two more files, each an expected PR 1d or PR 1 change: `quality/adversarial/phrasings.yaml` (the `frozen_before` declaration) and `quality/judge/calibration/labels.json`, whose only change is the `brand_tone` owe's `re_deferred_to` moving from `M09b` to `M10`. **No label value moved.** `frozen.json` is absent from the diff |
 
@@ -262,28 +262,36 @@ close edits only SPEC/09b's status line, so the summary stays stale beside a poi
 
 | | |
 |---|---|
-| `make check` | CLOSE-MEASUREMENT-PENDING |
-| deletability audit | CLOSE-MEASUREMENT-PENDING |
-| two-key | CLOSE-MEASUREMENT-PENDING |
+| deletability audit | **No new assertions; audit empty.** SPEC/09b constraint 10's scope is new assertions, and this PR adds none. Every file it changes is Markdown: `README.md`, SPEC/09b, ADR-077, the ADR index, this journal and the PR body. It adds no test, no code and no check |
 | model calls | **zero**, in this PR and in the milestone. `git grep -l '"usage"' -- milestones/M09b` matches nothing, and `evals/history/` holds no `m09b` entry |
 | moved | no case, tier, threshold, ceiling, baseline, falsifier, guardrail, policy, corpus row, catalog row, topic or candidate. `set_sha256` is `e14ab354…`, as PR 3 committed it |
 
 ---
 
-## Open holes and triggers (close-milestone step 6b)
+## Not exercised at this close: step 2, step 6b, and the artifact
 
-**The frozen corpus is not re-run, and no census is read, because none exists.** Step 6b
-checks a guardrail change against accepted holes and reads accepted costs out of *"the
-governed golden run this milestone recorded"*. This milestone deployed no guardrail
-change and recorded no run.
+**One cause for all three: the deploy was not taken.** Each reads a file that only the
+post-deploy PR 4 produces (SPEC/09b:455-463), and PR 4 was never opened. **This is not
+a deferral.** No later PR of this milestone will produce these files, and none owes
+them. Every path below is absent, which a reader can check by listing
+`milestones/M09b/`.
 
-- **`enforcement-probing` (ADR-035 amendment 9):** not re-disposed at this close. Its
-  trigger fired at M09 on `blackout-009` by majority, and the topic went to Security
-  (`milestones/M09/README.md`, *Open holes and triggers*). No new footprint exists to
-  re-dispose it against. Security still holds it, as M09 left it.
+| close-milestone step | what it reads | the file that does not exist | reading |
+|---|---|---|---|
+| **2**, record the evals (`SKILL.md:18-28`) | `run_evals --answers` and `run_adversarial --observations` | `milestones/M09b/goldens-run.json`, `milestones/M09b/probes-run.json` | **NOT EXERCISED.** No history entry is written, and row 09b's goldens cell reads *not run* |
+| **6b**, the sweep half (`SKILL.md:102-104`) | the frozen corpus re-run against the deployed guardrail | `milestones/M09b/topic-baseline-post.json` | **NOT EXERCISED.** No guardrail was deployed, and the pre-deploy sweep is not read in its place |
+| **6b**, the census half (`SKILL.md:119-126`; SPEC/09b:734) | the accepted costs' footprint, read from this run's refusal census | `milestones/M09b/goldens-run-refusals.json` | **NOT EXERCISED.** There was no run, so there is no census, and M09's census is not read in its place |
+| **the artifact** (SPEC/09b:468, :737; its demo block, :600-616) | `topic_delta.py --after` (:609) and `evals.refusals --sidecar` (:615) | `milestones/M09b/topic-baseline-post.json`, `milestones/M09b/goldens-run-refusals.json` | **NOT EXERCISED.** No artifact is recorded. Step 8's demo act does not apply: `docs/governance/recordings.json` owes no act to M09b |
+
+What step 6b still reads, because it needs no run:
+
+- **`enforcement-probing` (ADR-035 amendment 9):** not re-disposed. Its trigger fired at
+  M09, and the topic was handed to Security (`milestones/M09/README.md:412-415`).
+  Security's re-disposition of its two trigger halves is debt 10 below. It has been
+  owed since that handoff and is not performed here.
 - **Retention on the withheld store (ADR-071 amendment 1):** **not met.** The trigger is
   the first viewer turn the store holds that is not committed corpus text. M09b made no
-  model call, so the store gained no turn of any kind.
+  model call, so the store gained no turn.
 - **No accepted hole has a deadline in this milestone.**
 
 ---
@@ -332,7 +340,8 @@ second slide whose reason changed rather than its number.
 
 ## Debts carried out of M09b, each with an owner and a trigger
 
-**None is closed or repaired here.** *Unscheduled* means no milestone carries it. The
+**None is closed or repaired here.** *Unscheduled* means no milestone has planned the
+work. Where a trigger is given, it names the event that makes the work due. The
 *blocks* line says what cannot honestly happen until it is paid.
 
 ### Opened at this close
@@ -348,6 +357,7 @@ second slide whose reason changed rather than its number.
 | 7 | **The `G < 8` narration.** `journal-notes.md:107-114` says, before any post-deploy run, that a post-deploy `G < 8` would fire F1 *"on population rather than on the topic"*. No check holds that reading, F1 is not re-scoped by it, and its trigger is the same undefined check as debt 4 | AI Quality + Security (`journal-notes.md:113-114`) | **unscheduled.** Blocks: reading F1's second clause without that sentence pre-explaining it |
 | 8 | **Gate 2's executor is narrower than the clause it executes.** `candidates.json:31` makes a term one word, so `tests/test_m09b_admission.py` passes a candidate ADR-077 amendment 2 refuses. Found at this close | Security + Platform Engineering | the next PR that commits a candidate topic wording |
 | 9 | **Demo script Act 3's probe beat names `milestones/M09b/probes-run.json`, which does not exist** (`demo-script.md:157-164`). It re-opens the row paid at PR 1. Found at this close | Legal/S&P + Security | the recording of Act 3's probe beat |
+| 10 | **Security's re-disposition of `enforcement-probing`'s two trigger halves**: footprint above 2 of 25, and `blackout-009` refused by majority (ADR-035 amendment 9; `close-milestone` step 6b). **Owed since M09's handoff** (`milestones/M09/README.md:412-415`), where the case half fired and the topic half did not. **Two routes were considered and both refused.** Re-disposing on M09's census would read another milestone's run as this close's. SPEC/09b:734 names this run's census, and it is the same substitution refused for the pre-deploy sweep. An advisory draft from the Security reviewer agent would stand in for the seat's decision, and G6 makes a role subagent's output advisory input to a human, never a disposition | Security | **UNSCHEDULED.** Trigger: the next milestone producing a goldens refusal census (09c) |
 
 ### From SPEC/09b's inherited register, row by row
 
@@ -382,7 +392,7 @@ and trigger are as the spec wrote them.
 | :518 | the disclosure comparator pin | AI Quality + Legal/S&P | **not fired** — no second disclosure run. The trigger stands. Its slide is a finding (*The cap*) |
 | :519 | the DMA rename | Legal/S&P + Data Governance | **09c**, unchanged |
 | :520 | the browse-gap cases; the `tokens_out` cases | Tool Owner; AI Quality | **09c**, unchanged |
-| :521 | Security's two `tool_request` probes; the `enforcement-probing` trigger | Security | **not read at step 6b** — no run and no sweep. Owned by Security, unscheduled |
+| :521 | Security's two `tool_request` probes; the `enforcement-probing` trigger | Security | the `tool_request` probes are unchanged: owned by Security, unscheduled. The `enforcement-probing` trigger: **step 6b NOT EXERCISED**, and its re-disposition is debt 10 |
 | :522 | `context_census.py`'s `sys.path.insert` | Platform Engineering | unchanged |
 | :523 | retention on the withheld store | Data Governance | **read: not met.** No model call in M09b |
 | :524 | the stronger ADR-index predicate | PM | unchanged. This close adds amendment 2 to ADR-077's index row, so the stale count does not rise |
@@ -390,7 +400,7 @@ and trigger are as the spec wrote them.
 | :526 | standing observations | – | unchanged |
 | :527 | only *Demo artifact* blocks are checked | PM + Platform Engineering | **PAID at PR 2.** Its finding carries: three specs spell the heading `## The demo artifact`. Owner PM + Platform Engineering; trigger: the next PR that edits a `## The demo artifact` heading or the scope check (`docs/pr-bodies/m09b-pr2.md:188-192`) |
 | :528 | CLAUDE.md's one-branch rule against per-PR practice | Platform Engineering (the lead's seat) | unchanged. M09b used seven per-PR branches. No branch is named `m09b`, so tag `m09b` is unambiguous |
-| :529 | the deletability audit runs `pytest` while the gate runs `pave check` | Platform Engineering | **not paid.** PR 3 ran 2 of its 28 plants through the gate (`milestones/M09b/pr3-deletability-audit.txt:10-16`), and this close runs every plant through it. The trigger stands |
+| :529 | the deletability audit runs `pytest` while the gate runs `pave check` | Platform Engineering | **not paid.** PR 3 ran 2 of its 28 plants through the gate (`milestones/M09b/pr3-deletability-audit.txt:10-16`), and this close takes no audit, because SPEC/09b's PR 5 Definition of done names none. The trigger stands |
 | :530 | demo script Act 3's second half | Legal/S&P + Security | **paid at PR 1, and re-opened** as debt 9 above |
 | :531 | `brand_tone`'s widening | AI Quality (+ Security) | **M10**, a fifth slide (*The cap*) |
 | :532 | `brand-021` and `concise-022` refusing on `entitlement-circumvention` | Security | **not fired** — its trigger reads after the deploy, and none was taken. Unscheduled |
