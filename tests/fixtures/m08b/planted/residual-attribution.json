@@ -9,6 +9,46 @@
     "tests/fixtures/m08b/planted/goldens-run-3.json": "cbfcb3fc37beb01e7e70533f88b9c7b21eb4c1f9da6ec434d01d23e899eb9cd9",
     "tests/fixtures/m08b/planted/fresh-join.json": "5195fbcd92298c77dc42bdca2c6c57b76e7062f2858c6d7d1d99481064673795"
   },
+  "m08b_era_text": {
+    "_why": "E and S are estimated from HEAD's committed prompt and joined to A and B, which M08b's run measured; a prompt edit therefore re-prices a figure whose run predates it. M09 PR 4 did exactly that and this record moved from 501 of 463 signed (92.9%) to 552 of 402 (78.6%) with no run taken between the two readings, while A and B did not move at all. 92.9% is the reading of that run and it stands; the attribution block below is HEAD's recomputation. ADR-075 amendment 5 §4(a); paid at M09b PR 1.",
+    "commit": "a9cf896cd34490af8c103f825b0b0005e5aa48e3",
+    "committed": "2026-09-08",
+    "what": "the commit that committed milestones/M08b/goldens-run-*.json and calibration.json",
+    "inputs_sha256_at_m08b": {
+      "services/highlights-agent/gateway_client.py": "4554dd284606139de8ece32efc09884c68e89c770e2c9bc18617469230dcd73c",
+      "services/highlights-agent/evals/answer.schema.json": "d4219cc724c5c17e94693d99992637de9c8f987e58632239ca2bbfccd0baa155",
+      "milestones/M08/context-census.json": "eee7a0144ae733708c3d099bfe8ee70803116df84d4597d5d3f80f4681bbd610"
+    },
+    "inputs_sha256_at_head": {
+      "services/highlights-agent/gateway_client.py": "83804329dc6cf3fcef2ef1f76a429c7a56e3352827b70a1575ea70c7e937eba8",
+      "services/highlights-agent/evals/answer.schema.json": "fd301dc1722c2f38349aded4ff94c54c00f495be40dffafd58ee0965a4d39559",
+      "milestones/M08/context-census.json": "d35c5aea98f8ae1108dd649b4a6d52efd32ce5506103a68c4ba0cc0a92885f7f"
+    },
+    "identical_to_head": false,
+    "inputs_that_moved": [
+      "milestones/M08/context-census.json",
+      "services/highlights-agent/evals/answer.schema.json",
+      "services/highlights-agent/gateway_client.py"
+    ],
+    "published_at_m08b": {
+      "E": 834,
+      "S": 603,
+      "D": -38,
+      "F": 501,
+      "residual_A_minus_E_minus_S": 463,
+      "shares_of_abs": {
+        "D": 0.071,
+        "F": 0.929
+      },
+      "chars_per_token_measured": 3.534,
+      "reading": "provider-side framing: what toolConfig costs beyond the specs' own text"
+    },
+    "measured_and_unmoved": {
+      "A": 1900,
+      "B": 796
+    },
+    "what_the_attribution_below_is": "HEAD's recomputation against a prompt this run never sent — an artifact, not a correction of published_at_m08b"
+  },
   "case": "blackout-008",
   "fallback_taken": false,
   "B_read_from": "usage.calls[0].tokens_in",

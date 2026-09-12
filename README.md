@@ -46,7 +46,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 08 | The tools arm's budget: the context or the ceiling ✜ | six PRs ✜ | `m08` | **12/25** ✜ | not judged ✧ | not run ✜ | ✅ |
 | 08b | The ceiling, measured on samples it was not derived from ❁ | six PRs ❁ | `m08b` | **10/25** ❁ | not judged ✧ | not run ❁ | ✅ |
 | 09 | The rule is disposed, and the service goes red ❉ | seven PRs ❉ | `m09` | **10/25** ❉ | not judged ✧ | not run ❉ | ✅ |
-| 09b | The guardrail line the same rule disposes into ❉ | `m09b-guardrail` | `m09b` | – | – | – | ⬜ |
+| 09b | The rule's second control, and the topic reworded under a rule written first ❊ | `m09b-guardrail` | `m09b` | –/25 ❊ | – | – | ⬜ |
 | 09c | Answer quality: the browse gap and the tiers ❋ | `m09c-answer-quality` | `m09c` | –/25 ❋ | – | – | ⬜ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
@@ -560,16 +560,58 @@ cap is to be written counting spend events or planned work instead.
 debt it can schedule.** `milestones/M08b/residual_attribution.py` has no era pin,
 so the moment a prompt constant moves its published attribution is re-priced
 against text no run ever sent — which already happened once, silently, at PR 4.
-**M09b's first act is a guardrail edit**, so the era pin must land in **M09b PR 1,
-before any prompt constant is edited**;
+**M09b's first act is a guardrail edit**, so the era pin had to land in **M09b PR 1,
+before any prompt constant is edited**, and
 `tests/test_m08b_residual.py::test_a_prompt_constant_may_not_move_before_this_records_era_debt_is_paid`
-is red on that edit until it does. Beside it: the `entitlement-circumvention`
+was red on that edit until it did. **Paid at M09b PR 1**: the reader now carries an
+`m08b_era_text` block on its sibling's shape, the record says `identical_to_head: false`
+on its face, and the pin is retired **in the diff that pays it** — a pin whose purpose is
+to force a fix outlives its purpose the moment the fix lands. **92.9% is neither corrected
+nor restored**: it is carried in the reader as `published_at_m08b`, held to what commit
+`a9cf896` actually committed, and the attribution block beside it is labelled HEAD's
+recomputation against text that run never sent. Beside it: the `entitlement-circumvention`
 topic false positives this run measured (four cases refused at least once against
 M08b's two, every one of them on the answer channel, recorded for Security and not
 diagnosed — SPEC/09 decision 5 §3), Security's two `tool_request` probes, the
 `brand_tone` widening and re-freeze, and the disclosure comparator pin, which PR
 4b was offered and refused. `milestones/M09/README.md` carries every debt with its
 owner and trigger.
+
+❊ **`09b` takes the rule's second control and the topic, and carries no claim of
+the twelve (ADR-076, `SPEC/09b`).** `MER-AI-0001` disposes into a **guardrail
+line** as well as the L3 eval pack: a DENY topic on the **negation** hole the
+deterministic control cannot reach, which the rule's own `limits` record names — a
+field reading *"written by a human, not by AI"* contains the token and passes a
+word-boundary match. Beside it, `entitlement-circumvention` is recalibrated, the
+topic that has refused the product's most basic question 1 in 3, classified the
+product's own catalog as circumvention, and refused **3 of 8** of the judge's own
+calls at M03.
+
+**The hazard is named in the spec rather than met at the close.** M09b rewords a
+guardrail topic so that cases stop being wrongly refused, and those cases then stop
+being refused — **a topic reworded until cases pass is a threshold moved to clear a
+reading**, the trade M09 failed a claim rather than take. So the wording of both
+topics is chosen by a derivation rule **committed and executed before any candidate
+is measured**, whose inputs exclude the golden set by name, whose corpora are frozen
+in an earlier PR than the candidates with the order checked against `git log`, and
+whose bypass is a falsifier rather than a warning. **Priced before a call is
+spent:** the deployed definition is **191 characters of a 200 cap**, so a widening
+cannot be bought by adding a topic the way ADR-035 bought a tightening, ADR-035 rows
+12, 17, 18 and 19 stop holding by construction, and **if no admissible candidate
+fits, that is published and the recalibration does not deploy.** And the count is
+pre-registered **not to move**: only `blackout-009` can move it, so a jump is a
+finding about the wording rather than a success.
+
+**None of the twelve, decided rather than inherited.** ADR-075 decision 1 said
+M09b carries none *"because claim 6 is proven by then"* — and claim 6 **failed**.
+The question is re-answered in ADR-076 on three grounds that survive: a third
+control makes a red unattributable; claim 6 failed on a **premise**, not a
+mechanism, so re-advancing it is instrument work; and a milestone that both carries
+a claim and rewords a guardrail has every incentive to reword until the claim reads
+green. It serves claims **9** and **6** defensively. **The cap is on spend, not
+containers** — one deploy, one model-call PR at 160 turns, one seat round, zero
+judge runs — which is what M09's own cap finding asked for, and which is why the
+cold review no longer competes with the work for a slot.
 
 ❋ **Answer quality is scheduled for the first time, as `09c` (ADR-075
 decision 2).** ADR-074 decision 2 made the browse gap and the `tokens_out` tiers

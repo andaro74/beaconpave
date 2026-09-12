@@ -286,3 +286,63 @@ finding it would be.
 M07 (amendment 1), to M08 (amendment 2), to M09 (amendment 3), to M09b (this).
 Three of the four moves are the same milestone under a new number and one was a
 lapse. The file carries all four; the test reads the current one.
+
+## Amendment 5 (2026-09-11, at the M09b open): re-deferred to M10, because the ground amendment 4 stood on is gone
+
+**Amendment 4 did not renumber a milestone; it named a reason. The reason has
+failed, and that is why this is amendment 5 rather than a silent carry.**
+
+Amendment 1's reason is *"the next milestone that adds graded content."* **M09b
+adds none.** It rewords a deployed guardrail topic and adds a second one; it
+authors no golden case, no judge axis and no rubric line. On amendment 1's
+reason alone M09b was never the right target — the same test M07, M08 and M09
+each failed.
+
+Amendment 4 knew that and re-dated the owe on a **different** ground:
+
+> M09b is where the judge moves: it re-freezes for its own reasons, and two
+> re-freezes become one.
+
+`SPEC/09b` decides that **M09b re-freezes nothing**, and holds
+`quality/judge/frozen.json` byte-identical from its first PR to its close. The
+reason is ADR-018's hazard, taken twice in one diff: a guardrail change moves
+what every recorded observation means without moving an instrument digest, and a
+re-freeze moves the instrument. A milestone that does both leaves no before/after
+that either instrument feeds — and M09b's whole content is a before/after on a
+control, read against the run immediately preceding its deploy. So the second
+ground is gone with the first.
+
+**Re-deferred to `M10`, the surfaces milestone**, where a `meridian-news` axis is
+added (ADR-046, ADR-047) and the judge must be re-frozen anyway. That is the
+first milestone at which *"two re-freezes become one"* is **true rather than
+asserted**, which is the test amendment 4's ground failed. `milestone_is_closed("M10")`
+resolves and returns False, checked before this edit was written — the target is
+a listed, open row and not an obligation deferred to nothing.
+
+**The alternative, considered and refused.** Pay it here: extend the
+deterministic draw, hand-label under the existing discipline, run the judge,
+re-freeze. It is affordable — a judge run is ~60 calls — and it has one property
+that argued *for* it, recorded rather than suppressed: M03 measured **3 of 8** of
+the judge's own calls refused by `entitlement-circumvention`, so a judge run
+after M09b's recalibration would be a second, independent reading of whether the
+recalibration worked. It is refused because that is an argument for running the
+judge **after** M09b, not inside it: the reading is only independent if the
+instrument does not move in the same diff as the control, and paying the owe
+moves it. Taking both would buy a second reading by destroying the first.
+
+**Counted, and the count is now five.** Owed to M04; lapsed there; re-deferred to
+M07 (amendment 1), M08 (amendment 2), M09 (amendment 3), M09b (amendment 4), M10
+(this). Four of the five moves are the same milestone under a new number or a new
+reason; one was a lapse. **This is the second slide whose REASON changed rather
+than whose number did**, and the ratchet is the only thing that makes the
+difference visible — a fifth slide costs a visibly longer admission in a two-key
+file, which is exactly what `deferred_from` was built to charge. It is recorded
+in M09b's close journal as a **slide, never as a payment**, and `SPEC/09b`'s
+*Obligations inherited* carries it with that word.
+
+**What this amendment does not change.** `how_it_must_be_paid` is unchanged —
+extend the deterministic draw, same ordering, larger n, never hand-pick items
+that would vary the label, and *"still one value"* remains the finding it would
+be. The defect is unchanged. The axis is not demoted, not deleted and not
+re-scoped, and no judged number moves: `quality/judge/frozen.json` is
+byte-identical, and M09b's Definition of done asserts it at the close.
