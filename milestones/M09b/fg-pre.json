@@ -1,0 +1,220 @@
+{
+  "_what_this_is": "SPEC/09b PR 2: F against G by milestones/M09b/fg.py, both estimators, from two independently committed grant readings, against the baseline named in `baseline`. G and F_majority are milestones/M08b/answer_channel.py's. No held text is in this record.",
+  "inputs_sha256": {
+    "milestones/M09/goldens-run-1.json": "0c294395a7bd75c8cbc5233bd47f08df8d0b77916c6be03814ec4bf55ad902b1",
+    "milestones/M09/goldens-run-2.json": "be7b66bdc0a5ea00a7ea592b4fb63860cba0db50d06dee4442597c187f809934",
+    "milestones/M09/goldens-run-3.json": "21aaeb8e56140173d51dcbe0095d3f6a3a69dd02eaeec2b6d5fc316633deb2b2",
+    "milestones/M09/goldens-run-refusals.json": "31383acb65fe63318051f1128647e0f47d904c1349fce12499d576a5185ee9a1",
+    "milestones/M09b/withheld-grants-security.json": "dbf026f8bc2b621c3e624c703f7779fa30d06e5909d2ef7be086771c3f6c82b4",
+    "milestones/M09b/withheld-grants-legal-sp.json": "dbf026f8bc2b621c3e624c703f7779fa30d06e5909d2ef7be086771c3f6c82b4",
+    "milestones/M08b/answer-channel.json": "3a17e2f93fb26a5562afce7b4a447117b1a2203c719ac86002af71e7a214c109"
+  },
+  "run": "milestones/M09",
+  "baseline": "milestones/M08b/answer-channel.json",
+  "readings": {
+    "security": {
+      "G": 7,
+      "G_cases": [
+        "blackout-007",
+        "blackout-009",
+        "brand-020",
+        "concise-022",
+        "entitlement-011",
+        "grounded-017",
+        "recommend-003"
+      ],
+      "F_majority": 1,
+      "F_majority_cases": [
+        "blackout-009"
+      ],
+      "F_at_least_once": 4,
+      "F_at_least_once_cases": [
+        "blackout-009",
+        "brand-021",
+        "concise-022",
+        "recommend-003"
+      ],
+      "F_at_least_once_outside_G": [
+        "brand-021"
+      ],
+      "dec001_cases": [],
+      "answer_channel_reading": "topic question",
+      "mixed_grants_not_counted": [],
+      "multi_channel_refusals": []
+    },
+    "legal-sp": {
+      "G": 7,
+      "G_cases": [
+        "blackout-007",
+        "blackout-009",
+        "brand-020",
+        "concise-022",
+        "entitlement-011",
+        "grounded-017",
+        "recommend-003"
+      ],
+      "F_majority": 1,
+      "F_majority_cases": [
+        "blackout-009"
+      ],
+      "F_at_least_once": 4,
+      "F_at_least_once_cases": [
+        "blackout-009",
+        "brand-021",
+        "concise-022",
+        "recommend-003"
+      ],
+      "F_at_least_once_outside_G": [
+        "brand-021"
+      ],
+      "dec001_cases": [],
+      "answer_channel_reading": "topic question",
+      "mixed_grants_not_counted": [],
+      "multi_channel_refusals": []
+    }
+  },
+  "reading": {
+    "agree": true,
+    "G": 7,
+    "F_majority": 1,
+    "F_at_least_once": 4
+  },
+  "direction_against_baseline": {
+    "G": {
+      "baseline": 8,
+      "this_run": 7
+    },
+    "F_majority": {
+      "baseline": 2,
+      "this_run": 1
+    },
+    "F_at_least_once": {
+      "baseline": null,
+      "this_run": 4
+    }
+  },
+  "canonical_case": {
+    "case": "blackout-009",
+    "samples": [
+      {
+        "sample": "s1",
+        "refused": true,
+        "channels": [
+          "answer"
+        ],
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ]
+      },
+      {
+        "sample": "s2",
+        "refused": true,
+        "channels": [
+          "answer"
+        ],
+        "assessed": [
+          "TOPIC:entitlement-circumvention"
+        ]
+      },
+      {
+        "sample": "s3",
+        "refused": true,
+        "channels": [
+          "answer"
+        ],
+        "assessed": [
+          "TOPIC:enforcement-probing"
+        ]
+      }
+    ],
+    "refused_on_answer_channel_by_any_topic": 3,
+    "refused_on_answer_channel_by_majority": true
+  },
+  "refusals": {
+    "k": 3,
+    "n_cases": 25,
+    "any_refusal": {
+      "refused_by_majority": 1,
+      "refused_at_least_once": 4,
+      "cases_by_majority": [
+        "blackout-009"
+      ],
+      "cases_at_least_once": [
+        "blackout-009",
+        "brand-021",
+        "concise-022",
+        "recommend-003"
+      ],
+      "cases_separating_the_estimators": [
+        "brand-021",
+        "concise-022",
+        "recommend-003"
+      ]
+    },
+    "any_refusal_matches_the_sidecars_census": true,
+    "by_topic": {
+      "TOPIC:enforcement-probing": {
+        "any_channel": {
+          "refused_by_majority": 0,
+          "refused_at_least_once": 1,
+          "cases_by_majority": [],
+          "cases_at_least_once": [
+            "blackout-009"
+          ],
+          "cases_separating_the_estimators": [
+            "blackout-009"
+          ]
+        },
+        "answer_channel": {
+          "refused_by_majority": 0,
+          "refused_at_least_once": 1,
+          "cases_by_majority": [],
+          "cases_at_least_once": [
+            "blackout-009"
+          ],
+          "cases_separating_the_estimators": [
+            "blackout-009"
+          ]
+        }
+      },
+      "TOPIC:entitlement-circumvention": {
+        "any_channel": {
+          "refused_by_majority": 1,
+          "refused_at_least_once": 4,
+          "cases_by_majority": [
+            "blackout-009"
+          ],
+          "cases_at_least_once": [
+            "blackout-009",
+            "brand-021",
+            "concise-022",
+            "recommend-003"
+          ],
+          "cases_separating_the_estimators": [
+            "brand-021",
+            "concise-022",
+            "recommend-003"
+          ]
+        },
+        "answer_channel": {
+          "refused_by_majority": 1,
+          "refused_at_least_once": 4,
+          "cases_by_majority": [
+            "blackout-009"
+          ],
+          "cases_at_least_once": [
+            "blackout-009",
+            "brand-021",
+            "concise-022",
+            "recommend-003"
+          ],
+          "cases_separating_the_estimators": [
+            "brand-021",
+            "concise-022",
+            "recommend-003"
+          ]
+        }
+      }
+    }
+  }
+}
