@@ -1,0 +1,156 @@
+M09b PR 3 — deletability audit, at CHECK granularity
+====================================================
+
+Method, PR 2b's: mutate the PROPERTY a check protects and assert the mutation is live.
+The old text must occur exactly once before the write, and the new text must be present
+after it. Run the test file that owns the property and record what fires. Working
+copies are backed up as bytes to a temp directory and restored FROM THERE, never with
+`git checkout --`. Every restore is asserted byte-identical by SHA-256.
+
+Two passes:
+
+- PROPERTY (P1-P14, A1-A11, F1): the plant, run against the test file that owns the
+  property. A red there makes the gate red. Failing cases are named.
+- GATE (P1, P2): the two plants that measure whether rule gap 4 and the walker can land
+  apart, each run through the GATE itself — `python -m pave.cli check`, not pytest. They
+  are the plants this PR's scope rests on.
+
+Plants that change the candidate record (A5, A6) re-pin its digest in the record AND in
+`tests/test_m09b_admission.py`, so the digest check is not the door they go through
+(one door per plant). A1 is the digest door itself.
+
+Harness: a scratchpad script, not committed. Every mutation is quoted below.
+
+Tree: the head of branch m09b-pr3-one-candidate-per-topic after its fifth commit
+(subject: "the decoded-or-raw trigger re-dated to before the run, with the count its
+reason rests on"). The P11 re-run and the gate pass ran after its sixth (subject: "the
+docstring plant the audit found silent, and the walker finding for the additive topic").
+
+
+PROPERTY PASS
+-------------
+
+27 property plants, 27 CAUGHT (P11 SILENT on first run, test written, CAUGHT on re-run); 2 gate plants, 2 red.
+
+pave/rules.py — rule gap 4 and the walker, against tests/test_rules_trace.py
+
+  P1   widened home, walker removed                                     CAUGHT
+       `if kind == "guardrail":` -> `if False:`
+       test_a_two_control_disposition_resolves (first failure; -x)
+  P2   walker kept, home not widened                                    CAUGHT
+       `"guardrail": ("platform/infra/lib/gateway-stack.ts", (".ts",))` ->
+       `"guardrail": ("platform/gateway/", (".json", ".ts", ".yaml", ".yml"))`
+       test_a_two_control_disposition_resolves (first failure; -x)
+  P3   guardrail home widened to any .ts under platform/                CAUGHT
+       -> `("platform/", (".ts",))`
+       test_the_guardrail_home_is_the_stack_file_and_nothing_wider[platform/infra/lib/other-stack.ts]
+  P4   an exact home read as a prefix                                   CAUGHT
+       `return ref.startswith(home) if home.endswith("/") else ref == home` ->
+       `return ref.startswith(home)`
+       test_the_guardrail_home_is_the_stack_file_and_nothing_wider[platform/infra/lib/gateway-stack.ts.d/x.ts]
+  P5   a missing selector not refused by name                           CAUGHT
+       `if not isinstance(selector, str) or not selector.strip():` -> `if False:`
+       test_a_missing_selector_is_red
+  P6   `//` comment lines not removed before reading topics             CAUGHT
+       `code = "\n".join(... not line.lstrip().startswith("//"))` -> `code = text`
+       test_a_topic_that_exists_only_in_a_comment_is_not_defined[commented-out]
+  P7   `/* */` comments not removed before reading topics               CAUGHT
+       `re.sub(r"/\*.*?\*/", "", path.read_text(...), flags=re.DOTALL)` ->
+       `path.read_text(encoding="utf-8")`
+       test_a_topic_that_exists_only_in_a_comment_is_not_defined[block-commented]
+  P8   rows matched by substring, not equality                          CAUGHT
+       `row.get(field) == selector` -> `selector in str(row.get(field))`
+       test_rows_name_a_topic_by_equality_and_never_by_substring
+  P9   no row naming the topic accepted                                 CAUGHT
+       `if not naming:` -> `if False:`
+       test_a_guardrail_control_is_never_walked
+  P10  a corpus no test reads accepted                                  CAUGHT
+       `if not readers:` -> `if False:`
+       test_a_guardrail_control_is_never_walked
+  P11  a corpus named only in a docstring counts as read
+       `and id(n) not in docstrings}` -> `}`
+       FIRST RUN: SILENT. The only docstring case was a SENTENCE naming the file, which
+       the constant-equality test already refuses, so the exclusion was never reached.
+       Fixed with a test, not by removing the check: two cases whose docstring is
+       exactly the corpus name. RE-RUN, after the sixth commit:            CAUGHT
+       test_a_module_that_names_the_corpus_without_reading_it_in_a_test_is_not_its_test[module-docstring-is-the-name]
+  P12  a module with no test function counts as the test                CAUGHT
+       `if tests and constants & wanted:` -> `if constants & wanted:`
+       test_a_module_that_names_the_corpus_without_reading_it_in_a_test_is_not_its_test[no-test-function]
+  P13  the `act` spelling dropped from the row-naming fields            CAUGHT
+       `ROW_TOPIC_FIELDS = ("topic", "act")` -> `("topic",)`
+       test_a_guardrail_control_walks_to_the_rows_naming_its_topic_and_the_test_that_reads_them
+  P14  the selector dropped from the control's label                    CAUGHT
+       `label += f"  selector {...}"` -> `label += ""`
+       test_a_guardrail_control_walks_to_the_rows_naming_its_topic_and_the_test_that_reads_them
+
+milestones/M09b/candidates.json and gates 1-2, against tests/test_m09b_admission.py
+
+  A1   a candidate's text edited, digest not re-pinned                  CAUGHT
+       "whoever pays for what" -> "whoever pays for which" in the record
+       test_the_record_carries_the_digest_it_was_committed_with
+  A2   gate 1's cap loosened by one character                           CAUGHT
+       `> cap:` -> `> cap + 1:`
+       test_gate_1_refuses_a_candidate_at_201_characters
+  A3   gate 1's recorded-count check removed                            CAUGHT
+       `if candidate.get("characters") != len(candidate["text"]):` -> `if False:`
+       test_gate_1_refuses_a_recorded_count_that_is_not_the_texts
+  A4   an owning line no longer says what the licence quotes            CAUGHT
+       ADR-024:53 "names the **act**" -> "names the act"
+       test_every_citation_is_found_at_its_lines[entitlement-circumvention:licence]
+  A5   the recalibration's axis moved to F, digest re-pinned            CAUGHT
+       test_each_axis_is_one_decision_2_names_for_its_topic[entitlement-circumvention]
+  A6   the recalibration's DENY clause edited, count and digest re-pinned  CAUGHT
+       "whoever pays for what" -> "whoever pays for which"
+       test_the_recalibration_changes_the_carve_out_and_not_the_deny_clause
+  A7   gate 2's declared-equals-computed check removed                  CAUGHT
+       `if names != computed:` -> `if False:`
+       test_gate_2_refuses_an_undeclared_presumed_drawn_term
+  A8   gate 2 accepts an empty justification                            CAUGHT
+       `if not str(entry.get("justification") or "").strip():` -> `if False:`
+       test_gate_2_refuses_a_declared_term_with_no_justification
+  A9   gate 2 reads HEAD instead of the record's parent                 CAUGHT
+       `words_at(f"{added[-1]}^")` -> `words_at("HEAD")`
+       test_gate_2_reads_a_tree_from_before_the_record
+  A10  gate 2 stops reading the topic name                              CAUGHT
+       `| set(WORD.findall(candidate["topic"].lower()))` removed
+       test_gate_2_reads_the_topic_name_as_well_as_the_text
+  A11  disclosure-shapes.yaml dropped from the record's prohibited sources   CAUGHT
+       test_the_prohibited_sources_are_adr_024s_four_and_the_corpus_that_postdates_it
+       FIRST RUN: the harness's anchor assumed four-space indentation and the
+       plant-live assertion refused it before anything ran. Re-anchored at six.
+
+tests/test_m09b_fg.py — the count the re-date's reason rests on
+
+  F1   the raw reading reads the held grants as true (raw == decoded)   CAUGHT
+       `read["grant"] = False` -> `read["grant"] = True`
+       test_the_decoded_or_raw_definition_decides_f_and_g_on_the_control_run
+
+
+GATE PASS — is rule gap 4 separable from the walker?
+----------------------------------------------------
+
+  P1   widened home, walker removed        gate exit 1 (red)             CAUGHT
+  P2   walker kept, home not widened       gate exit 1 (red)             CAUGHT
+
+Each ran the whole gate over the planted tree. The harness's pytest-summary parser named
+no failing case from the gate's output format, so the property pass names the cases;
+the gate pass records only that the gate went red. Both restores byte-identical.
+
+Read together with the property pass: with the home widened and no walker (P1), a
+guardrail control on the stack file reads WALKED at exit 0 whatever its selector names,
+which test_a_guardrail_control_is_never_walked and test_a_two_control_disposition_resolves
+refuse. With the walker and no widened home (P2), the stack file is refused before any
+walk starts. Neither half lands alone without taking the gate red, so rule gap 4 and the
+walker are NOT separable, which is why they are one commit.
+
+
+MEASURED, NOT A PLANT
+---------------------
+
+`quality/adversarial/disclosure-shapes.yaml`, read directly with yaml: 17 rows with `id`
+and `expect`, 0 carrying a `topic` field, 0 carrying an `act` field, pair-level `act`
+values ['affirmative', 'denial'], 0 rows naming `authorship-misrepresentation`. The
+journal notes carry the consequence for PR 4.
+
+`git status --short` after every pass: empty
