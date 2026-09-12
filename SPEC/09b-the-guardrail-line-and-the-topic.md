@@ -1,5 +1,17 @@
 # M09b — the rule's second control, and the topic reworded under a rule written first
 
+> **WITHDRAWN, 2026-09-11, before any measurement — see ADR-076 amendment 1.**
+> The derivation rule below selects on `quality/adversarial/refusal-shapes.yaml`,
+> whose owning ADR (ADR-067) forbids that file from judging a candidate fix, while
+> rule 4 excludes `answer-decomposition.yaml` by citing that same sentence — which
+> belongs to ADR-068. **No corpus in this repository is permitted to select a
+> wording**, and the rule assumed one was. No sweep, candidate or number was ever
+> produced under it. **Nothing below is in force**, including *The derivation rule*
+> and ADR-076 decision 2, titled *“the wording is chosen by a rule, and the rule
+> cannot read the golden set”* — the rule reads it. Its replacement re-derives every
+> clause from the owning ADR at line. Retained, not deleted: a withdrawn spec is a
+> wrong prediction and this project records those.
+
 **Written before the branch is cut.** Owned by the PM seat. Branch
 `m09b-guardrail`, tag `m09b`. Row `09b` was added in place by ADR-075 decision 1;
 nothing below row 09 shifts, and **M09's record does not move** — SPEC/09, its
