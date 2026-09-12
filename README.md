@@ -47,7 +47,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 08b | The ceiling, measured on samples it was not derived from ❁ | six PRs ❁ | `m08b` | **10/25** ❁ | not judged ✧ | not run ❁ | ✅ |
 | 09 | The rule is disposed, and the service goes red ❉ | seven PRs ❉ | `m09` | **10/25** ❉ | not judged ✧ | not run ❉ | ✅ |
 | 09b | The rule's second control, and the topic reworded under a rule written first — **closed RED** ❊ | seven PRs ❊ | `m09b` | not run ❊ | not judged ✧ | not run ❊ | ✅ |
-| 09c | Answer quality: the browse gap and the tiers ❋ | `m09c-answer-quality` | `m09c` | –/25 ❋ | – | – | ⬜ |
+| 09c | Answer quality: the browse gap closes, and the count is the headline ❋ | `m09c-answer-quality` | `m09c` | –/25 ❋ | – | – | ⬜ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
 | 12 | Self-heal classifier + curation panel | `m12-selfheal` | `m12` | –/25 | – | –/10 | ⬜ |
@@ -686,6 +686,25 @@ re-dated from M09 and re-scoped as a change to the system under measurement with
 its own ADR at Legal/S&P plus Data Governance — a consistent rename refuses M08b's
 own committed run through `fresh_join --check`, and that is its fifth slide,
 recorded as a finding rather than a pre-authorised one.
+
+**09c's spec is written, and it carries one claim (ADR-078,
+`SPEC/09c-answer-quality.md`).** The browse gap closes at the site a zero-call
+diagnosis names, and the goldens count, **10/25 today**, rises above a control run
+taken on the same deployment immediately before the change, on the seven browse-gap
+cases, with nothing else moving. Three terms, five falsifiers, and each falsifier's
+reader already exists and was run over M09's record before this was written. **The
+`tokens_out` tiers and the `p95_ms` re-derivation are deliverables, not terms.** A
+tier move changes the count by re-scoring, so it cannot share a reading with the
+claim. Both rules are pinned before either run and applied after both, and never to
+the run they were drawn from. Both were measured to refuse M08b's committed run
+through `fresh_join.py` if moved naively, so an era pin lands first. **The gate's
+rule, if its condition holds, loosens `p95_ms` from 5200 to 6700**, and that is
+written down before it can be discovered. **The DMA rename is cut from 09c**,
+superseding the sentence above, and re-dated to no earlier than M11's close. It
+changes the system under measurement, and inside this milestone it would force a
+baseline that throws away comparison to M08b's committed run (ADR-075 amendment 8).
+**The cap is six PRs, document-only ones included, with one named spare for a cold
+review of the derivation before any call, and two runs.**
 
 ## What part one produced
 
