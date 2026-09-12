@@ -42,6 +42,33 @@ document change and not a test change; it is recorded as a debt in
 here. The demo blocks need no such declaration: they are true of `main`, they are
 what `close-milestone` step 8 records, and they are read-only by construction.
 
+**The unchecked region is now DECLARED rather than silent (M09b, debt 33).** The
+paragraph above is an argument in prose, and prose was all that stood behind it:
+the scope was *"every fenced `bash` block in a `## Demo artifact` section"* and a
+block outside such a section was unchecked **and unnamed**, so a new one could
+appear without anything going red. That was measured, and it had already happened:
+
+> `SPEC/06c-instrument-repair.md` heads its section **`## The demo artifact`** —
+> three words, not two. `DEMO_HEADING` matches the exact string, so that spec's
+> `bash` block has never been run by this check, and
+> `test_the_scope_is_every_spec_that_publishes_a_demo_block` did not notice
+> because **both sides of its equality are derived from the same reader**. A spec
+> the reader cannot see is absent from `publishing` and absent from `CASES`
+> alike, and the sets agree on it by being empty on both sides.
+
+That is `tests/test_topic_baseline.py`'s own recorded defect one file over — a
+summary that reports a clean sheet having compared nothing — and it is this
+repository's most-repeated shape, *a stated protection that is absent*.
+
+So `UNRUN_BASH_BLOCKS` below names every `bash` block in `SPEC/*.md` and
+`README.md` that this check does not run, with the reason it does not, and
+`test_every_bash_block_is_run_or_declared_unrun` holds the declaration against the
+measurement. It does not widen the run scope — SPEC/06c's block records an eval
+history entry and README's Quick start deploys, and both are correctly out — it
+removes the silence. **A new unrun block is red, and so is a stale declaration.**
+Whether SPEC/06c's heading is itself repaired is a document change in a closed
+milestone's spec and is a separate decision, carried as a finding, not taken here.
+
 Hermetic (G8): every command in scope reads committed answer files and the
 registry. No network, no model call, no write to the tree — asserted by
 `test_no_demo_command_writes_to_the_tree`.
@@ -60,6 +87,31 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SPEC_DIR = ROOT / "SPEC"
 DEMO_HEADING = "## Demo artifact"
+
+#: Every `bash` block in `SPEC/*.md` or `README.md` this check does NOT run, and
+#: why. Keyed by repo-relative path to the NUMBER of such blocks in that file, so
+#: adding a second unrun block to a file that already has one is red rather than
+#: absorbed. Declared rather than derived: a reason is the thing a derived list
+#: cannot carry, and the reason is what a later reader needs in order to decide
+#: whether the exclusion still holds.
+#:
+#: **Nothing is exempted for being hard to run.** Each entry states a property of
+#: the block that makes running it assert something false or mutate the tree.
+UNRUN_BASH_BLOCKS: dict[str, str] = {
+    "README.md":
+        "the Quick start, which is the TARGET developer experience rather than a "
+        "reading of this tree: `make bootstrap`/`make core` deploy, and `pave new` "
+        "and `pave drill` are not on PATH in a clone at all. Running it would "
+        "either fail on a true document or bill an AWS account from `make check`.",
+    "SPEC/06c-instrument-repair.md":
+        "`run_evals --record --tag m06c`, which APPENDS to `evals/history/`. Demo "
+        "commands are read-only by construction (`test_no_demo_command_writes_to_"
+        "the_tree`) and eval history is append-only and never rewritten (CLAUDE.md, "
+        "G9), so a check that ran this on every `make check` would author the "
+        "record it is measuring. **Out of scope on the block, not on the heading**: "
+        "this spec spells its section `## The demo artifact` and was therefore "
+        "invisible to this module until M09b measured it.",
+}
 
 #: A published expectation, written by the spec beside the command. `exit 1` on
 #: its own line in the block that follows the commands, paired in order with the
@@ -210,6 +262,71 @@ def test_a_documented_demo_command_runs_and_exits_as_documented(
         f"--- stderr ---\n{proc.stderr[-2000:]}\n"
         f"A demo artifact is what a stranger is handed. One that does not run is "
         f"prose about a demo.")
+
+
+def _unrun_bash_blocks() -> dict[str, int]:
+    """`{repo-relative path: count}` for every `bash` block this module does not
+    run — one outside a `## Demo artifact` section, by the same two readers the
+    run scope is derived from.
+
+    Derived from `_fenced_blocks` and `_demo_section` and from nothing else, so a
+    reader-side change moves this and the run scope together. That is the whole
+    point: the two must not be able to disagree silently, which is how SPEC/06c
+    went eleven milestones without being run."""
+    found: dict[str, int] = {}
+    for path in [*sorted(SPEC_DIR.glob("*.md")), ROOT / "README.md"]:
+        text = path.read_text(encoding="utf-8")
+        everywhere = [body for info, body in _fenced_blocks(text) if info == "bash"]
+        section = _demo_section(path)
+        in_scope = [body for info, body in _fenced_blocks(section) if info == "bash"] \
+            if section is not None else []
+        outside = len(everywhere) - len(in_scope)
+        if outside:
+            found[path.relative_to(ROOT).as_posix()] = outside
+    return found
+
+
+def test_every_bash_block_is_run_or_declared_unrun():
+    """**The unchecked region is named, with a reason, or the suite is red.**
+
+    M09's debt 33: *only `Demo artifact` blocks are checked; blocks outside such a
+    section are unchecked*. The defect it describes is not that those blocks are
+    unrun — three of them should be — it is that being unrun was **invisible**.
+    `DEMO_HEADING` is an exact string, and a spec that spells its heading
+    differently drops out of the run scope AND out of
+    `test_the_scope_is_every_spec_that_publishes_a_demo_block`, whose two sides
+    are built by the same reader and therefore agree about a file neither can see.
+
+    Measured, not predicted: `SPEC/06c-instrument-repair.md` has carried a `bash`
+    demo block under `## The demo artifact` since M06c and this module has never
+    once run it.
+
+    This assertion cannot fix that by widening the scope — that block records an
+    eval history entry, and a demo command that writes is a worse defect than a
+    demo command nobody runs. What it fixes is the silence: every unrun block is
+    declared in `UNRUN_BASH_BLOCKS` with the property that keeps it out, a new one
+    is red, and a declaration whose block has gone is red too."""
+    found = _unrun_bash_blocks()
+    declared = {path: 1 for path in UNRUN_BASH_BLOCKS}
+    assert found == declared, (
+        f"bash blocks outside a `{DEMO_HEADING}` section, measured: {found}; "
+        f"declared in UNRUN_BASH_BLOCKS: {declared}.\n"
+        f"A block this check does not run and does not name is a command nobody "
+        f"runs and nobody knows nobody runs — debt 33's shape. Add it to "
+        f"UNRUN_BASH_BLOCKS with the property that keeps it out, or move it into "
+        f"a `{DEMO_HEADING}` section and let it be run.")
+    # **A floor, and it is worth exactly what a floor is worth.** It stops an
+    # entry added with `""` or `"TODO"` and it is satisfiable by padding; no
+    # deterministic check can tell an argument from twelve words of filler, and
+    # this one does not claim to. Stated here rather than left for a reader to
+    # discover, because a check that reads stronger than it is is the defect this
+    # module is about.
+    for path, reason in UNRUN_BASH_BLOCKS.items():
+        assert len(reason.split()) >= 12, (
+            f"{path}'s exclusion reason is {len(reason.split())} words. An "
+            f"exemption without an argument is the prose this check replaced. "
+            f"This floor stops an empty reason and nothing more — it cannot "
+            f"tell an argument from padding, and a reviewer still has to read it.")
 
 
 def test_no_demo_command_writes_to_the_tree():
