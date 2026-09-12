@@ -237,6 +237,30 @@ requirement is dropped with them. Gates 1 and 2 run before the deploy, and gates
 read after it on the pinned guardrail. **There is no retry: a failed post-deploy gate
 closes the term RED.** No sweep instrument was built.
 
+### The walker reaches no row for the additive topic, and the corpus that would give it one is frozen
+
+**Found by building the walker, and not resolved here.** The walker goes guardrail
+artifact → `selector` → the corpus rows *naming that topic* → the test that reads them
+(ADR-076 decision 4:199-200). Rows name a topic in two committed spellings:
+`topic:` (`phrasings.yaml`) and `act:` (`topic-attacks-heldout.yaml`). Reading
+`disclosure-shapes.yaml` directly: it has seventeen rows with `id` and `expect`
+(`tests/test_m09b_disclosure_shapes.py::test_every_row_has_a_unique_id_and_an_expectation`),
+and no row carries a `topic` or `act` field. Its pairs carry `act: denial` and
+`act: affirmative` at pair level (`test_both_disjuncts_are_present`). Those name speech
+acts, not a topic. The corpus was frozen before any name for the topic existed.
+
+**So a `guardrail` control on the additive topic reads NOT RESOLVED, at exit 1, on
+claim 6's own command**, the moment PR 4 adds the control SPEC/09b's Definition of done
+wants at `chain: RESOLVED`. Two routes are closed, and each is named for its reason:
+
+- **The walker is not loosened to match rows some other way.** A row that does not name
+  the topic, attached to it by the reader, is a step supplied by hand (`pave/rules.py`'s
+  own docstring).
+- **The corpus is not edited to name it.** SPEC/09b constraint 5.
+
+Owner: Security + Legal/S&P + Platform Engineering. Trigger: PR 4, **before**
+`rules/MER-AI-0001.yaml` gains the `guardrail` control.
+
 ### A line citation into ADR-077 moved, recorded rather than edited
 
 Amendment 1 inserts a licence row in decision 1's table, so every later ADR-077 line
