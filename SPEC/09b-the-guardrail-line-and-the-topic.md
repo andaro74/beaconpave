@@ -11,7 +11,7 @@ history as a wrong prediction, which this project records rather than deletes; t
 is the pointer, carried in the replacement rather than in a header on a path that gets
 reused (`milestones/M09b/pr1c-deletability-audit.txt`, PLANT 2).
 
-**Written before the branch's measuring PRs are cut.** Owned by the PM seat. Branch
+**Status: CLOSED RED at PR 5, 2026-09-12, with no deploy taken.** Term 1 closed on a defect found before measurement (ADR-077 amendment 2); terms 2 and 3 were not measured; F1–F5 were not read. The verdict and every reason are in `milestones/M09b/README.md`. The close edits this line and nothing else in this file: the claim, the falsifiers and the PR checklist below stand as pre-registered. **Written before the branch's measuring PRs are cut.** Owned by the PM seat. Branch
 `m09b-guardrail`, tag `m09b`. Row `09b` was added in place by ADR-075 decision 1;
 nothing below row 09 shifts, and **M09's record does not move** — SPEC/09, its claim,
 its falsifiers, its *Bounded* section and its README row are closed.
