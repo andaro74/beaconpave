@@ -34,7 +34,9 @@ already carries).
 """
 from __future__ import annotations
 
+import ast
 import pathlib
+import re
 from dataclasses import dataclass, field
 
 try:
@@ -60,12 +62,153 @@ NO_CONTROL = "no-control"
 #: `ref: "."` — the repository root — discharged every rule. The first fix made
 #: correctly-typed controls stop reading as broken; it made anything that exists
 #: read as fine, which is the same defect facing the other way.
+#:
+#: **A home ending in `/` is a directory prefix; any other home is one exact
+#: path.** `guardrail` is the exact kind (M09b PR 3, SPEC/09b's fourth rule gap).
+#: It pointed at `platform/gateway/`, where no guardrail is defined, and measured
+#: there `platform/infra/lib/gateway-stack.ts` read *admissible: False* and
+#: `platform/gateway/policy/tools.contracts.json` read *admissible: True*
+#: (ADR-076 decision 4). The home is now the one file the stack synthesizes the
+#: guardrail from, and the directory is dropped rather than kept beside it. The
+#: walker below reads a topic definition out of whatever file the home admits, so
+#: a home wider than that file would let a topic defined anywhere else walk clean.
+#:
+#: **The home and the walker land in one diff, because neither is safe alone.**
+#: The home widened with no walker makes a guardrail control on the stack file
+#: WALKED at exit 0 whatever its `selector` says. That is a control admissible
+#: with nothing reading it, and ADR-076 decision 4 calls it a relaxation of row
+#: 1a. The walker with no widened home is unreachable, because the stack file is
+#: refused before the walk starts.
 CONTROL_ARTIFACTS = {
     "eval_pack": ("services/", (".yaml", ".yml")),
-    "guardrail": ("platform/gateway/", (".json", ".ts", ".yaml", ".yml")),
+    "guardrail": ("platform/infra/lib/gateway-stack.ts", (".ts",)),
     "cedar_policy": ("platform/gateway/", (".cedar", ".json")),
     "classification": ("platform/gateway/core/", (".py",)),
 }
+
+#: Where the frozen corpora a guardrail topic is measured against live.
+CORPORA = "quality/adversarial/"
+
+#: The row fields that NAME a guardrail topic, read by equality and never by
+#: substring. Two spellings are committed: `phrasings.yaml` writes `topic:`, and
+#: `topic-attacks-heldout.yaml` writes `act:` for the topic its row targets. A
+#: substring match would let `selector: entitlement` claim every row of both
+#: entitlement topics.
+ROW_TOPIC_FIELDS = ("topic", "act")
+
+#: Where the test that asserts a corpus lives.
+TESTS = "tests/"
+
+#: A DENY topic as `gateway-stack.ts` declares one: `name`, then `type: 'DENY'`,
+#: then `definition`, read after comment lines are removed so a topic that exists
+#: only in a comment is not defined.
+DENY_TOPIC = re.compile(r"name:\s*'([^']+)',\s*type:\s*'DENY',\s*definition:")
+
+
+def _at_home(ref: str, home: str) -> bool:
+    """A `/`-terminated home admits every path under it; any other home admits
+    exactly itself."""
+    return ref.startswith(home) if home.endswith("/") else ref == home
+
+
+def _deny_topics(path: pathlib.Path) -> set[str]:
+    """The DENY topics a stack file defines, with `//` and `/* */` comments removed."""
+    text = re.sub(r"/\*.*?\*/", "", path.read_text(encoding="utf-8"), flags=re.DOTALL)
+    code = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("//"))
+    return set(DENY_TOPIC.findall(code))
+
+
+def _rows(node: object):
+    """Every corpus row in a parsed corpus: a mapping carrying `id` and `expect`,
+    at any depth, because the corpora nest their rows differently (`phrasings:`,
+    `heldout:`, `pairs[].block`)."""
+    if isinstance(node, dict):
+        if "id" in node and "expect" in node:
+            yield node
+        for value in node.values():
+            yield from _rows(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _rows(value)
+
+
+def _tests_reading(corpus: str, root: pathlib.Path) -> list[str]:
+    """The test modules that read `corpus`, found structurally: a module under
+    `tests/` defining at least one `test_` function and carrying the corpus's file
+    name or path as a string constant. A comment or a docstring sentence naming the
+    file is not a read, which is why this parses rather than searches."""
+    wanted = {corpus, pathlib.PurePosixPath(corpus).name}
+    found = []
+    for module in sorted((root / TESTS).glob("test_*.py")):
+        tree = ast.parse(module.read_text(encoding="utf-8"))
+        tests = [n for n in tree.body
+                 if isinstance(n, ast.FunctionDef) and n.name.startswith("test_")]
+        docstrings = {id(n.body[0].value) for n in [tree, *tests]
+                      if n.body and isinstance(n.body[0], ast.Expr)
+                      and isinstance(n.body[0].value, ast.Constant)}
+        constants = {n.value for n in ast.walk(tree)
+                     if isinstance(n, ast.Constant) and isinstance(n.value, str)
+                     and id(n) not in docstrings}
+        if tests and constants & wanted:
+            found.append(module.relative_to(root).as_posix())
+    return found
+
+
+def _walk_guardrail(rule_id: str, control: dict, ref: str, path: pathlib.Path,
+                    root: pathlib.Path) -> tuple[list[Step], list[str]]:
+    """Guardrail artifact -> `selector` -> the corpus rows naming that topic -> the
+    test that reads them (ADR-076 decision 4; SPEC/09b PR 3).
+
+    Every link is read out of the tree, and a missing one is a defect, never a
+    WALKED step. WALKED was the honest state while no walker existed. Once one
+    does, a guardrail control that stops short of a test is a chain that did not
+    resolve."""
+    steps: list[Step] = []
+    selector = control.get("selector")
+    if not isinstance(selector, str) or not selector.strip():
+        steps.append(Step("topic", "—", "no selector", resolved=False))
+        return steps, [
+            f"{rule_id}: the guardrail control at {ref!r} names no `selector`. A guardrail "
+            f"holds several topics, and a control that does not say which one is a claim "
+            f"about all of them that nothing walks."]
+
+    defined = _deny_topics(path)
+    if selector not in defined:
+        steps.append(Step("topic", selector, f"not defined in {ref}", resolved=False))
+        return steps, [
+            f"{rule_id}: the guardrail control names topic {selector!r}, and {ref} defines "
+            f"no DENY topic by that name (it defines {sorted(defined)})."]
+    steps.append(Step("topic", selector, f"DENY topic defined in {ref}"))
+
+    defects: list[str] = []
+    naming = {}
+    for corpus in sorted((root / CORPORA).glob("*.yaml")):
+        rows = [row for row in _rows(yaml.safe_load(corpus.read_text(encoding="utf-8")))
+                if any(row.get(field) == selector for field in ROW_TOPIC_FIELDS)]
+        if rows:
+            naming[corpus.relative_to(root).as_posix()] = rows
+    if not naming:
+        steps.append(Step("rows", CORPORA, f"no row names {selector!r}", resolved=False))
+        return steps, [
+            f"{rule_id}: no row under {CORPORA} names topic {selector!r} in "
+            f"{' or '.join(ROW_TOPIC_FIELDS)}. A guardrail control that no frozen row "
+            f"measures is a claim with no reading behind it."]
+
+    for corpus, rows in naming.items():
+        blocked = sum(1 for row in rows if row.get("expect") == "blocked")
+        allowed = sum(1 for row in rows if row.get("expect") == "allowed")
+        steps.append(Step("rows", corpus, f"{len(rows)} name this topic "
+                                          f"({blocked} blocked, {allowed} allowed)"))
+        readers = _tests_reading(corpus, root)
+        if not readers:
+            steps.append(Step("asserted", corpus, "no test reads this corpus", resolved=False))
+            defects.append(
+                f"{rule_id}: {corpus} holds rows naming topic {selector!r}, and no test under "
+                f"{TESTS} reads that file. Rows nothing asserts are rows, not a control.")
+            continue
+        for reader in readers:
+            steps.append(Step("asserted", reader, f"reads {corpus}"))
+    return steps, defects
 
 
 @dataclass(frozen=True)
@@ -324,6 +467,8 @@ def trace(rule_id: str, registry: pathlib.Path = REGISTRY,
         ref = control.get("ref") or ""
         layer = control.get("layer") or ""
         label = f"{control.get('type')}  {ref}" + (f"  {layer}" if layer else "")
+        if control.get("type") == "guardrail" and control.get("selector"):
+            label += f"  selector {control.get('selector')}"
         if not _resolves(ref, root):
             steps.append(Step("control", label, "does not resolve", resolved=False))
             defects.append(
@@ -364,7 +509,7 @@ def trace(rule_id: str, registry: pathlib.Path = REGISTRY,
             continue
 
         home, suffixes = CONTROL_ARTIFACTS.get(kind, (None, None))
-        if home and not (ref.startswith(home) and path.suffix in suffixes):
+        if home and not (_at_home(ref, home) and path.suffix in suffixes):
             steps.append(Step("control", label, f"declared {kind!r}; its artifact is not "
                                                 f"one", resolved=False))
             defects.append(
@@ -373,6 +518,15 @@ def trace(rule_id: str, registry: pathlib.Path = REGISTRY,
                 f"one kind of control and points at another reports a chain it did not "
                 f"walk — G4's *a probe naming Cedar is not satisfied by a content filter*, "
                 f"one plane over.")
+            continue
+
+        if kind == "guardrail":
+            # **The walker (M09b PR 3).** A guardrail control resolves or is a
+            # defect; it is never WALKED. See `CONTROL_ARTIFACTS` for why the home
+            # and this branch land together.
+            walked_steps, walked_defects = _walk_guardrail(rule_id, control, ref, path, root)
+            steps.extend(walked_steps)
+            defects.extend(walked_defects)
             continue
 
         if kind != "eval_pack":
