@@ -146,6 +146,23 @@ this act demonstrates. The **dashboard panel** is M09b's too — `dashboards/`
 holds a README and nothing else today — so the lookup is a command here and a
 panel there.
 
+**A third correction, and its trigger had already fired (M09b PR 1).** The
+paragraph above says *"then one probe end-to-end."* **M09 ran no probe** —
+`SPEC/09` constraint 8 put its only model calls in the two PRs that read the
+claim — so that beat was false for the milestone this act belongs to.
+`milestones/M09/act3-take-sheet.md` records the two admissible ways to take it
+(read M04's committed evidence and say on camera that it is M04's, or drop the
+beat and carry it) and forbids the third: *"Do not run a probe to fill it."*
+
+**The beat becomes true at `09b`, which runs the probe corpus after its deploy**
+— a guardrail change requires it, and `09b` adds a DENY topic and rewords
+another. So the line is re-pointed rather than deleted: the probe half of this
+act is **`09b`'s evidence**, and a take that wants it is taken against
+`milestones/M09b/probes-run.json` and the audit record it resolves to. What the
+existing take shows for that beat is the take sheet's to say, not this script's;
+this file records which milestone the beat's evidence comes from, and it is no
+longer M09's.
+
 **Line:** "The rule has an owner, a source, an enforcing control, and a
 review-by date. Audit is a query, not an archaeology project."
 

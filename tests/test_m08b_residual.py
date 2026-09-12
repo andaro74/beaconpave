@@ -22,6 +22,7 @@ import importlib.util
 import json
 import pathlib
 import shutil
+import subprocess
 import sys
 
 import pytest
@@ -98,51 +99,90 @@ PRE_FIX_SHARES = {"D": 0.071, "F": 0.929}
 POST_FIX_SHARES = {"D": 0.214, "F": 0.786}
 
 
-def test_the_estimates_are_priced_against_heads_prompt_and_this_record_has_no_era_guard(reader):
-    """**The finding PR 4 leaves behind, asserted so it cannot be forgotten.**
+def test_the_era_debt_is_paid_and_the_guard_reports_the_divergence(reader):
+    """**The debt this record carried since M09 PR 4, paid — and the guard asserted.**
 
-    `milestones/M08/residual-differential.json` carries an `m02_era_text` block:
-    it rebuilds the prompt as it stood at the run's commit, compares it to HEAD,
-    and sets `identical_to_head`. When M09 PR 4 moved `TOOL_SYSTEM`, that record
-    went red on its own guard and the divergence is now on the record.
+    `E` and `S` are estimated from HEAD's committed prompt and joined to `A` and
+    `B`, which M08b's run measured, so a prompt edit re-prices a published figure
+    with no run taken. It happened: this record read *"provider-side framing, 501
+    of 463 signed (92.9%)"* and re-derived to **552 of 402 (78.6%)** after M09 PR
+    4 moved `TOOL_SYSTEM` and `answer.schema.json`'s `ai_disclosure` description.
+    `A` and `B` did not move at all.
 
-    **This record has no such block.** `E` and `S` are estimated from HEAD's
-    committed prompt and joined to `A` and `B`, which M08b measured. Moving the
-    prompt therefore re-prices M08b's published attribution with nothing to say
-    it happened: the committed record read *"the residual is provider-side
-    framing, 501 of 463 signed (92.9%)"* and re-derives to **552 of 402 (78.6%)**
-    after a prompt edit in a later milestone. On the planted fixture the same
-    edit moved the shares from `{PRE_FIX_SHARES}` to `{POST_FIX_SHARES}`.
+    The sibling `milestones/M08/residual_differential.py` had an `m02_era_text`
+    block throughout and it fired correctly in that same diff. **This reader now
+    has one** (M09b PR 1), and this is the check that it is load-bearing rather
+    than decorative: the block must be present, must report the divergence rather
+    than assert identity, and must name which inputs moved.
 
-    Two sibling records, one input, one identical hazard — and only one of them
-    guarded. That is CLAUDE.md's *stated and absent* ranking with the roles
-    reversed: here the protection is not stated at all, which is the honest
-    failure, and the reason this test states it.
+    This test replaces `test_the_estimates_are_priced_against_heads_prompt_and_this_record_has_no_era_guard`,
+    which asserted the *absence* of the block and whose own docstring said to do
+    exactly this when a PR closed the debt — a pointer to a paid debt is the same
+    stale sentence one milestone later."""
+    for record_path in (RECORD, ROOT / "milestones" / "M08b" / "residual-attribution.json"):
+        committed = json.loads(record_path.read_text(encoding="utf-8"))
+        era = committed.get("m08b_era_text")
+        assert era, f"{record_path.name} has no era block; the guard has been deleted"
+        assert era["commit"] == reader.M08B_ERA["commit"]
+        assert era["identical_to_head"] is False, (
+            "the era guard reports the prompt is what M08b's run sent. Either a prompt "
+            "constant was reverted — in which case re-aim this test — or the pinned "
+            "digests were re-pinned to the new text, which is the guard being deleted "
+            "by the change it exists to catch.")
+        assert era["inputs_that_moved"], "identical_to_head is false and nothing is named as moved"
+        assert era["published_at_m08b"]["shares_of_abs"] == PRE_FIX_SHARES
+        assert "artifact, not a correction" in era["what_the_attribution_below_is"]
 
-    **It asserts the gap rather than closing it.** Closing it means giving this
-    reader an era block, which edits a file under `milestones/M08b/` that SPEC/09's
-    Definition of done reserves to re-production — so it is a dated debt (Platform
-    Engineering + AI Quality; trigger: the next PR that opens
-    `milestones/M08b/residual_attribution.py`) and this is the check that makes
-    the next reader meet it."""
-    committed = json.loads(RECORD.read_text(encoding="utf-8"))
-    assert "m02_era_text" not in committed and "era_text" not in committed, (
-        "this record has grown an era block. If a PR closed the debt, delete this test "
-        "in that diff and assert the guard instead — a pointer to a paid debt is the "
-        "same stale sentence one milestone later.")
-
-    differential = json.loads(
-        (ROOT / "milestones" / "M08" / "residual-differential.json").read_text(encoding="utf-8"))
-    assert differential["m02_era_text"]["identical_to_head"] is False, (
-        "the sibling's era guard reports identity with HEAD, so the divergence this "
-        "test describes is gone and the contrast it draws is stale")
-
-    # And the record really is priced against HEAD's prompt rather than the run's:
-    # the estimate follows the committed text, so it moved when the text did.
-    assert committed["estimates"]["system_prompt_tokens_est"] == 909, (
-        "the system-prompt estimate is not the post-fix one, so this record is not "
-        "being derived from HEAD's prompt and the hazard above is not the live one")
+    # And the record really is still derived from HEAD's prompt: the estimate
+    # follows the committed text, so it moved when the text did. The era block
+    # records that it happened; it does not restore the old number.
+    #
+    # `RECORD` is the PLANTED fixture, whose A and B are planted and whose shares
+    # are therefore its own; the published shares belong to the real record. Both
+    # read their estimates from the same committed census, which is why the
+    # system-prompt estimate is asserted on the fixture and the shares are not.
+    planted = json.loads(RECORD.read_text(encoding="utf-8"))
+    assert planted["estimates"]["system_prompt_tokens_est"] == 909
+    real = json.loads((ROOT / "milestones" / "M08b" / "residual-attribution.json").read_text(encoding="utf-8"))
+    assert real["estimates"]["system_prompt_tokens_est"] == 909
+    assert real["attribution"]["shares_of_abs"] == POST_FIX_SHARES
     assert PRE_FIX_SHARES != POST_FIX_SHARES
+
+
+def test_the_era_figure_is_what_that_commit_actually_published(reader):
+    """**92.9% is not editable prose.**
+
+    `published_at_m08b` is a constant in the reader, and a constant can be
+    quietly moved to match whatever the record says today — which would turn the
+    guard into a number that always said the new thing, the exact failure the
+    block exists to prevent. So it is checked against the record as that commit
+    committed it, read out of the local object database.
+
+    Hermetic (G8): `git show` against committed history, no network.
+    `tests/test_cited_commits_resolve.py` reads the same way."""
+    blob = subprocess.run(
+        ["git", "show", f"{reader.M08B_ERA['commit']}:milestones/M08b/residual-attribution.json"],
+        cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
+    if blob.returncode != 0:  # pragma: no cover - a clone without that object
+        pytest.skip(f"{reader.M08B_ERA['commit'][:7]} is not in this clone's object database")
+    era_record = json.loads(blob.stdout)
+    published, att, est = reader.M08B_ERA["published_at_m08b"], era_record["attribution"], era_record["estimates"]
+
+    assert (est["E"], est["S"]) == (published["E"], published["S"])
+    for key in ("D", "F", "residual_A_minus_E_minus_S", "shares_of_abs"):
+        assert att[key] == published[key], (
+            f"published_at_m08b[{key!r}] is {published[key]!r} and "
+            f"{reader.M08B_ERA['commit'][:7]} committed {att[key]!r}. The era figure is a "
+            f"record of what that run read; it is not corrected, and it is not re-pinned.")
+    assert era_record["per_round_growth"]["chars_per_token_measured"] == published["chars_per_token_measured"]
+    assert (att["A"], att["B"]) == (reader.M08B_ERA["measured_and_unmoved"]["A"],
+                                    reader.M08B_ERA["measured_and_unmoved"]["B"])
+
+    # The point of the whole block: the measured figures are the ones that did
+    # not move, and the estimated ones are the ones that did.
+    head = json.loads((ROOT / "milestones" / "M08b" / "residual-attribution.json").read_text(encoding="utf-8"))
+    assert (head["attribution"]["A"], head["attribution"]["B"]) == (att["A"], att["B"])
+    assert (head["estimates"]["E"], head["estimates"]["S"]) != (est["E"], est["S"])
 
 
 def test_a_calibration_that_offered_tools_is_refused(reader, planted):
@@ -308,69 +348,30 @@ def test_the_committed_record_is_what_the_calibration_and_the_run_produce(reader
         "input moved")
 
 
-# --- the cascade debt, re-dated at M09 PR 4b with a trigger that arrives in time ---
+# --- the cascade debt, opened at M09 PR 4, re-dated at PR 4b, PAID at M09b PR 1 ---
 #
-# ADR-075 amendment 5 §4(a) opened this debt and dated it *"the next PR that opens
-# `milestones/M08b/residual_attribution.py`"*. **That trigger cannot arrive in
-# time.** The hazard is not somebody opening the reader; it is somebody moving a
-# prompt constant, which re-prices this record's estimates in silence and needs no
-# one to open the reader at all — which is exactly how the 92.9% figure became
-# 78.6% with no run taken in between. A trigger that fires after the damage is a
-# record of the damage, not a guard against it.
+# ADR-075 amendment 5 §4(a) opened it and dated it *"the next PR that opens
+# `milestones/M08b/residual_attribution.py`"*. Amendment 6 §7 re-dated it to
+# **before the first PR that edits any prompt constant**, because the hazard is
+# not somebody opening the reader — it is somebody moving a prompt constant,
+# which re-prices this record's estimates in silence and needs nobody to open the
+# reader at all. That is exactly how 92.9% became 78.6% with no run in between.
 #
-# So the trigger is re-stated at M09 PR 4b (ADR-075 amendment 6) as **before the
-# first PR that edits any prompt constant** — and it is this test, which is that
-# PR's red check. Owner: AI Quality + Platform Engineering.
+# It was enforced by `PROMPT_CONSTANTS_AT_M09_PR4B`, three digests that went red
+# on the next prompt edit and named the debt in the failure message. **That pin
+# is retired here, in the diff that pays the debt**, and not before: a pin whose
+# whole purpose is to force a fix outlives its purpose the moment the fix lands,
+# and leaving it would mean the next legitimate prompt edit meets a red check
+# pointing at work already done. The two tests above replace it — the reader has
+# an era block, the block reports the divergence rather than asserting identity,
+# and the era figure is held to what that commit actually committed.
 #
-# The two constants are digested rather than described: `TOOL_SYSTEM` lives in
-# `gateway_client.py` and the `ai_disclosure` description in `answer.schema.json`,
-# and both reach this record through `milestones/M08/context-census.json`, whose
-# digest is pinned beside them so a census re-produced for any other reason is red
-# here too.
-PROMPT_CONSTANTS_AT_M09_PR4B = {
-    "services/highlights-agent/gateway_client.py":
-        "83804329dc6cf3fcef2ef1f76a429c7a56e3352827b70a1575ea70c7e937eba8",
-    "services/highlights-agent/evals/answer.schema.json":
-        "fd301dc1722c2f38349aded4ff94c54c00f495be40dffafd58ee0965a4d39559",
-    "milestones/M08/context-census.json":
-        "d35c5aea98f8ae1108dd649b4a6d52efd32ce5506103a68c4ba0cc0a92885f7f",
-}
-
-
-def test_a_prompt_constant_may_not_move_before_this_records_era_debt_is_paid():
-    """**The trigger, as a red check rather than as a row in a table.**
-
-    M08b's published attribution — *"provider-side framing, 501 of 463 signed
-    (92.9%)"* — is **era-pinned to M08b's prompt**. Its `E` and `S` are estimated
-    from HEAD's committed text and joined to `A` and `B`, which the run measured;
-    so the moment a prompt constant moves, the join is over text the run never
-    sent and the figure re-prices itself. It already did once: M09 PR 4's two
-    model-facing edits moved it to 552 of 402 (78.6%) with no run taken between
-    the two readings. **92.9% is correct for its era; 78.6% is the artifact.**
-
-    M08's sibling record has an `m02_era_text` block and caught the same drift.
-    This one has none, and closing the gap means editing
-    `milestones/M08b/residual_attribution.py`, which SPEC/09's Definition of done
-    reserves to re-production — so the fix is dated rather than taken, and this is
-    what makes the date arrive.
-
-    **When this goes red, do one of two things, not a re-pin:** give the reader an
-    era block (the debt, AI Quality + Platform Engineering), or re-publish the
-    figure with the era it belongs to named beside it. Re-pinning the digests here
-    to the new prompt is the one move that is not allowed — it is the guard being
-    deleted by the change it exists to catch."""
-    import hashlib
-    for name, pinned in PROMPT_CONSTANTS_AT_M09_PR4B.items():
-        text = (ROOT / name).read_bytes().replace(b"\r\n", b"\n")
-        assert hashlib.sha256(text).hexdigest() == pinned, (
-            f"{name} has moved since M09 PR 4b. M08b's published attribution figure is "
-            "estimated against HEAD's prompt with no era pin, so this edit has just "
-            "re-priced a figure whose run predates it. Pay the debt first (an era block "
-            "on milestones/M08b/residual_attribution.py, AI Quality + Platform "
-            "Engineering) or re-publish the figure with its era named. ADR-075 "
-            "amendment 6; do NOT re-pin this constant to the new text.")
-
-
+# The remedy the pin named as inadmissible is still inadmissible: re-pinning the
+# digests to a new prompt is the guard being deleted by the change it exists to
+# catch. `M08B_ERA["inputs_sha256_at_m08b"]` is a record of one commit's text and
+# is never updated; `identical_to_head` is supposed to be false and stay false.
+#
+# Owner: AI Quality + Platform Engineering.
 def test_the_published_figure_names_its_era():
     """The one line PR 4b put beside the number, asserted so it cannot fall off.
 

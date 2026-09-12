@@ -68,6 +68,63 @@ FALLBACK_CASE = "entitlement-010"
 SHARE_NAMES = 0.70
 UNEXPLAINED_QUARTER = 0.25
 
+#: **The M08b era, and the guard this record did not have** (ADR-075 amendment 5
+#: §4(a) and amendment 6 §7; paid at M09b PR 1).
+#:
+#: `E` and `S` are estimated from **HEAD's** committed prompt and joined to `A`
+#: and `B`, which M08b's run measured. The moment a prompt constant moves, the
+#: join is over text no run ever sent. It happened: M09 PR 4 moved `TOOL_SYSTEM`
+#: and `answer.schema.json`'s `ai_disclosure` description, `context-census.json`
+#: was re-produced in the cascade, and this record's published reading went from
+#: *"provider-side framing, 501 of 463 signed (92.9%)"* to **552 of 402 (78.6%)**
+#: with **no run taken between the two readings**. `A` and `B` — the two measured
+#: figures — did not move at all, which is the cleanest available statement of
+#: what did.
+#:
+#: The sibling `milestones/M08/residual_differential.py` has carried an
+#: `m02_era_text` block since M08, and it fired correctly in the very diff that
+#: moved the text. This one had none and re-priced in silence: two sibling
+#: records, one input, one hazard, one guarded.
+#:
+#: **92.9% is not corrected and is not restored.** It is the reading of that run
+#: at that prompt and it stands; `published_at_m08b` carries it so that a reader
+#: meets the era beside HEAD's recomputation, rather than meeting a number that
+#: appears always to have said the new thing. Re-producing this record against a
+#: later prompt yields a different figure **by construction**, and that is what
+#: `identical_to_head` is for.
+#:
+#: **Do not re-pin these digests to a new prompt.** The pin they replace
+#: (`tests/test_m08b_residual.py::PROMPT_CONSTANTS_AT_M09_PR4B`) named that as
+#: the one inadmissible remedy, and it is inadmissible here for the same reason:
+#: it is the guard being deleted by the change it exists to catch. A prompt move
+#: is supposed to flip `identical_to_head` to false and leave it false.
+M08B_ERA = {
+    "commit": "a9cf896cd34490af8c103f825b0b0005e5aa48e3",
+    "committed": "2026-09-08",
+    "what": "the commit that committed milestones/M08b/goldens-run-*.json and calibration.json",
+    #: Content digests, normalised LF, directly comparable to `_sha256` at HEAD —
+    #: seven milestones' files are CRLF locally and LF in git, so a blob id would
+    #: compare a checkout against an index and report drift that is not there.
+    "inputs_sha256_at_m08b": {
+        "services/highlights-agent/gateway_client.py":
+            "4554dd284606139de8ece32efc09884c68e89c770e2c9bc18617469230dcd73c",
+        "services/highlights-agent/evals/answer.schema.json":
+            "d4219cc724c5c17e94693d99992637de9c8f987e58632239ca2bbfccd0baa155",
+        "milestones/M08/context-census.json":
+            "eee7a0144ae733708c3d099bfe8ee70803116df84d4597d5d3f80f4681bbd610",
+    },
+    #: The reading of that run, at that prompt. It stands.
+    "published_at_m08b": {
+        "E": 834, "S": 603, "D": -38, "F": 501,
+        "residual_A_minus_E_minus_S": 463,
+        "shares_of_abs": {"D": 0.071, "F": 0.929},
+        "chars_per_token_measured": 3.534,
+        "reading": "provider-side framing: what toolConfig costs beyond the specs' own text",
+    },
+    #: Measured, not estimated — and therefore unmoved by any prompt edit.
+    "measured_and_unmoved": {"A": 1900, "B": 796},
+}
+
 
 def _census_module():
     spec = importlib.util.spec_from_file_location("context_census", CENSUS_READER)
@@ -236,6 +293,41 @@ def growth(join: dict | None, b: int, est: dict) -> dict:
                         else "none")}
 
 
+def era_text() -> dict:
+    """Which era's prompt this record's `E` and `S` were estimated from.
+
+    Computed, never asserted: the three inputs whose text moves `E` and `S` are
+    digested at HEAD and compared with what they held at M08b's run commit. A
+    prompt edit flips `identical_to_head` to false and the record then says so
+    on its face, which is the whole of the guard. The sibling's `m02_era_text`
+    is the shape this mirrors."""
+    at_head = {name: _sha256(ROOT / name) for name in M08B_ERA["inputs_sha256_at_m08b"]}
+    identical = at_head == M08B_ERA["inputs_sha256_at_m08b"]
+    moved = sorted(n for n, d in at_head.items() if d != M08B_ERA["inputs_sha256_at_m08b"][n])
+    return {
+        "_why": (
+            "E and S are estimated from HEAD's committed prompt and joined to A and B, which "
+            "M08b's run measured; a prompt edit therefore re-prices a figure whose run predates "
+            "it. M09 PR 4 did exactly that and this record moved from 501 of 463 signed (92.9%) "
+            "to 552 of 402 (78.6%) with no run taken between the two readings, while A and B did "
+            "not move at all. 92.9% is the reading of that run and it stands; the attribution "
+            "block below is HEAD's recomputation. ADR-075 amendment 5 §4(a); paid at M09b PR 1."),
+        "commit": M08B_ERA["commit"],
+        "committed": M08B_ERA["committed"],
+        "what": M08B_ERA["what"],
+        "inputs_sha256_at_m08b": M08B_ERA["inputs_sha256_at_m08b"],
+        "inputs_sha256_at_head": at_head,
+        "identical_to_head": identical,
+        "inputs_that_moved": moved,
+        "published_at_m08b": M08B_ERA["published_at_m08b"],
+        "measured_and_unmoved": M08B_ERA["measured_and_unmoved"],
+        "what_the_attribution_below_is": (
+            "the reading of that run" if identical else
+            "HEAD's recomputation against a prompt this run never sent — an artifact, not a "
+            "correction of published_at_m08b"),
+    }
+
+
 def record(run_dir: pathlib.Path) -> dict:
     run_dir = pathlib.Path(run_dir).resolve()
     calibration_path = run_dir / "calibration.json"
@@ -267,6 +359,7 @@ def record(run_dir: pathlib.Path) -> dict:
             "against the replayed transcript at the measured density, not ruled on."),
         "inputs_sha256": {str(p.relative_to(ROOT)).replace("\\", "/") if p.is_relative_to(ROOT)
                           else p.name: _sha256(p) for p in inputs},
+        "m08b_era_text": era_text(),
         "case": case_id,
         "fallback_taken": case_id != DEFAULT_CASE,
         "B_read_from": b_source,
@@ -279,9 +372,18 @@ def record(run_dir: pathlib.Path) -> dict:
 
 def render(rec: dict) -> str:
     att, est = rec["attribution"], rec["estimates"]
-    lines = [f"case {rec['case']}{' (fallback)' if rec['fallback_taken'] else ''}; B from {rec['B_read_from']}",
-             f"A = {att.get('A')} ({att.get('A_values')})   B = {att.get('B')}   "
-             f"E = {est['E']} {est['E_band']}   S = {est['S']} {est['S_band']}"]
+    era = rec["m08b_era_text"]
+    lines = []
+    if not era["identical_to_head"]:
+        pub = era["published_at_m08b"]
+        lines.append(
+            f"ERA: the prompt has moved since {era['commit'][:7]} ({', '.join(era['inputs_that_moved'])}). "
+            f"M08b published F = {pub['F']} of {pub['residual_A_minus_E_minus_S']} "
+            f"({pub['shares_of_abs']['F']:.1%}) and that reading stands; what follows is HEAD's "
+            f"recomputation against text that run never sent.")
+    lines.append(f"case {rec['case']}{' (fallback)' if rec['fallback_taken'] else ''}; B from {rec['B_read_from']}")
+    lines.append(f"A = {att.get('A')} ({att.get('A_values')})   B = {att.get('B')}   "
+                 f"E = {est['E']} {est['E_band']}   S = {est['S']} {est['S_band']}")
     if att.get("A") is not None:
         lines.append(f"D = B - E = {att['D']} ({att['D_sign']});  F = A - B - S = {att['F']} ({att['F_sign']});  "
                      f"A - E - S = {att['residual_A_minus_E_minus_S']}; shares of |D|+|F|: {att['shares_of_abs']}")
