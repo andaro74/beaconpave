@@ -635,9 +635,16 @@ def test_a_corpus_no_test_reads_is_red(tmp_path):
 
 @pytest.mark.parametrize("reader", [
     '"""Reads planted.yaml, it says."""\n\n\ndef test_rows():\n    assert True\n',
+    # **The docstring that IS the name.** A sentence mentioning the file never equals
+    # it, so the case above is refused by the equality alone and never reached the
+    # docstring exclusion — the deletability audit removed that exclusion and the
+    # suite stayed green (M09b PR 3, plant P11). These two reach it.
+    '"""planted.yaml"""\n\n\ndef test_rows():\n    assert True\n',
+    'def test_rows():\n    """planted.yaml"""\n    assert True\n',
     '# planted.yaml\n\n\ndef test_rows():\n    assert True\n',
     'CORPUS = "planted.yaml"\n',
-], ids=["named-only-in-a-docstring", "named-only-in-a-comment", "no-test-function"])
+], ids=["named-in-a-docstring-sentence", "module-docstring-is-the-name",
+        "test-docstring-is-the-name", "named-only-in-a-comment", "no-test-function"])
 def test_a_module_that_names_the_corpus_without_reading_it_in_a_test_is_not_its_test(tmp_path, reader):
     chain = _walk(tmp_path, reader=reader)
     assert any("no test under tests/ reads that file" in d for d in chain.defects), chain.defects
