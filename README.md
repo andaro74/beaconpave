@@ -46,7 +46,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 08 | The tools arm's budget: the context or the ceiling ✜ | six PRs ✜ | `m08` | **12/25** ✜ | not judged ✧ | not run ✜ | ✅ |
 | 08b | The ceiling, measured on samples it was not derived from ❁ | six PRs ❁ | `m08b` | **10/25** ❁ | not judged ✧ | not run ❁ | ✅ |
 | 09 | The rule is disposed, and the service goes red ❉ | seven PRs ❉ | `m09` | **10/25** ❉ | not judged ✧ | not run ❉ | ✅ |
-| 09b | The rule's second control, and the topic reworded under a rule written first ❊ | seven PRs ❊ | `m09b` | not run ❊ | not judged ✧ | not run ❊ | ✅ **RED** ❊ |
+| 09b | The rule's second control, and the topic reworded under a rule written first — **closed RED** ❊ | seven PRs ❊ | `m09b` | not run ❊ | not judged ✧ | not run ❊ | ✅ |
 | 09c | Answer quality: the browse gap and the tiers ❋ | `m09c-answer-quality` | `m09c` | –/25 ❋ | – | – | ⬜ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
