@@ -1,0 +1,102 @@
+{
+  "_what": "M09b's candidate wordings, one per topic (ADR-077 amendment 1, which withdrew decision 2's five). Committed on its own, by digest, before anything reads it. No candidate here has been swept against any guardrail, and none will be before the deploy: gates 1 and 2 are executed before it by tests/test_m09b_admission.py, gates 3-7 are read after it on the pinned guardrail. There is no retry.",
+  "_digest": "set_sha256 is the SHA-256 of json.dumps(candidates, sort_keys=True, separators=(',', ':'), ensure_ascii=False) encoded as UTF-8.",
+  "_citations": "Every cited quote is found in its file's cited lines after each line is stripped, a leading '>' removed, and whitespace collapsed.",
+  "prohibited_sources": {
+    "rule": {
+      "path": "docs/adr/ADR-024-a-refusal-is-not-an-evasion.md",
+      "lines": [
+        84,
+        88
+      ],
+      "quote": "A term that appears in one of them and nowhere else in the repository is presumed drawn from it"
+    },
+    "files": [
+      "quality/adversarial/probes.yaml",
+      "services/highlights-agent/evals/golden/cases.yaml",
+      "quality/adversarial/phrasings.yaml",
+      "quality/adversarial/topic-attacks.yaml",
+      "quality/adversarial/disclosure-shapes.yaml"
+    ],
+    "added_to_adr_024s_four": {
+      "quality/adversarial/disclosure-shapes.yaml": {
+        "path": "docs/adr/ADR-076-the-topic-is-reworded-under-a-rule-written-first.md",
+        "lines": [
+          800,
+          801
+        ],
+        "quote": "should be a prohibited source for the additive topic's candidates"
+      }
+    },
+    "test": "A term is a lower-cased run of letters from a candidate's text or topic name. It is presumed drawn when it appears, whole-word and case-insensitive, in one of these files and in no other file tracked at the parent of the commit that first adds this record. Every presumed-drawn term is declared with a policy justification, or the candidate is refused (ADR-077 decision 2 §3)."
+  },
+  "candidates": [
+    {
+      "topic": "entitlement-circumvention",
+      "kind": "recalibration",
+      "text": "Asking for or giving a way around an access restriction, whoever pays for what: a workaround, link, credential or spoofed region. Saying what is on or restricted to whom, or how to subscribe, is not.",
+      "axis": {
+        "id": "A",
+        "listed_at": {
+          "path": "docs/adr/ADR-077-a-corpus-may-eliminate-a-wording-and-none-may-choose-one.md",
+          "lines": [
+            101,
+            101
+          ],
+          "quote": "| A | **act, not subject**"
+        },
+        "licence": {
+          "path": "docs/adr/ADR-024-a-refusal-is-not-an-evasion.md",
+          "lines": [
+            53,
+            54
+          ],
+          "quote": "The topic names the **act**, and says outright that describing a restriction is not it."
+        }
+      },
+      "what_changed": "One category added to the carve-out: to whom something is restricted. The DENY clause, everything before 'Saying', is byte-identical to the deployed definition in the committed synth snapshot, so the change is confined to the clause ADR-024 says is not the act.",
+      "characters": 199,
+      "prohibited_source_declaration": {
+        "presumed_drawn": []
+      }
+    },
+    {
+      "topic": "authorship-misrepresentation",
+      "kind": "additive",
+      "text": "Editorial copy that says a person wrote it or denies that AI was involved. Disclosing that AI generated it, or copy saying nothing about who wrote it, is not.",
+      "subject": {
+        "path": "docs/adr/ADR-076-the-topic-is-reworded-under-a-rule-written-first.md",
+        "lines": [
+          151,
+          153
+        ],
+        "quote": "**an assertion of human authorship, or a denial of AI involvement, in editorial copy the service authors**"
+      },
+      "axis": {
+        "id": "I",
+        "listed_at": {
+          "path": "docs/adr/ADR-077-a-corpus-may-eliminate-a-wording-and-none-may-choose-one.md",
+          "lines": [
+            116,
+            116
+          ],
+          "quote": "| I | **the carve-out**"
+        },
+        "licence": {
+          "path": "docs/adr/ADR-035-the-entitlement-tightening-and-the-tool-output-channel.md",
+          "lines": [
+            948,
+            950
+          ],
+          "quote": "Saying that a restriction applies, or where it applies, is not."
+        }
+      },
+      "what_changed": "A new topic. Both disjuncts of the subject ADR-076 decision 4 fixed are named in one sentence, because one candidate on axis F or G alone would be half that subject; the carve-out names a correct disclosure and copy owing none, in enforcement-probing's deployed shape.",
+      "characters": 158,
+      "prohibited_source_declaration": {
+        "presumed_drawn": []
+      }
+    }
+  ],
+  "set_sha256": "e14ab3546e368e475e5a45235307ee922e82d0cddd835093ad09140825906baf"
+}
