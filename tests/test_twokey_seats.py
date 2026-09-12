@@ -2273,3 +2273,72 @@ def test_every_path_the_published_table_names_is_on_the_rule_it_claims():
     assert checked >= 12, (
         f"only {checked} published paths were checked across {len(rows)} rows — "
         f"the table parser is stale and this test is measuring nothing.")
+
+
+# --- M09b PR 2b: the gaps SPEC/09b's table measured, and the two debts that fired ---
+
+CENSUS_SEATS = {"ai-quality", "platform-eng", "security"}
+GRANTS_SEATS = {"security", "legal-sp", "platform-eng", "ai-quality"}
+
+#: Every path M09b PR 2b put on a rule, and the seats each must collect. Same shape
+#: as `M08B_PR4_SEATS` and for its reason: the ADR-043 ratchet keys on substrings of
+#: `Rule.what` and reaches none of these.
+M09B_PR2B_SEATS = {
+    # gap 1: the census clause stopped one character short of `M09b/`
+    "milestones/M09b/fg.py": CENSUS_SEATS,
+    "milestones/M09b/fg-pre.json": CENSUS_SEATS,
+    "milestones/M09b/a-record-not-written-yet.json": CENSUS_SEATS,
+    "tests/test_m09b_ordering.py": CENSUS_SEATS,
+    "tests/test_m09b_a_test_not_written_yet.py": CENSUS_SEATS,
+    # gap 2: an exact filename, read OUTSIDE `M09b/` so the census clause cannot
+    # supply the seats this rule is supposed to
+    "milestones/M10/topic-baseline-post.json": {"security", "ai-quality"},
+    "milestones/M07/stage1/topic-baseline-pre.json": {"security", "ai-quality"},
+    # gap 3: the grant booleans on their own four seats, not the census clause's three
+    "milestones/M09b/withheld-grants-security.json": GRANTS_SEATS,
+    "milestones/M09b/withheld-grants-legal-sp.json": GRANTS_SEATS,
+    "milestones/M09b/withheld-grants.json": GRANTS_SEATS,
+    # debt: the seat table, on no rule until this PR
+    "docs/governance/ROLES.md": {"platform-eng", "security"},
+    # debt: `tests/test_m09_cap.py` "on no rule" was measured wrong, and is pinned
+    # here so the census clause cannot narrow away from it silently
+    "tests/test_m09_cap.py": CENSUS_SEATS,
+}
+
+
+def test_m09bs_readers_records_and_readings_collect_their_seats():
+    """**Measured on `4710f31`, by `twokey.triggered` over each path, before any
+    widening: every one of these returned `[]`**, except `tests/test_m09_cap.py`,
+    which SPEC/09b's debt table records as on no rule and which the census clause's
+    `tests/test_m09_[a-z0-9_]+\\.py` already reaches. Recorded as a wrong premise in
+    the journal notes rather than as a gap closed."""
+    for path, seats in sorted(M09B_PR2B_SEATS.items()):
+        _blocked_for([path], seats)
+
+
+def test_the_grant_readings_keep_legal_sp_though_the_census_clause_also_matches_them():
+    """The fold SPEC/09b refuses by name: delete the grants rule's `M09b` branch and
+    the census clause still matches, collecting three seats and dropping Legal/S&P."""
+    census_only = {seat for rule, _ in twokey.triggered(["milestones/M09b/withheld-grants-security.json"])
+                   if "legal-sp" not in rule.seats for seat in rule.seats}
+    assert census_only == CENSUS_SEATS
+    assert "legal-sp" in _seats_for("milestones/M09b/withheld-grants-security.json")
+
+
+def test_m09bs_transcripts_stay_prose():
+    for path in ("milestones/M09b/topic-baseline-pre-transcript.txt",
+                 "milestones/M09b/journal-notes.md", "milestones/M09b/pr2b-deletability-audit.txt"):
+        assert _seats_for(path) == set(), f"{path} collects {sorted(_seats_for(path))}"
+
+
+def test_the_m09b_pr2b_pin_cannot_be_thinned_to_nothing():
+    assert len(M09B_PR2B_SEATS) == 12, (
+        f"M09B_PR2B_SEATS holds {len(M09B_PR2B_SEATS)} paths, expected 12. Deleting an entry "
+        "in the same diff that narrows its rule is the one-edit bypass this constant makes two.")
+
+
+def test_the_rename_bypass_stays_closed_for_m09bs_rules():
+    for old, new in (("milestones/M09b/withheld-grants-security.json", "milestones/M09b/grants-a.txt"),
+                     ("docs/governance/ROLES.md", "docs/governance/ROLES-v2.txt"),
+                     ("milestones/M09b/fg.py", "milestones/M09b/FG.txt")):
+        assert twokey.triggered([old, new]), f"renaming {old} to {new} collects no key"

@@ -491,9 +491,15 @@ RULES: tuple[Rule, ...] = (
         # Security's own rule; AI Quality, because a close's disposition is read
         # from it. `.*/` for the same reason as the evidence rule: stage
         # subdirectories.
+        #
+        # **`[^/]*` after the name (M09b PR 2b, SPEC/09b's gap table).** The
+        # pattern was an exact filename, and M09b takes a sweep before the deploy
+        # and another after it: `topic-baseline-pre.json` matched nothing, so the
+        # record F2 is read against sat on no key the day it was committed.
+        # Widened in the diff that writes it, never in a follow-up.
         "the topic baseline — the step-6b record a close reads ATK-003 and the "
         "enforcement-probing trigger from",
-        re.compile(r"^milestones/.*/topic-baseline\.json$"),
+        re.compile(r"^milestones/.*/topic-baseline[^/]*\.json$"),
         ("security", "ai-quality"),
     ),
     Rule(
@@ -567,15 +573,25 @@ RULES: tuple[Rule, ...] = (
         # transcripts stay prose here for M08b's stated reason -- the numbers in
         # them are reconciled against the records and the answer files, so a
         # one-key transcript cannot move a reading alone.
+        #
+        # **And M09b's (M09b PR 2b, SPEC/09b's gap table).** Measured on `52edc27`
+        # by running the gate over a prospective file list: `milestones/M09b/fg.py`,
+        # its record and `tests/test_m09b_*` all `two-key: not required`. This
+        # clause's `M09/` stops one character short of `M09b/`, which is ask 8's
+        # own finding arriving for its successor. `M09b` is spelled out rather than
+        # made `M09b?`, so the next milestone's letter is a decision and not a
+        # regex accident.
         "the M08 census — the reader and record the tokens_in ceiling is derived from, "
-        "and M08b's and M09's readers, records, fixture and tests",
+        "and M08b's, M09's and M09b's readers, records, fixture and tests",
         re.compile(r"^(milestones/M08/(context_census\.py|context-census\.json"
                    r"|residual_differential\.py|residual-differential\.json"
                    r"|rescore_join\.py|rescore-join\.json)"
                    r"|milestones/M08b/([a-z0-9_]+\.py|fresh-join\.json"
                    r"|residual-attribution\.json|answer-channel\.json|calibration\.json)"
                    r"|milestones/M09/([a-z0-9_]+\.py|[a-z0-9-]+\.json)"
+                   r"|milestones/M09b/([a-z0-9_]+\.py|[a-z0-9-]+\.json)"
                    r"|tests/test_m08b_[a-z0-9_]+\.py|tests/test_m09_[a-z0-9_]+\.py"
+                   r"|tests/test_m09b_[a-z0-9_]+\.py"
                    r"|tests/fixtures/m08b/.+)$"),
         ("ai-quality", "platform-eng", "security"),
     ),
@@ -759,9 +775,35 @@ RULES: tuple[Rule, ...] = (
         # and Service Team feel neither too) but because it already holds the key
         # on the answer files G is summed from. The census rule's three seats
         # were G9's letter and not its substance.
+        #
+        # **And M09b's, on these four seats and not the census clause's three
+        # (M09b PR 2b, SPEC/09b's gap table).** The grant booleans decide M09b's
+        # own F1, and ADR-076 amendment 1 requires two independent readings
+        # committed separately, one file each, so the suffix names the reader.
+        # M09b's census clause also matches these names, and would look like
+        # coverage: it collects three seats and silently drops Legal/S&P, whose
+        # key is here because an answer-policy reading bills that seat. This rule
+        # is what keeps the fourth.
         "the held-text readings — the operator's grant booleans that decide F against G",
-        re.compile(r"^milestones/M08b/(prior-)?withheld-grants\.json$"),
+        re.compile(r"^milestones/(M08b/(prior-)?withheld-grants"
+                   r"|M09b/withheld-grants(-[a-z-]+)?)\.json$"),
         ("security", "legal-sp", "platform-eng", "ai-quality"),
+    ),
+    Rule(
+        # **The seat table (M09b PR 2b; SPEC/09b debt, trigger "the next PR that
+        # opens `pave/twokey.py`").** `docs/governance/ROLES.md` is where a seat
+        # string becomes a seat — `test_every_seat_string_is_a_seat_roles_md_lists`
+        # reads it — and where every published two-key row lives, which
+        # `test_every_path_the_published_table_names_is_on_the_rule_it_claims`
+        # holds against this module. Measured on `4710f31`: `triggered` returns
+        # `[]` for it. So the vocabulary every rule here is written in, and the
+        # table a reader trusts before opening this file, could be edited on no
+        # key. Platform Engineering owns the mechanism; Security is the seat that
+        # does not feel a seat table's pain and holds the invariants the table
+        # summarises.
+        "the seat table — the vocabulary every two-key rule is written in",
+        re.compile(r"^docs/governance/ROLES\.md$"),
+        ("platform-eng", "security"),
     ),
     Rule(
         # **The refusal estimator (M08b PR 2, Legal/S&P seat, round 1).**
