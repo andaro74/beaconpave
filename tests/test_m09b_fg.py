@@ -148,6 +148,31 @@ def test_an_unattributed_refusal_is_refused(fg):
         fg.refusal_reading(sidecar)
 
 
+def test_the_decoded_or_raw_definition_decides_f_and_g_on_the_control_run(fg, tmp_path):
+    """Why the decoded-or-raw disposition is re-dated to before the run (M09b journal
+    notes, PR 3).
+
+    Both readings read five held grants, and every held text was fenced. The raw reading
+    is the Legal/S&P reader's statement: under strict bytes all five grants are false.
+    That reading moves F and G both on M09's own control run, so a definition decided
+    after the post-deploy F and G are on the table is chosen by its outcome."""
+    flipped = []
+    for source in GRANTS:
+        data = json.loads(source.read_text(encoding="utf-8"))
+        held = [read for samples in data["grants"].values() for read in samples.values()
+                if isinstance(read, dict) and read.get("grant") is True]
+        assert len(held) == 5, f"{source.name} reads {len(held)} held grants, not five"
+        for read in held:
+            read["grant"] = False
+        path = tmp_path / source.name
+        path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        flipped.append(path)
+    decoded = fg.record(M09, GRANTS, BASELINE)["reading"]
+    raw = fg.record(M09, flipped, BASELINE)["reading"]
+    assert (decoded["G"], decoded["F_majority"], decoded["F_at_least_once"]) == (7, 1, 4)
+    assert (raw["G"], raw["F_majority"], raw["F_at_least_once"]) == (6, 0, 0)
+
+
 def test_the_reader_imports_no_network_module():
     tree = ast.parse(FG.read_text(encoding="utf-8"))
     imported = {alias.name.split(".")[0] for node in ast.walk(tree)

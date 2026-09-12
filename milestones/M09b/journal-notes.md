@@ -197,3 +197,47 @@ instrument, every candidate is struck and both topics take the no-winner branch 
 procedural reason. **A live proposal cuts candidates from five to one per topic and
 deletes the throwaway requirement. It is not taken here and no instrument is designed
 here.** Owner: Security + Platform Engineering. Trigger: before PR 3 is branched.
+
+---
+
+## PR 3 (2026-09-12) — one trigger re-dated, the throwaway disposed, and a count that did not reproduce
+
+### The decoded-or-raw disposition is re-dated to PR 4's pre-registration check
+
+**This supersedes one clause above and nothing else**: *"at the close's step that reads
+F1"* (:129-130). **Its trigger is now PR 4's pre-registration check, before the run.**
+That is the trigger the F/G record above already carries (:114). The owner is
+unchanged: Security, with Legal/S&P. **Whether *schema-conforming* means decoded or
+raw is not decided here.**
+
+**Why.** The definition moves F and G on the same run, and F1 fires on `F > 0` or
+`G < 8`. Measured on M09's control run, through `fg.record`, both readings:
+
+```
+decoded, as committed                     G = 7   F majority = 1   F at least once = 4
+raw, the five held grants read false      G = 6   F majority = 0   F at least once = 0
+```
+
+`blackout-009` is the case that leaves G. A definition settled at the close is settled
+after the post-deploy F and G are known. That is choosing a reading by the number it
+produces, and it is not a pre-registration. Both rows are held by
+`tests/test_m09b_fg.py::test_the_decoded_or_raw_definition_decides_f_and_g_on_the_control_run`.
+
+**The brief for PR 3 gave G as "7 or 2". Two did not reproduce.** The raw row changes only
+the held half. A strict-bytes reading of the *answered* half would need those samples'
+raw bytes, and no committed file under `milestones/M09/` carries a ```json fence
+(`git grep` matches none). That count cannot be computed from the repository, so it is not
+published.
+
+### The throwaway, disposed
+
+The entry above ends *"Trigger: before PR 3 is branched."* It is disposed by **ADR-077
+amendment 1**: five candidates per topic are withdrawn for one, and the throwaway
+requirement is dropped with them. Gates 1 and 2 run before the deploy, and gates 3–7 are
+read after it on the pinned guardrail. **There is no retry: a failed post-deploy gate
+closes the term RED.** No sweep instrument was built.
+
+### A line citation into ADR-077 moved, recorded rather than edited
+
+Amendment 1 inserts a licence row in decision 1's table, so every later ADR-077 line
+moves down by one. :184 above cites *ADR-077:178*, which now reads at :179.
