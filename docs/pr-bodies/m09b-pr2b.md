@@ -7,7 +7,7 @@ candidate sweep was refused; this PR takes PR 2's deliverables.
 calls: `ApplyGuardrail` (the two sweeps and the preflight), S3 reads and
 `bedrock:GetGuardrail` (the two withheld readings), `cloudformation:DescribeStacks`.
 
-`make check`: <<COUNT>>, at <<HEAD>> (the head of `m09b-pr2b-readings-and-corpus`). No
+`make check`: **PASS, 4628 passed, 8 skipped**, 160.13s, at 324eb0a, the commit that added this body (the head of `m09b-pr2b-readings-and-corpus`). No
 delta is published against PR 2's count: a different tree.
 
 **Merge with a rebase merge, not a squash.** `main` squash-merges (`4710f31` has one
