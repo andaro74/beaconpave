@@ -1,0 +1,171 @@
+M09b PR 2 — deletability audit for debt 33's payment
+=====================================================
+
+Method: mutate the PROPERTY the PR protects, assert the mutation is live as a
+property and not as a token, run the check, record whether anything fires.
+Working copies backed up to a temp directory and restored FROM THERE, never
+`git checkout --` (which would delete the uncommitted change the audit exists to
+test). Bytes read and written as bytes, so no line ending is flipped.
+
+Plants 4 and 5 delete each new assertion individually and run the GATE — `python
+-m pave.cli check`, not `pytest tests/` — which is M09's open debt fired at every
+PR. Plants 1-3 mutate the protected property and were run against the file that
+catches them, because a red there makes the gate red and a 160-second run adds
+nothing to that fact; the failing case is named for each.
+
+Baseline on the tree the plants ran against: 4512 passed, 8 skipped, `make check`
+PASS, 159.58s. No delta arithmetic is published against PR 1d's 4499: that count
+was measured on a different tree and the two are not subtractable.
+
+This PR adds ONE test carrying TWO assertions. Both were audited, in both
+directions: does the check bite on the defect it exists for, and does anything
+else cover the same ground.
+
+
+PLANT 1 — a new undeclared `bash` block appears
+------------------------------------------------
+Mutation: insert a fenced ```bash block under `SPEC/06c-instrument-repair.md`'s
+`## The demo artifact` heading.
+Plant verified live: the file now holds 2 ```bash fences, was 1.
+
+Result: **CAUGHT.**
+
+    FAILED tests/test_documented_commands.py::
+      test_every_bash_block_is_run_or_declared_unrun
+    1 failed, 14 passed
+
+This is debt 33's defect itself: a command block that joins a spec and that
+nothing runs and nothing names. It is now red on arrival.
+
+
+PLANT 2 — a declaration goes stale
+------------------------------------
+Mutation: add `"SPEC/00-overview.md": "x"` to `UNRUN_BASH_BLOCKS` — an entry
+naming a file with no unrun block in it.
+Plant verified live: the key is present in the file.
+
+Result: **CAUGHT.**
+
+    FAILED tests/test_documented_commands.py::
+      test_every_bash_block_is_run_or_declared_unrun
+    1 failed, 14 passed
+
+The check holds the declaration against the measurement in BOTH directions, so a
+declaration that outlives its block is red rather than decoration. This is the
+half that stops the list becoming a second registry that drifts from the first.
+
+
+PLANT 3 — an exemption with no argument behind it
+---------------------------------------------------
+**Run twice. The first mutation was not live and its SILENT verdict was wrong.**
+
+First attempt: replace the first string literal of `README.md`'s reason with
+`"legacy. "`. Verified only that the token was present — which it was — and the
+gate came back green, which would have been published as a SILENT check. It is
+not: the reason is a concatenation of adjacent literals and replacing one of them
+left the other 40-odd words in place, so the property the check reads (total word
+count) never moved. A mutation that does not achieve its property measures
+nothing, and asserting the token rather than the property is how that gets missed.
+
+Second attempt, the one recorded: replace the WHOLE value with `"legacy"`, then
+verify the property by importing the module and reading
+`len(UNRUN_BASH_BLOCKS["README.md"].split())`.
+Plant verified live: the reason is now 1 word, floor is 12.
+
+Result: **CAUGHT.**
+
+    FAILED tests/test_documented_commands.py::
+      test_every_bash_block_is_run_or_declared_unrun
+    1 failed, 14 passed
+
+**What this check is worth, stated rather than implied.** It stops an entry added
+with `""` or `"TODO"`. It is satisfiable by padding, no deterministic check can
+tell an argument from twelve words of filler, and the assertion message says so
+in the message a failing reviewer reads. A check that reads stronger than it is
+would be the same defect one level out.
+
+
+PLANT 4 — delete CHECK A (`found == declared`)
+------------------------------------------------
+Mutation: cut the assertion, 555 bytes, from the test body.
+Plant verified live: the anchor line is absent from the file.
+
+Result: **SILENT.** Gate PASS, 4512 passed, 8 skipped, 154.09s.
+
+Read correctly, this is the finding that the check is load-bearing and unique:
+**nothing else in 4512 checks holds this property.** Before this PR that was the
+state of the property itself, which is what debt 33 recorded.
+
+
+PLANT 5 — delete CHECK B (the reason floor)
+---------------------------------------------
+Mutation: cut the loop and its assertion, 416 bytes, from the test body.
+Plant verified live: the anchor line is absent from the file.
+
+Result: **SILENT.** Gate PASS, 4512 passed, 8 skipped, 156.66s.
+
+Same reading: unique, nothing else covers it. Paired with PLANT 3, which shows it
+bites, that is a live check rather than a dead one — and its limit is published
+with it rather than left to be discovered.
+
+
+The finding this audit turned up, which is bigger than the payment
+-------------------------------------------------------------------
+Measured while locating debt 33's instance, not predicted:
+
+  SPEC/03-evals.md              `## The demo artifact`   0 fenced blocks
+  SPEC/04-gate.md               `## The demo artifact`   0 fenced blocks
+  SPEC/06c-instrument-repair.md `## The demo artifact`   1 ```bash block
+
+`DEMO_HEADING` is the exact string `"## Demo artifact"`. Three specs spell the
+heading with three words, so `_demo_section` returns None for them and this
+module has never seen them. **SPEC/06c's `bash` block has never been run**, from
+M06c to now.
+
+`test_the_scope_is_every_spec_that_publishes_a_demo_block` exists to catch exactly
+this — its docstring says a spec joins the check "by having one" rather than by
+being listed. It did not catch it, and the reason is structural: **both sides of
+its equality are derived from `_demo_section`.** A spec the reader cannot see is
+absent from `publishing` and absent from `CASES` alike, and the two sets agree
+about it by being empty on both sides. That is a summary reporting a clean sheet
+having compared nothing — `tests/test_topic_baseline.py`'s own recorded defect,
+one file over, and the third time this repository has found that shape.
+
+This PR does NOT widen the run scope to SPEC/06c's block, and the reason is a
+property of the block rather than a preference: it is
+`run_evals --record --tag m06c`, which APPENDS to `evals/history/`. A check that
+ran it on every `make check` would author the eval history it is measuring, which
+is a worse defect than a demo command nobody runs and is what
+`test_no_demo_command_writes_to_the_tree` exists to forbid. So the block stays
+out, and it stays out by a DECLARATION WITH A REASON rather than by a heading
+typo. That is the whole of what changed.
+
+  finding : three specs head their demo section `## The demo artifact` and are
+            invisible to `tests/test_documented_commands.py`; the scope check
+            that should have caught it compares two sets built by the same
+            blind reader.
+  owner   : PM (the specs) + Platform Engineering (the reader)
+  trigger : the next PR that edits a `## The demo artifact` heading or the
+            scope check. NOT taken here: renaming a heading in three closed
+            milestones' specs is a document change in closed records and is the
+            PM seat's call, and the block-level check above already makes any
+            FUTURE block under such a heading red.
+  note    : SPEC/03's and SPEC/04's sections carry no fenced block at all, so
+            the heading variance costs nothing today. SPEC/06c's costs one
+            unrun command block, and that one is now declared.
+
+
+What this audit does not claim
+-------------------------------
+It does not claim `UNRUN_BASH_BLOCKS`'s two reasons are good reasons — only that
+they are present, long enough not to be empty, and that a reviewer must read
+them. It does not claim the three mis-headed specs are all of them; the
+measurement is over `SPEC/*.md` and `README.md` and no other path. And it does
+not claim anything about the candidate sweep this PR was scoped to take and did
+not — that is refused in the PR body on four structural grounds, and no plant
+here bears on it.
+
+Summary: 3 CAUGHT, 2 SILENT. Both silences are the delete-the-check direction and
+read as uniqueness rather than as dead checks, because PLANTS 1-3 show both
+assertions biting. One plant was run twice and its first, wrong verdict is
+recorded rather than replaced. No test was written to its own data.
