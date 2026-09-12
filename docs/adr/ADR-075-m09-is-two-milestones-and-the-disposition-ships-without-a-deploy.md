@@ -2427,3 +2427,159 @@ moved at any point in this milestone. The disclosure pack, which is not edited, 
 pre-registration and is not re-opened here. The cap, which stays six with amendment
 4's breach recorded against it. M08b's published **92.9%**, which is annotated and
 not corrected. Decisions 1–6 and amendments 1–5, none of which is rewritten.
+
+## Amendment 7 — M09b's spec is written, decision 1's ground for it is false, and the cap moves off containers
+
+**Written at the M09b open, before the branch is cut and before M09b PR 1 opens.**
+It records the two things `SPEC/09b-the-guardrail-line-and-the-topic.md` decided
+that belong in **this** ADR rather than in its own, and nothing else. M09b's
+pre-registration — the claim, its five falsifiers, the derivation rule for the
+reworded topic, the character budget, the reading rules and the seat assignments —
+is **ADR-076's**, for the reason §3 gives. Decisions 1–6 and amendments 1–6 are not
+rewritten.
+
+Commits cited are reachable from `main` and from tag `m09`: PR 1 `66bb114`, PR 1b
+`479972e`, PR 2 `666a7de`, PR 7 `6644c1d`, PR 4 `369c8ba`, PR 4b `793ab1d`, PR 5
+`52edc27` (SPEC/09 constraint 11, checked at the spec's branch point).
+
+### 1. Decision 1's ground for M09b carrying no claim is false, and the question is re-decided rather than inherited
+
+Decision 1's M09b bullet ends:
+
+> Claim 6 is proven by then, so nothing in M09b is load-bearing for a claim — which
+> is the right shape for the milestone that carries the deploy.
+
+**Claim 6 is not proven. It is FAILED**, on two falsifiers, and this ADR's own
+amendments 5 and 6 are where it failed. The conclusion decision 1 drew happens to
+stand, but it stood on a premise the milestone then contradicted, and a conclusion
+carried forward on a false premise is the *row copied forward past an open
+question* shape ADR-055 named.
+
+**The decision text is not edited.** PR 7 rewrote two lines of decision 5 §4's
+blockquote in place, on one key, and M09's close records that as the ninth false
+statement about the milestone's own state — with the standing debt *"no ADR and no
+spec is on any two-key rule"* carrying a trigger that had already fired on it. This
+amendment appends; it does not repeat that.
+
+**The question is re-answered in ADR-076 on the merits, and the answer is the
+same**: M09b advances **none of the twelve** and serves claims 9 and 6 defensively.
+Three reasons, none of them *"claim 6 is proven"*: a third control in a milestone
+already moving two guardrail topics through one deploy makes a red unattributable
+(decision 1's own argument, applied to its successor); claim 6 failed on a
+**premise** — a baseline confirmed on off-subject evidence — so re-advancing it
+needs subject-matched instrument work rather than guardrail work; and a milestone
+that both carries a claim and rewords a guardrail has the strongest possible
+incentive to reword until the claim reads green, which is G9's sentence applied to a
+milestone instead of to a file.
+
+**M09b does carry one pre-registered claim**, on M07's shape — a milestone with a
+claim and a falsifier set that advances none of the twelve — and it is in ADR-076.
+
+### 2. Decision 6's cap is replaced, because amendment 4's own finding asked for it
+
+Decision 6 reads *"The cap: six PRs."* Amendment 4 §3 recorded the finding against
+that rule rather than against PR 7:
+
+> the cap counts PRs as a proxy for scope and has no concept of a correction to
+> already-merged work … M09b's cap is to be written counting spend events or
+> planned work instead of containers.
+
+**M09b's cap, per ADR-076 and `SPEC/09b`:** one deploy; one model-call PR at a
+ceiling of 160 turns (75 goldens + 33 probes + 21 disclosure pack = 129, plus one
+whole-sample re-run of the largest arm for an INFRA sample); one seat round, in two
+rounds, on one PR; zero judge runs and zero instrument re-freezes. **Containers are
+counted and published and are not the bound.** A correction to already-merged,
+already-dispositioned work is admissible in its own PR and is scoped by *what it may
+contain* — no number moves, no new capability, no case, threshold, corpus row, tier,
+ceiling or instrument digest moves, and empty diffs over `milestones/`,
+`evals/history/` and the manifest — rather than by which container it arrives in. A
+PR that cannot meet that scope **is** scope growth and closes the milestone.
+
+**And the cold review stops competing with the work for a slot.** Decision 6 made
+PR 1b *"the sixth"*, so taking it spent the cap and armed the fallback by name.
+Under a cap on spend the cold read costs no deploy and no turn, so it counts against
+no bound. That is the second half of amendment 4's finding: the container count
+priced the one slot that has caught something material in every milestone at the
+same rate as a slot that runs the model.
+
+**M09's cap is not retroactively re-read.** *Bounded*'s six stands, PR 7 stays a
+recorded breach against it, and `tests/test_m09_cap.py` is not touched. A rule that
+changes for the next milestone is not a rule that changed for the last one.
+
+### 3. Why M09b's pre-registration is a new ADR and not amendment 8
+
+Argued rather than assumed, because the default here is an amendment.
+
+- **Every wording change to `entitlement-circumvention` has had its own decision
+  record** — ADR-024, ADR-035, ADR-063 — and
+  `^platform/infra/lib/gateway-stack\.ts` carries `requires_adr=True` in its own
+  words: *"If a tightening is worth deploying it is worth a paragraph saying what it
+  should break."* M09b rewrites that definition and adds a third topic beside it.
+- **This ADR is 2429 lines under a title about M09 being two milestones**, with six
+  amendments, five of them M09's own PR records. A seventh carrying a successor
+  milestone's whole pre-registration would have to contradict decision 1's ground to
+  do it, which is §1.
+- **Precedent is uniform**: ADR-070 for M07, ADR-073 for M08, ADR-074 for M08b, this
+  one for M09. M09b has a row, a branch, a tag, a claim and a deploy.
+
+So: **ADR-076** carries M09b's claim, its five falsifiers, the 191-of-200 character
+budget, the derivation rule for the reworded topic, the disclosure line's shape and
+corpus, the one-deploy separability argument, the reading rules and the seat
+assignments. This amendment carries §1 and §2 and stops.
+
+### 4. Four rule gaps the spec measured, recorded here because they were found running the gate and not by a seat
+
+Each was measured on `52edc27` by running the gate or the reader, never by reading
+the rules list. All four are closed in the diff that creates the artifacts they
+cover, never in a follow-up (ADR-060's precedent, which this ADR's own amendment 1
+already applied once).
+
+| gap | measured | closed |
+|---|---|---|
+| `pave/rules.py`'s `CONTROL_ARTIFACTS["guardrail"]` is `("platform/gateway/", …)`, and the deployed guardrail is defined in `platform/infra/lib/gateway-stack.ts` | `platform/infra/lib/gateway-stack.ts` → admissible **False**; the synth snapshot → **False** | M09b PR 3. **The second control this repository's registry was built to carry could not be declared without the reader refusing it** — `chain: NOT RESOLVED`, exit 1, on claim 6's own command, in the milestone that adds it. The reader's own comment anticipates M09b by name and its artifact table does not reach the file |
+| `milestones/M09b/*.py`, `milestones/M09b/*.json` and `tests/test_m09b_*.py` are on **no** two-key rule | `gate two-key --changed` over a PR 2 file list returns the corpus rule alone; the census rule names `milestones/M09/` and `tests/test_m09_`, and neither alternation reaches `M09b` | M09b PR 2. This is the clause amendment 1 ask 8 added for M09's own readers, failing for its successor one character later |
+| `^milestones/.*/topic-baseline\.json$` is an exact filename, and M09b takes **two** step-6b sweeps | `topic-baseline-pre.json` and `topic-baseline-post.json` match nothing; `topic-baseline.json` matches | M09b PR 2, widened to `topic-baseline[^/]*\.json` in the diff that writes the second record |
+| **`milestones/M09b/withheld-grants.json` is on no rule**, and it is the sharpest of the four: the operator's grant booleans move `F` and `G` both, so they decide M09b's own **F1** | `gate two-key --changed` on that path returns *not required*; the four-seat rule that holds the same file is `^milestones/M08b/(prior-)?withheld-grants\.json$` | M09b PR 2, widened **on its own four seats**. Folding it into the census alternation gives three and silently drops **Legal/S&P**, whose key is on that file because an answer-policy reading bills that seat — a widening that looks like coverage and removes a key |
+
+**A fifth, and it is not a rule gap — it is two checks that cannot both hold.**
+`tests/test_documented_commands.py`, added at M09 PR 5, runs *every fenced `bash`
+block in a `## Demo artifact` section of `SPEC/*.md`* against `main` on every `make
+check`. **A spec is written before the branch is cut**, so every file its demo block
+reads is one the milestone has not produced yet — and SPEC/09b's block, written as
+`bash`, takes `make check` red on `main` the day it merges. The two rules are in
+direct conflict for every milestone from here on and SPEC/09b is the first to meet
+it; the check's own docstring anticipated M09b writing a demo block and anticipated
+the wrong collision. The block ships as `text` with the reason stated beside it, the
+`bash` form is dated to M09b PR 4 in that spec's Definition of done, and the
+structural fix — shape-check an open milestone's block and run a closed one's, on
+the `milestone_is_closed` predicate that already exists — is a debt to PM plus
+Platform Engineering rather than a change taken in a session that writes no code.
+
+**And the standing one, verified again rather than quoted.** `python -m pave.cli
+gate two-key --changed` over `SPEC/09b-…md`, this ADR, `README.md`, `SPEC/README.md`
+and `BUILD.md` returns **"two-key: not required — this PR touches no two-key path"**.
+Amendment 5 §3's debt — *no ADR and no spec is on any two-key rule* — is unchanged,
+still owned and unscheduled, and M09b does not close it: M09b appends amendments and
+edits no merged decision text, so its trigger does not fire there.
+
+### 5. What this amendment declines
+
+- **It does not re-open the claim.** Claim 6 is failed on F1 and F4.2, the five
+  falsifiers are not re-read or re-scoped, and M09's ❌ stands. `SPEC/09`, its
+  *Bounded* section and M09's README row are not edited by M09b at any point.
+- **It closes no debt M09 handed forward.** Every row carries its owner and its
+  trigger into `SPEC/09b`'s inherited table unchanged. Where a trigger **fires**
+  inside M09b's own plan — the era pin before the first prompt-constant edit, the
+  reader's baseline-as-argument at the next goldens control run, the comparator pin
+  at the first second disclosure run, the deletability audit's harness at the next
+  audit written — the spec schedules the payment in the PR where it fires. That is
+  honouring a trigger, not retiring it early.
+- **It schedules no answer quality.** The browse gap, the `tokens_out` tiers,
+  `grounded-017`'s margin and the DMA rename are `09c`'s, unchanged, and
+  `grounded-017` stays a live regression on `main` with AI Quality's name on it.
+- **It does not price `brand_tone`.** That re-deferral is **ADR-026 amendment 5**'s,
+  written in M09b PR 1 on two keys, counted as the fifth, and recorded in the close's
+  journal as a slide rather than a payment.
+- **It moves no number.** `gates.budgets.p95_ms` 5200, `tokens_in` 7700, every
+  `tokens_out` tier, every comparator, every instrument digest and M08b's published
+  92.9% are exactly where amendment 6 left them.
