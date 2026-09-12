@@ -2583,3 +2583,86 @@ edits no merged decision text, so its trigger does not fire there.
 - **It moves no number.** `gates.budgets.p95_ms` 5200, `tokens_in` 7700, every
   `tokens_out` tier, every comparator, every instrument digest and M08b's published
   92.9% are exactly where amendment 6 left them.
+
+## Amendment 8 — the DMA rename is cut from 09c and re-dated to after M11, and SPEC/09:661 is superseded by quotation
+
+**Written at the 09c open, 09c PR 1, 2026-09-12, before any 09c diagnosis, code, deploy or
+call.** The cut is the operator's decision and is recorded here, not argued. The reason
+is checked against the tree below. Decisions 1–6 and amendments 1–7 are not rewritten.
+**`SPEC/09` is not edited**: it belongs to a closed milestone (tag `m09`), and ADR-075
+amendment 7 §5 says M09's spec is not edited by later milestones (:2567-2569).
+
+### 1. What is superseded, quoted rather than edited
+
+`SPEC/09-rules-registry-and-the-disposition.md:661`:
+
+> | 17 | ~~The DMA rename~~ — **cut from this milestone**, re-dated to `09c` and re-scoped,
+> because a consistent rename refuses M08b's committed run and confounds F4 | measured in
+> `09c`, against a baseline taken after it | — |
+
+**Superseded in its third cell and its date.** The rename is **not** measured in `09c`,
+and no `09c` baseline is taken after it. The row's reason, *"a consistent rename refuses
+M08b's committed run"*, is not superseded. It is the reason the rename leaves `09c` too.
+
+The same date stands, unedited, in four other places. Each is superseded by this
+amendment and left as written:
+
+- `SPEC/09:530`
+- `SPEC/09b:519`
+- `milestones/M09/README.md:566`
+- `milestones/M09b/README.md:393`
+
+### 2. Why it leaves 09c
+
+**A rename of the market vocabulary changes the system under measurement.** Amendment 1
+§6 said so (:1037-1040). A change to the system under measurement forces a baseline taken
+after it. **09c's claim is a comparison**: a control run against a post-change run, both
+read against M08b's committed run and M09's by the same reader (ADR-078 decision 2). Its
+two deliverables are derived from M09's run (ADR-078 decisions 3 and 4). A rename inside
+the milestone would sit across all three comparisons, and each would need a new
+before-run. **That throws away comparison to M08b's committed run**, which is the one
+comparison every answer-quality debt was dated against (ADR-074:103-110).
+
+**§6's own placement argument does not hold for 09c as now specified, and that is
+recorded rather than glossed.** §6 put the rename in `09c` because *"it is the first
+milestone where a new market vocabulary and a new set of committed trajectories arrive
+together and no comparison spans them"* (:1035-1037). 09c's claim is exactly a comparison
+that spans its trajectories. The premise was true of a milestone that re-runs the goldens
+with nothing to compare. It is false of this one.
+
+**Checked: nothing in 09c depends on the rename having happened.**
+
+- **The browse gap is a `catalog-search` behaviour.** That tool reads neither `dmas` nor
+  `blackouts` (`tools/catalog-search/README.md`, *What it will not do*), and its input
+  schema carries no market field (`tools/catalog-search/schema.in.json`).
+- **The tiers and the gate are scorer inputs.**
+
+If PR 2's diagnosis finds otherwise, 09c stops and reports (SPEC/09c constraint 3).
+
+**Two 09c deliverables also refuse M08b's committed run through `fresh_join.py`, and they
+stay.** ADR-078 decision 5 measured both. They differ from the rename in where they refuse:
+
+- **A tier or gate move refuses on the scorer's side.** The value each run was scored at is
+  recoverable from its own commit, so an era pin reads it.
+- **The rename refuses on the model's side.** Recorded tool arguments fail the renamed
+  contract (:1012-1014), and no era pin makes a pre-rename trajectory valid against the
+  post-rename system.
+
+### 3. The disposition
+
+| | |
+|---|---|
+| debt | the DMA rename (SPEC/06b A21), re-scoped as a change to the system under measurement with its own ADR (§6, :1038-1040) |
+| owner | **Legal/S&P + Data Governance**, unchanged |
+| status | **owned, unscheduled**; no earlier than the close of **M11** |
+| trigger | **none exists at line, and none is written here.** Every register row dates the rename to a milestone and none names an event: `SPEC/09:530`, `SPEC/09b:519`, `milestones/M09/README.md:566`, `milestones/M09b/README.md:393`. The standing condition is §6's sentence quoted in §2: a milestone where the new vocabulary and a new set of committed trajectories *"arrive together and no comparison spans them"*. **Writing an event trigger is the owning seats' decision**, and this amendment does not make it for them |
+| slide count | the **sixth** slide. M08b's journal counts four (`milestones/M08b/README.md:227-237`), and M09's records the fifth, to `09c` (`milestones/M09/README.md:458`). **It is decided, not discovered**, and it is recorded as a slide, never as a payment |
+
+### 4. What this amendment does not change
+
+- No `SPEC/09` line, no M09 or M09b journal line, and no README row other than `09c`'s.
+  Its footnote gains a paragraph, and the paragraph above it stays as written.
+- The rename's standing findings: `data/catalog.json`,
+  `data/catalog_poisoned.json` and `platform/gateway/policy/tools.contracts.json` sit on
+  no two-key rule (:1025-1029), unchanged.
+- No number, case, tier, gate, comparator or instrument digest.
