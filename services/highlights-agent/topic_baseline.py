@@ -74,6 +74,20 @@ joining, so the join is asserted character by character in
 
 Not in `--all`, for the same reason arms 4 and 5 are not.
 
+**7. The phrasings (`--phrasings`).** `quality/adversarial/phrasings.yaml`, at
+`source=INPUT`, through `gw.user_turn` as `run_phrasings.py` builds them. Added at
+M09b PR 2b: ADR-077 decision 3 §4 made `PHR-002` to `PHR-005` admissibility gates,
+and the only reader of them went through the gateway, so the two `expect: allowed`
+rows had no zero-call reading at all.
+
+**8. The additive topic's corpus (`--disclosure-shapes`).**
+`quality/adversarial/disclosure-shapes.yaml`, at `source=OUTPUT`. Added at M09b PR
+2b so the pre-deploy sweep ADR-076 decision 4 partitions the corpus on exists before
+any wording of that topic does. The partition is the corpus's own rule, not this
+file's.
+
+Neither is in `--all`, for the same reason arms 4 to 6 are not.
+
 ## What these numbers can and cannot support
 
 They are `ApplyGuardrail` verdicts, not gateway refusals. A gateway refusal also
@@ -113,6 +127,8 @@ HELDOUT = ROOT / "quality" / "adversarial" / "topic-attacks-heldout.yaml"
 OUTPUT_ATTACKS = ROOT / "quality" / "adversarial" / "topic-attacks-output.yaml"
 REFUSAL_SHAPES = ROOT / "quality" / "adversarial" / "refusal-shapes.yaml"
 DECOMPOSITION = ROOT / "quality" / "adversarial" / "answer-decomposition.yaml"
+PHRASINGS = ROOT / "quality" / "adversarial" / "phrasings.yaml"
+DISCLOSURE_SHAPES = ROOT / "quality" / "adversarial" / "disclosure-shapes.yaml"
 PROBES = ROOT / "quality" / "adversarial" / "probes.yaml"
 CONTROLS = ROOT / "quality" / "adversarial" / "probe-controls.yaml"
 M01_ANSWERS = ROOT / "milestones" / "M01" / "goldens-run.json"
@@ -256,6 +272,53 @@ def control_expectations() -> dict:
     return {c["id"]: c["expect"] for c in corpus["controls"]}
 
 
+def phrasings() -> list[tuple[str, str]]:
+    """`phrasings.yaml`, built exactly as `run_phrasings.py` builds its turns.
+
+    **Added at M09b PR 2b, because ADR-077 decision 3 §4 made four of these rows
+    admissibility gates and no `ApplyGuardrail` reading of them existed.**
+    `run_phrasings.py` reads them through the gateway, so every allowed row is a
+    model call, and the pre-deploy reading has to be taken at zero. `PHR-002` and
+    `PHR-003` were covered by their verbatim echoes in `topic-attacks.yaml`;
+    `PHR-004` and `PHR-005` — the two `expect: allowed` rows, and the direction
+    the loosening can break — were covered by nothing.
+
+    `gw.user_turn(text, "base", "jefferson-city")`, the plan and market
+    `run_phrasings.py` declares, for its own stated reason: the wrapper supplies
+    a subject term the bare sentence does not, and the bare form measures a path
+    no viewer takes. Not in `--all`, for the reason the output arms are not."""
+    corpus = yaml.safe_load(PHRASINGS.read_text(encoding="utf-8"))
+    return [(r["id"], gw.user_turn(" ".join(r["text"].split()), "base", "jefferson-city"))
+            for r in corpus["phrasings"]]
+
+
+def phrasing_expectations() -> dict:
+    corpus = yaml.safe_load(PHRASINGS.read_text(encoding="utf-8"))
+    return {r["id"]: r["expect"] for r in corpus["phrasings"]}
+
+
+def _disclosure_rows() -> list[dict]:
+    """Flatten each pair as the copy that must block, then its minimal partner,
+    then the controls — pair order, for `_refusal_rows`' reason."""
+    corpus = yaml.safe_load(DISCLOSURE_SHAPES.read_text(encoding="utf-8"))
+    rows: list[dict] = []
+    for pair in corpus["pairs"]:
+        rows.extend((pair["block"], pair["allow"]))
+    rows.extend(corpus["controls"])
+    return rows
+
+
+def disclosure_shapes() -> list[tuple[str, str]]:
+    """`disclosure-shapes.yaml`, the additive topic's own corpus, at
+    `source=OUTPUT` (ADR-076 decision 4). Added at M09b PR 2b so the pre-deploy
+    sweep ADR-077 decision 3 §7 partitions on exists before any wording does."""
+    return [(r["id"], " ".join(r["text"].split())) for r in _disclosure_rows()]
+
+
+def disclosure_expectations() -> dict:
+    return {r["id"]: r["expect"] for r in _disclosure_rows()}
+
+
 def _refusal_rows() -> list[dict]:
     """Flatten the pairs, refusal then compliance, then the controls.
 
@@ -325,6 +388,8 @@ EXPECTATION_SOURCES = {
     "output-attacks": output_expectations,
     "refusal-shapes": refusal_expectations,
     "decomposition": decomposition_expectations,
+    "phrasings": phrasing_expectations,
+    "disclosure-shapes": disclosure_expectations,
 }
 
 
@@ -349,6 +414,11 @@ def main(argv=None) -> int:
                         "--all, deliberately: --all is a reproduction command quoted "
                         "in committed documents, and silently adding 30 calls to it "
                         "changes what those documents describe.")
+    p.add_argument("--phrasings", action="store_true",
+                   help="phrasings.yaml at source=INPUT, through gw.user_turn as "
+                        "run_phrasings.py builds it but at zero model calls. Not in --all.")
+    p.add_argument("--disclosure-shapes", dest="disclosure_shapes", action="store_true",
+                   help="the additive topic's corpus, at source=OUTPUT. Not in --all.")
     p.add_argument("--guardrail-version", dest="guardrail_version",
                    help="ask a RETAINed version instead of the pinned one. ADR-035 "
                         "amendment 5: a row scoring the same under the deployed and "
@@ -363,10 +433,12 @@ def main(argv=None) -> int:
         args.questions = args.answers = args.attacks = args.heldout = True
     if not (args.questions or args.answers or args.attacks or args.heldout
             or args.probes or args.controls or args.output_attacks
-            or args.refusal_shapes or args.decomposition):
+            or args.refusal_shapes or args.decomposition
+            or args.phrasings or args.disclosure_shapes):
         p.error("nothing selected; pass --all or one of "
                 "--questions/--answers/--attacks/--heldout/--probes/--controls/"
-                "--output-attacks/--refusal-shapes/--decomposition")
+                "--output-attacks/--refusal-shapes/--decomposition/"
+                "--phrasings/--disclosure-shapes")
 
     cf = boto3.client("cloudformation")
     outputs = {o["OutputKey"]: o["OutputValue"]
@@ -414,6 +486,11 @@ def main(argv=None) -> int:
         arms.append(("refusal-shapes", "OUTPUT", refusal_shapes(), guardrail.CHANNEL_ANSWER))
     if args.decomposition:
         arms.append(("decomposition", "OUTPUT", decomposition(), guardrail.CHANNEL_ANSWER))
+    if args.phrasings:
+        arms.append(("phrasings", "INPUT", phrasings(), guardrail.CHANNEL_QUESTION))
+    if args.disclosure_shapes:
+        arms.append(("disclosure-shapes", "OUTPUT", disclosure_shapes(),
+                     guardrail.CHANNEL_ANSWER))
 
     # **The channel is the arm's own, not `system` for all four (ADR-040).** This
     # file calls its modes "the question channel" and "the answer channel" in its

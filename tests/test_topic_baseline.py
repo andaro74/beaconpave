@@ -56,6 +56,8 @@ ARM_CORPORA = {
     "output-attacks": "topic-attacks-output.yaml",
     "refusal-shapes": "refusal-shapes.yaml",
     "decomposition": "answer-decomposition.yaml",
+    "phrasings": "phrasings.yaml",
+    "disclosure-shapes": "disclosure-shapes.yaml",
 }
 
 #: Arm name -> the function that supplies its rows.
@@ -68,7 +70,8 @@ ARM_READERS = {
     "questions": "questions", "answers": "answers", "attacks": "attacks",
     "heldout": "heldout", "probes": "probes", "controls": "controls",
     "output-attacks": "output_attacks", "refusal-shapes": "refusal_shapes",
-    "decomposition": "decomposition",
+    "decomposition": "decomposition", "phrasings": "phrasings",
+    "disclosure-shapes": "disclosure_shapes",
 }
 
 #: The arms whose corpora declare `expect` on their rows, so a verdict on them is
@@ -78,6 +81,7 @@ ARM_READERS = {
 #: coverage check at runtime.
 ARMS_WITH_EXPECTATIONS = frozenset({
     "heldout", "controls", "output-attacks", "refusal-shapes", "decomposition",
+    "phrasings", "disclosure-shapes",
 })
 
 
