@@ -735,3 +735,83 @@ rather than a file the sentence could stand on. Measured: `frozen_before` appear
 declaration is added at PR 1d with the measurement behind it, in ADR-077's appendix,
 because ADR-077 makes this milestone start relying on the file as a gate. The four named
 here are unaffected and stay owed to Security / Red Team on their own trigger.
+
+---
+
+## Amendment 2 (2026-09-12, M09b PR 2b, before any candidate exists): the additive topic's corpus is frozen, and its partition reads both halves
+
+**This is the decision record the corpus owes.** `pave/twokey.py`'s
+`^quality/adversarial/` rule is Security's key **plus an ADR written in the same diff**,
+and `SPEC/09b` names this ADR for the corpus because decision 4 above is where its
+subject, its file name and its shape were decided. Nothing in decision 4 is rewritten;
+this records what freezing it decided that decision 4 did not.
+
+### What is frozen
+
+`quality/adversarial/disclosure-shapes.yaml`: six minimal pairs at `source=OUTPUT` —
+three **denials** of AI involvement and three **affirmative claims** of human authorship,
+the two disjuncts decision 4 names — each ending in one authorship sentence and paired
+with the identical copy ending in the disclosure `gateway_client.TOOL_SYSTEM` instructs,
+verbatim. Five controls, all `allowed`: factual copy owing no disclosure, copy that
+discusses AI authorship, a person credited for the broadcast rather than the copy, the
+disclosure sentence alone, and a second disclosure worded from the pack's accepted list.
+No row carries entitlement language, so a block cannot be attributed to the two topics
+already deployed. `tests/test_m09b_disclosure_shapes.py` holds each of those claims.
+
+It was committed on its own, before the sweep that reads it, before `topic_baseline.py`
+had an arm that could read it, and with no path matching `candidat` on any of 166 refs.
+Its header states that this ordering is the whole of its value as a gate.
+
+### Two things freezing it decided
+
+**1. The vocabulary.** Decision 4 and ADR-077 decision 3 §7 say `must_block` and
+`must_allow`. The corpus says `expect: blocked` and `expect: allowed`, as every other
+corpus `topic_baseline.py` reads, so one arm reads it and one coverage check refuses a
+row with no expectation. The mapping is stated in the corpus and here, so a reader of
+either spelling finds the other.
+
+**2. The partition reads both halves, not only `must_block`.** Decision 4 says a
+`must_block` row the pre-deploy guardrail already blocks is moved out of the control set
+as already-covered. That is kept, and two cases decision 4 did not name are added,
+each on a line that already governs it:
+
+- **An `allowed` row the pre-deploy guardrail blocks 3 of 3 is PRE-BLOCKED**, recorded
+  and not a control. ADR-077 decision 3 reads every gate as *still* against the deployed
+  verdict on the same row, and an additive topic *"can block more, never less"* (ADR-035
+  amendment 4:952-955), so a row already blocked has no *still allowed* to keep. Left
+  in, it would strike every candidate for a reason no wording can change, and the
+  no-winner branch would fire procedurally.
+- **A row split at k=3 pre-deploy is UNSTABLE-PRE**, recorded and not a control, never
+  resolved by majority (ADR-031; `phrasings.yaml`'s aggregation).
+- **A gate left with no `blocked` control is reported *not exercised*, never *held*** —
+  amendment 1's rule for F5's denominator, applied to a gate.
+
+Written into the corpus before the sweep it partitions on was read.
+
+### What the pre-deploy sweep found
+
+At `abayh4ye7f8o` v4, k=3: **all seventeen rows allowed unanimously**, the six `blocked`
+rows included, which is v4 carrying no authorship topic. By the partition: seventeen
+CONTROLs, none ALREADY-COVERED, PRE-BLOCKED or UNSTABLE-PRE. ADR-077 decision 3 §7 has
+six rows that can fail. Record: `milestones/M09b/topic-baseline-pre-phrasings-disclosure.json`.
+
+### Findings recorded here and not resolved
+
+- **The corpus should be a prohibited source for the additive topic's candidates, and no
+  rule says so.** ADR-024's amendment names four files and predates this one; by that
+  amendment's own test, a term appearing here and nowhere else is presumed drawn from
+  here. For PR 3's prohibited-source declaration. ADR-024 is not edited.
+- **The corpus's author had read ADR-077's axes F to J.** Stated in the corpus as its
+  first weakness; no test can check it. F-4, from the corpus's side.
+- **G is 7 on M09's control run**, from two agreeing readings, against F1's `G ≥ 8` —
+  below F1's floor before any wording exists (`milestones/M09b/fg-pre.json`). F1 is
+  not re-scoped (decision 6).
+- **The throwaway guardrail ADR-077 decision 3 sweeps against does not exist.**
+  Measured: `throwaway-gate` is a four-line contract exhibit in `tests/test_contracts.py`;
+  `tools/sweep_sixteen.py` is reporting-only; `CreateGuardrail` appears in one prose line
+  of ADR-064; `topic_baseline.py` binds `PinnedGuardrailId`, and so do the two arms this
+  PR adds. Every gate reads a throwaway verdict and fails closed without one. **Not
+  designed around here**, and the live proposal to cut the candidate set to one per topic
+  and delete the requirement is not taken here.
+
+The milestone journal notes carry the full record of PR 2b's readings.

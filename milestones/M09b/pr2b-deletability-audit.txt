@@ -1,0 +1,138 @@
+M09b PR 2b — deletability audit, at CHECK granularity
+======================================================
+
+Method: mutate the PROPERTY a check protects, assert the mutation is live (the old
+substring occurs exactly once before and is gone after, the new one is present),
+run the check, record what fires. Working copies backed up to a temp directory as
+bytes and restored FROM THERE, never `git checkout --`; every restore is asserted
+to reproduce the original SHA-256. `git status --short` was empty after both passes.
+
+Two passes:
+
+- PROPERTY (P1-P18): the plant, run against the test files that own the property.
+  A red there makes the gate red, and a full gate run per plant adds nothing to that
+  fact. The failing cases are named.
+- GATE (G1-G4): the plant AND the check that catches it disabled together (the test
+  function renamed so pytest does not collect it), run through the GATE —
+  `python -m pave.cli check`, not `pytest tests/`. Gate PASS means nothing else in
+  the suite holds that property: the check is unique, not dead. Paired with the
+  property pass showing it bites, that is a live check.
+
+Harness: a scratchpad script, not committed; every mutation is quoted below.
+
+Tree: every plant ran against the head of branch m09b-pr2b-readings-and-corpus
+after its ninth commit (subject: "the rule gaps closed in the diff that creates what
+they cover, with a plant each"), before the journal, this file, the ADR amendment
+and the PR body were added.
+
+Gate baseline on that tree: `python -m pave.cli check` PASS, 4620 passed, 8 skipped,
+148.33s.
+
+
+PROPERTY PASS — 18 plants, 18 CAUGHT
+------------------------------------
+
+pave/twokey.py, against tests/test_twokey_seats.py
+
+  P1  census clause loses its `milestones/M09b/(py|json)` branch        CAUGHT
+      test_m09bs_readers_records_and_readings_collect_their_seats
+      test_the_grant_readings_keep_legal_sp_though_the_census_clause_also_matches_them
+      test_the_rename_bypass_stays_closed_for_m09bs_rules
+  P2  `topic-baseline[^/]*\.json` back to `topic-baseline\.json`         CAUGHT
+      test_m09bs_readers_records_and_readings_collect_their_seats
+  P3  grants rule's `M09b/withheld-grants` branch renamed to `M9Xb`      CAUGHT
+      test_m09bs_readers_records_and_readings_collect_their_seats
+      test_the_grant_readings_keep_legal_sp_though_the_census_clause_also_matches_them
+  P4  ROLES.md rule pattern made to match nothing (`\.mdx$`)             CAUGHT
+      test_m09bs_readers_records_and_readings_collect_their_seats
+      test_the_rename_bypass_stays_closed_for_m09bs_rules
+  P5  census tests clause narrowed to `tests/test_m09_[d-z]...`,        CAUGHT
+      which drops test_m09_cap.py and keeps the other M09 tests
+      test_m09bs_readers_records_and_readings_collect_their_seats
+      test_m09s_readers_records_and_pins_collect_the_census_seats
+      test_the_seat_pin_covers_every_rule_this_adr_added
+
+milestones/M09b/fg.py, against tests/test_m09b_fg.py
+
+  P6  `--baseline` given a default (M08b's answer-channel.json)          CAUGHT
+      test_the_baseline_is_an_argument_with_no_default
+  P7  `agree = True or ...` — a disagreement resolved                   CAUGHT
+      test_a_disagreement_is_published_and_not_resolved
+  P8  the case-level DEC-001 exclusion in f_at_least_once disabled       CAUGHT
+      test_the_at_least_once_companion_counts_one_refused_grant_and_nothing_else
+  P9  a refused sample with no sidecar detail counted as nobody's        CAUGHT
+      test_an_unattributed_refusal_is_refused
+  P10 the census witness forced to agree                                 CAUGHT
+      test_a_census_the_run_did_not_write_is_published_as_a_mismatch
+
+tests/test_m09b_ordering.py, against itself
+
+  P11 `elif latest == commit:` disabled — a same-commit candidate passes CAUGHT
+      test_a_candidate_committed_in_the_same_commit_as_its_corpus_is_red
+      test_a_candidate_edited_together_with_its_corpus_is_red
+  P12 the published limit sentence deleted from the docstring            CAUGHT
+      test_the_published_limit_is_still_published
+
+services/highlights-agent/topic_baseline.py, against tests/test_topic_baseline.py
+
+  P13 the phrasings arm built from decomposition()                       CAUGHT
+      test_every_arm_reads_the_corpus_its_name_says_it_reads
+  P14 the disclosure arm scored at INPUT / CHANNEL_QUESTION              CAUGHT
+      test_each_arm_is_scored_on_the_channel_its_own_corpus_declares[disclosure-shapes]
+  P15 the disclosure arm dropped from EXPECTATION_SOURCES                CAUGHT
+      test_the_arms_that_score_expectations_are_exactly_the_ones_wired_to_supply_them
+
+quality/adversarial/disclosure-shapes.yaml, against tests/test_m09b_disclosure_shapes.py
+
+  P16 DSH-004's allow copy changed outside its last sentence             CAUGHT
+      test_each_pair_differs_only_in_its_authorship_sentence[DSH-004]
+  P17 `frozen_before` renamed                                            CAUGHT
+      test_the_frozen_declarations_are_present_and_name_what_they_predate
+  P18 "blackout" added to a control                                      CAUGHT
+      test_no_row_carries_entitlement_language
+
+
+Two checks were found dead BEFORE this audit ran, by reading, and fixed rather than
+audited into SILENT rows:
+
+- fg.py's f_at_least_once tested `dec001_shape is False` per sample AND excluded the
+  case — the sample condition could never change the result on data answer_channel
+  produces, so it was removed, and the test's DEC-001 case given a second, plain
+  grant sample so the case-level exclusion (P8) is what it measures.
+- `any_refusal_matches_the_sidecars_census` was only ever read off the committed
+  record, where it is True whatever the code does. A test now feeds it a sidecar
+  whose census disagrees (P10).
+
+
+GATE PASS — 4 plants, check disabled with the plant
+---------------------------------------------------
+
+  G1  P3 + test_m09bs_readers_records_and_readings_collect_their_seats and
+      test_the_grant_readings_keep_legal_sp_... disabled
+      SILENT - gate PASS, 4618 passed, 8 skipped
+  G2  P6 + test_the_baseline_is_an_argument_with_no_default disabled
+      SILENT - gate PASS, 4619 passed, 8 skipped
+  G3  P11 + test_a_candidate_committed_in_the_same_commit_as_its_corpus_is_red and
+      test_a_candidate_edited_together_with_its_corpus_is_red disabled
+      SILENT - gate PASS, 4618 passed, 8 skipped
+  G4  P12 + test_the_published_limit_is_still_published disabled
+      SILENT - gate PASS, 4619 passed, 8 skipped
+
+Read as UNIQUENESS: with the check gone, nothing else in the suite holds its
+property. Each is paired with its property plant above, which shows it bites, so
+each is a live check rather than a dead one. The per-plant counts are below the
+baseline by exactly the number of test functions disabled; that is arithmetic on
+this one tree, not a delta against any other.
+
+
+NOT AUDITED, and why
+--------------------
+
+- test_this_repository_is_not_a_shallow_clone: the plant is a shallow clone, which
+  this harness does not build. Its failure mode is loud (every git read errors).
+- test_m09bs_transcripts_stay_prose: asserts a rule does NOT reach three paths; the
+  plant would be a new rule, which is a different diff's job.
+- What any guardrail does with a row. No test here can say, and none claims to: the
+  sweeps are the reading.
+- Whether the two readers were independent in anything but their instructions and
+  their contexts. No test can say; the journal notes state what the independence is.
