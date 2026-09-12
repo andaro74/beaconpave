@@ -1,0 +1,72 @@
+M09b PR 1c — deletability audit for the withdrawal record
+=========================================================
+
+Method: mutate the thing the PR adds, assert the mutation is LIVE in the file,
+run the suite, record whether any check fires. Working copies backed up to a
+temp directory and restored from there, never `git checkout --` (which would
+delete the uncommitted change the audit exists to test).
+
+Baseline on this branch before mutation: 4484 passed, 8 skipped.
+Baseline on `main` at 74cdd27, measured this session: 4481 passed, 8 skipped.
+The three new cases are `test_cited_commits_resolve` over the three SHAs the
+amendment cites (d625033, 3f81fe6, 850728e), all reachable from main.
+
+This PR adds two things a reader depends on. Both were mutated.
+
+
+PLANT 1 — the ADR index row's amendment clause
+----------------------------------------------
+Mutation: delete the `**Amendment 1**, …` clause from ADR-076's row in
+`docs/adr/README.md`, leaving the rest of the row intact.
+Plant verified live: the clause is absent from the file.
+
+Result: **CAUGHT.**
+
+    FAILED tests/test_adr_index.py::test_an_amended_adrs_row_says_it_was_amended[ADR-076]
+    1 failed, 86 passed
+
+The check is load-bearing. It is also the check that caught this PR's own first
+omission: the amendment was appended to ADR-076 and the index row was not
+updated, and `pave check` went red on exactly this test before any of it was
+committed. Recorded because a check that catches its own author is the only
+evidence that it works.
+
+
+PLANT 2 — the WITHDRAWN header at the top of SPEC/09b
+-----------------------------------------------------
+Mutation: delete the twelve-line `> **WITHDRAWN …**` block from
+`SPEC/09b-the-guardrail-line-and-the-topic.md`.
+Plant verified live: `grep -c WITHDRAWN` returns 0.
+
+Result: **SILENT.** 4484 passed, 8 skipped. Nothing fires.
+
+A reader who opens the spec and never reaches ADR-076 finds an accepted spec
+with an inverted citation in it, and no check prevents the header being removed.
+
+**No test was added, deliberately, and the reason is recorded rather than the
+gap being left to look like an oversight.** A test asserting that this path
+carries a WITHDRAWN marker is a guard coupled to its own data: the replacement
+spec takes this same path, and the first legitimate replacement would turn the
+guard red — the failure mode already recorded in this repository for a test that
+asserted a register's contents. The durable form is a general predicate (*a spec
+whose decisions an ADR has withdrawn says so at the top*), which is a mechanism,
+and building it inside this PR is scope growth.
+
+**Recorded as a debt instead, not closed:**
+
+  debt    : `SPEC/`'s withdrawal markers are prose with no check behind them.
+            Deleting SPEC/09b's WITHDRAWN header is silent on 4484 tests.
+  owner   : PM + Platform Engineering
+  trigger : the next PR that withdraws or supersedes a document under `SPEC/`
+  note    : the replacement spec should carry the withdrawal as its own
+            `supersedes` line, so the pointer survives the file being replaced
+            rather than depending on a header on a path that will be reused.
+
+
+What this audit does not claim
+------------------------------
+It does not claim the amendment's *content* is checked. Nothing in this
+repository can assert that a withdrawal record is honest, that a disposition is
+the right one, or that a finding published as not closable really is. Those rest
+on the seats and on the next cold review — which is why the amendment records
+that the cold-review slot's output must be committed like any other evidence.

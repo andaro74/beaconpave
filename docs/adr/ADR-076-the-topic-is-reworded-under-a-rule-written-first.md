@@ -359,3 +359,350 @@ harness and the character cap with a policy DSL that compiles to the provider's
 limits; the corpora are already frozen files with decision rules, and the sweep is
 already a function from a wording to a per-row verdict — the interface already
 matches.
+
+---
+
+## Amendment 1 (2026-09-11, the same day, before any measurement): the derivation rule is WITHDRAWN, and the reason is that no corpus in this repository is permitted to select
+
+**`SPEC/09b`'s derivation rule and decision 2 above are withdrawn.** Not amended,
+not repaired: withdrawn, and re-derived from the owning ADRs in `SPEC/09b`'s
+replacement. This amendment is the record of a wrong prediction, which this project
+keeps rather than deletes (ADR-012's own practice — *"this index marks superseded
+reasoning instead of deleting it"*, and its Amendment correcting its own Decision).
+
+**The milestone stopped before any measurement.** No sweep was taken, no candidate
+wording was written, no number was produced under the withdrawn rule. Nothing
+downstream rests on it, and nothing here is a threshold moved to clear a reading:
+pre-registration constrains what may change *after* measurement, and there has
+been none. It will never be this cheap again, which is the only good news in this
+record.
+
+**Why it is an amendment here rather than a new ADR.** ADR-067 recorded its own
+withdrawn overclaim at the end of itself, *"because this ADR is where the overclaim
+was made."* This ADR is where the pre-registration was made. A new ADR would leave
+decision 2 standing as accepted pre-registration with its withdrawal one document
+away — the *stated and absent* shape CLAUDE.md names as worse than a missing
+protection, and the shape ADR-035 and ADR-037 were both written about. The
+re-derived rule gets its own ADR beside the new spec; that ADR is not this one.
+
+---
+
+### The headline, and the withdrawn rule's real error
+
+**No corpus in this repository is permitted to select a wording. Not one.** Every
+frozen corpus either forbids judging a fix in its owning ADR's own words, or is a
+pass/fail gate with no gradient, or is excluded from selection by name.
+
+**The withdrawn rule assumed a permitted selector existed, and the repository had
+already decided none would.** That is the error. It is not fixed by scoring a
+different corpus, because that moves the same violation one file over.
+
+The consequence for the replacement, inherited rather than rediscovered: **the rule
+must ADMIT, not select.** Gates are fail-closed and pass/fail, never a maximised
+count; one survivor wins by elimination and no corpus chose it; several survivors
+are separated by a rule that reads no corpus; none is the no-winner branch, which
+under this design stops being the expensive choice because nothing had to score.
+
+### Two sessions, no contact, three of the same holes
+
+The cold review (PR 1b) read the rule text outward. The rewrite session read the
+owning ADRs inward. **They are recorded as pairs, unmerged**: two independent
+derivations of one hole is evidence about the method, and collapsing them into one
+finding destroys that evidence.
+
+| hole | cold review, from the rule text | rewrite session, from the owning ADR |
+|---|---|---|
+| the inverted citation | **F-1**: rule 3 selects on `refusal-shapes.yaml`; rule 4 excludes `answer-decomposition.yaml` quoting ADR-067:89, which is `refusal-shapes.yaml`'s own ADR | **defect 1**: and ADR-068 carries the identical prohibition, so **inverting the two does not repair it** — both are barred |
+| the goldens leak | **F-2**: `topic_baseline.py --answers` reads `milestones/M01/goldens-run.json` (`:118`, `:160-171`), 22 answers; three exits, none written down | **defect 3 + 4**: the selector *is* the golden set, and F4 names *"any goldens answer file"* — see *no honest exit* below |
+| the objective rewards blocking least | **F-5**: no `expect: allowed` restriction; the four must-block compliance rows in neither the admissibility set nor F2 | **defect 5**: measured 6 `allowed` / 4 `blocked`, and ADR-067 decision 2 pre-registered it — *"a topic that blocks nothing fails the compliance halves"* |
+
+### Every finding, dispositioned
+
+**TAKEN — the replacement is built on these.**
+
+| finding | source | disposition |
+|---|---|---|
+| the rule selects on a corpus whose ADR forbids judging a fix | F-1 / defect 1 | the rule is rewritten to admit, not select. No clause reused without re-derivation from the owning ADR at line |
+| rule 1 executes token-provenance, not ADR-024's prohibited-source list | F-3 | taken. The list never reached `phrasings.yaml` — `gateway-stack.ts:293-297` records the extension as **owed to Security**, and records a draft that reached for `PHR-002`'s noun `VPN` and was caught |
+| the objective rewards blocking least | F-5 / defect 5 | no gradient survives. Admissibility is pass/fail in **both** directions, and `phrasings.yaml`'s two `expect: allowed` rows enter it |
+| `phrasings.yaml` omitted entirely | defect 6 | zero occurrences by filename in the withdrawn spec; only `PHR-002`/`PHR-003`, both `expect: blocked`. `PHR-004` and `PHR-005` enter the replacement |
+| the candidate set has no number, no diversity requirement, no generation procedure | F-4 (part) | all three stated in the replacement. *"Fixed in number"* with no number is not a rule |
+| how multiple selection signals combine is nowhere specified | F-6 | moot under admit-not-select, and recorded as moot rather than silently dropped |
+| the no-winner branch is never walked | review §7 | it gets a test, a plant, and a Definition of done that does not make choosing a winner the cheap option |
+| F1 is a one-key control over the claim's outcome | this record | two independent readings, below |
+| F5 can be vacuously clean | review / this record | a denominator, below |
+| two debt registers with nothing asserting they agree | this record | below |
+
+**PUBLISHED AS NOT CLOSABLE — carried as named limits of the claim, not solved.**
+
+**F-4: an ordering check constrains commitment and never authorship.**
+`tests/test_m09b_ordering.py` reads `git log` and is red if a candidate's commit
+precedes the corpus that judges it. That is a real check and it is not the one
+anyone needs: it proves *when bytes were committed*, and the hazard is *what the
+author had read*. An author who has read every committed corpus can write a fitted
+candidate and commit it in any order. No test can close this, because the evidence
+does not exist in the repository. It is closed structurally or not at all —
+separation of candidate authorship from the judging corpus — and where that
+separation cannot be had, it is published.
+
+**Defects 3 and 4 together: a rule with no honest exit is not a rule.** Rule 3
+selects on `topic_baseline.py --answers`. F4 fires if the selection record's
+`inputs_sha256` names *"any goldens answer file"*. Running rule 3 and recording its
+inputs honestly **fires F4 at PR 3**. Omitting the file from `inputs_sha256` is
+**concealment**. There is no third option, and decision 2 above is titled *"the rule
+cannot read the golden set"* while pointing at the rule that does. Published
+together because either alone reads as a fixable slip and the pair is the finding.
+
+**Defect 7 — a structural constraint, not a scoping preference. No answer corpus
+may enter selection or admissibility.** `milestones/M01/goldens-run.json` carries 25
+records; `answers()` skips any whose answer is `refused_by_gateway`; the three
+skipped are `blackout-001`, `blackout-006`, `blackout-009`; 22 are emitted.
+**`blackout-009` is F1's own canonical case and the arm cannot see it.** This is not
+a leak to be closed by dropping the file from a digest — it is permanent, and it
+was measured twice before this milestone:
+
+> ADR-035 amendment 7: *"The three missing are `blackout-001`, `-006` and `-009` —
+> exactly the three blackout cases… **The diagnostic coverage is anti-correlated
+> with risk**: the cases it cannot test are the cases worth testing, because the
+> reason it cannot test them is that they were already refused."*
+>
+> ADR-035 amendment 8: *"A blocked answer is never committed. An OUTPUT-channel arm
+> built from committed answers is by construction an arm over the answers that were
+> ALLOWED… **it must not be recorded as closing this.**"*
+
+A refusal leaves no answer to score, and refused cases are exactly what M09b
+targets. Any selector over committed answers is blind to its own target by
+construction.
+
+**The published asymmetry: nothing committed measures whether the loosening goes
+too far.** `topic-attacks.yaml:15` records the mirror of this about ADR-035 —
+*"**Nothing in the ADR measures whether it bit too hard**"* — for a tightening. M09b
+loosens, and the same gap is open in the same place: the unexposed evidence
+(`PHR-004`, the clean catalog, both `expect: allowed`) tests the tightening
+direction only. `topic-attacks.yaml` is all-`expect: blocked` and burned for
+selection; `topic-attacks-heldout.yaml` is blocked-and-measured-vacuous.
+**Minting a corpus mid-milestone to close this is REFUSED**: a corpus written after
+the gap is known is chosen after seeing a result, which is the same defect as every
+other finding in this set. The asymmetry is a named limit of the claim and stays
+open.
+
+**DECLINED, with the reason.**
+
+| finding | why declined |
+|---|---|
+| freeze a third-generation held-out corpus | `topic-attacks-heldout.yaml`'s ordering property is **intact** — measured below — so the retirement argument does not transfer. The general rule is separation of candidate authorship from the judging corpus; minting a corpus per wording change puts the project on a treadmill and buys nothing the separation does not |
+| `probes.yaml` as an admissibility gate | declined **on the confound, not on the missing freeze**: `phrasings.yaml:28-30` — *"ADV-006 and ADV-009 both fire `PROMPT_ATTACK` independently of any topic, so neither can isolate whether `entitlement-circumvention` is doing anything."* The reason must stay attached, because a later reader who thinks it was excluded for a missing freeze will re-admit it once a freeze is declared |
+
+### Was `topic-attacks-heldout.yaml` revised-against, or only read? Only read.
+
+Measured across every commit that has ever touched `gateway-stack.ts`:
+
+```
+entitlement-circumvention   len=191  sha256[:12]=ad554785a3de   IDENTICAL at all 7
+                            unchanged since d625033 (Change A, 2026-08-21)
+enforcement-probing         len=170  sha256[:12]=06351db356     IDENTICAL at all 5
+                            unchanged since it first appeared at 3f81fe6
+```
+
+`heldout`'s `judges:` field names *"the topic proposed to close ATK-007 (ADR-035
+amendment 4)"* — that is `enforcement-probing`. Neither wording has moved since the
+corpus froze, and the rows were never edited: `850728e` is **+25 lines, 0 row
+changes**, a header recording the vacuous result with *"The rows are NOT rewritten.
+A frozen corpus that gets edited when it disappoints is not frozen."*
+
+**The file's ordering property is intact. The exposure is on the author side only** —
+a fact about whoever has read it while authoring candidates, not about the file.
+
+### F1 is a one-key control over the claim's outcome
+
+`milestones/M08b/withheld-grants.json` declares its own nature: *"one reading per
+sample refused on the answer channel by the entitlement topic — grant or not…
+**No held text is here or may be.**"* `SPEC/09b:362` states the dependency: *"The
+grant booleans move `F` and `G` both, so they decide this milestone's own F1."*
+
+So the primary falsifier of the claim rests on **one person's booleans over text
+that is not committed and may not be**, in a repository whose premise is that
+consequential decisions collect two keys (G9). The file is right to forbid
+committing held text; the fix is not to break that.
+
+**Required on PR 2: two independent readings of the withheld output, committed
+separately, with the disagreement published as the reading.** Seats: **Legal/S&P**,
+whose key sits on that path already because an answer-policy reading bills that
+seat, and **Security**, which owns what the guardrail blocked. This makes F1
+*checkable*. **It does not make F1 outsider-verifiable, and this record says so
+plainly** — no reader outside the operator pair can ever verify `F` or `G`, because
+the evidence was withheld by the control being measured. That is the most the
+physics allows.
+
+### F5 needs a denominator, not a rewrite
+
+F5 fires when a refused sample deciding F1 or F3 names more than one `TOPIC:`. With
+no deciding samples it is satisfied by having nothing to check. **F5 must publish
+how many deciding samples existed; zero is reported as "F5 not exercised" and never
+as "F5 clean."** ADR-035 amendment 5 already named this object, in this repository,
+about this corpus: *"Rows 23 and 24 were confirmed by a corpus that would have
+confirmed them had the change never been made. That is a vacuous confirmation — a
+distinct failure from a falsified row, and a quieter one, because it reads as
+evidence."*
+
+### What the claim can and cannot be falsified on
+
+| falsifier | fully readable from committed evidence **and** sound | why |
+|---|---|---|
+| **F2** | **yes** | the two sweep records joined by `topic_delta.py`, over frozen corpora. **This is the loosening-too-far direction — the risk M09b actually carries** |
+| **F3** | **yes** | the two sidecars' `cases_at_least_once` / `cases_by_majority` |
+| F1 **as written** | no | `F`/`G` are computed from the operator's grant booleans over uncommitted text. Clause 3 (`blackout-009` refused by majority) is readable; clauses 1–2 are not |
+| F4 | no | clause 2 cannot discriminate (no honest exit); clause 3 is `git log`, environment state, not committed evidence. Clause 1 survives |
+| F5 | conditionally | readable, but vacuous without a denominator |
+
+**Two of five as written — but the benefit direction is not what made F1
+unreadable, and the replacement is not confined to F2 and F3.** Two questions were
+conflated here, and separating them is the most consequential correction in this
+record:
+
+- **(a) did a case stop being refused, and was `TOPIC:entitlement-circumvention`
+  among the topics that refused it?** — **readable from committed records, no
+  withheld text.** `milestones/M09/goldens-run-refusals.json` carries, per case per
+  sample, `decision`, `mechanism`, `assessed` (the literal topic names), `channels`,
+  the `guardrail` id and version, and `record_id` with `record_resolved: true`,
+  *"taken from the audit records fetched back out of the lake"*. Its `census` block
+  publishes **both** estimators (`refused_at_least_once`, `refused_by_majority`,
+  `cases_separating_the_estimators`). The sidecar is written automatically by
+  `run_with_tools.py:658` for any run, so PR 4's post-deploy run yields the same
+  structure with no new instrument.
+- **(b) was the answer the guardrail withheld actually a grant?** — **genuinely
+  operator-attested**, and the only thing that is. This is the grants file, and `F`
+  and `G` are the quantities that read it.
+
+The two target cases are identifiable by id **today**, from committed records, with
+no withheld text read: **`brand-021` (s2)** and **`concise-022` (s3)**, both
+`assessed: ["TOPIC:entitlement-circumvention"]` on `channels: ["answer"]`,
+`record_resolved: true`. `blackout-009` is refused 3 of 3 — s1 and s2 on
+`entitlement-circumvention`, s3 on `enforcement-probing`, which is the
+majority-masking movement F1's third clause was written for.
+
+**So the benefit claim is soundly pre-registrable and symmetric with F3**: cases
+refused by majority with `TOPIC:entitlement-circumvention` among the assessed names,
+before versus after, on the same sidecar structure, with an at-least-once companion
+beside it and the disagreement published as the reading. Nothing in that direction
+requires a grant boolean — only refused-versus-answered plus topic attribution.
+
+**What deliverable 3 inherits: the claim covers the additive control AND the wording
+fix's benefit AND its risk. Only the grant attribution is published as attested**,
+and F1's *grant-shaped* clauses are the only part that ships as
+checkable-not-verifiable, with the two independent readings above.
+
+**This record originally scoped the claim smaller — to the additive control alone —
+and that was wrong.** The cause: *"the text was withheld by the control being
+measured"* is true of (b) and was allowed to contaminate (a). The two questions read
+the same file and one of them never touches the withheld half. A verdict that
+narrows a milestone on a conflation is worse than one that widens it on a
+measurement, because nobody re-audits a scope cut.
+
+### NEW FINDING — the project has two debt registers and nothing asserts they agree
+
+A milestone's debts exist in two authoritative-looking places that **differ by
+seventeen rows**:
+
+| register | built how | rows for M09 |
+|---|---|---|
+| `milestones/M09/README.md:518` — *Debts carried out* | at the close, from the milestone's own findings | **36** |
+| `SPEC/09`'s *Obligations inherited* | by hand, from the previous close | **19** |
+
+A carry-in table is transcribed by hand and only a later re-audit catches a miss —
+which is how four dropped debts were found here rather than at the close.
+**This is ADR-037's shape exactly**: two lists that must agree, neither checking the
+other, the drift found by a person. ADR-037's answer was a contract test
+(`tests/test_contracts.py:702`), and the same answer applies.
+
+**The test it implies, and it is OWED, not closable inside M09b.** Exact matching
+needs a stable identifier per debt; none exists, and minting them retroactively
+would edit four closed journals including M09's. The weaker one-directional form —
+comparing row counts — would be satisfied by a catch-all row, which is precisely
+what hid these four, so it would be a check that cannot fire and this repository
+does not land those. **Owner: Platform Engineering + PM. Trigger: the next PR that
+edits `close-milestone`'s step that writes the carry-out table.**
+
+### The four debts dropped, recovered with owners and triggers intact
+
+| # | debt | owner | trigger |
+|---|---|---|---|
+| 19 | the fix moved a **fifth** site, `templates/agent-tools/evals/answer.schema.json.tmpl`; the count of sites has been wrong three times | Platform Engineering | the next PR that changes the fix's site count |
+| 28 | `milestones/M08/context_census.py`'s `sys.path.insert` leaking a tool path into the session | Platform Engineering | the next PR that edits that file for a reason of its own |
+| 33 | **Only *Demo artifact* blocks are checked.** `DEMO_HEADING = "## Demo artifact"` at `tests/test_documented_commands.py:62`; blocks outside such a section are unchecked | PM + Platform Engineering | the next PR that edits a command block in `SPEC/` or `README.md` — **this trigger fires at PR 1** |
+| 34 | CLAUDE.md says *one milestone = one branch `mNN-<slug>`*; five milestones have used one branch per PR | Platform Engineering (the lead's seat) | the next PR that edits CLAUDE.md's *Milestone discipline* section |
+
+**None of these is closed by being listed here.**
+
+### Both count readings, with the definition each used
+
+The cold review and the rewrite session disagreed on how many obligations degraded.
+They were answering different questions, and **where they disagree the disagreement
+is the reading** — M09's own inherited rule, applied to M09b's audit of itself.
+
+- **Reading R — degraded = carried in a way that produces an inconsistent
+  disposition against a same-trigger sibling. → 1.** Debt 7 (*the disclosure lane
+  is wired into no CI workflow*, trigger *the first PR that runs the pack again*)
+  sits inside the catch-all at `SPEC/09b:433` marked `unchanged`, while debt 24
+  (*the disclosure comparator pin*, trigger *the first PR that takes a second
+  disclosure run*) gets its own row honoured at PR 4. **Same triggering event, two
+  dispositions.**
+- **Reading M — degraded = present but stripped of the individual owner and trigger
+  its source gave it. → 13.** `SPEC/09b:433` collapses **twelve** debts (1, 2, 3, 4,
+  5, 7, 8, 9, 10, 13, 14, 15) into one row with owner *"as M09 recorded them"* and
+  trigger *"unchanged"*. Debt 27 (`tool_request` probes + the `enforcement-probing`
+  trigger — dated **M09b**, owner Security) is dispersed into `:210` as a
+  side-prediction and `:407` in out-of-scope, and is in neither table.
+
+R asks *did a degradation change a disposition?* M asks *did the table keep the
+promise its own header makes* — *"each with an owner and a date"*? Neither subsumes
+the other. A reader needs R to know where to look for a consequence and M to know
+where to look for a missing owner.
+
+### The four corpora that declare no freeze — one debt
+
+`probes.yaml`, `probe-controls.yaml`, `tool-plane-probes.yaml` and
+`g4-semantics.yaml` carry **no `frozen_at` and no `frozen_before`**. Every other
+corpus in `quality/adversarial/` declares both, and the declaration is the whole
+value: a *declared* claim about what a corpus predates can be checked against the
+history, and a date inferred from `git log` is worth nothing, because the question
+is what the author had read, not when bytes landed. **No freeze date is inferred for
+these four anywhere in this milestone.**
+
+**Owner: Security / Red Team** (the owning seat of `quality/adversarial/`).
+**Trigger: the next PR that adds a row to any of the four.**
+
+### The process finding: the cold-review slot nearly lost its catch
+
+The cold review ran, found six things, and wrote them to a scratchpad path no later
+session could read. The rewrite session **independently re-derived three of the six**
+(the inverted citation, the goldens leak, the objective rewarding blocking least)
+and did not see the other three until they were pasted in by hand.
+
+The spare has caught something material in every milestone of this project. **This
+is the first time the catch nearly did not land**, and it nearly did not land for a
+reason that has nothing to do with the review's quality: its output had no committed
+home. M09's cold read was a committed artifact (`479972e`, PR #135). M09b's was not.
+
+**The slot's output is part of the milestone's evidence and must be committed like
+any other.** Recorded here as a process finding beside the findings themselves,
+because a review whose output evaporates is indistinguishable from a review that was
+never run.
+
+### Two corrections to this session's own audit, with their causes
+
+| claim | corrected to | cause |
+|---|---|---|
+| two obligations dropped | **four** | audited against `SPEC/09`'s carry-in table (19 rows) instead of `milestones/M09/README.md:518`'s carry-out list (36). Wrong population |
+| four of five falsifiers readable | **two as written** | missed that `F` and `G` are computed from an operator-written file over uncommitted text, so F1's clauses 1–2 are unverifiable by anyone |
+| the wording fix's benefit can only ever be operator-attested, so the claim shrinks to the additive control | **the benefit is soundly pre-registrable; only grant attribution is attested** | conflated *"did this case stop being refused, by this topic"* (committed, `goldens-run-refusals.json`) with *"was the withheld answer a grant"* (attested). One file, two questions, and only the second touches withheld text |
+
+A third was a false positive: debt 33 was reported carried on a grep hit for *"Demo
+artifact"*, which in `SPEC/09b` is the section heading at `:522`, not the debt.
+
+**Both were caught by their author before shipping, which no previous wrong prose
+claim in this project was** (~70 wrong citations across `SPEC/`06 reached the record;
+ADR-038's false pass was closed while live). That is a datum about the method, not a
+credit. What produced it was re-auditing against committed files at line rather than
+against a list — the same practice that produced every finding above, applied to the
+audit's own output.
