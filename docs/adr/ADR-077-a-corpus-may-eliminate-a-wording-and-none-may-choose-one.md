@@ -552,3 +552,145 @@ choose never, sourced to ADR-076 amendment 2 at line. Gate 7 read a corpus that 
 one. The one line citation into this file from elsewhere,
 `milestones/M09b/journal-notes.md:184`'s *ADR-077:178*, now reads at :179, which the
 journal notes record rather than edit.
+
+---
+
+## Amendment 2 (2026-09-12, M09b PR 5, before any sweep, deploy or post-deploy reading): the additive topic's candidate is REFUSED under decision 2 §3, and no retry is taken
+
+**`authorship-misrepresentation`'s candidate is refused.** Its text carries a run of
+words that appears in `quality/adversarial/disclosure-shapes.yaml` and in no other file
+in the repository. That file is a prohibited source for this candidate, and it is the
+corpus gate 7 would judge the candidate against. The record declares no presumed-drawn
+term, so there is no justification to weigh, and decision 2 §3 says *"an unjustified term
+refuses the candidate"* (:139). Under amendment 1, a candidate refused before the deploy
+*"is no winner for its topic, and that topic does not deploy"* (:517-519).
+
+**No candidate is edited, `set_sha256` does not move, and there is no retry.** Decision 2
+§1 says *"There is **no retry**"* (:127). Amendment 1 says *"A failed gate means a new ADR
+and a new held-out set"* (:479-481). ADR-035 amendment 4:975-978 says the same:
+*"If this candidate fails, the next one is a new ADR and a new held-out set, not a
+retry."* No second candidate is authored here.
+
+### The two texts, at line
+
+`milestones/M09b/candidates.json:66`:
+
+> Editorial copy that says a person wrote it or denies that AI was involved. Disclosing
+> that AI generated it, or copy saying nothing about who wrote it, is not.
+
+`quality/adversarial/disclosure-shapes.yaml:1-2`:
+
+> The additive topic's own corpus: editorial copy that claims a person wrote it,
+> or denies that AI did, each paired with the same copy disclosing correctly.
+
+Aligned, word for word:
+
+```
+disclosure-shapes.yaml:1-2   editorial copy that claims a person wrote it, or denies that AI did
+candidates.json:66           Editorial copy that says   a person wrote it  or denies that AI was involved.
+```
+
+**Eleven of the candidate's first fourteen words appear in the header, in the same
+order.** The two differences are *claims* → *says* and *did* → *was involved*. The
+candidate's second sentence shares *about who wrote* with the corpus's controls
+(`disclosure-shapes.yaml:71`, `:295`).
+
+The record cites a different line as the candidate's subject, ADR-076:151-153: *"an
+assertion of human authorship, or a denial of AI involvement, in editorial copy the
+service authors"*. That line shares *editorial copy* with the candidate and no word of
+the eight-word run.
+
+### The comparison, as-run
+
+Both candidates were compared the same way. The comparison takes every contiguous run of
+three or more lower-cased words that a candidate shares with one of the record's five
+prohibited files. It then checks each run against every other text file in the tree gate
+2 reads, the parent of 6926f9f (the commit that added the record), 675 text files. Git
+objects only. The script was a scratchpad file and is not committed. Its output,
+unedited:
+
+```
+== entitlement-circumvention (recalibration) ==
+  6-word run 'saying what is on or restricted'
+    in prohibited: ['quality/adversarial/topic-attacks.yaml']
+    elsewhere at parent: 4 ['docs/M06b-guardrail-diagnosis.md', 'docs/adr/ADR-035-the-entitlement-tightening-and-the-tool-output-channel.md', 'platform/infra/lib/gateway-stack.ts', 'platform/infra/tests/fixtures/BeaconpaveGateway.template.json']
+  4-word run 'asking for or giving'
+    in prohibited: ['quality/adversarial/topic-attacks.yaml']
+    elsewhere at parent: 3 ['pave/tests/fixtures/pr_bodies.json', 'platform/infra/lib/gateway-stack.ts', 'platform/infra/tests/fixtures/BeaconpaveGateway.template.json']
+  3-word run 'how to subscribe'
+    in prohibited: ['quality/adversarial/topic-attacks.yaml']
+    elsewhere at parent: 13 ['docs/M06b-guardrail-diagnosis.md', 'docs/M06b-output-side-measured.md', 'docs/adr/ADR-024-a-refusal-is-not-an-evasion.md', 'docs/adr/ADR-035-the-entitlement-tightening-and-the-tool-output-channel.md', 'docs/adr/ADR-065-the-output-side-has-never-been-measured.md', 'docs/pr-bodies/sec-blackout-question-vs-evasion.md']
+
+== authorship-misrepresentation (additive) ==
+  8-word run 'a person wrote it or denies that ai'
+    in prohibited: ['quality/adversarial/disclosure-shapes.yaml']
+    elsewhere at parent: 0 []
+  3-word run 'editorial copy that'
+    in prohibited: ['quality/adversarial/disclosure-shapes.yaml']
+    elsewhere at parent: 1 ['rules/MER-AI-0001.yaml']
+  3-word run 'about who wrote'
+    in prohibited: ['quality/adversarial/disclosure-shapes.yaml']
+    elsewhere at parent: 0 []
+  3-word run 'it is not'
+    in prohibited: ['quality/adversarial/topic-attacks.yaml', 'quality/adversarial/disclosure-shapes.yaml']
+    elsewhere at parent: 148 ['.claude/skills/close-milestone/SKILL.md', 'README.md', 'SPEC/02-tool-plane.md', 'SPEC/03-evals.md', 'SPEC/04-gate.md', 'SPEC/05-paved-road.md']
+```
+
+**The recalibration is not refused.** Every run it shares with a prohibited file also
+appears elsewhere, including in the deployed definition in `gateway-stack.ts`, which its
+DENY clause matches byte for byte. **The additive candidate has two runs that appear in
+its judging corpus and nowhere else.**
+
+### Why gate 2's executor admitted it
+
+`tests/test_m09b_admission.py`'s gate 2, run through its own functions at the same
+parent:
+
+```
+entitlement-circumvention | presumed_drawn (one word = one term): [] | gate_2 problems: []
+authorship-misrepresentation | presumed_drawn (one word = one term): [] | gate_2 problems: []
+```
+
+ADR-024:84-88 has two sentences. The first is the prohibition: *"nothing in a topic
+definition may be drawn from"* the listed files. The second is the presumption: *"A term
+that appears in one of them and nowhere else in the repository is presumed drawn from
+it"*.
+
+**The record defines "term" more narrowly than the clause does.** `candidates.json:31`
+reads: *"A term is a lower-cased run of letters from a candidate's text or topic name."*
+That makes a term one word, and the test executes exactly that
+(`tests/test_m09b_admission.py:116`). ADR-024's clause says *term*, not *word*. Every
+word of the eight-word run appears somewhere else in the repository, so the executor
+presumes none of them drawn. The eight words together, in order, appear in one file, and
+that file is prohibited.
+
+The narrowing is in two places. It executes only the clause's mechanical half, the
+presumption, and not the prohibition. And it executes that half at one word, which the
+clause does not say. The test's docstring (`:13-18`) calls its reading *"ADR-024's test
+as written and weaker than the hazard it names"*. On this measurement it is also narrower
+than ADR-024's test as written.
+
+**Why that matters here and not in general.** ADR-024:90-93 names the mechanism: *"a
+corpus cannot falsify a definition written against it … so every term borrowed from a
+corpus retires one of that corpus's rows without anybody deciding to."* The run is in
+the header of the corpus that gate 7 reads this candidate through (decision 3 §7,
+:202-209; the licence row, :66). A gate-7 pass would have been judged by the file the
+candidate's wording came from.
+
+### What this amendment does not decide
+
+- **That the author copied the header.** The repository cannot show what an author had
+  read (ADR-076 amendment 1:438-446). The presumption is ADR-024's, and so is the burden:
+  *"the burden is on the author to justify it in policy terms or use a different word"*
+  (:87-88). The record declares no term, so it carries no justification.
+- **Anything about the executor.** `tests/test_m09b_admission.py` still passes on a
+  candidate this rule refuses. It is not changed here. Rewriting the executor after the
+  disposition it would have to agree with is fitting the check to the outcome. The
+  disagreement is carried as a debt in `milestones/M09b/README.md`.
+- **Anything about the recalibration's deploy.** Decision 4 says *"A no-winner on the
+  additive topic alone leaves the recalibration to deploy"* (:262-265), so this rule does
+  not stop that deploy. It does not require it either. The close did not take it, for
+  reasons given at line in the journal. That was a decision of the close, not of this
+  amendment.
+- **Any falsifier, threshold or claim term.** F1–F5 are not read here. The consequence
+  for the claim is in the journal.
