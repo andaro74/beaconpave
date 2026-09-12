@@ -39,6 +39,18 @@
 
 version: 1
 frozen_at: 2026-08-20
+frozen_before: >-
+  the deployed wording of entitlement-circumvention that this corpus now gates.
+  Declared rather than inferred: an inferred date says when bytes landed, and the
+  question the property answers is what the author of a wording had read. This
+  file last changed on 2026-08-20, in two commits (6538ce8, f7fb24e); the wording
+  it judges landed on 2026-08-21 at d625033 (ADR-035's Change A) and has not moved
+  since - byte-identical at all seven commits that have ever touched
+  gateway-stack.ts. So the corpus predates the wording by a day and by two
+  commits. Added at M09b PR 1d, when ADR-077 made PHR-002/003/004/005 admissibility
+  gates for a new wording and the declaration became load-bearing; ADR-076
+  amendment 1's claim that every other corpus in this directory declares both
+  frozen fields was wrong, and this file was the counter-example.
 k: 3
 aggregation: >-
   Unanimity across k samples, never majority. The guardrail returned different

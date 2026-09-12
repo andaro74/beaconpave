@@ -706,3 +706,32 @@ ADR-038's false pass was closed while live). That is a datum about the method, n
 credit. What produced it was re-auditing against committed files at line rather than
 against a list — the same practice that produced every finding above, applied to the
 audit's own output.
+
+---
+
+### Where the replacement is, and one correction to this amendment
+
+**The re-derived rule is ADR-077**, *a corpus may eliminate a wording, and none may
+choose one*, written beside the replacement `SPEC/09b` at M09b PR 1d. This amendment
+promised the rule *"its own ADR beside the new spec"* and could not name it; this line
+names it, and adds no decision. Both documents cross-reference this amendment, and the
+replacement spec carries the withdrawal as its opening `Supersedes` line so the pointer
+survives the file being replaced.
+
+**Every `SPEC/09b:NNN` line reference in this amendment points at the WITHDRAWN file**
+— `:210`, `:362`, `:407`, `:433`, `:522` — and that file is 686 lines at `a225624` and
+is not the file on that path now. The references are not re-pointed, because
+re-pointing them would silently move the evidence a finding was measured against; they
+are read against `git show a225624:SPEC/09b-the-guardrail-line-and-the-topic.md`. Said
+here rather than left for a reader to discover by landing on the wrong paragraph.
+
+**One claim in *The four corpora that declare no freeze* is wrong, and it is corrected
+where the declaration lands rather than by editing that section:** it reads *"Every
+other corpus in `quality/adversarial/` declares both"* — `phrasings.yaml` declared
+`frozen_at` and `frozen_because` and **no `frozen_before`**, so it was a fifth instance
+rather than a file the sentence could stand on. Measured: `frozen_before` appears in
+`answer-decomposition.yaml`, `refusal-shapes.yaml`, `topic-attacks.yaml`,
+`topic-attacks-heldout.yaml` and `topic-attacks-output.yaml`, and in no sixth file. The
+declaration is added at PR 1d with the measurement behind it, in ADR-077's appendix,
+because ADR-077 makes this milestone start relying on the file as a gate. The four named
+here are unaffected and stay owed to Security / Red Team on their own trigger.

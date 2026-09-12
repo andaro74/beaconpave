@@ -1,0 +1,150 @@
+M09b PR 1d — deletability audit for the replacement spec and the admission rule
+================================================================================
+
+Method: mutate the thing the PR adds, assert the mutation is LIVE in the file, run
+the check, record whether anything fires. Working copies backed up to a temp
+directory and restored FROM THERE, never `git checkout --` (which would delete the
+uncommitted change the audit exists to test). Bytes read and written as bytes, so
+no line ending is flipped: `git diff --stat` after the audit shows only the lines
+this PR adds.
+
+The audit runs the GATE for every plant expected to be silent — `make check`, not
+`pytest tests/` — which is M09's own open debt fired at every PR. Two plants
+expected to be caught were run against the file that catches them, because a red
+there makes the gate red and a 167-second run adds nothing to that fact; the
+verdict claimed for them is CAUGHT and the failing case is named.
+
+Baseline on the tree the plants ran against: 4494 passed, 8 skipped, `make check` PASS.
+That tree is this PR's diff without `docs/pr-bodies/m09b-pr1d.md`, which had not been
+written yet; the complete diff measures 4499 passed, 8 skipped. Both counts are stated
+with the tree they were measured on, and no delta arithmetic is published for either —
+which is this PR's own correction to PR 1c's body, in `milestones/M09b/journal-notes.md`.
+
+This PR adds documents, one ADR index row, one YAML declaration and one journal
+note. It adds no test and no assertion, so the audit is over the things a READER
+depends on rather than over new checks. Five were mutated. Every one.
+
+
+PLANT 1 — ADR-077's row in the ADR index
+-----------------------------------------
+Mutation: delete the `| ADR-077 | ... |` row from `docs/adr/README.md`.
+Plant verified live: no line in the file starts `| ADR-077 |`.
+
+Result: **CAUGHT.**
+
+    FAILED tests/test_adr_index.py::test_every_adr_has_an_index_row[ADR-077]
+    1 failed, 87 passed
+
+Load-bearing, and for the reason that test's own header gives: a file without a
+row is a decision a reader cannot find.
+
+
+PLANT 2 — a cited commit in ADR-077
+------------------------------------
+Mutation: `d625033` -> `d625034` in ADR-077's appendix. Still valid hex, still
+backticked, no such commit.
+Plant verified live: `d625033` absent from the file.
+
+Result: **CAUGHT.**
+
+    FAILED tests/test_cited_commits_resolve.py::
+      test_every_cited_commit_is_reachable_from_a_ref[ADR-077-...-d625034]
+    1 failed, 163 passed
+
+This is the check the appendix's whole measurement rests on: the claim that
+`phrasings.yaml` predates the wording it gates is checkable only because the two
+commits it names resolve and are reachable from `main`.
+
+
+PLANT 3 — the `Supersedes` block at the top of the replacement spec
+--------------------------------------------------------------------
+Mutation: delete the opening `**Supersedes the withdrawn SPEC/09b ...**` block from
+`SPEC/09b-the-guardrail-line-and-the-topic.md`.
+Plant verified live: the phrase is absent from the file.
+
+Result: **SILENT.** `make check` PASS, 4494 passed, 8 skipped. Nothing fires.
+
+This is PR 1c's own debt arriving where PR 1c predicted it would, and this PR is
+the trigger firing (*the next PR that withdraws or supersedes a document under
+`SPEC/`*). What PR 1c's audit asked for IS met: the withdrawal is carried as the
+replacement's opening line rather than as a header on a path that gets reused, so
+the pointer survives the file being replaced. What is NOT met is a check behind it.
+
+**No test was added, and the reason is the one PR 1c recorded rather than a new
+one.** A test asserting that this path carries a withdrawal marker is a guard
+coupled to its own data: the first legitimate replacement of the replacement turns
+it red. The durable form is a general predicate — *a spec whose decisions an ADR
+has withdrawn says so at the top* — which is a mechanism, and building it inside a
+PR that writes no code is scope growth. Carried in `SPEC/09b`'s obligations table
+with its owner (PM + Platform Engineering) and its trigger, unchanged.
+
+
+PLANT 4 — `frozen_before` in `quality/adversarial/phrasings.yaml`
+-------------------------------------------------------------------
+Mutation: delete the `frozen_before:` block this PR adds.
+Plant verified live: `frozen_before` absent from the file.
+
+Result: **SILENT.** `make check` PASS, 4494 passed, 8 skipped. Nothing fires.
+
+**This is the sharper of the two silences, because the declaration is what ADR-077
+makes load-bearing.** `PHR-002`, `PHR-003`, `PHR-004` and `PHR-005` are
+admissibility gates from PR 3 onward, and a gate whose freeze is undeclared is the
+*stated and absent* shape one level in: ADR-076 amendment 1 says a declared claim
+about what a corpus predates can be checked against the history and an inferred
+date is worth nothing — and nothing here asserts the declaration exists at all.
+
+**A debt, opened at this PR, dated to PR 3 rather than written now.** The durable
+form is a general predicate: *every corpus `tests/test_m09b_admission.py` names as
+a gate declares `frozen_at` and `frozen_before`*, with the gate list living in the
+test that uses it so the check follows the list instead of pinning a copy of it.
+It belongs beside the admission test, and this PR writes no code.
+
+  debt    : nothing asserts that a corpus used as an admissibility gate declares
+            its freeze. Deleting `frozen_before` from `phrasings.yaml` is silent
+            on 4494 checks.
+  owner   : Security / Red Team + Platform Engineering
+  trigger : PR 3, beside the admission test that names the gates
+  note    : the same predicate is the other half of ADR-076 amendment 1's
+            four-corpora debt. `probes.yaml`, `probe-controls.yaml`,
+            `tool-plane-probes.yaml` and `g4-semantics.yaml` declare neither field
+            and would NOT go red on it, because they gate nothing — which is
+            precisely why nobody caught them either.
+
+
+PLANT 5 — ADR-076's pointer to its replacement
+------------------------------------------------
+Mutation: delete the appended `### Where the replacement is, and one correction to
+this amendment` section from ADR-076.
+Plant verified live: the heading is absent from the file.
+
+Result: **SILENT.** `make check` PASS, 4494 passed, 8 skipped. Nothing fires.
+
+`tests/test_adr_index.py` asks only that an amended ADR's row says it was amended,
+and ADR-076's row already says so, so the pointer can go without a red. Its own
+header records why the stronger predicate is not shipped: ten of twelve amended
+ADRs have a row that does not name their highest amendment, and the alternative is
+ten prose edits or an exemption list.
+
+**Attached to the existing debt rather than minted as a new one.** This is the
+stronger-ADR-index-predicate debt's family — a cross-reference a reader depends on
+that nothing asserts — owned by PM and ratcheted at <= 10. The ratchet does not
+move here.
+
+
+What this audit does not claim
+-------------------------------
+It does not claim the admission rule is right, that the licence read from each
+corpus is the licence that file actually grants, or that ten axes are the ten a
+seat would name. Nothing in this repository can assert those. They rest on the
+seats, on the next cold review, and on PR 3's two rounds being told what to plant
+rather than what to read.
+
+It also does not claim these five are all the things a reader depends on in this
+diff. Three prose corrections — `README.md`'s footnote, `SPEC/README.md`'s row and
+`BUILD.md`'s row — were rewritten off the withdrawn rule's language and are
+unchecked by construction, which is the standing debt that no spec and no ADR is
+on any two-key rule and that prose is held by nothing but a reader.
+
+Summary: 2 CAUGHT, 3 SILENT. Two of the three silences carry a debt with an owner
+and a trigger; the third is attached to a debt that already exists. No test was
+written to its own data to turn a silence green.
