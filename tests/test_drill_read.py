@@ -30,6 +30,7 @@ import hmac
 import json
 import pathlib
 import subprocess
+import sys
 
 import pytest
 
@@ -240,6 +241,76 @@ def test_verify_exits_2_on_an_unreadable_file_or_a_wrong_argument_count(tmp_path
     assert drill_read.verify_main([], env=ENV) == 2
 
 
+def test_read_computes_a_window_longer_than_a_day(tmp_path, capsys):
+    """AI Quality seat, M11 PR 2, finding 1: every synthetic window was under a day, so a
+    reader that dropped whole days (`timedelta.seconds`) SURVIVED -- and would print 43200
+    for SPEC/11's 129600, firing F2 on a correct writer. 176400 s is two days and an hour,
+    and is deliberately not the pin."""
+    document = {**NO_GO, "fix_by": "2030-01-04T04:04:05Z"}
+    assert drill_read.read_main([str(_file(tmp_path, _signed(document)))]) == 0
+    assert "fix_window_s=176400" in capsys.readouterr().out.splitlines()
+
+
+def test_a_non_ascii_value_is_verified_under_the_unescaped_canonical_form(tmp_path, capsys):
+    """Security seat, P8: `ensure_ascii=True` in the reader SURVIVED, because every fixture
+    was ASCII. Under it this document's canonical bytes differ from what was signed."""
+    document = {**NO_GO, "owner": {"seat": "synthetic-seat", "oncall": "webhook:sécurité"}}
+    assert _verify(_file(tmp_path, _signed(document)), capsys) == (0, ["signature: OK",
+                                                                       "schema: OK"])
+
+
+def test_a_duplicate_key_is_refused_by_both_readers(tmp_path, capsys):
+    """Security seat, finding 2: a second `decision` placed BEFORE the real one passed verify,
+    while `grep` -- or any parser keeping the first -- read `GO`."""
+    good = _file(tmp_path, _signed(NO_GO), "good.json")
+    raw = good.read_bytes()
+    doubled = tmp_path / "doubled.json"
+    doubled.write_bytes(raw.replace(b'{\n  "event"', b'{\n  "decision": "GO",\n  "event"', 1))
+    assert doubled.read_bytes() != raw, "the plant did not change the file"
+    assert _verify(doubled, capsys) == (2, [])
+    assert drill_read.read_main([str(doubled)]) == 2
+
+
+def _odd_files(tmp_path) -> dict:
+    signed = _file(tmp_path, _signed(NO_GO), "signed.json").read_text(encoding="utf-8")
+    surrogate = signed.replace('"decision": "NO-GO"', '"decision": "\\ud800GO"')
+    assert surrogate != signed
+    return {"surrogate": surrogate, "nesting": "[" * 100_000 + "]" * 100_000,
+            "bom": "﻿" + signed}
+
+
+@pytest.mark.parametrize("kind", ["surrogate", "nesting", "bom"])
+def test_what_cannot_be_read_one_way_exits_2_and_never_prints_ok(tmp_path, capsys, kind):
+    """Security seat, finding 3: a lone surrogate and deep nesting crashed with exit 1 --
+    MISMATCH's code -- and no `signature:` line; a byte-order mark read as unreadable."""
+    path = tmp_path / f"{kind}.json"
+    path.write_text(_odd_files(tmp_path)[kind], encoding="utf-8")
+    code, out = _verify(path, capsys)
+    assert (code, out) == (2, []), f"{kind}: exit {code}, printed {out}"
+    assert drill_read.read_main([str(path)]) == 2
+
+
+def test_a_signature_check_that_raises_exits_2_and_never_prints_ok(tmp_path, capsys, monkeypatch):
+    """Security seat, P10: verify treating an exception as a valid signature SURVIVED --
+    ADR-080 decision 2's named false state *`verify` returns 0 on an exception*."""
+    path = _file(tmp_path, _signed(NO_GO))
+
+    def broken(*_args, **_kwargs):
+        raise RuntimeError("planted")
+
+    monkeypatch.setattr(drill_read.hmac, "new", broken)
+    assert _verify(path, capsys) == (2, [])
+
+
+def test_the_key_floor_is_32_bytes_not_32_characters(tmp_path, capsys):
+    """Security seat, P15: counting characters SURVIVED. Sixteen `é` are 32 bytes."""
+    multibyte = "é" * 16
+    path = _file(tmp_path, _signed(NO_GO, key=multibyte))
+    assert _verify(path, capsys, env={"BEACONPAVE_DRILL_KEY": multibyte}) == (
+        0, ["signature: OK", "schema: OK"])
+    assert _verify(path, capsys, env={"BEACONPAVE_DRILL_KEY": "é" * 15 + "a"})[0] == 2
+
+
 def test_the_cli_dispatches_verify_with_the_process_environment(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("BEACONPAVE_DRILL_KEY", KEY)
     assert cli.main(["drill", "verify", str(_file(tmp_path, _signed(NO_GO)))]) == 0
@@ -300,9 +371,35 @@ def test_the_readers_import_nothing_from_the_writer_or_any_pave_module():
         elif isinstance(node, ast.ImportFrom):
             imported.add("." if node.level else node.module.split(".")[0])
         elif (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-              and node.func.id in {"__import__", "exec", "eval"}):
+              and node.func.id in {"__import__", "exec", "eval", "getattr", "globals"}):
             imported.add(node.func.id)
+        elif isinstance(node, ast.Attribute) and node.attr in {"modules", "meta_path"}:
+            # **Platform Engineering seat, M11 PR 2, P9.** `sys.modules['pave.drill'].sign`
+            # reached the writer with no import statement and SURVIVED at 143 passed.
+            imported.add(f"<.{node.attr}>")
     assert imported <= READERS_MAY_IMPORT, sorted(imported - READERS_MAY_IMPORT)
+
+
+def test_verify_runs_with_the_writer_made_unimportable(tmp_path):
+    """The property, not its spelling: in a fresh interpreter where `pave.drill` cannot be
+    imported at all, `verify` still reads a good artifact as OK and an edited one as a
+    MISMATCH. A reader that reached the writer by any route -- an import, `sys.modules`,
+    a sibling module that imports it -- fails here."""
+    good = _file(tmp_path, _signed(NO_GO), "good.json")
+    edited = tmp_path / "edited.json"
+    edited.write_bytes(good.read_bytes().replace(b'"decision": "NO-GO"', b'"decision": "GO"'))
+    program = (
+        "import sys\n"
+        "sys.modules['pave.drill'] = None\n"
+        "from pave import drill_read\n"
+        "codes = [drill_read.verify_main([p], env={'BEACONPAVE_DRILL_KEY': sys.argv[1]})"
+        " for p in sys.argv[2:]]\n"
+        "assert 'pave.drill' not in {m for m, v in sys.modules.items() if v is not None}\n"
+        "print(codes)\n")
+    result = subprocess.run([sys.executable, "-c", program, KEY, str(good), str(edited)],
+                            capture_output=True, text=True, cwd=ROOT)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip().splitlines()[-1] == "[0, 1]", result.stdout
 
 
 def _top_level_names(name: str) -> set:

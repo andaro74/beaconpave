@@ -23,14 +23,22 @@ breaks the schema must still be refused as a signature mismatch. If the schema w
 first, a signature that never covered the edited field would hide behind a schema error,
 and the edit would be refused through the wrong door.
 
-Exit codes. SPEC/11 pins these:
-- `read`: 0 printed; 2 unreadable.
-- `verify`: 0 prints `signature: OK` and then `schema: OK`; 1 prints `signature: MISMATCH`;
-  2 means unreadable, or no key.
+**Both refuse a document they cannot read one way only** (Security seat, M11 PR 2).
+- **Duplicate keys.** A key written twice is read as its last value by `json.loads`,
+  and as its first value by `grep` or another parser. An edit placed ahead of the real
+  key would pass `verify` while telling a human reader something else.
+- **Values that cannot be serialised or printed** (a lone surrogate, nesting too deep to
+  parse). They exit 2 with an error, never 1 with no `signature:` line, and never
+  `signature: OK`.
 
-One case SPEC/11's pin does not name: **a good signature over a schema-invalid artifact
-prints `schema: INVALID` and exits 2.** The writer validates before it writes, so only
-someone holding the key can produce one.
+Exit codes:
+- `verify`, pinned by SPEC/11: 0 prints `signature: OK` and then `schema: OK`; 1 prints
+  `signature: MISMATCH`; 2 means unreadable, or no key.
+- `verify`, **decided here and not pinned**: a good signature over a schema-invalid
+  artifact prints `schema: INVALID` and exits 2. The writer validates before it writes, so
+  only someone holding the key can produce one.
+- `read`, **decided here; SPEC/11 pins no exit code for it** (AI Quality seat, M11 PR 2):
+  0 printed; 2 unreadable.
 
 Owning seat: AI Quality (what a falsifier reads) - Platform Engineering (the code).
 """
@@ -57,17 +65,32 @@ PRINTED = ("decision", "mode", "commit", "tree_clean", "ran_at", "fix_by", "fix_
            "owner.seat", "owner.oncall", "caption_sha256", "prior_sha256")
 
 
+class Unreadable(Exception):
+    """A document these readers refuse to read. Exit 2."""
+
+
+def _no_duplicate_keys(pairs):
+    names = [name for name, _ in pairs]
+    if len(names) != len(set(names)):
+        twice = sorted({name for name in names if names.count(name) > 1})
+        raise Unreadable(f"the key(s) {twice} appear more than once in one object, so "
+                         "different readers would see different values")
+    return dict(pairs)
+
+
 def _open(path) -> dict:
     try:
         raw = pathlib.Path(path).read_bytes()
     except OSError as exc:
-        raise ValueError(f"cannot read {path}: {exc}") from exc
+        raise Unreadable(f"cannot read {path}: {exc}") from exc
     try:
-        document = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ValueError(f"{path} is not JSON: {exc}") from exc
+        document = json.loads(raw.decode("utf-8"), object_pairs_hook=_no_duplicate_keys)
+    except Unreadable as exc:
+        raise Unreadable(f"{path}: {exc}") from exc
+    except (UnicodeDecodeError, ValueError, RecursionError) as exc:
+        raise Unreadable(f"{path} is not JSON: {type(exc).__name__}: {exc}") from exc
     if not isinstance(document, dict):
-        raise ValueError(f"{path} is not a JSON object")
+        raise Unreadable(f"{path} is not a JSON object")
     return document
 
 
@@ -128,11 +151,19 @@ def read_main(argv) -> int:
         return 2
     try:
         document = _open(argv[0])
-    except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+        printed = lines_for(document)
+        for line in printed:
+            line.encode("utf-8")  # a lone surrogate is refused before anything is printed
+    except (Unreadable, UnicodeError, RecursionError) as exc:
+        print(f"error: {type(exc).__name__}: {exc!s}".encode("ascii", "backslashreplace")
+              .decode("ascii"), file=sys.stderr)
         return 2
-    for line in lines_for(document):
-        print(line)
+    try:
+        for line in printed:
+            print(line)
+    except (UnicodeEncodeError, OSError) as exc:
+        print(f"error: this console cannot print the artifact: {exc}", file=sys.stderr)
+        return 2
     return 0
 
 
@@ -140,7 +171,8 @@ def signature_holds(document: dict, secret: bytes) -> bool:
     """SPEC/11's pin, re-stated: HMAC-SHA256 under `secret`, over the artifact minus
     `signature`, serialised with sorted keys, `(",", ":")` separators and
     `ensure_ascii=False`, as UTF-8; `key_id` is the first 16 hex of sha256(secret). The
-    algorithm, the key id AND the value must all hold."""
+    algorithm, the key id AND the value must all hold. A document this cannot serialise
+    raises; the caller exits 2, and never prints OK."""
     held = document.get("signature")
     if not isinstance(held, dict) or held.get("alg") != "HMAC-SHA256":
         return False
@@ -152,8 +184,10 @@ def signature_holds(document: dict, secret: bytes) -> bool:
                          ensure_ascii=False).encode("utf-8")
     expected_value = hmac.new(secret, message, hashlib.sha256).hexdigest()
     expected_id = hashlib.sha256(secret).hexdigest()[:16]
-    same_id = hmac.compare_digest(key_id.encode("utf-8"), expected_id.encode("utf-8"))
-    same_value = hmac.compare_digest(value.encode("utf-8"), expected_value.encode("utf-8"))
+    same_id = hmac.compare_digest(key_id.encode("utf-8", "surrogatepass"),
+                                  expected_id.encode("utf-8"))
+    same_value = hmac.compare_digest(value.encode("utf-8", "surrogatepass"),
+                                     expected_value.encode("utf-8"))
     return same_id and same_value
 
 
@@ -169,12 +203,19 @@ def verify_main(argv, env=None) -> int:
         return 2
     try:
         document = _open(argv[0])
-    except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+    except Unreadable as exc:
+        print(f"error: {exc!s}".encode("ascii", "backslashreplace").decode("ascii"),
+              file=sys.stderr)
         return 2
 
-    # The signature, first and alone. Nothing about the document is judged before this.
-    if not signature_holds(document, secret):
+    # The signature, first and alone. Nothing about the document is judged before this,
+    # and a check that cannot complete is exit 2 -- never OK, never a silent exit 1.
+    try:
+        holds = signature_holds(document, secret)
+    except Exception as exc:  # noqa: BLE001 - any failure to check is not a pass
+        print(f"error: the signature could not be checked: {type(exc).__name__}", file=sys.stderr)
+        return 2
+    if not holds:
         print("signature: MISMATCH")
         return 1
     print("signature: OK")
