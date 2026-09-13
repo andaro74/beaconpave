@@ -1,0 +1,21 @@
+{
+  "service": "highlights-agent",
+  "surface": "agent",
+  "commit": "06ae901b852d74d922267c07d7fa6d6853c382f5",
+  "suite": "evals",
+  "layer": "L2",
+  "verdict": "PASS",
+  "fail_closed": true,
+  "scores": {
+    "tools_passed": 15,
+    "control_passed": 17
+  },
+  "artifacts": [
+    "milestones/M02/runs/m02-tools-1.json",
+    "milestones/M02/runs/m02-tools-2.json",
+    "milestones/M02/runs/m02-tools-3.json",
+    "milestones/M02/runs/m02-control-1.json",
+    "milestones/M02/runs/m02-control-2.json",
+    "milestones/M02/runs/m02-control-3.json"
+  ]
+}
