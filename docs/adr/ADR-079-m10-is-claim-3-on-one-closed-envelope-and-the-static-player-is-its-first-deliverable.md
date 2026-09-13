@@ -269,3 +269,223 @@ exposes, each emitting the same closed envelope into one decision service, with 
 envelope versioned and a runner-specific `scores` vocabulary registered per suite. The
 envelope is already closed, the writer is already one function per runner, and the
 decider is already one list of records.
+
+## Amendment 1 (2026-09-13, M10 PR 3, the named spare, before any measurement): SPEC/10's claim and falsifiers are WITHDRAWN
+
+**SPEC/10's claim and its five falsifiers are withdrawn: not amended, and not repaired.**
+Two things go with them:
+- decision 3 above;
+- decision 4's writer rules, as the criteria `SPEC/10`'s reading rules fixed.
+
+**No claim reading was ever taken.** The readings in
+`milestones/M10/pre-registration/readings.txt` proved each reader runs, and they ran on a
+placeholder. The spec said so itself: *"The pre-registration readings are not the claim
+reading."* No threshold is moved to clear a reading, because there is no reading.
+
+**Why an amendment here and not a new ADR**, on ADR-076 amendment 1's precedent: this ADR
+is where the pre-registration was made. A new ADR would leave decision 3 standing as
+accepted pre-registration, with its withdrawal one document away.
+
+**The two readings this rests on were committed before this amendment and are not
+edited:**
+- `milestones/M10/pr3-deletability-audit.md` at `f2bd393`
+- `milestones/M10/pr3-cold-review.md` at `3d7fb55`, verbatim
+
+Both were taken in the slot decision 6 named for a cold review, and the numbering below is
+the cold review's. **Every `SPEC/10:NNN` below points at the file as pre-registered at
+`691acfa`.** The WITHDRAWN header this PR adds moves each of those lines down.
+
+### The reasons, as measured
+
+**Five things decidable after PR 4's numbers exist (7a–7e).**
+- **7a.** The criteria may change after the built player exists. `SPEC/10:113-114`: *"A
+  change before PR 4's reading is an ADR-079 amendment committed before that reading."*
+  The player is built in that same PR (`SPEC/10:129-134`). No rule forbids a run of the
+  committed runners on the built player before the reading, and none requires that run to
+  be recorded.
+- **7b.** The keys are assigned in the PR that carries the numbers. `SPEC/10:145-147`:
+  *"The writer decides what PASS means, and PR 4 puts each path on a rule before the
+  reading."*
+- **7c.** The player may be shaped to the checks. ADR-079:247-248: *"Its design is
+  constrained only by the three checks fixed here."*
+- **7d.** A failed reading can be recast as a stopped one and retaken. `SPEC/10:120-121`:
+  *"Any other version stops the reading."* This stands against `SPEC/10:94`: *"Each
+  condition is run once at the reading, with no retry."*
+- **7e.** The records are not pinned. Which records F2, F3's agent third and F4's agent
+  third read is open (2a), and F5's *"the failing k6 record"* (`SPEC/10:85`) names no run.
+
+**Four values undefined at pre-registration (2a–2d).**
+- **2a. The records.**
+  - The falsifier table names the `pre-registration/` records (`SPEC/10:81-85`).
+  - PR 4's runs go *"into `milestones/M10/`"* (`SPEC/10:132`).
+  - The demo writes `milestones/M10/clean` (`SPEC/10:224`).
+  - Nowhere is it said whether the drift records are rebuilt or re-read. Re-read, F2
+    decides unchanged files under an unchanged schema, so it cannot fire.
+- **2b. The version match.** `SPEC/10:120-121` stops the reading on *"any other version"*.
+  `milestones/M10/pre-registration/clean/runner-versions.txt:2` records `k6.exe v2.2.0
+  (commit/00a9a1b7f5, go1.26.5, windows/amd64)`, and nothing says what `v2.2.0` is matched
+  against.
+- **2c. The host.** No reading host is named in `SPEC/10:109-121`, while
+  `loadtest/smoke.js:27`, `http_req_duration: ['p(95)<200']`, decides F5.
+- **2d. The built player.** `SPEC/10:159` says *"The static player, a placeholder in PR 2
+  and built in PR 4."* No criterion separates it from
+  `surfaces/web-player/site/index.html:11`, which reads *"Placeholder."*
+
+**Three falsifiers with no reading of their runner (1a–1c).**
+- **1a. F4's agent third.** `SPEC/10:84` names a record *"which `pave evals run
+  services/no-such-service` never writes"*.
+  - `readings.txt:55-60` runs only `gate decide` on the absent path, and the gate exits 2
+    for any absent path (`pave/gate.py:107-112`).
+  - `grep -c 'evals run'` over `readings.txt` returns **0**. The runner's own behaviour was
+    never shown executing.
+- **1b. F1.** `SPEC/10:81` reads *"Any of the three clean records, decided alone, exits
+  2"*. `readings.txt:5` decides the three in one invocation, and none is decided alone.
+- **1c. F3's agent third.** The denominator's agent runner is *"`python -m pave.cli evals
+  run services/highlights-agent`, L2"* (`SPEC/10:90`). F3's agent record prints *"(disclosure
+  L3)"* at `readings.txt:36`.
+
+**3a: the built player is constrained only by checks drawn from the placeholder.**
+- "Beacon player" and `player-title` occur at `surfaces/web-player/site/index.html:6` and
+  `:10`, and at `surfaces/web-player/tests/player_smoke.py:40` and `:42`. They occur nowhere
+  else in the repository (`git grep`).
+- ADR-024:86-88: *"A term that appears in one of them and nowhere else in the repository is
+  presumed drawn from it."*
+- ADR-079:247-248 constrains the player PR 4 would build by those checks and nothing else.
+
+**3b: the k6 INFRA rule was fitted to a plant it judges, on an observation with no committed
+artifact.**
+- **The fit.** Decision 4 (:132-138) changed the rule after F3's own plant,
+  `run.py --path missing`, read INFRA, so that the same plant reads FAIL.
+- **The observation it was fitted to** is *"905 requests never connected"*
+  (ADR-079:134-135).
+- **Where "905" appears:** only in prose, at `SPEC/10:117`, ADR-079:134,
+  `surfaces/web-player/emit.py:23` and `loadtest/smoke.js:8`. Otherwise only in a
+  hand-built fixture, `tests/test_surfaces_emit.py:63`:
+  `("k6", _k6((False, True), transport_errors=905, answered=6000), "FAIL")`.
+- **What the committed plant run shows:**
+  `milestones/M10/pre-registration/planted-failure/k6-summary.json:37`, `"count": 40,`,
+  and `planted-failure/verdict-k6.json:13`, `"requests_unreached": 40,`. That is 40
+  unreached beside 9554 answered. So the committed file is a different run from the one the
+  rule was fitted to, and the run that motivated the rule was never committed.
+
+**5d: F3 and F4 for Playwright and k6 read the writer's mapping, not the envelope.**
+- `SPEC/10:56-58` says *"the one gate decides a breached threshold as FAIL, and a surface
+  that never answered as INFRA."*
+- That verdict is computed at `surfaces/web-player/emit.py:104-131`.
+- The gate reads the `verdict` it is handed (`pave/gate.py:137-156`).
+
+**The audit: 14 of 24 plants SILENT, and none caught elsewhere.**
+- **What ran.** 24 plants through `quality-gate` on exhibit #155, closed unmerged. The
+  control, run 34764760657, read 4898 passed, 9 skipped.
+- **The count.** 10 sole witnesses, **0 caught elsewhere, 14 SILENT.**
+- **All five `player_smoke.py` plants are SILENT**, because nothing collects or runs the
+  file:
+  - `pyproject.toml:35`, `testpaths = ["tests", "pave/tests"]`, excludes
+    `surfaces/web-player/tests/`.
+  - `.github/workflows/quality-gate.yml:40`, `pip install -e ".[dev]"`, installs no
+    Playwright.
+
+### How many times something judged has been drawn from what judges it
+
+**The brief for this PR said this is the third time. Measured, the record supports third
+or fourth depending on how one earlier case is counted, and both are recorded here.**
+
+The earlier cases:
+1. **ADR-024's amendment of 2026-08-21.**
+   - :73-76: ADR-035's Change A draft reached for `VPN`, a term whose only occurrence was
+     `PHR-002` in `quality/adversarial/phrasings.yaml`.
+   - :78-82: a v4 wording *"written specifically to close `ATK-007`"* in
+     `quality/adversarial/topic-attacks.yaml`.
+2. **ADR-076 amendment 1 (:365).** The derivation rule selected on
+   `quality/adversarial/refusal-shapes.yaml`, which its owning ADR-067 forbids from judging a
+   fix. That is a wording chosen by a corpus barred from judging it.
+3. **ADR-077 amendment 2 (:558-567).** A candidate carried words that appear in
+   `quality/adversarial/disclosure-shapes.yaml` and in no other file. That is the corpus
+   gate 7 would have judged it against.
+
+How the count comes out:
+- **Third**, counting by occasion and reading case 2 as a selector rather than a drawn term.
+- **Fourth**, counting case 2.
+- **Fifth**, counting case 1's two instances separately.
+
+**3b is the first where the fitting observation has no artifact at all.** Every earlier
+fitting source is a committed file: `phrasings.yaml`, `topic-attacks.yaml`,
+`refusal-shapes.yaml` and `disclosure-shapes.yaml`. Here the fitting source is a run that
+was never committed.
+
+### What survives, and why
+
+- **PR 1's closed envelope, `81c25e6`.**
+  - `quality/verdicts/schema.json:7` reads `"additionalProperties": false`, and `:103`
+    closes `provenance`.
+  - It is byte-identical since: `git diff 81c25e6 HEAD -- quality/verdicts/schema.json` is
+    empty.
+  - It reads no runner, no surface and no SPEC/10 criterion. Cold review 3d found it not
+    drawn from the surface records.
+- **`pave/tests/test_verdict_envelope.py` and its three fixtures, `d417f90`.**
+  - They are unchanged since: `git diff d417f90 HEAD` over both is empty.
+  - The test plants its own fixtures (:36-40) and decides the committed M09 verdicts
+    (:107-115). Nothing in it depends on SPEC/10.
+  - Its audit, from #152 and re-measured in CI on exhibit #153, stands.
+- **The runners' committed clean and drift records.**
+  - Which records: `milestones/M10/pre-registration/clean/verdict-{evals,playwright,k6}.json`
+    with the raw outputs beside them, and `drift/verdict-{evals,playwright,k6}.json`.
+  - Why they survive: they record what was written and what the gate decided, and they read
+    under the envelope with no claim attached.
+  - Measured: each drift record is its clean record with exactly one key added (`arm`,
+    `browser` or `p95_ms`), and every other field is identical.
+  - Their limits are carried with them, not repaired:
+    - the clean agent record's producing run is not in `readings.txt` (1a);
+    - the drift records were built by hand, not by a runner;
+    - all of them were taken against a placeholder page, so they are evidence for no claim.
+- **Withdrawing requires no edit to anything PR 1 put on `main`.** None was made.
+
+`readings.txt` and the `planted-failure/` and `planted-harness-error/` records stay
+committed and unedited, as the record of the withdrawn pre-registration. They are not
+claimed as surviving evidence, because 3b rests on the planted-failure run.
+
+### What this amendment does not rule on
+
+- **Decisions 1, 2, 5, 7 and 8:**
+  - the scope;
+  - the target;
+  - the dependencies;
+  - `brand_tone`'s re-deferral;
+  - debt 10's route and its advisory draft.
+
+  Neither reading found against them. ADR-026 amendment 6's ground cites `SPEC/10`
+  (ADR-026:356-358). Whether these decisions stand with the spec withdrawn is the
+  operator's to rule. This amendment neither voids nor re-affirms them.
+- **Decision 6's cap.** This is PR 3 of five. Exhibit #155 is uncounted on decision 6's
+  precedent for #153 (:175-180), and the operator may rule otherwise.
+- **The replacement.** Nothing here is:
+  - a spec, falsifier, criterion or plan;
+  - a repaired defect;
+  - an edit under `surfaces/`, `loadtest/`, `quality/verdicts/` or `tests/`;
+  - a run or a deploy.
+
+### Debts carried, none repaired
+
+| # | debt | measured at | owner | trigger |
+|---|---|---|---|---|
+| D1 | **The writer decides, and the gate reports what the writer decided.** For Playwright and k6, a falsifier read on the gate measures the writer (5d) | `surfaces/web-player/emit.py:73-132` computes PASS, FAIL or INFRA; `pave/gate.py:137-156` reads `verdict` | AI Quality + Platform Engineering | the next spec that pre-registers claim 3 |
+| D2 | **`player_smoke.py` is outside `testpaths` and CI** | `pyproject.toml:35`; `.github/workflows/quality-gate.yml:40`; decision 5 (:161-166) | Platform Engineering + AI Quality | the next spec that pre-registers claim 3, or the next PR that edits `player_smoke.py` or `quality-gate.yml` |
+| D3 | SILENT **W01**: Playwright `error` → INFRA when checks are also recorded | `emit.py:75-76`; potency: main INFRA, plant PASS | AI Quality + Platform Engineering | the next PR that edits `emit.py` |
+| D4 | SILENT **W03**: a check whose `ok` is anything but `true` fails | `emit.py:82`; potency: main FAIL, plant PASS | AI Quality + Platform Engineering | the same |
+| D5 | SILENT **W06**: k6 no metrics → INFRA; equivalent on `verdict` | `emit.py:99-100` | Platform Engineering | the same |
+| D6 | SILENT **W09**: a summary where no request was made is INFRA | `emit.py:105`; potency: main INFRA, plant PASS | AI Quality + Platform Engineering | the same |
+| D7 | SILENT **W11**: a threshold outcome without `ok: true` is breached | `emit.py:93`; potency: main FAIL, plant PASS | AI Quality + Platform Engineering | the same |
+| D8 | SILENT **W14**: a missing raw output has its own INFRA note; equivalent on `verdict` | `emit.py:60` | Platform Engineering | the same |
+| D9 | SILENT **W15**: unparseable raw output is INFRA, not an uncaught exception | `emit.py:61`; potency: main INFRA, plant raises | Platform Engineering | the same |
+| D10 | SILENT **R01**: the k6 metric names the writer reads match what `smoke.js` emits | `loadtest/smoke.js:20`; potency: clean PASS → INFRA | AI Quality + Platform Engineering | the next PR that edits `smoke.js` or `emit.py` |
+| D11 | SILENT **R02**: the Playwright raw shape the writer reads matches what the runner writes | `player_smoke.py:38-42`, `:50`; potency: clean PASS → FAIL | AI Quality + Platform Engineering | the next PR that edits `player_smoke.py` or `emit.py` |
+| D12 | SILENT **S01**: *responds 200* weakened to `status < 500` | `player_smoke.py:38-39` | AI Quality | D2's trigger |
+| D13 | SILENT **S02**: *title names the player* weakened to any title | `player_smoke.py:40` | AI Quality | D2's trigger |
+| D14 | SILENT **S03**: *heading visible* weakened to `count() >= 0` | `player_smoke.py:41-42` | AI Quality | D2's trigger |
+| D15 | SILENT **S04**: an unreachable page written as a failed check, FAIL rather than INFRA | `player_smoke.py:45-47` | AI Quality + Platform Engineering | D2's trigger |
+| D16 | SILENT **S05**: `player_smoke.py` deleted | the file; 4895 passed, `check: PASS` | Platform Engineering | D2's trigger |
+| D17 | **A11: the gate assertion cannot tell a correct INFRA from an out-of-contract record, because both exit 2.** W16 and W17 left all four INFRA cases green | `tests/test_surfaces_emit.py:30` | AI Quality | the next PR that edits `tests/test_surfaces_emit.py` |
+| D18 | **SPEC/10's WITHDRAWN header is prose with no check behind it.** SPEC/09b's debt on withdrawal markers fires again at this PR and is not paid | `SPEC/09b-the-guardrail-line-and-the-topic.md:535` | PM + Platform Engineering | carried with SPEC/09b's; the general check stays owed |
+| D19 | **Three rows still state the withdrawn claim as pre-registered.** Not edited, on SPEC/09b PR 1c's precedent (`a225624` edited the spec, the ADR and its index row) | `README.md:723`; `BUILD.md:29`; `SPEC/README.md:19` | PM | M10's next PR |
+
+D3–D17 are the audit's rows A1–A11, listed one plant per row.
