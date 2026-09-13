@@ -346,3 +346,47 @@ that would vary the label, and *"still one value"* remains the finding it would
 be. The defect is unchanged. The axis is not demoted, not deleted and not
 re-scoped, and no judged number moves: `quality/judge/frozen.json` is
 byte-identical, and M09b's Definition of done asserts it at the close.
+
+## Amendment 6 (2026-09-13, at M10 PR 2): re-deferred to M11, and amendment 5's ground is void
+
+**Amendment 5 re-dated the owe to M10 on a stated ground, and the M10 spec removes it.**
+The ground, at :315-316: *"Re-deferred to `M10`, the surfaces milestone, where a
+`meridian-news` axis is added (ADR-046, ADR-047) and the judge must be re-frozen anyway."*
+
+`SPEC/10` fixes M10 to the `README.md:51` row, *Playwright + k6 on one verdict schema*,
+and **it adds no second brand** (ADR-079 decision 1). So M10 adds no `meridian-news` axis,
+and it re-freezes nothing.
+
+**This is the same break amendment 5 recorded against amendment 4:** a ground stated about
+a milestone, which that milestone's own spec then contradicted. Amendment 4's ground was
+removed by SPEC/09b, and amendment 5's by SPEC/10.
+
+**No ground is asserted this time, because none is true.**
+- **Amendment 1's reason**, *the next milestone that adds graded content*, holds for no
+  scheduled milestone.
+- **Amendment 5's reason**, *the judge must be re-frozen anyway*, holds for none either.
+- M11 is the drill (`BUILD.md:30`). M12 is the self-heal classifier, the repair PR flow
+  and the curation panel (`BUILD.md:31`). Neither adds a judge axis or names a re-freeze.
+
+**Re-deferred to `M11`, as the date of a decision, not a payment.** The owe must name a
+listed, open row, because `milestone_is_closed` raises for a milestone the progression
+table does not list. M11 is the next one. At M11's close the owe is settled one of three
+ways:
+- paid by extending the deterministic draw;
+- retired, by AI Quality with Security;
+- re-deferred again, with a ground that is true at that time.
+
+**Taken at M10's open, not its close.** The operator ruled it. Waiting would have let
+`tests/test_calibration_owe.py` go red at the close on a ground this PR already knows is
+void.
+
+**Counted, and the count is six.** Owed to M04. Re-deferred to M07, M08, M09, M09b, M10,
+and now M11. **This is the third slide whose reason changed rather than whose number did,
+and the first with no reason at all.** It is recorded as a slide, never as a payment.
+
+**What this amendment does not change.**
+- `how_it_must_be_paid`, the defect, and the axis's status.
+- `quality/judge/frozen.json`, which stays byte-identical.
+- The labels: no label moves, and no item is added or removed.
+
+Two keys on the `labels.json` edit, AI Quality and Security.

@@ -48,7 +48,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 09 | The rule is disposed, and the service goes red ❉ | seven PRs ❉ | `m09` | **10/25** ❉ | not judged ✧ | not run ❉ | ✅ |
 | 09b | The rule's second control, and the topic reworded under a rule written first — **closed RED** ❊ | seven PRs ❊ | `m09b` | not run ❊ | not judged ✧ | not run ❊ | ✅ |
 | 09c | Answer quality: the browse gap closes, and the count is the headline — **closed RED** ❋ | two PRs ❋ | `m09c` | not run ❋ | not judged ✧ | not run ❋ | ✅ |
-| 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
+| 10 | Playwright + k6 on one verdict schema ✺ | `m10-surfaces` | `m10` | – | – | – | ⬜ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
 | 12 | Self-heal classifier + curation panel | `m12-selfheal` | `m12` | –/25 | – | –/10 | ⬜ |
 
@@ -719,6 +719,41 @@ changes the system under measurement, and inside this milestone it would force a
 baseline that throws away comparison to M08b's committed run (ADR-075 amendment 8).
 **The cap is six PRs, document-only ones included, with one named spare for a cold
 review of the derivation before any call, and two runs.**
+
+✺ **M10 is claim 3 on one closed envelope, and it is this row and nothing else (ADR-079,
+`SPEC/10-surfaces-one-envelope.md`).** Agent evals, Playwright and k6 each write one
+record in the verdict envelope, and one gate decides all three by one contract. PASS is
+admitted, FAIL blocks at exit 1, a runner that cannot establish its result blocks at exit
+2, and a record outside the envelope blocks at exit 2.
+
+M10 PR 1 (#152) closed the envelope. Before it, `gate decide` passed a Playwright record
+carrying an invented `p95_ms` at exit 0.
+
+**Five falsifiers, and every reader ran before the claim was written.**
+`python -m pave.cli gate decide --verdicts` read records the committed runners wrote, and
+its output is `milestones/M10/pre-registration/readings.txt`. The clean three exit 0,
+each drift record exits 2, each planted failure exits 1, and each planted harness error
+exits 2.
+
+**The static player is M10's first deliverable.** It is static files served on
+`127.0.0.1` by the standard library: no gateway endpoint, no `gateway-stack.ts` edit, no
+deploy, no model call.
+
+**k6 loads that static surface, not a live API.** It establishes that a load runner's
+result lands in the same envelope and is decided by the same contract. It establishes
+nothing about the capacity or latency of the gateway, the agent or any deployed service,
+and its thresholds are chosen, not derived.
+
+**This row is not the other `M10`** (ADR-075:564). It does not carry claim 10, deploy
+`publish-highlight`, add per-service lanes or add a second brand. The seven code and
+template sites that still say otherwise are carried as a debt and not edited.
+
+`brand_tone`'s owe, which rested on a second brand here, is re-deferred to M11 on no
+ground (ADR-026 amendment 6). The dashboard and the claim 12 seed are cut from the row,
+and claim 12 stays at M12.
+
+**Five PRs, document-only ones included, with one named spare for a cold review before
+the claim is read.**
 
 ## What part one produced
 
