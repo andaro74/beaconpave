@@ -489,3 +489,215 @@ claimed as surviving evidence, because 3b rests on the planted-failure run.
 | D19 | **Three rows still state the withdrawn claim as pre-registered.** Not edited, on SPEC/09b PR 1c's precedent (`a225624` edited the spec, the ADR and its index row) | `README.md:723`; `BUILD.md:29`; `SPEC/README.md:19` | PM | M10's next PR |
 
 D3–D17 are the audit's rows A1–A11, listed one plant per row.
+
+## Amendment 2 (2026-09-13, M10 PR 4, the close): claim 3 cannot be measured as an envelope claim, and M10 closes RED with it NOT MEASURED
+
+**Written at the close, with no spec, no measurement and no fix.** Zero model calls, zero
+AWS calls, no deploy. No schema, runner, writer or test is edited, and SPEC/10 is
+byte-unchanged.
+
+The replacement spec amendment 1 left open was briefed as M10 PR 4 and **stopped before
+anything was written**. It met the brief's own stop condition: *the claim reduces to
+something PR 1 already demonstrated on its own.* This amendment records why.
+
+### The three terms a replacement could hold, read against the code
+
+The replacement brief allowed a claim about the envelope and nothing else, in three
+terms:
+1. three runners emit records the closed schema accepts;
+2. a record carrying an undeclared key is refused, with the key named;
+3. both are read by `gate decide --verdicts`, and by nothing a writer computed.
+
+**Term 1 is true by construction.**
+- **The builder and the gate read one file.** `pave/verdict.py:26` is `SCHEMA_PATH = ROOT /
+  "quality" / "verdicts" / "schema.json"`. `pave/gate.py:41` is `VERDICT_SCHEMA_PATH = ROOT
+  / "quality" / "verdicts" / "schema.json"`. Both `ROOT`s are the repository root
+  (`pave/verdict.py:25`, `pave/gate.py:40`).
+- **`build()` validates before it returns.** `pave/verdict.py:88`:
+  `jsonschema.validate(record, json.loads(SCHEMA_PATH.read_text(encoding="utf-8")))`.
+  `write()` (:92-97) validates nothing, and every writer hands it what `build()`
+  returned.
+- **So a record the gate would refuse on schema grounds is never written.** The writer
+  raises instead. The gate then meets an absent file, which is a different finding
+  (`pave/gate.py:107-112`), not a schema refusal.
+
+Measured in a scratch run on `main` at `9026d8a`. The script, its stdout and the two
+records it wrote are committed in `milestones/M10/close/`. From
+`envelope-by-construction-stdout.txt`:
+
+```text
+same schema file: True C:\Users\andar\code\beaconpave\quality\verdicts\schema.json
+
+## P-a: an undeclared top-level key passed to build
+  refused before any write: TypeError build() got an unexpected keyword argument 'p95_ms'
+
+## P-b: a value outside an enum (surface 'player')
+  refused before any write: ValidationError 'player' is not one of ['agent', 'backend', 'web', 'mobile', 'data', 'stream']
+
+## P-c: a non-number in scores
+  refused before any write: ValidationError '12ms' is not of type 'number'
+```
+
+**Term 1 also survives the runner's deletion.**
+- **P-d** (stdout :12-17): with no raw output from `player_smoke.py` or k6, which is
+  audit plant S05's door, `emit.py` still wrote two records the schema admits. The gate
+  decided both as `suite reported INFRA`, not as schema violations. A falsifier reading
+  *"the Playwright runner's record is accepted"* cannot tell a runner that ran from one
+  that does not exist.
+- **P-e** (:19-25): `pave evals run services/no-such-service` exits 0 and writes nothing,
+  and the gate reports `verdict file is missing`.
+
+**Term 2 is already shown by PR 1.** `pave/tests/test_verdict_envelope.py:62-73` decides
+three planted records. For each, it asserts:
+- exit 2 and a `CONTRACT` finding;
+- `Additional properties are not allowed` in the reason;
+- `repr(k)` in the reason, for every planted key.
+
+Its control at :77-82 admits each record with the planted keys removed, so the refusal is
+the key and nothing else about the record. Adding a key to a runner-written record rather
+than to a fixture changes only fields the schema already admits, and that is term 1.
+
+**Term 3 is already read through the named reader.** :85-94 runs `python -m pave.cli gate
+decide --verdicts` over all three fixtures as a subprocess, the way CI runs it. It asserts
+exit 2 and a `[BLOCK]` line naming each file.
+
+### One writer, not many runners
+
+**Claim 3's proof line describes an architecture this repository does not have.**
+`README.md:813` reads *"Agent evals + Playwright + k6 emit identical JSON"*. That describes
+runners that each emit a record, and so could diverge. The repository has **one writer**.
+Every verdict record, from every suite, is built by `pave.verdict.build`, at eight call
+sites:
+
+| call site | function | suite | layer |
+|---|---|---|---|
+| `pave/cli.py:334` | `gate_history` | `history` | L1 |
+| `pave/cli.py:543` | `evals_run` | `evals` | L2 |
+| `pave/cli.py:665` | `evals_disclosure` | `disclosure` | L3 |
+| `pave/cli.py:1139` | `adversarial_run` | `adversarial` | L5 |
+| `pave/cli.py:1432` | `check` | `contract` | L1 |
+| `pave/cli.py:1601` | `infra_snapshot` | `infra` | L1 |
+| `evals/run_evals.py:994` | `emit_verdict` | `goldens` | L2 |
+| `surfaces/web-player/emit.py:67` | `_record` | `playwright`, `k6` | L4 |
+
+**The runners do not emit the envelope.** They hand fields to one function, and that
+function cannot return a record the schema refuses. **Identical JSON is not a property
+the runners have. It is what the builder is.**
+
+The builder has said so since it was written. `pave/verdict.py:5-6` reads *"This module is
+the one place that constructs it"*, and it has since `0c4a852`, at M00a. Decision 4 of this
+ADR named `pave.verdict.build` as the path every surface record takes (:122-123), and did
+not draw the consequence. Neither did SPEC/10, the cold review, the audit, or the first
+replacement brief.
+
+### What would make claim 3 measurable
+
+A falsifier that can fire needs one of two things. **Neither is an envelope claim.**
+1. **A record that reaches `gate decide` without passing through `verdict.build`.** For
+   example, a runner outside this repository's Python, or one that serialises its own
+   JSON. The gate's schema step is then the first check the record meets, and *"a runner's
+   record is refused"* becomes something a command can detect. That is a claim about a
+   foreign writer, and the repository has none.
+2. **A schema that changes between a record's write and its read**: a record written under
+   one version of `quality/verdicts/schema.json` and decided under another. That is a claim
+   about schema versioning, and the schema carries no version.
+
+Claim 3 is **UNSCHEDULED** in the claims table, with these two conditions stated. No
+milestone carries it.
+
+### GREEN was available, and it is refused
+
+**Every reading a replacement could name would have come out green:**
+- the clean records exit 0;
+- the drift records exit 2, naming their keys;
+- PR 1's test is green on `main`.
+
+Closing GREEN would publish claim 3 as proven, on readings that could not have come out any
+other way. ADR-035 amendment 5 named that failure, when a held-out corpus scored 6 of 6
+under both guardrail versions (ADR-035:1074-1077):
+
+> Rows 23 and 24 were confirmed by a corpus that would have confirmed them had the change
+> never been made — a vacuous confirmation, which is a distinct failure from a falsified
+> row and arguably a quieter one, because it reads as evidence.
+
+A claim with no reachable falsifier is the same failure one level up: not a corpus that
+cannot discriminate, but a claim that cannot. **M10 closes RED with claim 3 NOT
+MEASURED.** No run was taken, and no deploy.
+
+### The cap, in ADR-075 amendment 4's form
+
+**1. The fact.** Decision 6 set **five PRs, document-only ones included** (:170-173), and
+recorded exhibit #153 as not counted (:175-180). M10 opened:
+- **merged:** #152, #154 and #156;
+- **exhibits, closed unmerged:** #153 and #155;
+- **and this close.**
+
+Two counts, both measured:
+
+| count | PRs | this close is |
+|---|---|---|
+| as decision 6 counted, exhibits uncounted | #152, #154, #156, this | **the fourth**; five is not exceeded |
+| every PR opened | #152, #153, #154, #155, #156, this | **the sixth**; five was reached at #156 |
+
+**The brief for this close said the cap was spent at PR 3, and that the withdrawal was the
+cause. Neither count reproduces that on its own.**
+- Counting every PR, five was reached at PR 3, but by the two exhibits, not by the
+  withdrawal.
+- Counting as decision 6 did, nothing is exceeded.
+
+**What the withdrawal spent is the plan the cap bounded, and that is the breach recorded
+here.**
+- Decision 6 planned PR 4 as the reading and PR 5 as the close (:170-173).
+- Amendment 1 emptied PR 4.
+- A replacement needed three PRs (a spec, a reading and a close) against the two slots
+  left, so **after PR 3, no reading could fit inside five.**
+
+The rule is not reinterpreted to avoid that: *"Reaching five closes the milestone, red if
+necessary"* (:172-173). The milestone closes at four rather than spending a sixth.
+
+**2. Why the close is taken, and not a sixth PR.** A sixth PR would have bought a spec whose
+falsifiers cannot fire. That is not scope the cap held back. It is scope that does not
+exist.
+
+**3. The finding, which is about exhibits.** Decision 6 recorded #153 as uncounted and left
+the ruling to the operator. Amendment 1 excluded #155 on that precedent. Neither was ruled,
+and in practice exhibits have been taken freely and none counted.
+**An exhibit that merges nothing and changes no file on `main` is outside the cap.**
+
+**What this does not change:** the cap stays five, and SPEC/10's *Bounded* is not edited.
+
+### CLAUDE.md's pre-spec feasibility rule, and debt 34
+
+This close adds a standing rule to CLAUDE.md's *Milestone discipline*: before a claim is
+written, name a state of the world in which it is false, and the existing command that would
+detect it. If there is none, the claim is not pre-registerable.
+
+**That edit fires debt 34** (ADR-076:633):
+- the debt: *"CLAUDE.md says one milestone = one branch `mNN-<slug>`; five milestones have
+  used one branch per PR"*;
+- its trigger: *"the next PR that edits CLAUDE.md's Milestone discipline section"*.
+
+**It is paid in one line.** CLAUDE.md:40 now reads *"One milestone = one tag `mNN` at close,
+and one branch per PR, none named `mNN`."* The remote branches agree:
+`m08b-pr2-instrument`, `m09b-pr1c-withdrawal`, `m09c-pr2-close` and
+`m10-pr3-audit-and-cold-review`. ADR-076's table is not edited, and the payment is recorded
+here and in the journal.
+
+**The feasibility rule is prose.** No check reads a spec for a named false state and a
+command. It is carried as a debt, the same shape as D18.
+
+### What this amendment does not change
+
+- **Decisions 1, 2, 5 and 7 stand**, as amendment 1 left them: the scope, the target, the
+  dependencies, and `brand_tone`'s re-deferral. ADR-026 amendment 6's ground
+  (ADR-026:356-358) rests on decision 1's scope, and it does not move.
+- **Decision 8's route stands, and the disposition is not signed in this PR.** Security was
+  to re-dispose `enforcement-probing` at this close, reading M09's census as M09's. The
+  advisory draft is at :216-243. Signing it is the operator's act under G6, and an
+  author's PR cannot carry it. It is carried as debt 10 in the journal, with the route
+  unchanged.
+- **Nothing else moves.** No schema, runner, writer or test is edited. Nothing under
+  `milestones/M02`, `M07`, `M08`, `M08b`, `M09`, `M09b` or `M09c` changes.
+- **No debt is repaired except D19.** Its three rows now record the withdrawal, and that no
+  replacement claim exists. Every other debt is carried in `milestones/M10/README.md`, one
+  row each.
