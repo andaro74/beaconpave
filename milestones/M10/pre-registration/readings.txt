@@ -1,0 +1,83 @@
+M10 pre-registration readings. Records written by the runners at commit 06ae901b852d74d922267c07d7fa6d6853c382f5.
+Every command is run from the repository root; each block is its raw output and exit code.
+
+## F1 and F5, clean: the three runners' records in one invocation
+$ python -m pave.cli gate decide --verdicts milestones/M10/pre-registration/clean/verdict-evals.json milestones/M10/pre-registration/clean/verdict-playwright.json milestones/M10/pre-registration/clean/verdict-k6.json
+  [PASS] milestones/M10/pre-registration/clean/verdict-evals.json (evals L2): suite reported PASS
+  [PASS] milestones/M10/pre-registration/clean/verdict-playwright.json (playwright L4): suite reported PASS
+  [PASS] milestones/M10/pre-registration/clean/verdict-k6.json (k6 L4): suite reported PASS
+
+gate: PASS — 3 verdict(s), none blocking
+exit 0
+
+## F2, drift: evals with one undeclared key
+$ python -m pave.cli gate decide --verdicts milestones/M10/pre-registration/drift/verdict-evals.json
+  [BLOCK] milestones/M10/pre-registration/drift/verdict-evals.json: verdict violates the verdict schema at <root>: Additional properties are not allowed ('arm' was unexpected)
+
+gate: BLOCKED (harness/contract failure) — 1 of 1 verdict(s) blocking; exit 2; owner: platform
+exit 2
+
+## F2, drift: playwright with one undeclared key
+$ python -m pave.cli gate decide --verdicts milestones/M10/pre-registration/drift/verdict-playwright.json
+  [BLOCK] milestones/M10/pre-registration/drift/verdict-playwright.json: verdict violates the verdict schema at <root>: Additional properties are not allowed ('browser' was unexpected)
+
+gate: BLOCKED (harness/contract failure) — 1 of 1 verdict(s) blocking; exit 2; owner: platform
+exit 2
+
+## F2, drift: k6 with one undeclared key
+$ python -m pave.cli gate decide --verdicts milestones/M10/pre-registration/drift/verdict-k6.json
+  [BLOCK] milestones/M10/pre-registration/drift/verdict-k6.json: verdict violates the verdict schema at <root>: Additional properties are not allowed ('p95_ms' was unexpected)
+
+gate: BLOCKED (harness/contract failure) — 1 of 1 verdict(s) blocking; exit 2; owner: platform
+exit 2
+
+## F3, a planted failure: agent evals (M09's committed pre-fix disclosure verdict)
+$ python -m pave.cli gate decide --verdicts milestones/M09/verdict-pre-fix.json
+  [BLOCK] milestones/M09/verdict-pre-fix.json (disclosure L3): suite reported FAIL
+
+gate: BLOCKED (quality regression) — 1 of 1 verdict(s) blocking; exit 1; owner: service team
+exit 1
+
+## F3, a planted failure: playwright (--path missing)
+$ python -m pave.cli gate decide --verdicts milestones/M10/pre-registration/planted-failure/verdict-playwright.json
+  [BLOCK] milestones/M10/pre-registration/planted-failure/verdict-playwright.json (playwright L4): suite reported FAIL
+
+gate: BLOCKED (quality regression) — 1 of 1 verdict(s) blocking; exit 1; owner: service team
+exit 1
+
+## F3, a planted failure: k6 (--path missing)
+$ python -m pave.cli gate decide --verdicts milestones/M10/pre-registration/planted-failure/verdict-k6.json
+  [BLOCK] milestones/M10/pre-registration/planted-failure/verdict-k6.json (k6 L4): suite reported FAIL
+
+gate: BLOCKED (quality regression) — 1 of 1 verdict(s) blocking; exit 1; owner: service team
+exit 1
+
+## F4, a planted harness error: evals
+$ python -m pave.cli gate decide --verdicts milestones/M10/pre-registration/planted-harness-error/verdict-evals.json
+  [BLOCK] milestones/M10/pre-registration/planted-harness-error/verdict-evals.json: verdict file is missing — the gate cannot pass on an absent result (G2)
+
+gate: BLOCKED (harness/contract failure) — 1 of 1 verdict(s) blocking; exit 2; owner: platform
+exit 2
+
+## F4, a planted harness error: playwright
+$ python -m pave.cli gate decide --verdicts milestones/M10/pre-registration/planted-harness-error/verdict-playwright.json
+  [BLOCK] milestones/M10/pre-registration/planted-harness-error/verdict-playwright.json (playwright L4): suite reported INFRA — the harness failed, not the code under test; this blocks and pages the platform
+
+gate: BLOCKED (harness/contract failure) — 1 of 1 verdict(s) blocking; exit 2; owner: platform
+exit 2
+
+## F4, a planted harness error: k6
+$ python -m pave.cli gate decide --verdicts milestones/M10/pre-registration/planted-harness-error/verdict-k6.json
+  [BLOCK] milestones/M10/pre-registration/planted-harness-error/verdict-k6.json (k6 L4): suite reported INFRA — the harness failed, not the code under test; this blocks and pages the platform
+
+gate: BLOCKED (harness/contract failure) — 1 of 1 verdict(s) blocking; exit 2; owner: platform
+exit 2
+
+## F5, composition: clean evals, clean playwright, failing k6
+$ python -m pave.cli gate decide --verdicts milestones/M10/pre-registration/clean/verdict-evals.json milestones/M10/pre-registration/clean/verdict-playwright.json milestones/M10/pre-registration/planted-failure/verdict-k6.json
+  [PASS] milestones/M10/pre-registration/clean/verdict-evals.json (evals L2): suite reported PASS
+  [PASS] milestones/M10/pre-registration/clean/verdict-playwright.json (playwright L4): suite reported PASS
+  [BLOCK] milestones/M10/pre-registration/planted-failure/verdict-k6.json (k6 L4): suite reported FAIL
+
+gate: BLOCKED (quality regression) — 1 of 3 verdict(s) blocking; exit 1; owner: service team
+exit 1
