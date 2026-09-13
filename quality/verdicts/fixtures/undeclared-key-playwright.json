@@ -1,0 +1,11 @@
+{
+  "service": "highlights-agent",
+  "surface": "web",
+  "commit": "deadbeef",
+  "suite": "playwright",
+  "layer": "L4",
+  "verdict": "PASS",
+  "fail_closed": true,
+  "p95_ms": 812,
+  "browser": "chromium"
+}
