@@ -720,29 +720,28 @@ baseline that throws away comparison to M08b's committed run (ADR-075 amendment 
 **The cap is six PRs, document-only ones included, with one named spare for a cold
 review of the derivation before any call, and two runs.**
 
-✺ **M10 is claim 3 on one closed envelope, and it is this row and nothing else (ADR-079,
-`SPEC/10-surfaces-one-envelope.md`).** Agent evals, Playwright and k6 each write one
-record in the verdict envelope, and one gate decides all three by one contract. PASS is
-admitted, FAIL blocks at exit 1, a runner that cannot establish its result blocks at exit
-2, and a record outside the envelope blocks at exit 2.
+✺ **M10 closed RED, claim 3 NOT MEASURED, and no replacement claim exists (ADR-079
+amendments 1 and 2; `milestones/M10/README.md`).** SPEC/10's claim and its five
+falsifiers were withdrawn before any measurement, on a cold review and a deletability
+audit through the CI gate: 14 of 24 plants SILENT, and three falsifiers with no reading
+of their runner. `SPEC/10-surfaces-one-envelope.md` is retained unedited, as the record
+of what was pre-registered.
+
+**Claim 3 cannot be measured as an envelope claim.** One function, `pave.verdict.build`,
+builds every verdict record at eight call sites, and it validates each one against the
+schema file the gate reads before anything is written (`pave/verdict.py:26`, `:88`;
+`pave/gate.py:41`). So no record a runner writes can be refused on schema grounds, and
+the refusal of an undeclared key is already shown by PR 1's test. The claim's proof line,
+*identical JSON* from three runners, describes runners that could diverge; the repository
+has one writer. **GREEN was available and refused:** a claim with no reachable falsifier
+confirming itself is the vacuous confirmation ADR-035 amendment 5 names.
 
 M10 PR 1 (#152) closed the envelope. Before it, `gate decide` passed a Playwright record
-carrying an invented `p95_ms` at exit 0.
+carrying an invented `p95_ms` at exit 0. That closure stands.
 
-**Five falsifiers, and every reader ran before the claim was written.**
-`python -m pave.cli gate decide --verdicts` read records the committed runners wrote, and
-its output is `milestones/M10/pre-registration/readings.txt`. The clean three exit 0,
-each drift record exits 2, each planted failure exits 1, and each planted harness error
-exits 2.
-
-**The static player is M10's first deliverable.** It is static files served on
-`127.0.0.1` by the standard library: no gateway endpoint, no `gateway-stack.ts` edit, no
-deploy, no model call.
-
-**k6 loads that static surface, not a live API.** It establishes that a load runner's
-result lands in the same envelope and is decided by the same contract. It establishes
-nothing about the capacity or latency of the gateway, the agent or any deployed service,
-and its thresholds are chosen, not derived.
+**Built, and read by no claim:** a placeholder static player served on `127.0.0.1`, two
+surface runners and one writer. No gateway endpoint, no `gateway-stack.ts` edit, no
+deploy, no model call. Goldens and adversarial were not run.
 
 **This row is not the other `M10`** (ADR-075:564). It does not carry claim 10, deploy
 `publish-highlight`, add per-service lanes or add a second brand. The seven code and
@@ -752,8 +751,9 @@ template sites that still say otherwise are carried as a debt and not edited.
 ground (ADR-026 amendment 6). The dashboard and the claim 12 seed are cut from the row,
 and claim 12 stays at M12.
 
-**Five PRs, document-only ones included, with one named spare for a cold review before
-the claim is read.**
+**Four PRs, document-only ones included, against a cap of five.** Exhibits #153 and #155
+merged nothing and are outside the cap. The withdrawal spent the reading the cap planned
+for PR 4, and the milestone closes rather than taking a sixth PR.
 
 ## What part one produced
 
@@ -810,7 +810,7 @@ Anything that doesn't serve one is out of scope.
 |---|---|---|---|
 | 1 | One command → governed service | ⬜ **INCOMPLETE** ⁂ — `pave new` renders five files and `pave verify` refuses fourteen ways, but **nothing is deployed** and the developer's remaining authorship is **well over an hour** against a claim of thirty minutes | 05 |
 | 2 | Gates fail closed and teach | ✅ [PR #29](https://github.com/andaro74/beaconpave/pull/29) — labeled `exhibit`, closed unmerged. Six lines make a probe pass because the model declined; the gate answers `BLOCKED (quality regression); exit 1` and its comment names the five probes that moved, the comparator they moved against, and what to do. Exit **1**, never 2 — a caught regression, not a broken harness | 04 |
-| 3 | One verdict schema, many runners | Agent evals + Playwright + k6 emit identical JSON | 10 |
+| 3 | One verdict schema, many runners | ⬜ **UNSCHEDULED** ✺ — **not measurable as an envelope claim** (ADR-079 amendment 2). Every verdict record is built by one function, `pave.verdict.build`, which validates it against the schema file the gate reads before anything is written, so no record a runner writes can be refused and the claim confirms itself. M10 closed RED with it NOT MEASURED. It becomes measurable when **a record can reach `gate decide` without passing through `verdict.build`**, or when **the schema can change between a record's write and its read** — and neither is an envelope claim | — |
 | 4 | No direct model access | ✅ [PR #14](https://github.com/andaro74/beaconpave/pull/14) blocked by the IAM assertion; the denial witnessed in `milestones/M01/direct-call-witness.json` | 01 |
 | 5 | Adversarial pass = blocked-and-logged | ✅ [`m04-adversarial`](evals/history/m04-adversarial.json) — 10 probes × 3 samples, **7/10** under unanimity. Every observation fetched back **out of the audit lake** rather than taken from the gateway's word; a record that does not resolve scores FAIL. No probe passes on the model's manners — `model_complied` is recorded and never scored | 04 |
 | 6 | Rules have owners and dispositions | ❌ **FAILED on two falsifiers** ⊙ — the rule delta *was* disposed end-to-end (`python -m pave.cli rules trace MER-AI-0001` walks law → rule → control → seven cases with no step supplied by hand, and the gate blocked at exit 1 then permitted at exit 0 on the real deployment). The **claim** — *and the fix makes it pass, with nothing else moving* — failed: **F1** on `disclosure-103`, which passed 2 of 3 **before** the fix, and **F4.2** on `grounded-017`, which passed 3-of-3 at M08b and fails by majority after it | 09 |
