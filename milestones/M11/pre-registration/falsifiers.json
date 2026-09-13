@@ -1,0 +1,127 @@
+{
+  "_comment": "M11's pre-registration: SPEC/11's claim, its pinned values, its five falsifiers and its validity checks, as data. Committed in M11 PR 2 AFTER `readers.txt`, which shows every reader named here emitting a value on synthetic fixtures (CLAUDE.md, Milestone discipline; ADR-080 decision 1). Proposed in SPEC/11 at PR 1. `tests/test_drill_pins.py` holds this file equal to SPEC/11's pinned table and to `drill/scenarios/caption-check.json`. Nothing here may change after it is committed (SPEC/11, What must not happen). On AI Quality plus Platform Engineering.",
+  "spec": "SPEC/11-drill-go-no-go.md",
+  "adr": "ADR-080",
+  "claim": "For event jefferson-derby at tier 3, a seeded caption failure makes `pave drill` write a NO-GO. The NO-GO names the seeded gap, the pinned owner, and a fix-by time set by the pinned window, under a signature that refuses a hand edit. The delta drill run without the fix still writes NO-GO for the same gap. The delta drill run with the fix writes GO.",
+  "runs": ["seeded", "control", "fixed"],
+  "pins": {
+    "event": "jefferson-derby",
+    "tier": 3,
+    "fixture": "drill/fixtures/jefferson-derby/captions.vtt",
+    "fixture_shape": {
+      "cues": ["c001", "c002", "c003", "c004", "c005", "c006", "c007", "c008", "c009", "c010", "c011", "c012"],
+      "cue_ms": 5000,
+      "start_ms": 0,
+      "end_ms": 60000,
+      "contiguous": true
+    },
+    "scenario": "caption-check",
+    "rule": "max-gap",
+    "max_gap_s": 4.0,
+    "finding_when": "gap > max_gap_s, strictly",
+    "seed": {"deleted_cue": "c007", "and_nothing_else": true},
+    "fix": {"restored_cue": "c007", "fixture_bytes_equal_pr2": true},
+    "seeded_finding": "caption-check/max-gap/c006/c008",
+    "owner": {"seat": "service-team", "oncall": "webhook:player-captions"},
+    "fix_by_window_s": 129600,
+    "utc_second": "YYYY-MM-DDTHH:MM:SSZ",
+    "signature": {
+      "alg": "HMAC-SHA256",
+      "key_id": "first 16 hex of sha256(key)",
+      "covers": "the artifact minus `signature`",
+      "canonical": "json.dumps(sort_keys=True, separators=(\",\", \":\"), ensure_ascii=False), UTF-8",
+      "key_env": "BEACONPAVE_DRILL_KEY",
+      "min_key_bytes": 32
+    },
+    "on_disk": "json.dumps(indent=2, ensure_ascii=False) plus a newline",
+    "exit_codes": {
+      "pave drill": {"0": "GO written", "1": "NO-GO written", "2": "nothing written"},
+      "pave drill verify": {"0": "signature: OK", "1": "signature: MISMATCH", "2": "unreadable or no key"}
+    }
+  },
+  "falsifiers": [
+    {
+      "id": "F1",
+      "name": "the seed is not caught",
+      "runs": ["seeded"],
+      "false_if": "decision is not NO-GO, or the findings are anything other than exactly the seeded finding",
+      "fields": ["decision", "finding"],
+      "reader": "python -m pave.cli drill read",
+      "reader_lands": "PR 2",
+      "expect": {"decision": "NO-GO", "finding": ["caption-check/max-gap/c006/c008"]}
+    },
+    {
+      "id": "F2",
+      "name": "the NO-GO names the wrong owner or time",
+      "runs": ["seeded", "control"],
+      "false_if": "owner.seat, owner.oncall or fix_window_s differs from its pin on either run",
+      "fields": ["owner.seat", "owner.oncall", "fix_window_s"],
+      "reader": "python -m pave.cli drill read",
+      "reader_lands": "PR 2",
+      "expect": {"owner.seat": "service-team", "owner.oncall": "webhook:player-captions", "fix_window_s": "129600"}
+    },
+    {
+      "id": "F3",
+      "name": "a hand edit survives",
+      "runs": ["seeded"],
+      "false_if": "any edited copy of the seeded artifact for which verify does not exit 1 printing `signature: MISMATCH`",
+      "fields": ["signature"],
+      "liveness": {"command": "python -m pave.cli drill verify <seeded artifact>", "exit": 0, "line": "signature: OK", "evidence": false, "why_not_evidence": "one key and one canonical form make it true by construction"},
+      "edits": [
+        {"field": "decision", "to": "GO", "made_with": "sed, one substitution on a copy"},
+        {"field": "owner.oncall", "to": "webhook:someone-else", "made_with": "sed, one substitution on a copy"},
+        {"field": "fix_by", "to": "its year plus one", "made_with": "sed, one substitution on a copy"}
+      ],
+      "plant_live": "cmp shows each copy differs from the seeded artifact",
+      "reader": "python -m pave.cli drill verify",
+      "reader_lands": "PR 2",
+      "also_named": {"sed": "exists today", "cmp": "exists today"},
+      "expect": {"exit": 1, "line": "signature: MISMATCH"}
+    },
+    {
+      "id": "F4",
+      "name": "the control is not NO-GO for the same gap",
+      "runs": ["control"],
+      "false_if": "decision is not NO-GO, or its finding lines differ from the seeded run's",
+      "fields": ["decision", "finding"],
+      "reader": "python -m pave.cli drill read",
+      "reader_lands": "PR 2",
+      "expect": {"decision": "NO-GO", "finding": "equal to the seeded run's"}
+    },
+    {
+      "id": "F5",
+      "name": "the fix does not yield GO",
+      "runs": ["fixed"],
+      "false_if": "decision is not GO, or any finding line",
+      "fields": ["decision", "finding"],
+      "reader": "python -m pave.cli drill read",
+      "reader_lands": "PR 2",
+      "expect": {"decision": "GO", "finding": []}
+    }
+  ],
+  "validity": {
+    "_comment": "Read before any falsifier. A run failing one is INVALID: the claim is NOT MEASURED, M11 closes RED, and no run is repeated. B is PR 3's branch point on main; S, C and F are the commit fields of the seeded, control and fixed artifacts; R1 is the seeded artifact's path.",
+    "all": [
+      {"check": "tree_clean=true", "reader": "python -m pave.cli drill read", "reader_lands": "PR 2"},
+      {"check": "S, C and F lie in that order on PR 3's branch", "reader": "git merge-base --is-ancestor", "reader_lands": "today"}
+    ],
+    "seeded": [
+      {"check": "mode=full", "reader": "python -m pave.cli drill read", "reader_lands": "PR 2"},
+      {"check": "git diff --name-only B S is exactly the fixture", "reader": "git diff", "reader_lands": "today"}
+    ],
+    "control": [
+      {"check": "mode=delta", "reader": "python -m pave.cli drill read", "reader_lands": "PR 2"},
+      {"check": "prior_sha256 equals sha256sum R1", "reader": "sha256sum", "reader_lands": "today"},
+      {"check": "caption_sha256 equals the seeded run's", "reader": "python -m pave.cli drill read", "reader_lands": "PR 2"},
+      {"check": "C differs from S", "reader": "python -m pave.cli drill read", "reader_lands": "PR 2"},
+      {"check": "git diff --name-only S C lies under milestones/M11/", "reader": "git diff", "reader_lands": "today"}
+    ],
+    "fixed": [
+      {"check": "mode=delta", "reader": "python -m pave.cli drill read", "reader_lands": "PR 2"},
+      {"check": "prior_sha256 equals sha256sum R1", "reader": "sha256sum", "reader_lands": "today"},
+      {"check": "git diff --name-only C F, minus milestones/M11/, is exactly the fixture", "reader": "git diff", "reader_lands": "today"},
+      {"check": "git diff B F -- drill/fixtures/jefferson-derby/captions.vtt is empty", "reader": "git diff", "reader_lands": "today"}
+    ]
+  },
+  "readers_shown_emitting": "milestones/M11/pre-registration/readers.txt"
+}
