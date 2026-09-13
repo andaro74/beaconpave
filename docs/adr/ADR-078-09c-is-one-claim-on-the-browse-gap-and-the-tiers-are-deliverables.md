@@ -362,3 +362,154 @@ rule:**
 a change arm and an era for every scorer input, and derives ceilings from a held-out
 population by a registered rule. The two runs already share one reader, the derivations
 already name their populations, and the era pin is that service's version column.
+
+---
+
+## Amendment 1 (2026-09-12, 09c PR 2, the close, with no run, deploy or model call): the diagnosis names `tools/catalog-search/schema.in.json` by quotation, and the fix does not land in 09c
+
+**Status: the operator's ruling at the close.** It changes no decision above. It records
+four things: the site the diagnosis names, how that site was reached, the measurement
+that took the fix out of this milestone, and what that does to the claim.
+
+Decision 6 and SPEC/09c:260 reserved this number for the spare's cold review. The spare
+was not taken, so no cold review exists, and the number is not held open for one.
+
+### The site, in SPEC/02's words and no others
+
+The diagnosis names **`tools/catalog-search/schema.in.json`**. It is named by quoting
+SPEC/02, the tool plane's owning document, and not by any rule written in this
+milestone.
+
+SPEC/02:551, the *Named in advance* row of its prediction table:
+
+> | **Named in advance** | `recommend-003`, `recommend-013`, `recommend-014` fail on **contract-cannot-express**; `multi-023` loses its `t003` half for the same reason | Measured by replaying the model's own recorded queries: no legal input retrieves those titles for those intents | Any of them passing — which would mean retrieval is broader than the contract says |
+
+SPEC/02:603-606:
+
+> `query` is `required` and there is no filter-only mode, so **no legal input
+> retrieves that title** for that intent unless the model already knows the catalog
+> — which is exactly what M02 takes away. The same holds for `recommend-003` and
+> `recommend-014`.
+
+SPEC/02:634-641:
+
+> **This is not a retrieval miss and must not be booked as one.** The model queried
+> sensibly and the tool behaved exactly as specified; the contract cannot express
+> the request. A retrieval miss is fixed by better ranking; this is fixed by a
+> browse mode or by relaxing `required: [query]` — a schema change, a semver bump,
+> and the Tool Owner's call. It is drafted as a tightening and **does not land
+> here**, because SPEC/02 says the committed schemas are not modified by M02 and
+> changing a tool contract mid-milestone to protect a score is the move this repo
+> exists to refuse.
+
+The four cases SPEC/02 names are `recommend-003`, `recommend-013`, `recommend-014` and
+`multi-023`. All four are among SPEC/09c's seven (ADR-074:87-89). `grounded-018`,
+`grounded-019` and `edge-025` are not named there.
+
+### When those sentences were written, and what the author had read first
+
+The quoted lines were committed in `ed57b2a` on 2026-08-18 (*"M02: close the re-review,
+and the finding the first fix created"*). M02's run is `4eda0d0`, on 2026-08-19 (*"M02:
+both arms run, and the pre-registered prediction is falsified"*). `ed57b2a` is an ancestor
+of `4eda0d0`, and both are reachable from `main`.
+
+So the site was named before M02's run. Twelve milestones have closed since tag `m02`:
+`m03`, `m04`, `m05`, `m06`, `m06b`, `m06c`, `m06d`, `m07`, `m08`, `m08b`, `m09` and `m09b`.
+
+**The author of this amendment had already read and classified the trajectories.** Before
+any diagnosis was written, every committed trajectory of the seven cases on M08b's and
+M09's runs was replayed through `search.py`. Each search beyond the first was classified
+by what the model had seen when it sent it. That reading found three mechanisms, and it
+was reported as a stop, because F1 says *"the site"*, singular.
+
+A rule authored after that reading is chosen with its data in view, which is why none is
+admissible here. A second draft rule would have booked the zero-row returns as a
+retrieval defect in `search.py`. It was stopped by SPEC/02:634 before it was committed.
+The site above rests on the quotation alone.
+
+### Why the plan was not SPEC/02's refused move, and why that no longer decides anything
+
+SPEC/02:640-641 refuses *"changing a tool contract mid-milestone to protect a score"*.
+09c's plan differed from that move in three ways:
+
+- the claim was pre-registered before any run, in SPEC/09c and this ADR (`852d997`);
+- its five falsifiers were committed in the same PR (SPEC/09c:63-67);
+- a control run on the unchanged system was to come before the change (SPEC/09c
+  constraints 1 and 2).
+
+**None of the three was reached.** No contract was edited and no run was taken. The
+ruling below takes the change out of the milestone on another ground: the one that cut
+the DMA rename.
+
+### The measurement
+
+It was taken in a scratch worktree at `e398799` and never in the repository, with zero
+model calls. `"required": ["query"],` was removed from `schema.in.json`, and `python -m
+pave.cli policy generate` regenerated `platform/gateway/policy/tools.contracts.json`,
+removing 3 lines. The full record is `milestones/M09c/contract-relaxation-blast-radius.txt`,
+with the pytest output beside it as evidence.
+
+- **The recorded arguments still validate.** `fresh_join.py` checks every step of M08b's
+  and M09's committed trajectories against the contract, and every step passes.
+- **`pytest` reads 19 failed, 4688 passed, 8 skipped.**
+- **Three readers' committed records stop reproducing:**
+  - `milestones/M08/context_census.py`: `context-census.json` moves on 12 fields. Among
+    them, `catalog-search`'s tool spec estimate goes from 294 to 287 tokens, and the
+    residual's bounds move by 6.
+  - `milestones/M08/residual_differential.py`: `residual-differential.json` moves on 11
+    fields. Its published reading, *"The residual grew by 23 across an added spec of
+    258."*, becomes 22.
+  - `milestones/M08b/fresh_join.py`: M08b's and M09's `fresh-join.json`, and the planted
+    fixture's, each move on one field, the digest of `tools.contracts.json`.
+- **Two numbers M09 recorded no longer reproduce.** The tool spec is priced on every call.
+  The fix's priced delta, `MEASURED_DELTA = 200` (`tests/test_m09_prompt_delta.py:220`;
+  `milestones/M09/README.md:136`), reads **193**. The headroom it left, **106**
+  (`tests/test_m09_prompt_delta.py:663-672`), reads **113**.
+
+### The ruling
+
+**The fix does not land in 09c.** The operator ruled it at the close, on two properties:
+
+- **It is model-facing.** `platform/gateway/handler.py:195-210` sends the committed input
+  contract to the model as its tool spec. `tests/test_gateway_run_parity.py:296-297` pins
+  that spec because the tool specs *"are part of the system under measurement just as the
+  prompt is"*.
+- **It invalidates committed measurements in M08, M08b and M09**, as measured above.
+
+That is the property that cut the DMA rename. ADR-075:1012-1017 says a consistent rename
+*"refuses M08b's committed run"* through `fresh_join.py --check`, and that *"The three
+ways out are re-producing nine milestones of trajectory records, editing committed
+evidence, and sliding."* A close can take neither of the first two, and the rename slid.
+
+**Three earlier readings missed it:**
+
+- **Decision 5** drew its line between two cases. A tier or a gate *"refuses committed
+  runs on the scorer's side only"* (:277). The rename refuses them on the model's side.
+  The claim's own intervention was never placed on either side of that line.
+- **SPEC/09c constraint 7** prepared two-key rules for `search.py` and `server.py`, and
+  none for the contract.
+- **The operator's ruling at 09c PR 2** had the contract change land in PR 3, between the
+  control run and the post run.
+
+### What this does to the claim and to decisions 3 to 6
+
+- **All three terms: NOT MEASURED.** The claim delegates its intervention to a site whose
+  change is *"a schema change, a semver bump, and the Tool Owner's call"* (SPEC/02:637-638).
+  That is out of a milestone's reach. F1 to F5 were not read, and none is reported clean.
+- **Decisions 3 and 4 were not executed.** Neither executor was written, and no tier and
+  no gate moved. Both re-derivations are carried forward unscheduled, at AI Quality, with
+  their existing triggers.
+- **Decision 5's era pin was not built.** It now has a second job: the contracts digest
+  that reaches the three readers above. It is carried to Platform Engineering, and the
+  semver bump is its trigger.
+- **Decision 6's cap: two PRs of six**, PR 1 and the close. The spare was not taken.
+  There was no run, no deploy and no seat round.
+
+### What this amendment does not decide
+
+- The contract change's shape: a browse mode, or relaxing `required: [query]`
+  (SPEC/02:636-637). That is the Tool Owner's call at the semver bump.
+- How the three readers' records stay readable after that bump.
+- Any tier or gate value.
+- `MIN_TERM_LENGTH`'s contribution, and a partition of the trajectories by a preceding
+  zero-row result. Neither was taken.
