@@ -4,6 +4,7 @@
   "title": "Verdict Record",
   "description": "The single contract every quality runner emits \u2014 agent evals, Playwright, k6, drills. One schema is what makes company-wide regression-risk and defect-leakage dashboards possible.",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "service",
     "surface",
@@ -99,6 +100,7 @@
     },
     "provenance": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "author": {
           "type": "string",
