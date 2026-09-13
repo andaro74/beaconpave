@@ -22,7 +22,6 @@
     "surface": {
       "type": "string",
       "enum": [
-        "agent",
         "backend",
         "web",
         "mobile",
