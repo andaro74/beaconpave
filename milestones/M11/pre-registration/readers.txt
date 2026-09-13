@@ -1,6 +1,6 @@
 # M11 PR 2: the readers, shown emitting before the claim is committed
 
-beaconpave HEAD: 5aa6d78a7c787cf74651d77d2ebe73652541a99d
+beaconpave HEAD: c2bff1bba4e3acec095e54ac1e03b753332398e3
 beaconpave tree: 0 uncommitted path(s)
 python: Python 3.14.3
 BEACONPAVE_DRILL_KEY: a throwaway of 48 bytes, generated for this transcript and discarded; its value is not recorded
@@ -8,13 +8,13 @@ synthetic repository: event synthetic-event, tier 7, owner synthetic-seat / webh
 the writer is called through write.py (pave.drill.run with root= the synthetic repository, committed beside this file as write.py.txt); every reader through python -m pave.cli
 without_key runs its command in a subshell with BEACONPAVE_DRILL_KEY unset
 
-synthetic B (clean) = 9137cdf723729de91032d2983144d7e1c7366953
-synthetic S (s02 deleted) = 2d22408c44594d9569f088fa74957ec521e0d02e
+synthetic B (clean) = 68086f886246d7ae5407bde213449d88067807d3
+synthetic S (s02 deleted) = 6fe001eebf6dc277e3ff769f41855591b0473595
 
 ## 1. the writer, a full drill on the synthetic seed
 
 $ python write.py repo synthetic-event 7 out/seeded.json - 2030-01-02T03:04:05+00:00
-written out/seeded.json: decision NO-GO, mode full, key_id 3222228ac30a3845
+written out/seeded.json: decision NO-GO, mode full, key_id 25943b184b84c2e4
 exit 1
 
 ## 2. F3's liveness, first: verify on the well-formed artifact (not evidence: true by construction)
@@ -24,12 +24,12 @@ signature: OK
 schema: OK
 exit 0
 
-## 3. the reader F1 and F2 name, on the NO-GO
+## 3. the reader F1 and F2 name, on the NO-GO; and the caption-bytes validity reader (ADR-080 amendment 1)
 
 $ python -m pave.cli drill read out/seeded.json
 decision=NO-GO
 mode=full
-commit=2d22408c44594d9569f088fa74957ec521e0d02e
+commit=6fe001eebf6dc277e3ff769f41855591b0473595
 tree_clean=true
 ran_at=2030-01-02T03:04:05Z
 fix_by=2030-01-02T05:04:05Z
@@ -39,6 +39,10 @@ owner.oncall=webhook:synthetic-oncall
 caption_sha256=7e031b23f2a6f8a152447fc793489bebaaec5822e0d88576a02ea526a3240268
 prior_sha256=-
 finding=caption-check/max-gap/s01/s03
+exit 0
+
+$ bash -c git\ -C\ repo\ show\ 6fe001eebf6dc277e3ff769f41855591b0473595:drill/fixtures/synthetic/captions.vtt\ \|\ sha256sum
+7e031b23f2a6f8a152447fc793489bebaaec5822e0d88576a02ea526a3240268 *-
 exit 0
 
 ## 4. F3's reader: three copies, one sed each, shown to differ with cmp, then verify
@@ -78,18 +82,18 @@ exit 1
 
 ## 5. the commit between seeded and control: the synthetic seeded artifact committed, nothing else
 
-synthetic C = 77fca7f55ae822678396c2f7aadbab8ca820e655
+synthetic C = 2ca829fd661bef1d0fa4d2d21d2a58ffe05ecb09
 
 ## 6. the writer, a delta drill without the fix; the reader F4 names
 
 $ python write.py repo synthetic-event 7 out/control.json out/seeded.json 2030-01-02T04:00:00+00:00
-written out/control.json: decision NO-GO, mode delta, key_id 3222228ac30a3845
+written out/control.json: decision NO-GO, mode delta, key_id 25943b184b84c2e4
 exit 1
 
 $ python -m pave.cli drill read out/control.json
 decision=NO-GO
 mode=delta
-commit=77fca7f55ae822678396c2f7aadbab8ca820e655
+commit=2ca829fd661bef1d0fa4d2d21d2a58ffe05ecb09
 tree_clean=true
 ran_at=2030-01-02T04:00:00Z
 fix_by=2030-01-02T06:00:00Z
@@ -97,35 +101,39 @@ fix_window_s=7200
 owner.seat=synthetic-seat
 owner.oncall=webhook:synthetic-oncall
 caption_sha256=7e031b23f2a6f8a152447fc793489bebaaec5822e0d88576a02ea526a3240268
-prior_sha256=a9fe368a9785db38312b05347be7c0c634f215dd5f627e07bb58c63c431845b4
+prior_sha256=ffe7accc6ce6352c5804b1d50a57de0fc2f8ed70b7e7e293415392e30e14d9a9
 finding=caption-check/max-gap/s01/s03
 exit 0
 
 ## 7. the validity readers for the control
 
 $ sha256sum out/seeded.json
-a9fe368a9785db38312b05347be7c0c634f215dd5f627e07bb58c63c431845b4 *out/seeded.json
+ffe7accc6ce6352c5804b1d50a57de0fc2f8ed70b7e7e293415392e30e14d9a9 *out/seeded.json
 exit 0
 
-$ git -C repo diff --name-only 2d22408c44594d9569f088fa74957ec521e0d02e 77fca7f55ae822678396c2f7aadbab8ca820e655
+$ bash -c git\ -C\ repo\ show\ 2ca829fd661bef1d0fa4d2d21d2a58ffe05ecb09:drill/fixtures/synthetic/captions.vtt\ \|\ sha256sum
+7e031b23f2a6f8a152447fc793489bebaaec5822e0d88576a02ea526a3240268 *-
+exit 0
+
+$ git -C repo diff --name-only 6fe001eebf6dc277e3ff769f41855591b0473595 2ca829fd661bef1d0fa4d2d21d2a58ffe05ecb09
 runs/seeded.json
 exit 0
 
-$ git -C repo merge-base --is-ancestor 2d22408c44594d9569f088fa74957ec521e0d02e 77fca7f55ae822678396c2f7aadbab8ca820e655
+$ git -C repo merge-base --is-ancestor 6fe001eebf6dc277e3ff769f41855591b0473595 2ca829fd661bef1d0fa4d2d21d2a58ffe05ecb09
 exit 0
 
 ## 8. the fix: s02 restored, nothing else; the writer, a delta drill; the reader F5 names
 
-synthetic F = 7b15813acf5782427952d4834fab51dcbc2ff356
+synthetic F = 3858cd36e761f1acaac37c97e7b01f201bad2466
 
 $ python write.py repo synthetic-event 7 out/fixed.json out/seeded.json 2030-01-02T05:00:00+00:00
-written out/fixed.json: decision GO, mode delta, key_id 3222228ac30a3845
+written out/fixed.json: decision GO, mode delta, key_id 25943b184b84c2e4
 exit 0
 
 $ python -m pave.cli drill read out/fixed.json
 decision=GO
 mode=delta
-commit=7b15813acf5782427952d4834fab51dcbc2ff356
+commit=3858cd36e761f1acaac37c97e7b01f201bad2466
 tree_clean=true
 ran_at=2030-01-02T05:00:00Z
 fix_by=-
@@ -133,7 +141,7 @@ fix_window_s=-
 owner.seat=-
 owner.oncall=-
 caption_sha256=e61222a789ad847a4f23e18fdbb5ef938bb000d3e62705de160db7e3dc775fdf
-prior_sha256=a9fe368a9785db38312b05347be7c0c634f215dd5f627e07bb58c63c431845b4
+prior_sha256=ffe7accc6ce6352c5804b1d50a57de0fc2f8ed70b7e7e293415392e30e14d9a9
 exit 0
 
 $ python -m pave.cli drill verify out/fixed.json
@@ -143,17 +151,21 @@ exit 0
 
 ## 9. the validity readers for the fixed run
 
-$ git -C repo diff --name-only 77fca7f55ae822678396c2f7aadbab8ca820e655 7b15813acf5782427952d4834fab51dcbc2ff356
+$ bash -c git\ -C\ repo\ show\ 3858cd36e761f1acaac37c97e7b01f201bad2466:drill/fixtures/synthetic/captions.vtt\ \|\ sha256sum
+e61222a789ad847a4f23e18fdbb5ef938bb000d3e62705de160db7e3dc775fdf *-
+exit 0
+
+$ git -C repo diff --name-only 2ca829fd661bef1d0fa4d2d21d2a58ffe05ecb09 3858cd36e761f1acaac37c97e7b01f201bad2466
 drill/fixtures/synthetic/captions.vtt
 exit 0
 
-$ git -C repo diff 9137cdf723729de91032d2983144d7e1c7366953 7b15813acf5782427952d4834fab51dcbc2ff356 -- drill/fixtures/synthetic/captions.vtt
+$ git -C repo diff 68086f886246d7ae5407bde213449d88067807d3 3858cd36e761f1acaac37c97e7b01f201bad2466 -- drill/fixtures/synthetic/captions.vtt
 exit 0
 
-$ git -C repo merge-base --is-ancestor 77fca7f55ae822678396c2f7aadbab8ca820e655 7b15813acf5782427952d4834fab51dcbc2ff356
+$ git -C repo merge-base --is-ancestor 2ca829fd661bef1d0fa4d2d21d2a58ffe05ecb09 3858cd36e761f1acaac37c97e7b01f201bad2466
 exit 0
 
-$ git -C repo merge-base --is-ancestor 7b15813acf5782427952d4834fab51dcbc2ff356 2d22408c44594d9569f088fa74957ec521e0d02e
+$ git -C repo merge-base --is-ancestor 3858cd36e761f1acaac37c97e7b01f201bad2466 6fe001eebf6dc277e3ff769f41855591b0473595
 exit 1
 
 ## 10. the refusals behind the exit codes
@@ -163,11 +175,11 @@ error: no key: BEACONPAVE_DRILL_KEY is unset or shorter than 32 bytes
 exit 2
 
 $ python -m pave.cli drill read out/broken.json
-error: out/broken.json is not JSON: Expecting value: line 1 column 1 (char 0)
+error: Unreadable: out/broken.json is not JSON: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 exit 2
 
 $ python -m pave.cli drill verify out/broken.json
-error: out/broken.json is not JSON: Expecting value: line 1 column 1 (char 0)
+error: out/broken.json is not JSON: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 exit 2
 
 $ without_key python write.py repo synthetic-event 7 out/no-key.json - 2030-01-02T06:00:00+00:00
@@ -176,4 +188,39 @@ exit 2
 
 $ test -e out/no-key.json
 exit 1
+
+## 11. the caption-bytes row's false state, planted on the synthetic repository (Security seat, M11 PR 2)
+
+The fix is committed at F. skip-worktree hides the working copy from git status, and the gap bytes go back on disk.
+
+$ git -C repo update-index --skip-worktree drill/fixtures/synthetic/captions.vtt
+exit 0
+
+$ git -C repo status --porcelain
+exit 0
+
+$ python write.py repo synthetic-event 7 out/skipped.json out/seeded.json 2030-01-02T07:00:00+00:00
+written out/skipped.json: decision NO-GO, mode delta, key_id 25943b184b84c2e4
+exit 1
+
+$ python -m pave.cli drill read out/skipped.json
+decision=NO-GO
+mode=delta
+commit=3858cd36e761f1acaac37c97e7b01f201bad2466
+tree_clean=true
+ran_at=2030-01-02T07:00:00Z
+fix_by=2030-01-02T09:00:00Z
+fix_window_s=7200
+owner.seat=synthetic-seat
+owner.oncall=webhook:synthetic-oncall
+caption_sha256=7e031b23f2a6f8a152447fc793489bebaaec5822e0d88576a02ea526a3240268
+prior_sha256=ffe7accc6ce6352c5804b1d50a57de0fc2f8ed70b7e7e293415392e30e14d9a9
+finding=caption-check/max-gap/s01/s03
+exit 0
+
+$ bash -c git\ -C\ repo\ show\ 3858cd36e761f1acaac37c97e7b01f201bad2466:drill/fixtures/synthetic/captions.vtt\ \|\ sha256sum
+e61222a789ad847a4f23e18fdbb5ef938bb000d3e62705de160db7e3dc775fdf *-
+exit 0
+
+tree_clean=true above, and the artifact's caption_sha256 differs from the committed fixture's: the amended validity row reads INVALID.
 

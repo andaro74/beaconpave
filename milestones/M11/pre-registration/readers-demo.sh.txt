@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # M11 PR 2: every reader SPEC/11's falsifiers and validity checks name, shown emitting a
 # value, on SYNTHETIC fixtures built here -- before `falsifiers.json` is committed.
+# Re-taken after the seat round (ADR-080 amendment 1), at the head carrying the fixed
+# writer and readers and the amended validity table.
 #
 # NOT the arc. The synthetic repository's values all differ from SPEC/11's pins:
 # event `synthetic-event`, tier 7, owner `synthetic-seat` / `webhook:synthetic-oncall`,
@@ -95,9 +97,10 @@ echo "## 2. F3's liveness, first: verify on the well-formed artifact (not eviden
 echo
 show python -m pave.cli drill verify out/seeded.json
 
-echo "## 3. the reader F1 and F2 name, on the NO-GO"
+echo "## 3. the reader F1 and F2 name, on the NO-GO; and the caption-bytes validity reader (ADR-080 amendment 1)"
 echo
 show python -m pave.cli drill read out/seeded.json
+show bash -c "git -C repo show $S:$CAPTIONS | sha256sum"
 
 echo "## 4. F3's reader: three copies, one sed each, shown to differ with cmp, then verify"
 echo
@@ -130,6 +133,7 @@ show python -m pave.cli drill read out/control.json
 echo "## 7. the validity readers for the control"
 echo
 show sha256sum out/seeded.json
+show bash -c "git -C repo show $C:$CAPTIONS | sha256sum"
 show git -C repo diff --name-only "$S" "$C"
 show git -C repo merge-base --is-ancestor "$S" "$C"
 
@@ -146,6 +150,7 @@ show python -m pave.cli drill verify out/fixed.json
 
 echo "## 9. the validity readers for the fixed run"
 echo
+show bash -c "git -C repo show $F:$CAPTIONS | sha256sum"
 show git -C repo diff --name-only "$C" "$F"
 show git -C repo diff "$B" "$F" -- "$CAPTIONS"
 show git -C repo merge-base --is-ancestor "$C" "$F"
@@ -159,3 +164,17 @@ show python -m pave.cli drill read out/broken.json
 show python -m pave.cli drill verify out/broken.json
 show without_key python write.py repo synthetic-event 7 out/no-key.json - 2030-01-02T06:00:00+00:00
 show test -e out/no-key.json
+
+echo "## 11. the caption-bytes row's false state, planted on the synthetic repository (Security seat, M11 PR 2)"
+echo
+echo "The fix is committed at F. skip-worktree hides the working copy from git status, and the gap bytes go back on disk."
+echo
+show git -C repo update-index --skip-worktree "$CAPTIONS"
+vtt s02 > "repo/$CAPTIONS"
+show git -C repo status --porcelain
+show python write.py repo synthetic-event 7 out/skipped.json out/seeded.json 2030-01-02T07:00:00+00:00
+show python -m pave.cli drill read out/skipped.json
+show bash -c "git -C repo show $F:$CAPTIONS | sha256sum"
+echo "tree_clean=true above, and the artifact's caption_sha256 differs from the committed fixture's: the amended validity row reads INVALID."
+echo
+git -C repo update-index --no-skip-worktree "$CAPTIONS"
