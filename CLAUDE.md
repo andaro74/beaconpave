@@ -43,7 +43,7 @@ Two that get violated most often by well-meaning changes:
 - Never start M(n+1) before M(n) is closed: journal written, evals recorded,
   progression row filled, tag pushed, artifact recorded.
 - **Before a claim is written, name a state of the world in which it is false, and
-  the existing command that would detect it.** If there is none, the claim is not
+  the command that would detect it** — one that exists today, or lands in the same PR as the pre-registration and is shown emitting a value before the claim is committed (ADR-080). If there is none, the claim is not
   pre-registerable: say so and stop, before a spec, a falsifier or a reading. A claim
   that is true by construction confirms itself (ADR-079 amendment 2).
 - `main` is always green. Deliberately-red demo PRs are labeled `exhibit` and
