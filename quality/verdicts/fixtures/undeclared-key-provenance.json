@@ -1,0 +1,13 @@
+{
+  "service": "highlights-agent",
+  "surface": "web",
+  "commit": "deadbeef",
+  "suite": "playwright",
+  "layer": "L4",
+  "verdict": "PASS",
+  "fail_closed": true,
+  "provenance": {
+    "author": "human",
+    "runner_version": "1.2"
+  }
+}

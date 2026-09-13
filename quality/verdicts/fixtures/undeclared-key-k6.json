@@ -1,0 +1,13 @@
+{
+  "service": "highlights-agent",
+  "surface": "backend",
+  "commit": "deadbeef",
+  "suite": "k6",
+  "layer": "L4",
+  "verdict": "PASS",
+  "fail_closed": true,
+  "http_req_duration_p95": 431,
+  "checks": {
+    "status_200": 0.99
+  }
+}
