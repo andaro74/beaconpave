@@ -47,7 +47,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 08b | The ceiling, measured on samples it was not derived from ❁ | six PRs ❁ | `m08b` | **10/25** ❁ | not judged ✧ | not run ❁ | ✅ |
 | 09 | The rule is disposed, and the service goes red ❉ | seven PRs ❉ | `m09` | **10/25** ❉ | not judged ✧ | not run ❉ | ✅ |
 | 09b | The rule's second control, and the topic reworded under a rule written first — **closed RED** ❊ | seven PRs ❊ | `m09b` | not run ❊ | not judged ✧ | not run ❊ | ✅ |
-| 09c | Answer quality: the browse gap closes, and the count is the headline ❋ | `m09c-answer-quality` | `m09c` | –/25 ❋ | – | – | ⬜ |
+| 09c | Answer quality: the browse gap closes, and the count is the headline — **closed RED** ❋ | two PRs ❋ | `m09c` | not run ❋ | not judged ✧ | not run ❋ | ✅ |
 | 10 | Playwright + k6 on one verdict schema | `m10-surfaces` | `m10` | – | – | – | ⬜ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
 | 12 | Self-heal classifier + curation panel | `m12-selfheal` | `m12` | –/25 | – | –/10 | ⬜ |
@@ -669,6 +669,20 @@ lanes, the second brand and superseding history entries, read **the surfaces
 milestone, unchanged** — those sites are correct as written and are not edited,
 which is what the in-place label buys and what a renumbering would have spent four
 two-key rules and twelve attestations to undo.
+
+**Closed RED on 2026-09-12. No run, no deploy, zero model calls, and the claim was
+not measured** (`milestones/M09c/README.md`; ADR-078 amendment 1). The diagnosis names
+`tools/catalog-search/schema.in.json`, by quoting SPEC/02:634-641, which named it
+before M02's run: the zero-row returns are *"not a retrieval miss"*, and the fix is *"a
+schema change, a semver bump, and the Tool Owner's call"*. Relaxing `required: [query]`
+in a scratch tree turned **19** tests red. Three readers' committed records in M08,
+M08b and M09 stop reproducing, and M09's priced delta and headroom read 193 and 113
+against the recorded 200 and 106 (`milestones/M09c/contract-relaxation-blast-radius.txt`).
+The change is model-facing and invalidates committed measurements, which is the
+property that cut the DMA rename, so it does not land in 09c. **All three terms are
+NOT MEASURED.** F1 to F5 were not read, neither re-derivation was executed, and no
+history entry was written. Two PRs of a cap of six. The paragraphs below are the open's
+pre-registration, left as written.
 
 **M09's control run added a third population and one new case, read and not
 diagnosed (SPEC/09 constraint 9).** `grounded-017` passed 3 of 3 at M08b on
