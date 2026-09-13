@@ -1,0 +1,15 @@
+{
+  "service": "web-player",
+  "surface": "web",
+  "commit": "0000000000000000000000000000000000000000",
+  "suite": "playwright",
+  "layer": "L4",
+  "verdict": "INFRA",
+  "fail_closed": true,
+  "artifacts": [
+    "C:\\Users\\andar\\AppData\\Local\\Temp\\claude\\c--Users-andar-code-beaconpave\\0e6a2cb1-0750-4539-b67b-c8a4a07aa591\\scratchpad\\envelope-out\\never-written-playwright.json"
+  ],
+  "notes": [
+    "the runner wrote no raw output"
+  ]
+}
