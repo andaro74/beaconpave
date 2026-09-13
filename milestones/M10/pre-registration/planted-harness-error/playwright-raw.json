@@ -1,0 +1,8 @@
+{
+  "runner": "playwright",
+  "url": "http://127.0.0.1:50113/",
+  "checks": [],
+  "error": "Page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:50113/",
+  "browser": "chromium 151.0.7922.34",
+  "duration_s": 2.652
+}

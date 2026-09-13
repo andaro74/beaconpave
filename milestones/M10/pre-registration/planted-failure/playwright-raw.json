@@ -1,0 +1,21 @@
+{
+  "runner": "playwright",
+  "url": "http://127.0.0.1:54039/missing",
+  "checks": [
+    {
+      "name": "the page responds 200",
+      "ok": false
+    },
+    {
+      "name": "the title names the player",
+      "ok": false
+    },
+    {
+      "name": "the player heading is visible",
+      "ok": false
+    }
+  ],
+  "error": null,
+  "browser": "chromium 151.0.7922.34",
+  "duration_s": 0.64
+}
