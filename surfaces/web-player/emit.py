@@ -64,10 +64,10 @@ def _load(path: str | pathlib.Path) -> tuple[dict | None, str | None]:
 
 def _record(suite: str, result: str, raw_path, notes: list[str], commit: str | None,
             scores: dict | None = None, duration_s: float | None = None) -> dict:
-    return verdict.build(
+    return {"runner": SERVICE, **verdict.build(
         service=SERVICE, surface=SURFACE, suite=suite, layer=LAYER, verdict=result,
         fail_closed=True, scores=scores, duration_s=duration_s,
-        artifacts=[_rel(raw_path)], notes=notes, commit=commit)
+        artifacts=[_rel(raw_path)], notes=notes, commit=commit)}
 
 
 def playwright_record(raw_path: str | pathlib.Path, commit: str | None = None) -> dict:
