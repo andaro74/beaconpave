@@ -1,0 +1,18 @@
+{
+  "_comment": "The caption check's claim values, read by `pave/drill.py` at run time (SPEC/11 constraint 3). The writer has no default for any of them: a missing owner, window, threshold or event exits 2 and writes nothing. Every value here is pinned in SPEC/11 ('Pinned here, and nowhere later') and in `milestones/M11/pre-registration/falsifiers.json`, and `tests/test_drill_pins.py` holds the three equal. This file is on AI Quality plus Platform Engineering (`pave/twokey.py`): it is the thermostat, and widening `max_gap_s` turns a NO-GO into a GO with every other test green.",
+  "scenario": "caption-check",
+  "rule": "max-gap",
+  "max_gap_s": 4.0,
+  "owner": {
+    "seat": "service-team",
+    "oncall": "webhook:player-captions"
+  },
+  "fix_by_window_s": {
+    "3": 129600
+  },
+  "events": {
+    "jefferson-derby": {
+      "captions": "drill/fixtures/jefferson-derby/captions.vtt"
+    }
+  }
+}
