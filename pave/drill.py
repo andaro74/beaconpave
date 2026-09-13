@@ -28,8 +28,12 @@ SPEC/11's pin, so a canonical form here that dropped a field would be refused th
 
 It then re-runs the scenarios those findings name **against the bytes on disk now**, and
 records `prior_sha256` over the prior file's bytes. It carries nothing forward from the
-prior: not its findings, not its owner, not its fix-by time. A delta that re-checked only
-changed paths, or trusted the prior's findings, is the defect F4 exists to catch.
+prior: not its findings, not its owner, not its fix-by time.
+
+A delta that re-checked only the paths changed since its prior, or suppressed the findings
+its prior already named, writes GO on the control: that is the defect F4 exists to catch.
+A delta that carried its prior's findings forward on identical bytes would write the same
+artifact as this one, and **F4 cannot see it** (AI Quality seat, M11 PR 2, P1).
 
 Exit codes, pinned in SPEC/11: 0 GO written, 1 NO-GO written, 2 nothing written.
 
@@ -39,6 +43,7 @@ Owning seat: Platform Engineering (the writer) - AI Quality (what it decides).
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
 import hashlib
 import hmac
@@ -48,6 +53,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 
 import jsonschema
@@ -258,7 +264,15 @@ def load_prior(path, key: bytes, event: str, tier: int) -> tuple[str, set]:
                                     expected["value"].encode("utf-8"))):
         raise Refused(f"the prior artifact's signature does not verify: a delta drill does not "
                       f"build on an artifact it cannot trust ({path})")
-    if prior.get("event") != event or prior.get("tier") != tier:
+    # **Security seat, M11 PR 2, finding 5.** The prior was never validated, so a signed but
+    # schema-invalid prior was built on, and `tier: true` compared equal to tier 1.
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    invalid = sorted(jsonschema.Draft7Validator(schema).iter_errors(prior), key=str)
+    if invalid:
+        raise Refused(f"the prior artifact does not conform to quality/drill/go-no-go.schema.json: "
+                      f"{invalid[0].message}")
+    if (type(prior.get("tier")) is not int or prior.get("event") != event
+            or prior.get("tier") != tier):
         raise Refused(f"the prior artifact is for event {prior.get('event')!r} tier "
                       f"{prior.get('tier')!r}, not event {event!r} tier {tier!r}")
     findings = prior.get("findings")
@@ -335,10 +349,35 @@ def run(event: str, tier: int, out, delta=None, *, root=None, env=None, now=None
         raise Refused(f"the artifact does not conform to quality/drill/go-no-go.schema.json, "
                       f"so nothing is written: {errors[0].message}")
 
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with open(out, "xb") as handle:
-        handle.write((json.dumps(artifact, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+    publish(out, (json.dumps(artifact, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
     return artifact
+
+
+def publish(out: pathlib.Path, data: bytes) -> None:
+    """Write `data` to `out` whole, or not at all, and never over an existing file.
+
+    **Platform Engineering seat, M11 PR 2, finding 1.** `open(out, "xb")` created the file
+    and then wrote into it, so a write that failed half way -- a full disk, a locked file
+    -- left a 0-byte artifact behind an exit 2. Every later run to that path was refused
+    as `already exists`, and SPEC/11 repeats no run. So the bytes go to a temporary file
+    beside `out`, and a hard link names it only once it is complete: `os.link` refuses an
+    existing target, and the temporary name is removed whatever happens."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    handle, temporary = tempfile.mkstemp(prefix=f".{out.name}.", suffix=".partial",
+                                         dir=out.parent)
+    try:
+        with os.fdopen(handle, "wb") as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:
+            os.link(temporary, out)
+        except FileExistsError as exc:
+            raise Refused(f"{out} already exists: an artifact is never overwritten, and "
+                          "SPEC/11 repeats no run") from exc
+    finally:
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(temporary)
 
 
 def main(argv) -> int:
@@ -359,20 +398,32 @@ def main(argv) -> int:
     try:
         artifact = run(args.event, args.tier, args.out, args.delta)
     except Refused as exc:
-        print(f"drill: nothing written - {exc}", file=sys.stderr)
+        _say(f"drill: nothing written - {exc}", sys.stderr)
         return EXIT_NOTHING
-    except Exception as exc:  # noqa: BLE001 - any crash writes nothing, and 1 means NO-GO
-        print(f"drill: nothing written - unexpected {type(exc).__name__}: {exc}",
-              file=sys.stderr)
+    except BaseException as exc:  # noqa: B036, BLE001 - 1 means NO-GO; a crash or an interrupt wrote nothing
+        _say(f"drill: nothing written - unexpected {type(exc).__name__}: {exc}", sys.stderr)
         return EXIT_NOTHING
 
+    # **The exit code is the artifact's decision, fixed before anything is printed**
+    # (Platform Engineering seat, M11 PR 2, finding 5): a console that cannot print the
+    # summary must not turn a written GO into exit 1.
+    code = EXIT_NO_GO if artifact["decision"] == "NO-GO" else EXIT_GO
     for finding in artifact["findings"]:
-        print(f"  finding: {finding['scenario']}/{finding['rule']} gap {finding['gap_s']:.3f} s "
-              f"between {finding['after_cue']} and {finding['before_cue']}")
-    if artifact["decision"] == "NO-GO":
-        print(f"drill: NO-GO - owner {artifact['owner']['seat']} "
-              f"({artifact['owner']['oncall']}), fix by {artifact['fix_by']}; "
-              f"written {args.out}")
-        return EXIT_NO_GO
-    print(f"drill: GO - written {args.out}")
-    return EXIT_GO
+        _say(f"  finding: {finding['scenario']}/{finding['rule']} gap {finding['gap_s']:.3f} s "
+             f"between {finding['after_cue']} and {finding['before_cue']}", sys.stdout)
+    if code == EXIT_NO_GO:
+        _say(f"drill: NO-GO - owner {artifact['owner']['seat']} ({artifact['owner']['oncall']}), "
+             f"fix by {artifact['fix_by']}; written {args.out}", sys.stdout)
+    else:
+        _say(f"drill: GO - written {args.out}", sys.stdout)
+    return code
+
+
+def _say(text: str, stream) -> None:
+    """Print a line that cannot change the exit code: an unencodable line is re-printed
+    escaped, and a console that refuses even that is ignored."""
+    try:
+        print(text, file=stream)
+    except (UnicodeEncodeError, OSError, ValueError):
+        with contextlib.suppress(UnicodeEncodeError, OSError, ValueError):
+            print(text.encode("ascii", "backslashreplace").decode("ascii"), file=stream)

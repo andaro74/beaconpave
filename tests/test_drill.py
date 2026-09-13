@@ -368,6 +368,56 @@ def test_a_delta_refuses_a_go_prior(tmp_path):
     _refused(root, tmp_path, match="no finding", delta=prior)
 
 
+def _resigned(prior: pathlib.Path, **changes) -> pathlib.Path:
+    """The prior with `changes` applied and signed again with the run's key: a document only
+    a key holder could produce, so what it tests is the writer's checks, not the signature."""
+    document = {**json.loads(prior.read_text(encoding="utf-8")), **changes}
+    document["signature"] = drill.sign(document, KEY.encode("utf-8"))
+    path = prior.with_name(f"resigned-{prior.name}")
+    path.write_text(json.dumps(document, indent=2), encoding="utf-8")
+    return path
+
+
+def test_a_delta_refuses_a_signed_prior_that_does_not_conform(tmp_path):
+    """Security seat, M11 PR 2, finding 5: the prior was never schema-validated."""
+    root, prior, _ = _seeded(tmp_path)
+    _refused(root, tmp_path, match="does not conform", delta=_resigned(prior, undeclared=1))
+
+
+def test_a_delta_refuses_a_signed_prior_whose_tier_is_a_boolean(tmp_path):
+    """`True == 1` in Python, so `tier: true` was accepted as tier 1."""
+    scenario = {**SCENARIO, "fix_by_window_s": {"1": 60, "7": 7200}}
+    root = _repo(tmp_path, scenario=scenario, cues=GAPPED)
+    prior, _ = _write(root, tmp_path, "tier1.json", tier=1)
+    _refused(root, tmp_path, delta=_resigned(prior, tier=True), tier=1)
+
+
+def test_a_delta_refuses_a_signed_prior_naming_another_scenario(tmp_path):
+    """Security seat, P16: a prior naming an extra scenario beside this one SURVIVED."""
+    root, prior, first = _seeded(tmp_path)
+    extra = {**first["findings"][0], "scenario": "blackout-sweep"}
+    _refused(root, tmp_path, match="scenario",
+             delta=_resigned(prior, findings=[*first["findings"], extra]))
+
+
+def test_two_gaps_are_two_findings_in_file_order(tmp_path):
+    """AI Quality seat, finding 3: a schema limit on `findings` (`maxItems`, `uniqueItems`)
+    turns a second finding into a refusal -- INVALID where the run should read FALSE --
+    and no case wrote more than one finding."""
+    cues = [("s01", 0, 3000), ("s02", 6000, 9000), ("s03", 9000, 12000), ("s04", 15500, 18000)]
+    root = _repo(tmp_path, cues=cues)
+    _, artifact = _write(root, tmp_path, "two.json")
+    assert [(f["after_cue"], f["before_cue"], f["gap_s"]) for f in artifact["findings"]] == [
+        ("s01", "s02", 3.0), ("s03", "s04", 3.5)]
+
+
+def test_the_writers_key_floor_is_32_bytes_not_32_characters(tmp_path):
+    root = _repo(tmp_path)
+    _, artifact = _write(root, tmp_path, "multibyte.json", env={"BEACONPAVE_DRILL_KEY": "é" * 16})
+    assert artifact["decision"] == "GO"
+    _refused(root, tmp_path, match="key", env={"BEACONPAVE_DRILL_KEY": "é" * 15 + "a"})
+
+
 @pytest.mark.parametrize("event, tier", [("other-event", 7), ("synthetic-event", 8)])
 def test_a_delta_refuses_a_prior_for_another_event_or_tier(tmp_path, event, tier):
     root, prior, _ = _seeded(tmp_path)
@@ -412,8 +462,9 @@ def test_a_crash_is_exit_2_and_never_exit_1_which_means_no_go(tmp_path, monkeypa
 
 # --- SPEC/11 constraints 1 and 2, read from the code and the schema ------------------
 
-WRITER_MAY_IMPORT = {"__future__", "argparse", "dataclasses", "datetime", "hashlib", "hmac",
-                     "json", "os", "pathlib", "re", "subprocess", "sys", "jsonschema"}
+WRITER_MAY_IMPORT = {"__future__", "argparse", "contextlib", "dataclasses", "datetime",
+                     "hashlib", "hmac", "json", "os", "pathlib", "re", "subprocess", "sys",
+                     "tempfile", "jsonschema"}
 
 
 def _imported(path: pathlib.Path) -> set:
@@ -460,9 +511,96 @@ def test_the_schema_holds_no_claim_value():
 
     walk(schema, ())
     assert not forbidden, f"the schema carries {forbidden}; SPEC/11 constraint 2"
+
+    # **AI Quality seat, M11 PR 2, finding 3.** `maxItems: 1`, `uniqueItems` and a cue-id
+    # `pattern` under `findings` each SURVIVED: a limit there refuses F1's false state
+    # before it is written, so the run reads INVALID where it should read FALSE. Under
+    # the subtrees the falsifiers read, the schema may say only type, shape and non-empty.
+    limiting = {"pattern", "format", "maxItems", "minItems", "uniqueItems", "contains",
+                "maxLength", "maxProperties", "minProperties", "propertyNames", "maximum",
+                "minimum", "exclusiveMaximum", "exclusiveMinimum", "multipleOf"}
+    limits = []
+
+    def limits_in(node, path):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key in limiting or (key == "minLength" and value != 1):
+                    limits.append("/".join((*path, key)))
+                limits_in(value, (*path, key))
+
+    for field in ("findings", "owner"):
+        limits_in(schema["properties"][field], ("properties", field))
+    assert not limits, f"the schema limits what a falsifier reads: {limits}"
     assert sorted(enums) == ["properties/decision", "properties/mode",
                              "properties/signature/properties/alg"]
     text = " ".join(words)
     for claim_value in ("service-team", "webhook:", "player-captions", "129600", "4.0",
                         "c006", "c008", "caption-check", "max-gap"):
         assert claim_value not in text, f"the schema holds the claim value {claim_value!r}"
+
+
+# --- publishing: whole or not at all (Platform Engineering seat, M11 PR 2, finding 1) ---
+
+@pytest.mark.parametrize("fails", ["fsync", "link"])
+def test_a_write_that_fails_leaves_no_artifact_and_no_partial_file(tmp_path, monkeypatch, fails):
+    """`open(out, "xb")` created the artifact before writing it: a failed write left a
+    0-byte file behind an exit 2, and every later run to that path was refused as
+    `already exists`, which SPEC/11 does not allow to be retried. Measured by the seat:
+    `exit=2 out_exists=True size=0`."""
+    root = _repo(tmp_path, cues=GAPPED)
+    out = tmp_path / "out" / "partial.json"
+
+    def full_disk(*_args):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(drill.os, fails, full_disk)
+    with pytest.raises(OSError):
+        drill.run("synthetic-event", 7, out, root=root, env=ENV, now=NOW)
+    assert not out.exists()
+    assert list(out.parent.iterdir()) == [], "a partial file was left beside the artifact"
+
+    monkeypatch.undo()
+    _, artifact = _write(root, tmp_path, "partial.json")
+    assert artifact["decision"] == "NO-GO", "the path was poisoned by the failed write"
+
+
+def test_publishing_over_an_existing_file_refuses_and_leaves_it_untouched(tmp_path):
+    out = tmp_path / "raced.json"
+    out.write_bytes(b"written first by someone else")
+    with pytest.raises(drill.Refused, match="already exists"):
+        drill.publish(out, b"written second")
+    assert out.read_bytes() == b"written first by someone else"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["raced.json"]
+
+
+def test_the_exit_code_is_the_decision_even_when_the_console_cannot_print(tmp_path, monkeypatch):
+    """Seat finding 5: the summary printed after the artifact was written, so a console that
+    could not encode it raised, and the traceback exited 1 -- NO-GO -- over a written GO."""
+    root = _repo(tmp_path)
+    monkeypatch.setenv("BEACONPAVE_DRILL_KEY", KEY)
+    monkeypatch.setattr(drill, "ROOT", root)
+    real_print = print
+
+    def cp1252_console(*args, **kwargs):
+        if kwargs.get("file") is drill.sys.stdout:
+            raise UnicodeEncodeError("charmap", "x", 0, 1, "planted")
+        return real_print(*args, **kwargs)
+
+    monkeypatch.setattr("builtins.print", cp1252_console)
+    out = tmp_path / "go.json"
+    assert drill.main(["--event", "synthetic-event", "--tier", "7", "--out", str(out)]) == 0
+    assert out.exists()
+
+
+def test_an_interrupt_before_publishing_is_exit_2_and_writes_nothing(tmp_path, monkeypatch):
+    root = _repo(tmp_path, cues=GAPPED)
+    monkeypatch.setenv("BEACONPAVE_DRILL_KEY", KEY)
+    monkeypatch.setattr(drill, "ROOT", root)
+
+    def interrupted(_text):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(drill, "parse_cues", interrupted)
+    out = tmp_path / "interrupted.json"
+    assert drill.main(["--event", "synthetic-event", "--tier", "7", "--out", str(out)]) == 2
+    assert not out.exists()
