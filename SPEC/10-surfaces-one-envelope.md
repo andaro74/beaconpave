@@ -1,5 +1,24 @@
 # M10 — one closed envelope, three runners, one gate
 
+> **WITHDRAWN, 2026-09-13, at M10 PR 3, before any measurement — see ADR-079 amendment 1.**
+> The claim and its five falsifiers below are withdrawn on two committed readings, which
+> were taken in the named spare slot and never repaired: the cold review
+> (`milestones/M10/pr3-cold-review.md`) and a deletability audit through the CI gate
+> (`milestones/M10/pr3-deletability-audit.md`). The grounds:
+> - five things here could be decided after PR 4's numbers existed (7a–7e);
+> - four values were undefined at pre-registration (2a–2d);
+> - three falsifiers had no reading of their runner (1a–1c);
+> - the Playwright checks were drawn from the placeholder they would judge (3a);
+> - the k6 INFRA rule was fitted to a plant it judges, on an observation with no committed
+>   artifact (3b);
+> - F3 and F4 for Playwright and k6 read the writer's mapping, not the envelope (5d);
+> - 14 of 24 audit plants were SILENT, and none was caught elsewhere.
+>
+> **No claim reading was ever taken. Nothing below is in force:** not the claim, the
+> falsifiers, the reading rules, nor the plan walked to the claim. What survives, and which of
+> ADR-079's other decisions this withdrawal does not rule on, is stated in amendment 1.
+> Retained and not edited, because a withdrawn spec records what was pre-registered.
+
 **Status: written at M10 PR 2, 2026-09-13, after every falsifier's reader had executed
 end to end on committed records and before any claim reading.** Owned by the PM seat.
 Tag `m10`; one branch per PR, none named `m10`. The derivation of every rule below is
