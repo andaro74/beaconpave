@@ -48,7 +48,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 09 | The rule is disposed, and the service goes red ❉ | seven PRs ❉ | `m09` | **10/25** ❉ | not judged ✧ | not run ❉ | ✅ |
 | 09b | The rule's second control, and the topic reworded under a rule written first — **closed RED** ❊ | seven PRs ❊ | `m09b` | not run ❊ | not judged ✧ | not run ❊ | ✅ |
 | 09c | Answer quality: the browse gap closes, and the count is the headline — **closed RED** ❋ | two PRs ❋ | `m09c` | not run ❋ | not judged ✧ | not run ❋ | ✅ |
-| 10 | Playwright + k6 on one verdict schema ✺ | `m10-surfaces` | `m10` | – | – | – | ⬜ |
+| 10 | Playwright + k6 on one verdict schema — **closed RED** ✺ | four PRs ✺ | `m10` | not run ✺ | not judged ✧ | not run ✺ | ✅ |
 | 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
 | 12 | Self-heal classifier + curation panel | `m12-selfheal` | `m12` | –/25 | – | –/10 | ⬜ |
 
