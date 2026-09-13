@@ -37,11 +37,15 @@ Two that get violated most often by well-meaning changes:
 
 ## Milestone discipline
 
-- One milestone = one branch `mNN-<slug>` = one tag `mNN` at close. **Branch and
+- One milestone = one tag `mNN` at close, and one branch per PR, none named `mNN`. **Branch and
   tag must never share a name** — git cannot disambiguate `refs/heads/x` from
   `refs/tags/x`.
 - Never start M(n+1) before M(n) is closed: journal written, evals recorded,
   progression row filled, tag pushed, artifact recorded.
+- **Before a claim is written, name a state of the world in which it is false, and
+  the existing command that would detect it.** If there is none, the claim is not
+  pre-registerable: say so and stop, before a spec, a falsifier or a reading. A claim
+  that is true by construction confirms itself (ADR-079 amendment 2).
 - `main` is always green. Deliberately-red demo PRs are labeled `exhibit` and
   closed unmerged.
 - Run `.claude/skills/close-milestone` at close. It is a checklist, not a
