@@ -1,0 +1,25 @@
+{
+  "service": "web-player",
+  "surface": "web",
+  "commit": "06ae901b852d74d922267c07d7fa6d6853c382f5",
+  "suite": "k6",
+  "layer": "L4",
+  "verdict": "FAIL",
+  "fail_closed": true,
+  "scores": {
+    "thresholds_held": 1,
+    "thresholds_total": 2,
+    "responses_received": 9554,
+    "requests_unreached": 40,
+    "http_req_duration_p95_ms": 8.517,
+    "http_req_failed_rate": 1,
+    "iterations": 9594
+  },
+  "duration_s": 10.002,
+  "artifacts": [
+    "milestones/M10/pre-registration/planted-failure/k6-summary.json"
+  ],
+  "notes": [
+    "threshold breached: http_req_failed rate<0.01"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "service": "web-player",
+  "surface": "web",
+  "commit": "06ae901b852d74d922267c07d7fa6d6853c382f5",
+  "suite": "playwright",
+  "layer": "L4",
+  "verdict": "PASS",
+  "fail_closed": true,
+  "scores": {
+    "checks_held": 3,
+    "checks_total": 3
+  },
+  "duration_s": 0.649,
+  "artifacts": [
+    "milestones/M10/pre-registration/clean/playwright-raw.json"
+  ],
+  "notes": [
+    "chromium 151.0.7922.34 against http://127.0.0.1:64094/"
+  ],
+  "browser": "chromium"
+}

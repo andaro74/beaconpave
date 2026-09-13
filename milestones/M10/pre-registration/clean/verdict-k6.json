@@ -1,0 +1,25 @@
+{
+  "service": "web-player",
+  "surface": "web",
+  "commit": "06ae901b852d74d922267c07d7fa6d6853c382f5",
+  "suite": "k6",
+  "layer": "L4",
+  "verdict": "PASS",
+  "fail_closed": true,
+  "scores": {
+    "thresholds_held": 2,
+    "thresholds_total": 2,
+    "responses_received": 6197,
+    "requests_unreached": 0,
+    "http_req_duration_p95_ms": 12.78,
+    "http_req_failed_rate": 0,
+    "iterations": 6197
+  },
+  "duration_s": 10.007,
+  "artifacts": [
+    "milestones/M10/pre-registration/clean/k6-summary.json"
+  ],
+  "notes": [
+    "every threshold held"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "service": "web-player",
+  "surface": "web",
+  "commit": "06ae901b852d74d922267c07d7fa6d6853c382f5",
+  "suite": "playwright",
+  "layer": "L4",
+  "verdict": "INFRA",
+  "fail_closed": true,
+  "artifacts": [
+    "milestones/M10/pre-registration/planted-harness-error/playwright-raw.json"
+  ],
+  "notes": [
+    "the runner could not reach the page: Page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:50113/"
+  ]
+}
