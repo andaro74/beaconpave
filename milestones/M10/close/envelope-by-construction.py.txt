@@ -1,0 +1,73 @@
+"""Scratch: can a record a committed runner writes ever be refused by the gate's schema step?
+
+Writes only under the scratchpad. Never edits a repository file.
+"""
+import pathlib
+import subprocess
+import sys
+
+REPO = pathlib.Path(r"C:\Users\andar\code\beaconpave")
+OUT = pathlib.Path(__file__).resolve().parent / "envelope-out"
+OUT.mkdir(exist_ok=True)
+sys.path.insert(0, str(REPO))
+sys.path.insert(0, str(REPO / "surfaces" / "web-player"))
+
+import jsonschema  # noqa: E402
+
+import emit  # noqa: E402
+from pave import gate, verdict  # noqa: E402
+
+print("same schema file:", verdict.SCHEMA_PATH.resolve() == gate.VERDICT_SCHEMA_PATH.resolve(),
+      verdict.SCHEMA_PATH)
+
+base = dict(service="web-player", surface="web", suite="k6", layer="L4", verdict="PASS",
+            commit="0" * 40)
+
+print("\n## P-a: an undeclared top-level key passed to build")
+try:
+    verdict.build(**base, p95_ms=12.0)
+    print("  WRITTEN")
+except TypeError as exc:
+    print("  refused before any write:", type(exc).__name__, exc)
+
+print("\n## P-b: a value outside an enum (surface 'player')")
+try:
+    verdict.build(**{**base, "surface": "player"})
+    print("  WRITTEN")
+except jsonschema.ValidationError as exc:
+    print("  refused before any write:", type(exc).__name__, exc.message)
+
+print("\n## P-c: a non-number in scores")
+try:
+    verdict.build(**base, scores={"http_req_duration_p95": "12ms"})
+    print("  WRITTEN")
+except jsonschema.ValidationError as exc:
+    print("  refused before any write:", type(exc).__name__, exc.message)
+
+
+def decide(paths):
+    r = subprocess.run([sys.executable, "-m", "pave.cli", "gate", "decide", "--verdicts", *map(str, paths)],
+                       cwd=REPO, capture_output=True)
+    print(r.stdout.decode("utf-8", errors="replace").rstrip())
+    print("exit", r.returncode)
+
+
+print("\n## P-d: no runner ran at all (player_smoke.py and k6 both absent: S05's door)")
+recs = []
+for kind in ("playwright", "k6"):
+    raw = OUT / f"never-written-{kind}.json"
+    raw.unlink(missing_ok=True)
+    rec = emit.RECORDERS[kind](raw, commit="0" * 40)
+    path = OUT / f"verdict-{kind}-no-runner.json"
+    verdict.write(path, rec)
+    recs.append(path)
+decide(recs)
+
+print("\n## P-e: agent evals on a service with no pinned comparator")
+absent = OUT / "verdict-evals-no-such-service.json"
+absent.unlink(missing_ok=True)
+r = subprocess.run([sys.executable, "-m", "pave.cli", "evals", "run", "services/no-such-service",
+                    "--out", str(absent)], cwd=REPO, capture_output=True)
+print(r.stdout.decode("utf-8", errors="replace").rstrip(), r.stderr.decode("utf-8", errors="replace").rstrip())
+print("exit", r.returncode, "| record written:", absent.exists())
+decide([absent])

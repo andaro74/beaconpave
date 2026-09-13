@@ -1,0 +1,25 @@
+same schema file: True C:\Users\andar\code\beaconpave\quality\verdicts\schema.json
+
+## P-a: an undeclared top-level key passed to build
+  refused before any write: TypeError build() got an unexpected keyword argument 'p95_ms'
+
+## P-b: a value outside an enum (surface 'player')
+  refused before any write: ValidationError 'player' is not one of ['agent', 'backend', 'web', 'mobile', 'data', 'stream']
+
+## P-c: a non-number in scores
+  refused before any write: ValidationError '12ms' is not of type 'number'
+
+## P-d: no runner ran at all (player_smoke.py and k6 both absent: S05's door)
+  [BLOCK] C:\Users\andar\AppData\Local\Temp\claude\c--Users-andar-code-beaconpave\0e6a2cb1-0750-4539-b67b-c8a4a07aa591\scratchpad\envelope-out\verdict-playwright-no-runner.json (playwright L4): suite reported INFRA — the harness failed, not the code under test; this blocks and pages the platform
+  [BLOCK] C:\Users\andar\AppData\Local\Temp\claude\c--Users-andar-code-beaconpave\0e6a2cb1-0750-4539-b67b-c8a4a07aa591\scratchpad\envelope-out\verdict-k6-no-runner.json (k6 L4): suite reported INFRA — the harness failed, not the code under test; this blocks and pages the platform
+
+gate: BLOCKED (harness/contract failure) — 2 of 2 verdict(s) blocking; exit 2; owner: platform
+exit 2
+
+## P-e: agent evals on a service with no pinned comparator
+[pave evals] no goldens comparator pinned for 'no-such-service'; emitting nothing. Pinned services: highlights-agent 
+exit 0 | record written: False
+  [BLOCK] C:\Users\andar\AppData\Local\Temp\claude\c--Users-andar-code-beaconpave\0e6a2cb1-0750-4539-b67b-c8a4a07aa591\scratchpad\envelope-out\verdict-evals-no-such-service.json: verdict file is missing — the gate cannot pass on an absent result (G2)
+
+gate: BLOCKED (harness/contract failure) — 1 of 1 verdict(s) blocking; exit 2; owner: platform
+exit 2
