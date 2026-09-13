@@ -1,7 +1,8 @@
 # 09c — the browse gap closes, and the count is the headline
 
-**Status: OPEN. Written at 09c PR 1, 2026-09-12, before any diagnosis, code, deploy or
-model call.** Owned by the PM seat. Tag `m09c`; one branch per PR, none named `m09c`.
+**Status: CLOSED RED at 09c PR 2, 2026-09-12, with the claim NOT MEASURED: no run, no deploy,
+no model call (`milestones/M09c/README.md`; ADR-078 amendment 1). Written at 09c PR 1,
+2026-09-12, before any diagnosis, code, deploy or model call.** Owned by the PM seat. Tag `m09c`; one branch per PR, none named `m09c`.
 Row `09c` was added in place by ADR-075 decision 2 (:105-112), which left *"what claim,
 if any, 09c should carry"* to this file. Nothing below row 09c shifts, and **no closed
 milestone's record moves**: SPEC/09, SPEC/09b and their README rows are not edited.
