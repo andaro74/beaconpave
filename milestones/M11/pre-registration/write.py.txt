@@ -1,0 +1,27 @@
+"""M11 PR 2, scratch: call the drill writer on a SYNTHETIC repository. Never the arc.
+
+`pave drill` resolves its scenario from the beaconpave repository itself, so running the
+command would read the committed scenario and fixture -- real data, which PR 2 does not
+read. This calls `pave.drill.run` with `root=` pointed at the synthetic repository instead.
+
+usage: python write.py <root> <event> <tier> <out> <prior or -> <now, ISO 8601 with offset>
+exit:  0 GO written, 1 NO-GO written, 2 refused (nothing written) -- the command's codes.
+"""
+import datetime as dt
+import os
+import pathlib
+import sys
+
+sys.path.insert(0, os.environ["PAVE_REPO"])
+from pave import drill  # noqa: E402
+
+root, event, tier, out, prior, now = sys.argv[1:7]
+try:
+    artifact = drill.run(event, int(tier), out, None if prior == "-" else prior,
+                         root=pathlib.Path(root), now=dt.datetime.fromisoformat(now))
+except drill.Refused as exc:
+    print(f"refused, nothing written: {exc}")
+    sys.exit(2)
+print(f"written {out}: decision {artifact['decision']}, mode {artifact['mode']}, "
+      f"key_id {artifact['signature']['key_id']}")
+sys.exit(1 if artifact["decision"] == "NO-GO" else 0)
