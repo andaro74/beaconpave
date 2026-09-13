@@ -1,0 +1,599 @@
+........................................................................ [  1%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+.......................F.F.............................................. [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 18%]
+...............................F........................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 27%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+.......................................................................F [ 47%]
+.............F..F..............................F.F...................... [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+...........F..FF........................................................ [ 53%]
+........................................................................ [ 54%]
+........F............................................................... [ 56%]
+.............................................ssss....................... [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+............ssss........................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 85%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+......................................F....F....................F....... [ 90%]
+........................................................................ [ 91%]
+.........................F...........F.F................................ [ 93%]
+...........................F............................................ [ 94%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 99%]
+...................................                                      [100%]
+================================== FAILURES ===================================
+_ test_a_documented_demo_command_runs_and_exits_as_documented[08-budget-context-or-ceiling.md::python milestones/M08/context_census.py --check] _
+
+spec = '08-budget-context-or-ceiling.md'
+command = 'python milestones/M08/context_census.py --check', expected = 0
+
+    @pytest.mark.parametrize(
+        "spec,command,expected",
+        CASES,
+        ids=[f"{n}::{c[:60]}" for n, c, _ in CASES])
+    def test_a_documented_demo_command_runs_and_exits_as_documented(
+            spec: str, command: str, expected: int) -> None:
+        """Run it. Compare the exit code against what the spec prints.
+    
+        Not *does it parse* — SPEC/09's defect parsed. `gate decide FILE` was
+        accepted by argparse and then ignored by the gate, which reported an empty
+        argument list at exit 2. Only running it separates a command that works from
+        a command whose shape is plausible."""
+        argv = command.split()
+        assert argv[0] == "python", (
+            f"{spec}: demo command {command!r} does not start with `python`. This "
+            f"check runs it with `sys.executable`; a command invoking anything else "
+            f"is out of the scope this module documents and needs that scope "
+            f"widened deliberately rather than by a silent pass.")
+        proc = subprocess.run([sys.executable, *argv[1:]], cwd=ROOT,
+                              capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=300)
+>       assert proc.returncode == expected, (
+            f"{spec}'s demo artifact publishes `{command}` at exit {expected}; it "
+            f"exits {proc.returncode}.\n"
+            f"--- stdout ---\n{proc.stdout[-2000:]}\n"
+            f"--- stderr ---\n{proc.stderr[-2000:]}\n"
+            f"A demo artifact is what a stranger is handed. One that does not run is "
+            f"prose about a demo.")
+E       AssertionError: 08-budget-context-or-ceiling.md's demo artifact publishes `python milestones/M08/context_census.py --check` at exit 0; it exits 1.
+E         --- stdout ---
+E         DRIFT: C:\Users\andar\AppData\Local\Temp\claude\c--Users-andar-code-beaconpave\9e07695f-9f3c-46d6-801e-dcd9b6f1cd87\scratchpad\relax2\milestones\M08\context-census.json differs from what the committed inputs produce
+E         
+E         --- stderr ---
+E         
+E         A demo artifact is what a stranger is handed. One that does not run is prose about a demo.
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Python314\\python.exe', 'milestones/M08/context_census.py', '--check'], returncode=1, stdo...\scratchpad\\relax2\\milestones\\M08\\context-census.json differs from what the committed inputs produce\n', stderr='').returncode
+
+tests\test_documented_commands.py:258: AssertionError
+_ test_a_documented_demo_command_runs_and_exits_as_documented[08b-ceiling-on-fresh-samples.md::python milestones/M08b/fresh_join.py --check] _
+
+spec = '08b-ceiling-on-fresh-samples.md'
+command = 'python milestones/M08b/fresh_join.py --check', expected = 0
+
+    @pytest.mark.parametrize(
+        "spec,command,expected",
+        CASES,
+        ids=[f"{n}::{c[:60]}" for n, c, _ in CASES])
+    def test_a_documented_demo_command_runs_and_exits_as_documented(
+            spec: str, command: str, expected: int) -> None:
+        """Run it. Compare the exit code against what the spec prints.
+    
+        Not *does it parse* — SPEC/09's defect parsed. `gate decide FILE` was
+        accepted by argparse and then ignored by the gate, which reported an empty
+        argument list at exit 2. Only running it separates a command that works from
+        a command whose shape is plausible."""
+        argv = command.split()
+        assert argv[0] == "python", (
+            f"{spec}: demo command {command!r} does not start with `python`. This "
+            f"check runs it with `sys.executable`; a command invoking anything else "
+            f"is out of the scope this module documents and needs that scope "
+            f"widened deliberately rather than by a silent pass.")
+        proc = subprocess.run([sys.executable, *argv[1:]], cwd=ROOT,
+                              capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=300)
+>       assert proc.returncode == expected, (
+            f"{spec}'s demo artifact publishes `{command}` at exit {expected}; it "
+            f"exits {proc.returncode}.\n"
+            f"--- stdout ---\n{proc.stdout[-2000:]}\n"
+            f"--- stderr ---\n{proc.stderr[-2000:]}\n"
+            f"A demo artifact is what a stranger is handed. One that does not run is "
+            f"prose about a demo.")
+E       AssertionError: 08b-ceiling-on-fresh-samples.md's demo artifact publishes `python milestones/M08b/fresh_join.py --check` at exit 0; it exits 1.
+E         --- stdout ---
+E         DRIFT: C:\Users\andar\AppData\Local\Temp\claude\c--Users-andar-code-beaconpave\9e07695f-9f3c-46d6-801e-dcd9b6f1cd87\scratchpad\relax2\milestones\M08b\fresh-join.json differs from what the committed inputs produce
+E         
+E         --- stderr ---
+E         
+E         A demo artifact is what a stranger is handed. One that does not run is prose about a demo.
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Python314\\python.exe', 'milestones/M08b/fresh_join.py', '--check'], returncode=1, stdout=...87\\scratchpad\\relax2\\milestones\\M08b\\fresh-join.json differs from what the committed inputs produce\n', stderr='').returncode
+
+tests\test_documented_commands.py:258: AssertionError
+_____________ test_the_tool_specs_the_model_reads_are_hash_pinned _____________
+
+    def test_the_tool_specs_the_model_reads_are_hash_pinned():
+        """**In the routing table's order, not sorted.** `handler.tool_config` iterates
+        `TOOL_FUNCTIONS` as it is written, so the order the model receives the specs in
+        is the table's; a sorted digest agrees with it by coincidence today and would
+        stop agreeing the moment a tool sorts before `catalog-search`. Reordering the
+        table changes what the model reads and must move this pin. Measured: the two
+        orderings produce the same digest at this commit, so the correction is free
+        here and would not have been later. Unreachable with one tool; live from the
+        moment there are two."""
+        contracts = json.loads(
+            (ROOT / "platform" / "gateway" / "policy" / "tools.contracts.json").read_text(
+                encoding="utf-8"))
+        routed = infra.routed_tools(json.loads(GATEWAY_SNAPSHOT.read_text(encoding="utf-8")))
+        specs = json.dumps([contracts[t]["input"] for t in routed if t in contracts],
+                           sort_keys=True)
+        digest = hashlib.sha256(specs.encode("utf-8")).hexdigest()
+>       assert digest == TOOL_SPECS_SHA256, (
+            f"the tool specs the model reads changed (sha256 {digest}). They are part of the "
+            "system under measurement just as the prompt is. Update this pin deliberately, and "
+            "never between the two arms of one comparison."
+        )
+E       AssertionError: the tool specs the model reads changed (sha256 0dc3615f21e742828788fe77aaf75492a989c0cc142b4840b24dd29114606d1d). They are part of the system under measurement just as the prompt is. Update this pin deliberately, and never between the two arms of one comparison.
+E       assert '0dc3615f21e7...dd29114606d1d' == '6097664dba62...1a1c851cf7b03'
+E         
+E         - 6097664dba62dbff612b9551f2eed609f5926922179e46b4df01a1c851cf7b03
+E         + 0dc3615f21e742828788fe77aaf75492a989c0cc142b4840b24dd29114606d1d
+
+tests\test_gateway_run_parity.py:295: AssertionError
+____________ test_the_record_is_what_the_committed_inputs_produce _____________
+
+census = <module 'context_census' from 'C:\\Users\\andar\\AppData\\Local\\Temp\\claude\\c--Users-andar-code-beaconpave\\9e07695f-9f3c-46d6-801e-dcd9b6f1cd87\\scratchpad\\relax2\\milestones\\M08\\context_census.py'>
+
+    def test_the_record_is_what_the_committed_inputs_produce(census):
+        """Byte for byte, as `--check` compares it."""
+        produced = json.dumps(census.census(), indent=2, ensure_ascii=False) + "\n"
+>       assert produced == RECORD.read_text(encoding="utf-8"), (
+            "context-census.json is not what the committed inputs produce; re-run "
+            "`python milestones/M08/context_census.py` and commit the result, or find "
+            "which input moved")
+E       AssertionError: context-census.json is not what the committed inputs produce; re-run `python milestones/M08/context_census.py` and commit the result, or find which input moved
+E       assert '{\n  "_what_...ys"\n  }\n}\n' == '{\n  "_what_...ys"\n  }\n}\n'
+E         
+E         Skipping 4261 identical leading characters in diff, use -v to show
+E         Skipping 10503 identical trailing characters in diff, use -v to show
+E         - s.json": "a0ad6eae3b8f4ada5e9e673368bf0970fa8bcec80dbe4ccfcc017d3d7742f9d7",
+E         + s.json": "ece29aceca074ee3d6d3849fe4c05a1db325a3d08886945ad57c47fc20dbde7b",
+E               "services/highlights-agent/evals/answer.schema.json": "fd301dc1722c2f38349aded4ff94c54c00f495be40dffafd58ee0965a4d39559",
+E               "services/highlights-agent/evals/golden/cases.yaml": "6f2ffa7b47fd35c798690bfa26c6f1725fbf1c90c48763a8ccce517c910f8f73",...
+E         
+E         ...Full output truncated (3394 lines hidden), use '-vv' to show
+
+tests\test_m08_census.py:45: AssertionError
+____________ test_the_record_is_what_the_committed_inputs_produce _____________
+
+reader = <module 'residual_differential' from 'C:\\Users\\andar\\AppData\\Local\\Temp\\claude\\c--Users-andar-code-beaconpave\\9e07695f-9f3c-46d6-801e-dcd9b6f1cd87\\scratchpad\\relax2\\milestones\\M08\\residual_differential.py'>
+
+    def test_the_record_is_what_the_committed_inputs_produce(reader):
+        """Byte for byte, as `--check` compares it."""
+        produced = json.dumps(reader.differential(), indent=2, ensure_ascii=False) + "\n"
+>       assert produced == RECORD.read_text(encoding="utf-8"), (
+            "residual-differential.json is not what the committed inputs produce; re-run "
+            "`python milestones/M08/residual_differential.py` and commit the result, or find "
+            "which input moved")
+E       AssertionError: residual-differential.json is not what the committed inputs produce; re-run `python milestones/M08/residual_differential.py` and commit the result, or find which input moved
+E       assert '{\n  "_what_...  }\n  }\n}\n' == '{\n  "_what_...  }\n  }\n}\n'
+E         
+E         Skipping 2065 identical leading characters in diff, use -v to show
+E         Skipping 1722 identical trailing characters in diff, use -v to show
+E         - s.json": "a0ad6eae3b8f4ada5e9e673368bf0970fa8bcec80dbe4ccfcc017d3d7742f9d7",
+E         + s.json": "ece29aceca074ee3d6d3849fe4c05a1db325a3d08886945ad57c47fc20dbde7b",
+E               "services/highlights-agent/evals/answer.schema.json": "fd301dc1722c2f38349aded4ff94c54c00f495be40dffafd58ee0965a4d39559",
+E               "services/highlights-agent/evals/golden/cases.yaml": "6f2ffa7b47fd35c798690bfa26c6f1725fbf1c90c48763a8ccce517c910f8f73",...
+E         
+E         ...Full output truncated (158 lines hidden), use '-vv' to show
+
+tests\test_m08_residual_differential.py:47: AssertionError
+_ test_the_m02_era_text_the_differential_assumed_has_moved_and_the_record_says_so _
+
+reader = <module 'residual_differential' from 'C:\\Users\\andar\\AppData\\Local\\Temp\\claude\\c--Users-andar-code-beaconpave\\9e07695f-9f3c-46d6-801e-dcd9b6f1cd87\\scratchpad\\relax2\\milestones\\M08\\residual_differential.py'>
+
+    def test_the_m02_era_text_the_differential_assumed_has_moved_and_the_record_says_so(reader):
+        """**The guard fired at M09 PR 4, and this is the record of what it caught.**
+    
+        The arithmetic subtracts HEAD's committed text from M02's per-call base, which
+        was only valid because the client, the answer schema and the `catalog-search`
+        contract as sent were byte-identical at M02's run commit. This test pinned
+        `identical_to_head is True` so that a client or contract change would turn the
+        record red *rather than quietly invalidating the subtraction*.
+    
+        A client change happened: `TOOL_SYSTEM` gained MER-AI-0001's disclosure
+        paragraph, the first time that prompt has moved since M02. The guard did its
+        job — it went red, in the diff that moved the text, which is the whole reason
+        it was written.
+    
+        **What it caught is worse than a stale digest, and that is why the assertion
+        is narrowed rather than deleted.** Re-producing the record (which SPEC/09's
+        Definition of done requires of PR 4) re-ran the estimate against the NEW
+        prompt and flipped the record's published `reading.answer` from **"no"** to
+        **"yes"** — an M08 conclusion reversed by an M09 prompt edit, with no
+        measurement taken. `residual_delta` moved from `[13, -1]` to `[38, 23]`
+        because `added_spec_tokens_est` fell 282 \u2192 258 on a re-priced calibration
+        ratio, not because any run behaved differently.
+    
+        So the three assertions here are:
+    
+        - `catalog_search_toolspec` — the contract half — is **still** M02's, because
+          nothing in this milestone touches the tool plane;
+        - `tool_system_prompt` is **not**, and the record says `identical_to_head:
+          false` rather than reporting an identity it does not have;
+        - the reading is now the post-fix one, and **the M02-era reading is pinned
+          beside it**, so the reversal cannot be discovered later as a number that
+          always said "yes".
+    
+        **The defect this leaves open is dated, not closed** (PR 4's PR body; a debt
+        to Platform Engineering + AI Quality): the reader recomputes a reading with
+        `identical_to_head` false instead of refusing to state one. A conclusion about
+        a run, re-derived against text that run never sent, is a counterfactual
+        wearing a measurement's record."""
+        record = json.loads(RECORD.read_text(encoding="utf-8"))
+        era = record["m02_era_text"]
+        head = reader.head_text_digests()
+    
+>       assert head["catalog_search_toolspec"] == \
+            era["rebuilt_text_sha256_at_m02"]["catalog_search_toolspec"], (
+            "the `catalog-search` toolspec at HEAD no longer digests to what it did at "
+            f"{era['commit'][:7]}. M09 moves no tool contract; if this is red, the tool "
+            "plane moved and the differential's subtraction lost its other half too.")
+E       AssertionError: the `catalog-search` toolspec at HEAD no longer digests to what it did at 4eda0d0. M09 moves no tool contract; if this is red, the tool plane moved and the differential's subtraction lost its other half too.
+E       assert '89616a9e62f9...4d2e51f240c9f' == 'c8c3bddb7117...29b292db53986'
+E         
+E         - c8c3bddb71174ae73e4de6d15fd1db7ed536ab75175770e6a3329b292db53986
+E         + 89616a9e62f92d2ce63855acd4bb1b99b466557e0fd7fac17874d2e51f240c9f
+
+tests\test_m08_residual_differential.py:125: AssertionError
+_____________ test_the_record_is_what_the_planted_inputs_produce ______________
+
+reader = <module 'fresh_join' from 'C:\\Users\\andar\\AppData\\Local\\Temp\\claude\\c--Users-andar-code-beaconpave\\9e07695f-9f3c-46d6-801e-dcd9b6f1cd87\\scratchpad\\relax2\\milestones\\M08b\\fresh_join.py'>
+
+    def test_the_record_is_what_the_planted_inputs_produce(reader):
+        """Byte for byte, as `--check` compares it."""
+>       assert _produced(reader, PLANTED) == RECORD.read_text(encoding="utf-8"), (
+            "fresh-join.json under the planted fixture is not what the reader produces; re-run "
+            "`python milestones/M08b/fresh_join.py --dir tests/fixtures/m08b/planted` and commit "
+            "the result, or find which input moved")
+E       AssertionError: fresh-join.json under the planted fixture is not what the reader produces; re-run `python milestones/M08b/fresh_join.py --dir tests/fixtures/m08b/planted` and commit the result, or find which input moved
+E       assert '{\n  "_what_...  }\n  ]\n}\n' == '{\n  "_what_...  }\n  ]\n}\n'
+E         
+E         Skipping 2253 identical leading characters in diff, use -v to show
+E         Skipping 104894 identical trailing characters in diff, use -v to show
+E         - s.json": "a0ad6eae3b8f4ada5e9e673368bf0970fa8bcec80dbe4ccfcc017d3d7742f9d7"
+E         + s.json": "ece29aceca074ee3d6d3849fe4c05a1db325a3d08886945ad57c47fc20dbde7b"
+E             },
+
+tests\test_m08b_fresh_join.py:135: AssertionError
+_____________ test_the_committed_record_is_what_the_run_produces ______________
+
+reader = <module 'fresh_join' from 'C:\\Users\\andar\\AppData\\Local\\Temp\\claude\\c--Users-andar-code-beaconpave\\9e07695f-9f3c-46d6-801e-dcd9b6f1cd87\\scratchpad\\relax2\\milestones\\M08b\\fresh_join.py'>
+
+    def test_the_committed_record_is_what_the_run_produces(reader):
+        """PR 3's replacement for `test_the_real_directory_has_no_run_yet`, which
+        asserted the run did not exist yet. It does, and the reader is pinned to it
+        byte for byte, as `--check` compares it.
+    
+        This is the claim's record: the answered samples at three calls or fewer
+        against 7700 and those at four or more, both falsifier lists, the fresh
+        re-derived band, the count, the refusals, the two p95s and the two
+        triggers. A number that moves here without an input moving is red; a number
+        that moves because an input moved is red too, and the answer is to find
+        which input moved, never to edit the record to match."""
+>       assert _produced(reader, reader.HERE) == (reader.HERE / "fresh-join.json").read_text(encoding="utf-8"), (
+            "milestones/M08b/fresh-join.json is not what the committed run produces; re-run "
+            "`python milestones/M08b/fresh_join.py` and find which input moved")
+E       AssertionError: milestones/M08b/fresh-join.json is not what the committed run produces; re-run `python milestones/M08b/fresh_join.py` and find which input moved
+E       assert '{\n  "_what_...  }\n  ]\n}\n' == '{\n  "_what_...  }\n  ]\n}\n'
+E         
+E         Skipping 2145 identical leading characters in diff, use -v to show
+E         Skipping 112213 identical trailing characters in diff, use -v to show
+E         - s.json": "a0ad6eae3b8f4ada5e9e673368bf0970fa8bcec80dbe4ccfcc017d3d7742f9d7"
+E         + s.json": "ece29aceca074ee3d6d3849fe4c05a1db325a3d08886945ad57c47fc20dbde7b"
+E             },
+
+tests\test_m08b_fresh_join.py:163: AssertionError
+__ test_the_baseline_names_the_text_it_was_taken_on_and_the_fix_detached_it ___
+
+census = <module 'context_census' from 'C:\\Users\\andar\\AppData\\Local\\Temp\\claude\\c--Users-andar-code-beaconpave\\9e07695f-9f3c-46d6-801e-dcd9b6f1cd87\\scratchpad\\relax2\\milestones\\M08\\context_census.py'>
+
+    def test_the_baseline_names_the_text_it_was_taken_on_and_the_fix_detached_it(census):
+        """**The baseline is pinned to its evidence, not to a literal — and PR 4 is
+        where that pinning has to be paid rather than admired.**
+    
+        Re-seating `PRE_FIX_RENDERED_TOKENS_EST` was measured silent before the fix:
+        change the prompt, change the number, move the sha pin, and this file passed
+        9 of 9 with the bound vacuous. So the baseline names the blobs it is the
+        estimate of, and PR 4 had to detach the two the fix moves DELIBERATELY, with
+        the post-fix digests written beside the pre-fix ones and the estimate left
+        where it was.
+    
+        Three assertions, and the third is the one that does real work:
+    
+        - the live `TOOL_SYSTEM` and `answer.schema.json` are the POST-fix blobs;
+        - they are NOT the pre-fix blobs, so the detachment is real and this test
+          cannot be satisfied by a fix that was never applied;
+        - **the routed tool specs still digest to the PRE-fix value.** They are handed
+          to the model on every call and are a per-call delta exactly as a prompt
+          sentence is — the 44% of the surface round 1 found unpriced. The fix is two
+          sites, and this is the assertion that says the tool plane is not a third."""
+        constants = census.client_constants()
+        schema = ROOT / "services" / "highlights-agent" / "evals" / "answer.schema.json"
+    
+        assert _digest(constants["TOOL_SYSTEM"]) == POST_FIX_TOOL_SYSTEM_SHA256, (
+            "`TOOL_SYSTEM` is neither the pre-fix nor the post-fix text this file names, so "
+            "MEASURED_DELTA is the cost of something else. Do NOT re-seat "
+            "PRE_FIX_RENDERED_TOKENS_EST — record the new delta, and say which bytes moved "
+            "and why, which is the ADR-021 event `TOOL_SYSTEM_SHA256`'s docstring describes.")
+        assert _digest(schema.read_text(encoding="utf-8")) == POST_FIX_ANSWER_SCHEMA_SHA256, (
+            "`answer.schema.json` is neither the pre-fix nor the post-fix text. It is "
+            "rendered into the prompt through `{schema}`, so it is part of the delta.")
+    
+        assert POST_FIX_TOOL_SYSTEM_SHA256 != PRE_FIX_TOOL_SYSTEM_SHA256
+        assert POST_FIX_ANSWER_SCHEMA_SHA256 != PRE_FIX_ANSWER_SCHEMA_SHA256, (
+            "the post-fix pins equal the pre-fix ones, so this test passes over a tree "
+            "where the fix was never applied and MEASURED_DELTA would be 0")
+    
+        import json as _json
+        specs = _json.dumps(census.tool_config(routed_tools()), ensure_ascii=False, sort_keys=True)
+>       assert _digest(specs) == PRE_FIX_TOOL_SPECS_SHA256, (
+            "the routed tool specs have moved. The fix is TWO sites; a reworded tool "
+            "`description` is a third per-call delta and is not priced by MEASURED_DELTA, "
+            "which is the surface round 1 found unpriced in the first place.")
+E       AssertionError: the routed tool specs have moved. The fix is TWO sites; a reworded tool `description` is a third per-call delta and is not priced by MEASURED_DELTA, which is the surface round 1 found unpriced in the first place.
+E       assert 'd2b1aac93de4...841256ca29987' == '40152facb405...0dfd77d272a34'
+E         
+E         - 40152facb40524ae1d3a4d83d5dab8c785db036b47f72a434a20dfd77d272a34
+E         + d2b1aac93de4452ef4a50bc9f83c1dbd3aa096d539647d77110841256ca29987
+
+tests\test_m09_prompt_delta.py:516: AssertionError
+____________________ test_the_committed_prompts_delta_fits ____________________
+
+census = <module 'context_census' from 'C:\\Users\\andar\\AppData\\Local\\Temp\\claude\\c--Users-andar-code-beaconpave\\9e07695f-9f3c-46d6-801e-dcd9b6f1cd87\\scratchpad\\relax2\\milestones\\M08\\context_census.py'>
+
+    def test_the_committed_prompts_delta_fits(census):
+        """**The bound, live, over the fix as committed.**
+    
+        Through PR 2 this asserted `delta == 0`, because SPEC/09 constraint 2 reserves
+        every model-facing byte to the PR carrying the fix. PR 4 carries it, so the
+        `== 0` clause is gone and the BOUND is what stands — which is what the old
+        assertion's own failure message instructed that PR to do.
+    
+        Measured: **200 tokens per call** of an admissible **306**, putting
+        `headroom-005 s3` \u2014 M08b's largest \u22643-call sample at 6782 over three calls \u2014 at
+        **7382** against the 7700 ceiling. The fix fit before a single call of run B
+        was spent, which is the whole point of pricing a committed prompt.
+    
+        The baseline constant is **not** re-seated. Re-seating it here would erase the
+        measurement, which is the same move as re-pinning a comparator in the diff
+        that moved it."""
+        estimated = estimate_tokens(rendered_per_call_payload(census))
+        delta = estimated - PRE_FIX_RENDERED_TOKENS_EST
+>       assert delta == MEASURED_DELTA, (
+            f"the rendered tool prompt estimates {estimated} tokens against the pre-fix "
+            f"baseline of {PRE_FIX_RENDERED_TOKENS_EST} — a delta of {delta}, not the "
+            f"{MEASURED_DELTA} this milestone measured and recorded. Model-facing text has "
+            "moved since PR 4. Price it, record the new number, and do NOT re-seat the "
+            "baseline.")
+E       AssertionError: the rendered tool prompt estimates 1602 tokens against the pre-fix baseline of 1409 — a delta of 193, not the 200 this milestone measured and recorded. Model-facing text has moved since PR 4. Price it, record the new number, and do NOT re-seat the baseline.
+E       assert 193 == 200
+
+tests\test_m09_prompt_delta.py:645: AssertionError
+______ test_the_fix_leaves_headroom_rather_than_landing_on_the_boundary _______
+
+census = <module 'context_census' from 'C:\\Users\\andar\\AppData\\Local\\Temp\\claude\\c--Users-andar-code-beaconpave\\9e07695f-9f3c-46d6-801e-dcd9b6f1cd87\\scratchpad\\relax2\\milestones\\M08\\context_census.py'>
+
+    def test_the_fix_leaves_headroom_rather_than_landing_on_the_boundary(census):
+        """**How much of the budget the fix did NOT spend, asserted rather than
+        inferred.**
+    
+        A delta that fits says nothing about how close it came, and "it fits" is the
+        sentence a later widening gets added under. 200 of 306 leaves 106 tokens per
+        call, and `headroom-005 s3` lands 318 under the ceiling.
+    
+        This is not a second copy of the bound above: that one refuses a fix that does
+        not fit, and this one records what was left over, so a future PR spending the
+        remainder has to move a number that says what it is spending."""
+        delta = estimate_tokens(rendered_per_call_payload(census)) - PRE_FIX_RENDERED_TOKENS_EST
+>       assert ADMISSIBLE_DELTA - delta == 106, (
+            f"the fix now leaves {ADMISSIBLE_DELTA - delta} tokens per call of the admissible "
+            f"{ADMISSIBLE_DELTA}, not the 106 PR 4 recorded")
+E       AssertionError: the fix now leaves 113 tokens per call of the admissible 306, not the 106 PR 4 recorded
+E       assert (306 - 193) == 106
+
+tests\test_m09_prompt_delta.py:670: AssertionError
+______ test_tools_list_publishes_the_committed_schema_rather_than_a_copy ______
+
+    def test_tools_list_publishes_the_committed_schema_rather_than_a_copy():
+        """The description and the input schema are read from the committed contract.
+        A second copy is a second thing to forget to update, and the model would be
+        the one reading the stale one."""
+        committed = json.loads(
+            (ROOT / "tools" / "catalog-search" / "schema.in.json").read_text(encoding="utf-8"))
+        descriptor = rpc("tools/list")["result"]["tools"][0]
+        assert descriptor["name"] == server.TOOL_NAME
+        assert descriptor["description"] == committed["description"]
+>       assert descriptor["inputSchema"]["required"] == committed["required"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'required'
+
+tests\test_mcp_server.py:93: KeyError
+______________ test_arguments_are_validated_before_the_tool_runs ______________
+
+    def test_arguments_are_validated_before_the_tool_runs():
+        converse, tool = Converse(tool_use(args={"limit": 3}), final()), Tool()
+        outcome = run(converse, tool)
+>       assert tool.asked == []
+E       AssertionError: assert [('catalog-se...{'limit': 3})] == []
+E         
+E         Left contains one more item: ('catalog-search', {'limit': 3})
+E         Use -v to get more diff
+
+tests\test_tool_loop.py:366: AssertionError
+__________ test_a_refusal_before_the_call_still_tells_the_model_why ___________
+
+    def test_a_refusal_before_the_call_still_tells_the_model_why():
+        """The distinction this rests on. A refusal that happened *before* the tool ran
+        quotes the model's own request back to it and discloses nothing it did not just
+        send — and telling it is what stops it retrying the identical call until the
+        loop bound fires and takes the blame."""
+        converse, tool = Converse(tool_use(args={"limit": 3}), final()), Tool()
+        run(converse, tool)
+>       text = converse.transcripts[1][-1]["content"][0]["toolResult"]["content"][0]["text"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'text'
+
+tests\test_tool_loop.py:447: KeyError
+__ test_a_tool_use_block_with_no_arguments_is_validated_rather_than_crashing __
+
+    def test_a_tool_use_block_with_no_arguments_is_validated_rather_than_crashing():
+        outcome = run(Converse(tool_use(args=None), final()), Tool())
+        assert outcome.calls[0].decision.allowed
+    
+        outcome = run(Converse(
+            {"stopReason": "tool_use", "usage": dict(USAGE), "output": {"message": {
+                "role": "assistant",
+                "content": [{"toolUse": {"toolUseId": "tu-1", "name": TOOL, "input": None}}]}}},
+            final()), Tool())
+>       assert outcome.calls[0].decision.mechanism == toolplane.SCHEMA
+E       AssertionError: assert 'none' == 'schema'
+E         
+E         - schema
+E         + none
+
+tests\test_tool_loop.py:756: AssertionError
+_ test_tools_list_publishes_the_committed_schema_rather_than_a_copy[catalog-search] _
+
+tool_id = 'catalog-search'
+
+    @pytest.mark.parametrize("tool_id", BUILT)
+    def test_tools_list_publishes_the_committed_schema_rather_than_a_copy(tool_id):
+        """A restated schema is a second copy, and the model reads the stale one."""
+        module = load_server(tool_id)
+        published = rpc(module, "tools/list")["result"]["tools"][0]
+        committed = json.loads((bundle(tool_id) / "schema.in.json").read_text(encoding="utf-8"))
+        assert published["name"] == tool_id
+        assert published["description"] == committed["description"]
+        assert published["inputSchema"]["properties"] == committed["properties"]
+>       assert published["inputSchema"]["required"] == committed["required"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'required'
+
+tests\test_tool_servers.py:190: KeyError
+________ test_the_recorder_and_the_parity_pin_compute_the_same_digest _________
+
+    def test_the_recorder_and_the_parity_pin_compute_the_same_digest():
+        """One source of truth, exercised twice.
+    
+        `tests/test_gateway_run_parity.py` pins `TOOL_SPECS_SHA256` as a literal and
+        `evals.run_evals.tool_surface` derives it. Two copies of one expression drift;
+        this asserts they agree, so moving the pin without moving the derivation — or
+        the reverse — is red rather than a silent disagreement about what the model
+        reads."""
+        from evals.run_evals import tool_surface
+        from tests.test_gateway_run_parity import TOOL_SPECS_SHA256
+    
+        surface = tool_surface()
+        assert surface is not None, "the snapshot and contracts are both committed; this cannot be None"
+>       assert surface["tool_specs_sha256"] == TOOL_SPECS_SHA256
+E       AssertionError: assert '0dc3615f21e7...dd29114606d1d' == '6097664dba62...1a1c851cf7b03'
+E         
+E         - 6097664dba62dbff612b9551f2eed609f5926922179e46b4df01a1c851cf7b03
+E         + 0dc3615f21e742828788fe77aaf75492a989c0cc142b4840b24dd29114606d1d
+
+tests\test_tool_surface.py:85: AssertionError
+_______________________ test_a_truthful_surface_passes ________________________
+
+tmp_path = WindowsPath('C:/Users/andar/AppData/Local/Temp/pytest-of-andar/pytest-7322/test_a_truthful_surface_passes0')
+
+    def test_a_truthful_surface_passes(tmp_path):
+        """The control. Without it every red below could be a check that always fails."""
+        from evals.run_evals import tool_surface
+        from pave.history import check_tool_surface
+    
+        h = _history(tmp_path)
+        _plant(h, "m06b-goldens.json", _entry(_head(), tool_surface()))
+>       assert check_tool_surface(h, ROOT) == []
+E       AssertionError: assert ['m06b-golden...measurement.'] == []
+E         
+E         Left contains one more item: 'm06b-goldens.json: records tool_specs_sha256 0dc3615f21e7..., but the specs at e398799b digest to 6097664dba62.... The specs the model reads are part of the system under measurement.'
+E         Use -v to get more diff
+
+tests\test_tool_surface.py:112: AssertionError
+_________________ test_a_denial_carries_the_reason_it_denied __________________
+
+    def test_a_denial_carries_the_reason_it_denied():
+        """A refusal nobody can account for is indistinguishable from a bug, and it is
+        the kind teams learn to route around."""
+        decision = authorize(args={})
+>       assert not decision.allowed
+E       AssertionError: assert not True
+E        +  where True = ToolDecision(allowed=True, tool_id='catalog-search', mechanism='none', reasons=()).allowed
+
+tests\test_toolplane.py:359: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_documented_commands.py::test_a_documented_demo_command_runs_and_exits_as_documented[08-budget-context-or-ceiling.md::python milestones/M08/context_census.py --check]
+FAILED tests/test_documented_commands.py::test_a_documented_demo_command_runs_and_exits_as_documented[08b-ceiling-on-fresh-samples.md::python milestones/M08b/fresh_join.py --check]
+FAILED tests/test_gateway_run_parity.py::test_the_tool_specs_the_model_reads_are_hash_pinned
+FAILED tests/test_m08_census.py::test_the_record_is_what_the_committed_inputs_produce
+FAILED tests/test_m08_residual_differential.py::test_the_record_is_what_the_committed_inputs_produce
+FAILED tests/test_m08_residual_differential.py::test_the_m02_era_text_the_differential_assumed_has_moved_and_the_record_says_so
+FAILED tests/test_m08b_fresh_join.py::test_the_record_is_what_the_planted_inputs_produce
+FAILED tests/test_m08b_fresh_join.py::test_the_committed_record_is_what_the_run_produces
+FAILED tests/test_m09_prompt_delta.py::test_the_baseline_names_the_text_it_was_taken_on_and_the_fix_detached_it
+FAILED tests/test_m09_prompt_delta.py::test_the_committed_prompts_delta_fits
+FAILED tests/test_m09_prompt_delta.py::test_the_fix_leaves_headroom_rather_than_landing_on_the_boundary
+FAILED tests/test_mcp_server.py::test_tools_list_publishes_the_committed_schema_rather_than_a_copy
+FAILED tests/test_tool_loop.py::test_arguments_are_validated_before_the_tool_runs
+FAILED tests/test_tool_loop.py::test_a_refusal_before_the_call_still_tells_the_model_why
+FAILED tests/test_tool_loop.py::test_a_tool_use_block_with_no_arguments_is_validated_rather_than_crashing
+FAILED tests/test_tool_servers.py::test_tools_list_publishes_the_committed_schema_rather_than_a_copy[catalog-search]
+FAILED tests/test_tool_surface.py::test_the_recorder_and_the_parity_pin_compute_the_same_digest
+FAILED tests/test_tool_surface.py::test_a_truthful_surface_passes - Assertion...
+FAILED tests/test_toolplane.py::test_a_denial_carries_the_reason_it_denied - ...
+19 failed, 4688 passed, 8 skipped in 180.33s (0:03:00)
+exit 1
