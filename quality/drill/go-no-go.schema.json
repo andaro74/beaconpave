@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beaconpave/quality/drill/go-no-go.schema.json",
+  "title": "Go/no-go artifact",
+  "description": "What `pave drill` writes (SPEC/11, ADR-080). NOT the verdict envelope: `quality/verdicts/schema.json` is not widened for it and nothing here passes through `pave.verdict.build`. **This schema holds no claim value** (SPEC/11 constraint 2): no `const` and no `enum` over the owner, the fix-by window, the gap threshold or any finding, and no conditional tying `decision` to `findings`, `owner` or `fix_by`. Those are what the falsifiers read, and a schema that held them would refuse the defect before it was written, so the falsifier could not fire. The three enums below are vocabulary: `mode`, `decision` and `signature.alg`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event",
+    "tier",
+    "mode",
+    "commit",
+    "tree_clean",
+    "ran_at",
+    "decision",
+    "findings",
+    "inputs",
+    "signature"
+  ],
+  "properties": {
+    "event": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tier": {
+      "type": "integer"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["full", "delta"]
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "tree_clean": {
+      "type": "boolean"
+    },
+    "ran_at": {
+      "$ref": "#/definitions/utc_second"
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["GO", "NO-GO"]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenario", "rule", "after_cue", "before_cue", "gap_s"],
+        "properties": {
+          "scenario": {"type": "string", "minLength": 1},
+          "rule": {"type": "string", "minLength": 1},
+          "after_cue": {"type": "string", "minLength": 1},
+          "before_cue": {"type": "string", "minLength": 1},
+          "gap_s": {"type": "number"}
+        }
+      }
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seat", "oncall"],
+      "properties": {
+        "seat": {"type": "string", "minLength": 1},
+        "oncall": {"type": "string", "minLength": 1}
+      }
+    },
+    "fix_by": {
+      "$ref": "#/definitions/utc_second"
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["caption_sha256"],
+      "properties": {
+        "caption_sha256": {"$ref": "#/definitions/sha256"}
+      }
+    },
+    "prior_sha256": {
+      "$ref": "#/definitions/sha256"
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alg", "key_id", "value"],
+      "properties": {
+        "alg": {"type": "string", "enum": ["HMAC-SHA256"]},
+        "key_id": {"type": "string", "pattern": "^[0-9a-f]{16}$"},
+        "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  },
+  "definitions": {
+    "utc_second": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
