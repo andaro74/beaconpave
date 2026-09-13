@@ -228,3 +228,110 @@ run named, and nothing is re-run.
 run all three scenarios against the deployed packager, entitlement tool and pager, and write
 an artifact signed by a KMS key and read by a gate lane. The artifact's schema, `mode`,
 `prior_sha256` and `signature.alg`/`key_id` already carry that interface.
+
+---
+
+## Amendment 1 (2026-09-13, M11 PR 2, after the seat round, before the registration and before any arc reading)
+
+**Written after the seat round on PR 2's instrument, and before anything was pushed.**
+AI Quality, Platform Engineering and Security each ran in an isolated worktree at the
+instrument's first head and planted defects. Their output was advisory (G6). Every change
+below is an operator ruling on it.
+
+### 1. One validity row: each run's caption bytes are the committed fixture's
+
+**The finding (Security seat, blocking).** The writer hashes the caption file on disk and
+reads `tree_clean` from `git status --porcelain`. `git update-index --skip-worktree`
+defeats both: a run can check gap bytes while the commit holds the fix, and still record a
+clean tree. The seat's plant printed `git status --porcelain: ''`, then
+`decision=NO-GO tree_clean=True caption_sha256==sha256(HEAD blob)? False`.
+
+Decision 2 names *"the writer hashes and checks different files"* as F1's false state, and
+no validity check could detect it. So SPEC/11's validity table gains, for all three runs:
+`caption_sha256` equals `git show <commit>:drill/fixtures/jefferson-derby/captions.vtt |
+sha256sum`. Both readers exist today.
+
+**Why it is admissible now.** The table was amended before the registration that freezes it.
+No arc run exists.
+
+### 2. Not taken, by ruling, and carried
+
+- **A failed F3 liveness check has no registered meaning** (AI Quality seat). SPEC/11 says
+  only that `verify` *must* exit 0 on the seeded artifact first.
+- **The clean fixture's bytes are pinned by no reader** (AI Quality seat). The fixed run's
+  check diffs against PR 3's branch point, not against PR 2's bytes, and `drill/fixtures/`
+  is on one key.
+
+### 3. The first registration is superseded, not rewritten
+
+Two commits made the first registration: the reader transcript `readers.txt` came first
+and was taken at the readers' first commit, then `falsifiers.json`. The seat round changed
+the writer and both readers after that. So:
+- **`readers.txt` is re-taken** at a head carrying the fixed code and this amendment.
+- **`falsifiers.json` is revised in a later commit.** It adds item 1's row and holds every
+  falsifier and validity row verbatim to SPEC/11 (AI Quality seat, blocking: the pins test
+  held only part of the file).
+
+Both first commits stay in history. SPEC/11's *"a pinned value, a falsifier or a reader
+changed after PR 2 commits `falsifiers.json`"* is read as applying to the registration
+this PR carries at its head. Neither registration had a reading taken against it.
+
+### 4. Decision 5, amended: PR 2's audit runs through CI on PR 2's own branch
+
+Decision 5 said the deletability audit runs through a local `pave check`, not an exhibit.
+The operator's brief ruled local Windows runs out, and debt 29 is the reason. The ruling:
+- each plant commit is force-pushed onto PR 2's own branch after the gated head is tagged
+  and the PR opened;
+- each registers a CI run;
+- the head is restored, and the audit record is committed and re-gated before the body.
+
+No exhibit is opened, and the cap is unchanged.
+
+### 5. Security is the third key on the drill rule
+
+The rule's comment gave the reason for two keys: the signature's rules are code already on
+the rule. The Security seat named that circular. The two seats could weaken
+`signature_holds` together, and F3's whole meaning is the signature. Security feels no pain
+from a GO, which is G9's direction. The operator ruled it in, and `M11_PR2_SEATS` pins
+three seats.
+
+### 6. Fixed in PR 2 from the seat round
+
+**Platform Engineering seat:**
+- **Finding 1, blocking.** A failed write left a 0-byte artifact and poisoned its path.
+  Fix: the writer publishes through a temporary file and a hard link.
+- **Finding 5.** A written GO could exit 1 on a console that cannot print. Fix: the exit
+  code is fixed before printing.
+- **Finding 6.** An interrupt escaped the exit contract. Fix: exit 2 before publishing.
+- **P6 and P7.** Two narrowings of the rule survived. Fix: both are pinned.
+- **P9.** The readers could reach the writer through `sys.modules`. Fix: it is banned, and
+  a subprocess verifies with the writer made unimportable.
+
+**Security seat:**
+- **Finding 2.** A duplicate key passed `verify`. Fix: refused by both readers.
+- **Finding 3.** A lone surrogate, deep nesting or a BOM crashed or misread. Fix: all exit
+  2, and a signature check that raises never prints OK.
+- **Finding 5.** The prior was unvalidated, and `tier: true` compared equal to tier 1. Fix:
+  the prior is schema-validated and the tier's type is checked.
+- **P8, P10, P15 and P16.** Each survived. Fix: each is held by a test.
+
+**AI Quality seat:**
+- **Finding 1, blocking.** No window over a day was tested, and a days-dropping reader
+  survived. Fix: held by a test.
+- **Finding 3.** Schema limits under `findings` could turn FALSE into INVALID. Fix: those
+  keywords are forbidden, and a two-gap test is added.
+- **Finding 4.** The threshold was compared only to the millisecond. Fix: it is compared
+  exactly.
+- **Findings 6 and 8.** Two docstrings claimed more than was true. Fix: corrected.
+
+### 7. Carried out of PR 2, none repaired here
+
+| # | debt | owner | trigger |
+|---|---|---|---|
+| 1 | `pave/cli.py`'s drill dispatch is on no two-key rule, so a one-key edit can route `verify` elsewhere; a `.pyc` under `pave/__pycache__/` is on none either (Platform Engineering seat, finding 2) | Platform Engineering | the next PR that edits `pave/cli.py`'s drill dispatch |
+| 2 | `tests/test_drill*.py` witness the signature and the pins and are on no rule (M10 row 28's shape) | Platform Engineering + Security | the next PR that edits `pave/twokey.py` |
+| 3 | `README.md:961` and `Makefile:66` run `pave drill` without `--out`, which now exits 2 | Platform Engineering | the next PR that edits either file |
+| 4 | a failed F3 liveness check has no registered meaning (item 2) | AI Quality | PR 3, before its seeded run: say it, or record that it is unsaid |
+| 5 | the clean fixture's bytes are pinned by no reader, and `drill/fixtures/` is on one key (item 2) | AI Quality | PR 3's seed commit |
+| 6 | **For PR 3:** commit the full sha256 of the run key in the seed commit, before the seeded run (Security seat, finding 7); and a CRLF re-save of the fixture during the fix step makes `tree_clean` false, so the run is INVALID with no retry (Platform Engineering seat) | Security + Platform Engineering | PR 3 |
+| 7 | the ordering test reads git history, so a squash merge of PR 2 turns it red | Platform Engineering | PR 2's merge: by merge commit or rebase, never squash |
