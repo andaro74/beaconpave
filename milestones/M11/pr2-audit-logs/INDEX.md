@@ -1,9 +1,10 @@
-# M11 PR 2's 39 plant CI logs, one file per `quality-gate` run id
+# M11 PR 2's 39 plant CI logs and the control run's, one file per `quality-gate` run id
 
-Each file is `gh run view <id> --log` as fetched for `milestones/M11/pr2-deletability-audit.md`, copied byte for byte (ADR-080 amendment 3) except where `[split]` breaks a 12-digit run `tests/test_no_account_identifiers.py` reads as an account ID: three runs in two logs, a runner temp-dir UUID tail and a pytest-truncated all-zeros commit printed twice; deleting `[split]` restores the fetched bytes, whose sha256 is the last column. The control run, 34778857665, is not here.
+Each file is `gh run view <id> --log` as fetched for `milestones/M11/pr2-deletability-audit.md`, copied byte for byte (ADR-080 amendment 3) except where `[split]` breaks a 12-digit run `tests/test_no_account_identifiers.py` reads as an account ID: three runs in two logs, a runner temp-dir UUID tail and a pytest-truncated all-zeros commit printed twice; deleting `[split]` restores the fetched bytes, whose sha256 is the last column. The control run, on the unmutated head `2465b11`, is the first row (added at ADR-080 amendment 4).
 
 | plant | run id | plant commit | what it removed or weakened | reading | `[split]` | sha256 of the fetched log |
 |---|---|---|---|---|---|---|
+| CONTROL | [34778857665](34778857665.log) | 2465b11 | nothing: the audited head | 5133 passed, 9 skipped, `check: PASS` | 0 | `f8891e884ecd682e57de22e74fd91397d7a3061b8bdb5c4f153adb81afac6c26` |
 | W01 | [34778295404](34778295404.log) | 2e5825ba3fda | writer: the no-key refusal removed | SILENT | 0 | `a6bf64af0b01b369bbfa313c704fe4ec2c938f04765b084d999fa77434fd7035` |
 | W02 | [34778311852](34778311852.log) | a6397b923e43 | writer: the 32-byte key floor lowered to 1 | CAUGHT | 0 | `da8029b3a4f82f4e22d77ef1a5727aff5e0bdaaf35fb2dae61ceac18807c82c8` |
 | W03 | [34778326365](34778326365.log) | 77bb08668bd9 | writer: an existing --out no longer refused before writing | SILENT | 0 | `362354f5caf6815d2a6caa2c98037683e1d7353ed50a3c35cb3b9c4f88a88aad` |

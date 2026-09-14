@@ -331,9 +331,9 @@ three seats.
 | 1 | `pave/cli.py`'s drill dispatch is on no two-key rule, so a one-key edit can route `verify` elsewhere; a `.pyc` under `pave/__pycache__/` is on none either (Platform Engineering seat, finding 2) | Platform Engineering | the next PR that edits `pave/cli.py`'s drill dispatch |
 | 2 | `tests/test_drill*.py` witness the signature and the pins and are on no rule (M10 row 28's shape) | Platform Engineering + Security | the next PR that edits `pave/twokey.py` |
 | 3 | `README.md:961` and `Makefile:66` run `pave drill` without `--out`, which now exits 2 | Platform Engineering | the next PR that edits either file |
-| 4 | a failed F3 liveness check has no registered meaning (item 2) | AI Quality | PR 3, before its seeded run: say it, or record that it is unsaid |
-| 5 | the clean fixture's bytes are pinned by no reader, and `drill/fixtures/` is on one key (item 2) | AI Quality | PR 3's seed commit |
-| 6 | **For PR 3:** commit the full sha256 of the run key in the seed commit, before the seeded run (Security seat, finding 7); and a CRLF re-save of the fixture during the fix step makes `tree_clean` false, so the run is INVALID with no retry (Platform Engineering seat) | Security + Platform Engineering | PR 3 |
+| 4 | a failed F3 liveness check has no registered meaning (item 2) | AI Quality | PR 3, before its seeded run: say it, or record that it is unsaid. **Resolved by amendment 4, item 2:** a failed liveness check is an INVALID seeded run |
+| 5 | the clean fixture's bytes are pinned by no reader, and `drill/fixtures/` is on one key (item 2) | AI Quality | PR 3's seed commit. **Not repaired; carried by amendment 4, item 5, as cold review D20**, re-triggered after the fixed run, because paying it in the seed commit would make the seeded run INVALID |
+| 6 | **For PR 3:** commit the full sha256 of the run key in the seed commit, before the seeded run (Security seat, finding 7); and a CRLF re-save of the fixture during the fix step makes `tree_clean` false, so the run is INVALID with no retry (Platform Engineering seat) | Security + Platform Engineering | PR 3. **The key half is resolved by amendment 4, item 3:** the sha256 is committed before PR 3 branches, not in the seed commit, which would have made the seeded run INVALID. **The CRLF half is carried as cold review D21** |
 | 7 | the ordering test reads git history, so a squash merge of PR 2 turns it red | Platform Engineering | PR 2's merge: by merge commit or rebase, never squash |
 
 ## Amendment 2 (2026-09-13, M11 PR 2, after the audit, before the merge and before any arc reading)
@@ -405,3 +405,103 @@ The 39 plant runs' CI logs are committed under `milestones/M11/pr2-audit-logs/`,
 run id with an index, because GitHub run logs expire and the audit record cites them as its only
 durable evidence, and because V01–V11 joined the spare's checklist beside R03–R10, S01–S06,
 K01–K06 and F01–F08, which item 4 of amendment 2 had left unrun.
+
+## Amendment 4 (2026-09-13, M11 PR 2b, after the cold review, before PR 3 branches)
+
+**Written after the cold review** (`milestones/M11/pr2b-cold-review.md`) and before any arc
+reading. No arc run exists. Every ruling below is the operator's.
+
+### 1. What the cold review found
+
+The reviewer wrote none of PR 2 and read `main` at `6a5fbb7`. It ran nothing.
+- **Every reader reads the field its row names.**
+- **Of the 39 checklist plants, 37 fire by reading.** R09 and S03 have no witness.
+- **Nothing makes a term true by construction** through a schema claim value, a writer
+  default or a reader import.
+
+It graded four findings BLOCKING:
+- **B1.** Amendment 1's debts 4–6 are triggered between B and S. Paying any of them there
+  makes the seeded run INVALID.
+- **B2.** F3 passes on any refusal. `verify` under a key other than the writer's refuses all
+  three copies, and a failed liveness check had no registered meaning.
+- **B3.** F2 on the control run, F4, F5, and the control and fixed validity rows read
+  artifacts no registered check verified.
+- **B4.** `tree_clean` is `git status --porcelain`, and skip-worktree still hides the writer
+  and the scenario.
+
+### 2. Three registration additions (B2, B3)
+
+SPEC/11's validity table gains three clauses, and `falsifiers.json` carries them verbatim:
+- **seeded:** `drill verify` on R1 exits 0 printing `signature: OK`, and `signature.key_id`
+  equals the first 16 hex of `milestones/M11/pre-registration/key.sha256`;
+- **control:** `drill verify` exits 0;
+- **fixed:** `drill verify` exits 0.
+
+**A failed F3 liveness check is now an INVALID seeded run**, so no copy is read.
+
+**No registered reader prints `signature.key_id`.** It is read with `grep '"key_id"'` on R1
+and `head -c 16` on `key.sha256`, both of which exist today. Once `verify` has exited 0, the
+artifact holds no duplicate key, so exactly one `key_id` line exists.
+
+No pinned value moves, and no falsifier is added or dropped. F3's `liveness.on_failure` in
+`falsifiers.json` now points here instead of reading "not registered".
+
+### 3. The run key's hash is committed before PR 3 branches (B1)
+
+**The key** is the operator's PR 3 run key, generated in this PR: 32 random bytes written as 64
+lowercase hex with one LF, held outside the repository.
+
+**`milestones/M11/pre-registration/key.sha256`** holds two values:
+- the sha256 of exactly the 64 bytes `pave/drill.py` receives from `BEACONPAVE_DRILL_KEY` after
+  `$(cat …)` strips the newline, computed through `pave.drill.load_key`;
+- the derived `key_id` beside it.
+
+Nothing else about the key is committed. The hash lands on `main`, outside every run's diff
+window.
+
+### 4. B4 is debt, with a procedural remedy
+
+Review **D19**: skip-worktree can hide edits to the writer and the scenario.
+- **The remedy:** PR 3's arc runs in a fresh clone of its branch, and the PR 3 body says so.
+  SPEC/11's plan for PR 3 carries that line.
+- **Not added:** a validity row for it.
+
+### 5. Amendment 1's debts 4–6
+
+- **Debt 4 is resolved** by item 2.
+- **Debt 6's first half is resolved** by item 3. That half is the key's sha256.
+- **Debt 5 is not repaired.** The clean fixture's bytes are still pinned by no reader. It is
+  carried as review **D20**.
+- **Debt 6's second half is not repaired.** A CRLF re-save of the fixture during the fix step
+  still makes the run INVALID. It is carried as review **D21**.
+- **Neither carried debt can land inside a run's diff window.** D20 and D21 are triggered
+  where paying them commits nothing inside a window.
+
+The review's other debts are **D12–D18**, numbered on from the audit's D8–D11.
+
+### 6. No reader changed, so the reader transcript stands
+
+- **No file under `pave/`, `quality/`, `drill/` or `tests/` is edited.**
+- **`readers.txt` is not re-taken.** Its last change still descends from the last change to
+  every file it exercises, and the last change to `falsifiers.json` descends from it.
+- **`drill verify` is shown emitting** on a NO-GO and on a GO in `readers.txt`, sections 2
+  and 8.
+
+### 7. Decision 5, amended: the cap is five PRs
+
+**PR 2b (#160) merged before the operator's rulings on its review,** so the repair could not
+land in it. The other two routes fail:
+- **Folding the repair into PR 3** puts commits between B and S, which makes the seeded run
+  INVALID (B1).
+- **Opening it under the four-PR cap** makes it the fourth PR, and SPEC/11's *Bounded*
+  requires the fourth PR to close M11 without the arc.
+
+**The operator ruled the cap to five:**
+1. PR 1;
+2. PR 2;
+3. PR 2b;
+4. the PR 2b repair, which carries this amendment;
+5. PR 3, which closes the milestone, red if necessary.
+
+**M11 now spends five slots.** Every PR opened against `main` still counts, including an
+exhibit. No further slot is named.
