@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+# M11 PR 2: every reader SPEC/11's falsifiers and validity checks name, shown emitting a
+# value, on SYNTHETIC fixtures built here -- before `falsifiers.json` is committed.
+# Re-taken after the seat round (ADR-080 amendment 1), at the head carrying the fixed
+# writer and readers and the amended validity table.
+#
+# NOT the arc. The synthetic repository's values all differ from SPEC/11's pins:
+# event `synthetic-event`, tier 7, owner `synthetic-seat` / `webhook:synthetic-oncall`,
+# window 7200 s, `max_gap_s` 2.0, cue ids s01..s04. No committed scenario or fixture is read.
+# The key is a throwaway generated for this transcript; its value is never printed.
+#
+# usage: bash readers-demo.sh <beaconpave worktree at the commit under test> <scratch dir>
+set -u
+REPO="$1"
+DEMO="$2"
+export PAVE_REPO="$REPO" PYTHONPATH="$REPO" PYTHONIOENCODING=utf-8
+BEACONPAVE_DRILL_KEY="$(python -c 'import secrets; print(secrets.token_hex(24))')"
+export BEACONPAVE_DRILL_KEY
+
+# Print the command re-runnably quoted, run it, print its exit code.
+show() {
+  printf '$'
+  printf ' %q' "$@"
+  printf '\n'
+  "$@" 2>&1
+  local rc=$?
+  printf 'exit %d\n\n' "$rc"
+}
+
+# Run a command with the key UNSET, in a subshell so the rest of the transcript keeps it.
+# (`env -u` was measured not to run this repository's python on this machine: it printed
+# nothing and exited 0, so it is not used.)
+without_key() {
+  ( unset BEACONPAVE_DRILL_KEY; "$@" )
+}
+
+vtt() {  # the four synthetic cues, minus the one named in $1, if any
+  local skip="${1:-}" cue id start end
+  printf 'WEBVTT\n\n'
+  for cue in "s01 00:00:00.000 00:00:03.000" "s02 00:00:03.000 00:00:06.000" \
+             "s03 00:00:06.000 00:00:09.000" "s04 00:00:09.000 00:00:12.000"; do
+    read -r id start end <<< "$cue"
+    [ "$id" = "$skip" ] && continue
+    printf '%s\n%s --> %s\nsynthetic line %s\n\n' "$id" "$start" "$end" "$id"
+  done
+}
+
+WORK="$DEMO/work"
+rm -rf "$WORK"
+mkdir -p "$WORK/out"
+cp "$DEMO/write.py" "$WORK/write.py"
+cd "$WORK" || exit 1
+CAPTIONS=drill/fixtures/synthetic/captions.vtt
+
+echo "# M11 PR 2: the readers, shown emitting before the claim is committed"
+echo
+echo "beaconpave HEAD: $(git -C "$REPO" rev-parse HEAD)"
+echo "beaconpave tree: $(git -C "$REPO" status --porcelain | wc -l | tr -d ' ') uncommitted path(s)"
+echo "python: $(python --version 2>&1)"
+echo "BEACONPAVE_DRILL_KEY: a throwaway of $(printf %s "$BEACONPAVE_DRILL_KEY" | wc -c | tr -d ' ') bytes, generated for this transcript and discarded; its value is not recorded"
+echo "synthetic repository: event synthetic-event, tier 7, owner synthetic-seat / webhook:synthetic-oncall, fix_by_window_s {\"7\": 7200}, max_gap_s 2.0, cues s01-s04 at 3 s each"
+echo "the writer is called through write.py (pave.drill.run with root= the synthetic repository, committed beside this file as write.py.txt); every reader through python -m pave.cli"
+echo "without_key runs its command in a subshell with BEACONPAVE_DRILL_KEY unset"
+echo
+
+git init -q repo
+for setting in "core.autocrlf false" "user.name readers-demo" \
+               "user.email readers-demo@example.invalid" "commit.gpgsign false"; do
+  git -C repo config $setting
+done
+mkdir -p repo/drill/scenarios repo/drill/fixtures/synthetic
+cat > repo/drill/scenarios/caption-check.json <<'JSON'
+{
+  "scenario": "caption-check",
+  "rule": "max-gap",
+  "max_gap_s": 2.0,
+  "owner": {"seat": "synthetic-seat", "oncall": "webhook:synthetic-oncall"},
+  "fix_by_window_s": {"7": 7200},
+  "events": {"synthetic-event": {"captions": "drill/fixtures/synthetic/captions.vtt"}}
+}
+JSON
+vtt > "repo/$CAPTIONS"
+git -C repo add -A && git -C repo commit -q -m "B: clean synthetic captions"
+B=$(git -C repo rev-parse HEAD)
+vtt s02 > "repo/$CAPTIONS"
+git -C repo commit -q -am "S: synthetic seed, s02 deleted"
+S=$(git -C repo rev-parse HEAD)
+echo "synthetic B (clean) = $B"
+echo "synthetic S (s02 deleted) = $S"
+echo
+
+echo "## 1. the writer, a full drill on the synthetic seed"
+echo
+show python write.py repo synthetic-event 7 out/seeded.json - 2030-01-02T03:04:05+00:00
+
+echo "## 2. F3's liveness, first: verify on the well-formed artifact (not evidence: true by construction)"
+echo
+show python -m pave.cli drill verify out/seeded.json
+
+echo "## 3. the reader F1 and F2 name, on the NO-GO; and the caption-bytes validity reader (ADR-080 amendment 1)"
+echo
+show python -m pave.cli drill read out/seeded.json
+show bash -c "git -C repo show $S:$CAPTIONS | sha256sum"
+
+echo "## 4. F3's reader: three copies, one sed each, shown to differ with cmp, then verify"
+echo
+cp out/seeded.json out/f3-decision.json
+show sed -i 's/"decision": "NO-GO"/"decision": "GO"/' out/f3-decision.json
+show cmp out/seeded.json out/f3-decision.json
+show python -m pave.cli drill verify out/f3-decision.json
+cp out/seeded.json out/f3-oncall.json
+show sed -i 's/"oncall": "webhook:synthetic-oncall"/"oncall": "webhook:someone-else"/' out/f3-oncall.json
+show cmp out/seeded.json out/f3-oncall.json
+show python -m pave.cli drill verify out/f3-oncall.json
+cp out/seeded.json out/f3-fix-by.json
+show sed -i 's/"fix_by": "2030-/"fix_by": "2031-/' out/f3-fix-by.json
+show cmp out/seeded.json out/f3-fix-by.json
+show python -m pave.cli drill verify out/f3-fix-by.json
+
+echo "## 5. the commit between seeded and control: the synthetic seeded artifact committed, nothing else"
+echo
+mkdir -p repo/runs && cp out/seeded.json repo/runs/seeded.json
+git -C repo add -A && git -C repo commit -q -m "C: synthetic seeded artifact committed"
+C=$(git -C repo rev-parse HEAD)
+echo "synthetic C = $C"
+echo
+
+echo "## 6. the writer, a delta drill without the fix; the reader F4 names"
+echo
+show python write.py repo synthetic-event 7 out/control.json out/seeded.json 2030-01-02T04:00:00+00:00
+show python -m pave.cli drill read out/control.json
+
+echo "## 7. the validity readers for the control"
+echo
+show sha256sum out/seeded.json
+show bash -c "git -C repo show $C:$CAPTIONS | sha256sum"
+show git -C repo diff --name-only "$S" "$C"
+show git -C repo merge-base --is-ancestor "$S" "$C"
+
+echo "## 8. the fix: s02 restored, nothing else; the writer, a delta drill; the reader F5 names"
+echo
+vtt > "repo/$CAPTIONS"
+git -C repo commit -q -am "F: synthetic fix, s02 restored"
+F=$(git -C repo rev-parse HEAD)
+echo "synthetic F = $F"
+echo
+show python write.py repo synthetic-event 7 out/fixed.json out/seeded.json 2030-01-02T05:00:00+00:00
+show python -m pave.cli drill read out/fixed.json
+show python -m pave.cli drill verify out/fixed.json
+
+echo "## 9. the validity readers for the fixed run"
+echo
+show bash -c "git -C repo show $F:$CAPTIONS | sha256sum"
+show git -C repo diff --name-only "$C" "$F"
+show git -C repo diff "$B" "$F" -- "$CAPTIONS"
+show git -C repo merge-base --is-ancestor "$C" "$F"
+show git -C repo merge-base --is-ancestor "$F" "$S"
+
+echo "## 10. the refusals behind the exit codes"
+echo
+show without_key python -m pave.cli drill verify out/seeded.json
+printf 'not json' > out/broken.json
+show python -m pave.cli drill read out/broken.json
+show python -m pave.cli drill verify out/broken.json
+show without_key python write.py repo synthetic-event 7 out/no-key.json - 2030-01-02T06:00:00+00:00
+show test -e out/no-key.json
+
+echo "## 11. the caption-bytes row's false state, planted on the synthetic repository (Security seat, M11 PR 2)"
+echo
+echo "The fix is committed at F. skip-worktree hides the working copy from git status, and the gap bytes go back on disk."
+echo
+show git -C repo update-index --skip-worktree "$CAPTIONS"
+vtt s02 > "repo/$CAPTIONS"
+show git -C repo status --porcelain
+show python write.py repo synthetic-event 7 out/skipped.json out/seeded.json 2030-01-02T07:00:00+00:00
+show python -m pave.cli drill read out/skipped.json
+show bash -c "git -C repo show $F:$CAPTIONS | sha256sum"
+echo "tree_clean=true above, and the artifact's caption_sha256 differs from the committed fixture's: the amended validity row reads INVALID."
+echo
+git -C repo update-index --no-skip-worktree "$CAPTIONS"

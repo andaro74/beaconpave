@@ -2342,3 +2342,58 @@ def test_the_rename_bypass_stays_closed_for_m09bs_rules():
                      ("docs/governance/ROLES.md", "docs/governance/ROLES-v2.txt"),
                      ("milestones/M09b/fg.py", "milestones/M09b/FG.txt")):
         assert twokey.triggered([old, new]), f"renaming {old} to {new} collects no key"
+
+
+# --- M11 PR 2: the drill's instrument, on a rule before the diffs that create it ---
+
+#: Security joined at M11 PR 2's seat round (ADR-080 amendment 1): F3's meaning is the
+#: signature, and the two first seats could weaken it together.
+DRILL_SEATS = {"ai-quality", "platform-eng", "security"}
+
+#: Every path SPEC/11 constraint 7 names, and the seats each must collect. Same
+#: shape as `M09B_PR2B_SEATS` and for its reason: the ADR-043 ratchet keys on
+#: substrings of `Rule.what` and reaches none of these. Paths that need not exist
+#: pin the SHAPE, so a scenario or a run written later lands on the rule the day it
+#: is written.
+M11_PR2_SEATS = {
+    "drill/scenarios/caption-check.json": DRILL_SEATS,
+    "drill/scenarios/a-scenario-not-written-yet.json": DRILL_SEATS,
+    "quality/drill/go-no-go.schema.json": DRILL_SEATS,
+    "quality/drill/a-schema-not-written-yet.json": DRILL_SEATS,
+    "pave/drill.py": DRILL_SEATS,
+    "pave/drill_read.py": DRILL_SEATS,
+    # a package shadowing either module, the attack ADR-052 round 3 keyed on
+    "pave/drill/__init__.py": DRILL_SEATS,
+    "pave/drill_read/__init__.py": DRILL_SEATS,
+    # **Platform Engineering seat, M11 PR 2, P6.** Narrowing the package branch to
+    # `/__init__\.py$` was SURVIVED at 143 passed; a submodule of the shadow is the
+    # member that narrowing drops.
+    "pave/drill/core.py": DRILL_SEATS,
+    "milestones/M11/pre-registration/falsifiers.json": DRILL_SEATS,
+    "milestones/M11/pre-registration/readers.txt": DRILL_SEATS,
+    "milestones/M11/runs/seeded/go-no-go.json": DRILL_SEATS,
+    # **P7.** Narrowing `milestones/M11/` to `(pre-registration|runs)/` was SURVIVED; the
+    # journal is the member that narrowing drops.
+    "milestones/M11/README.md": DRILL_SEATS,
+}
+
+
+def test_m11s_drill_instrument_collects_its_seats():
+    """**Measured on `cc35473`, by `twokey.triggered` over each path, before the
+    rule existed: every one returned `[]`.** SPEC/11 constraint 7 puts them on
+    AI Quality plus Platform Engineering before the diffs that create them."""
+    for path, seats in sorted(M11_PR2_SEATS.items()):
+        _blocked_for([path], seats)
+
+
+def test_the_m11_pr2_pin_cannot_be_thinned_to_nothing():
+    assert len(M11_PR2_SEATS) == 13, (
+        f"M11_PR2_SEATS holds {len(M11_PR2_SEATS)} paths, expected 13. Deleting an entry "
+        "in the same diff that narrows its rule is the one-edit bypass this constant makes two.")
+
+
+def test_the_rename_bypass_stays_closed_for_m11s_rule():
+    for old, new in (("drill/scenarios/caption-check.json", "drill/caption-check.txt"),
+                     ("pave/drill_read.py", "pave/reader.py"),
+                     ("quality/drill/go-no-go.schema.json", "quality/go-no-go.json")):
+        assert twokey.triggered([old, new]), f"renaming {old} to {new} collects no key"

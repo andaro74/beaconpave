@@ -3,7 +3,8 @@ pave — the paved-road CLI for beaconpave.
 
 Implemented: `rules validate` and `rules trace` (G7, claim 6), `gate decide` /
 `gate comment` (G2), `check` (G8), `evals run` (L2, M03), `evals disclosure`
-(L3, M09), `adversarial run` (L5, M04). The rest are stubs that
+(L3, M09), `adversarial run` (L5, M04), `drill` with `drill read` and `drill verify`
+(claim 11, M11). The rest are stubs that
 print what they WOULD do and name the milestone that implements them, so the repo
 stays runnable and self-documenting. A command that blocks merges is not a stub,
 and leaving it described as one is how the help text stops being read.
@@ -23,7 +24,12 @@ and leaving it described as one is how the help text stops being read.
   pave infra snapshot [--check] [--from <dir>]        record / verify the synth snapshot (G1)
   pave policy generate [--check]                      generate / verify Cedar from the registry (G3)
   pave gate comment|decide --verdicts ...             post score-diff / fail-closed
-  pave drill --event <e> --tier <t>                   game-day readiness drill
+  pave drill --event <e> --tier <t> --out <path> [--delta <prior>]
+                                                      game-day drill: write a signed go/no-go
+                                                      artifact; exit 0 GO, 1 NO-GO, 2 nothing
+                                                      written (SPEC/11, M11)
+  pave drill read|verify <artifact>                   print its fields / check its signature,
+                                                      then its schema
   pave selfheal <service>                             classify red suite, propose repair
   pave exception request --rule <id> --ttl <d>        open a time-boxed exception
 """
@@ -36,6 +42,8 @@ import subprocess
 import sys
 import time
 
+from pave import drill as drill_mod
+from pave import drill_read as drill_read_mod
 from pave import floors as floors_mod
 from pave import gate as gate_mod
 from pave import rules as rules_mod
@@ -1723,9 +1731,16 @@ def main(argv):
         gate_history(rest[1:])
     elif cmd == "gate":
         _die("gate: expected `decide`, `comment`, `two-key`, or `history`", gate_mod.EXIT_CONTRACT)
+    elif cmd == "drill" and rest[:1] == ["read"]:
+        return drill_read_mod.read_main(rest[1:])
+    elif cmd == "drill" and rest[:1] == ["verify"]:
+        return drill_read_mod.verify_main(rest[1:])
     elif cmd == "drill":
-        _stub("drill", f"run drill/scenarios for {rest}: blackout sweep, caption check, alarm "
-                       "self-test; emit a machine-signed go/no-go artifact")
+        # Was a `_stub` that exited 0 having written nothing, and named a blackout sweep
+        # and an alarm self-test that ADR-080 decision 4 cut. The writer and the readers
+        # are two modules that share nothing (SPEC/11 constraint 6); only this dispatch
+        # knows both.
+        return drill_mod.main(rest)
     elif cmd == "selfheal":
         _stub("selfheal", f"classify the red suite for {rest} as drift-vs-defect; if drift, propose "
                           "a repair as an ai-proposed PR with reasoning (human disposes — G6)")

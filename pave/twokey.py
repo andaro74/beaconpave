@@ -1713,6 +1713,48 @@ RULES: tuple[Rule, ...] = (
         re.compile(r"^(\.gitattributes|tests/test_line_endings\.py)$"),
         ("platform-eng", "ai-quality"),
     ),
+    Rule(
+        # **M11 PR 2, SPEC/11 constraint 7, before the diffs this rule covers.**
+        # Measured on `cc35473` by `twokey.triggered` over each path, before this
+        # rule existed: every one returned `[]`.
+        #
+        # The go/no-go drill is claim 11's instrument, and each prefix is a
+        # different half of it:
+        #   - `drill/scenarios/` holds the owner, the fix-by window and the gap
+        #     threshold. It is the THERMOSTAT: widening the threshold by one digit
+        #     turns the seeded NO-GO into a GO with every test green.
+        #   - `quality/drill/` is the artifact's schema. A `const` over the owner
+        #     added there makes F2 true by construction (constraint 2).
+        #   - `pave/drill.py` is the writer and `pave/drill_read.py` the readers
+        #     every falsifier names. A package of either name shadowing the
+        #     module is the attack ADR-052's round 3 keyed on `twokeycli`, so the
+        #     pattern takes `/` as well as `.py`.
+        #   - `milestones/M11/` holds the pre-registration and the runs.
+        #
+        # G9: Service Teams feel the threshold's pain -- a caption failure is
+        # theirs to fix by the fix-by time -- and `pave/twokey.py` enforces no
+        # Service Team seat, so no key is theirs. AI Quality owns what a
+        # falsifier means; Platform Engineering owns the writer and the readers.
+        #
+        # **Security is the third key, since M11 PR 2's seat round** (ADR-080
+        # amendment 1). This comment first said "two keys, not three", because the
+        # signature's rules are code already on this rule. The Security seat named
+        # that reason circular: the two seats it named could weaken
+        # `signature_holds` together, and F3 -- a hand edit is refused -- is the one
+        # falsifier whose whole meaning is that signature. Security feels no pain
+        # from a GO, which is G9's direction; the operator ruled it in.
+        #
+        # NOT on this rule, on purpose: `drill/fixtures/`. The fix is the owning
+        # team's edit to its own captions, and PR 3's validity checks bound what
+        # may change there. `tests/test_drill*.py` is not on it either, which is
+        # M10's row 28 (33 test files on no rule), fired by this edit and carried.
+        "the drill's go/no-go instrument — the scenario that sets its owner, window "
+        "and threshold, the artifact schema, the writer, the readers, and M11's "
+        "pre-registration and runs",
+        re.compile(r"^(drill/scenarios/|quality/drill/|pave/drill(_read)?(\.py$|/)"
+                   r"|milestones/M11/)"),
+        ("ai-quality", "platform-eng", "security"),
+    ),
 )
 
 

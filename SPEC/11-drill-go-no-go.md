@@ -2,7 +2,9 @@
 
 **Status: WRITTEN at M11 PR 1, 2026-09-13, before any drill code, scenario, fixture or
 run.** Owned by the PM seat. Tag `m11`; one branch per PR, none named `m11`. Branch point:
-`main` at `8ac2aaa`.
+`main` at `8ac2aaa`. **Amended at M11 PR 2, before the registration and before any arc
+reading** (ADR-080 amendment 1): one validity row, that each run's caption bytes are the
+committed fixture's.
 
 **Deliberately short.** Every rule below is derived in **ADR-080**. This file states the
 milestone. **The claim is proposed here and pre-registered in PR 2**, by a committed
@@ -98,7 +100,7 @@ claim is then NOT MEASURED and M11 closes RED. No run is repeated.
 
 | run | must hold | reader | exists |
 |---|---|---|---|
-| all three | `tree_clean=true`. S, C and F lie in that order on PR 3's branch (`git merge-base --is-ancestor`) | `drill read`, `git` | PR 2, today |
+| all three | `tree_clean=true`. `caption_sha256` equals `git show <commit>:drill/fixtures/jefferson-derby/captions.vtt \| sha256sum`, the fixture at the run's own `commit` (ADR-080 amendment 1). S, C and F lie in that order on PR 3's branch (`git merge-base --is-ancestor`) | `drill read`, `git show`, `sha256sum`, `git` | PR 2, today |
 | seeded | `mode=full`. `git diff --name-only B S` is exactly the fixture | `git diff` | today |
 | control | `mode=delta`. `prior_sha256` equals `sha256sum R1`. `caption_sha256` equals seeded's. C ≠ S. `git diff --name-only S C` lies under `milestones/M11/` | `drill read`, `sha256sum`, `git diff` | PR 2, today |
 | fixed | `mode=delta`. `prior_sha256` equals `sha256sum R1`. `git diff --name-only C F`, minus `milestones/M11/`, is exactly the fixture. `git diff B F -- drill/fixtures/jefferson-derby/captions.vtt` is empty | same | PR 2, today |
