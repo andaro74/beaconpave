@@ -1,0 +1,630 @@
+gate	UNKNOWN STEP	﻿2026-09-13T19:44:44.2788057Z Current runner version: '2.337.0'
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2808302Z ##[group]Runner Image Provisioner
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2808912Z Hosted Compute Agent
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2809274Z Version: 20260828.587
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2809735Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2810179Z Build Date: 2026-08-28T16:44:25Z
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2810665Z Worker ID: {cd076839-120f-41bd-9e3d-3fb820245a05}
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2811173Z Azure Region: westus3
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2811540Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2812655Z ##[group]Operating System
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2813023Z Ubuntu
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2813330Z 24.04.5
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2813748Z LTS
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2814068Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2814574Z ##[group]Runner Image
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2814959Z Image: ubuntu-24.04
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2815297Z Version: 20260907.300.1
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2816187Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2817175Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2817735Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2818511Z ##[group]GITHUB_TOKEN Permissions
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2820014Z Contents: read
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2820360Z Metadata: read
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2820773Z PullRequests: write
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2821159Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2822745Z Secret source: Actions
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2823338Z Cache mode: write
+gate	UNKNOWN STEP	2026-09-13T19:44:44.2823810Z Prepare workflow directory
+gate	UNKNOWN STEP	2026-09-13T19:44:44.3061750Z Prepare all required actions
+gate	UNKNOWN STEP	2026-09-13T19:44:44.3095732Z Getting action download info
+gate	UNKNOWN STEP	2026-09-13T19:44:44.5937432Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+gate	UNKNOWN STEP	2026-09-13T19:44:44.7819787Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+gate	UNKNOWN STEP	2026-09-13T19:44:45.1115673Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+gate	UNKNOWN STEP	2026-09-13T19:44:45.3568349Z Complete job name: gate
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4081690Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4087490Z ##[group]Run actions/checkout@v4
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4088071Z with:
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4088305Z   fetch-depth: 0
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4088566Z   repository: andaro74/beaconpave
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4090619Z   token: ***
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4090854Z   ssh-strict: true
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4091102Z   ssh-user: git
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4091357Z   persist-credentials: true
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4091629Z   clean: true
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4091880Z   sparse-checkout-cone-mode: true
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4092167Z   fetch-tags: false
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4092415Z   show-progress: true
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4092730Z   lfs: false
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4093000Z   submodules: false
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4093255Z   set-safe-directory: true
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4093540Z   allow-unsafe-pr-checkout: false
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4093906Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4800721Z Syncing repository: andaro74/beaconpave
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4801808Z ##[group]Getting Git version info
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4802195Z Working directory is '/home/runner/work/beaconpave/beaconpave'
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4802798Z [command]/usr/bin/git version
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4864066Z git version 2.55.0
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4878048Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4890749Z Temporarily overriding HOME='/home/runner/work/_temp/735fef0d-bacf-4d9e-aa44-75920851a67a' before making global git config changes
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4894803Z Adding repository directory to the temporary git global config as a safe directory
+gate	UNKNOWN STEP	2026-09-13T19:44:45.4895430Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/beaconpave/beaconpave
+gate	UNKNOWN STEP	2026-09-13T19:44:45.5568070Z Deleting the contents of '/home/runner/work/beaconpave/beaconpave'
+gate	UNKNOWN STEP	2026-09-13T19:44:45.5571879Z ##[group]Initializing the repository
+gate	UNKNOWN STEP	2026-09-13T19:44:45.5575551Z [command]/usr/bin/git init /home/runner/work/beaconpave/beaconpave
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6081515Z hint: Using 'master' as the name for the initial branch. This default branch name
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6082713Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6083342Z hint: to use in all of your new repositories, which will suppress this warning,
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6083808Z hint: call:
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6084051Z hint:
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6084594Z hint: 	git config --global init.defaultBranch <name>
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6085109Z hint:
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6085590Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6086101Z hint: 'development'. The just-created branch can be renamed via this command:
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6086502Z hint:
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6086784Z hint: 	git branch -m <name>
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6087204Z hint:
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6087701Z hint: Disable this message with "git config set advice.defaultBranchName false"
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6088290Z Initialized empty Git repository in /home/runner/work/beaconpave/beaconpave/.git/
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6092829Z [command]/usr/bin/git remote add origin https://github.com/andaro74/beaconpave
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6560170Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6560709Z ##[group]Disabling automatic garbage collection
+gate	UNKNOWN STEP	2026-09-13T19:44:45.6561177Z [command]/usr/bin/git config --local gc.auto 0
+gate	UNKNOWN STEP	2026-09-13T19:44:45.7038538Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:45.7039125Z ##[group]Setting up auth
+gate	UNKNOWN STEP	2026-09-13T19:44:45.7044980Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+gate	UNKNOWN STEP	2026-09-13T19:44:45.7081953Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+gate	UNKNOWN STEP	2026-09-13T19:44:45.7388924Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+gate	UNKNOWN STEP	2026-09-13T19:44:45.7416708Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+gate	UNKNOWN STEP	2026-09-13T19:44:45.7602499Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+gate	UNKNOWN STEP	2026-09-13T19:44:45.7630644Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+gate	UNKNOWN STEP	2026-09-13T19:44:45.7819619Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+gate	UNKNOWN STEP	2026-09-13T19:44:45.8737689Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:45.8739363Z ##[group]Fetching the repository
+gate	UNKNOWN STEP	2026-09-13T19:44:45.8748320Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +b83f18dbd28b7f3862947095d39ff8e00080691f:refs/remotes/pull/159/merge
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0868213Z From https://github.com/andaro74/beaconpave
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0870312Z  * [new branch]      citations-that-resolve                   -> origin/citations-that-resolve
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0871119Z  * [new branch]      diag-blackout-family                     -> origin/diag-blackout-family
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0872067Z  * [new branch]      diag-upgrade-required-vs-blackout        -> origin/diag-upgrade-required-vs-blackout
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0872742Z  * [new branch]      exhibit-g1-blocks                        -> origin/exhibit-g1-blocks
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0873264Z  * [new branch]      exhibit-m10-152-audit-ci                 -> origin/exhibit-m10-152-audit-ci
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0873799Z  * [new branch]      exhibit-m10-pr3-audit-ci                 -> origin/exhibit-m10-pr3-audit-ci
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0874495Z  * [new branch]      m00a-foundation                          -> origin/m00a-foundation
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0875486Z  * [new branch]      m00b-ungoverned-baseline                 -> origin/m00b-ungoverned-baseline
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0876031Z  * [new branch]      m01-gateway                              -> origin/m01-gateway
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0876617Z  * [new branch]      m02-exhibit-unregistered-tool            -> origin/m02-exhibit-unregistered-tool
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0877213Z  * [new branch]      m02-tool-plane                           -> origin/m02-tool-plane
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0877696Z  * [new branch]      m03-evals                                -> origin/m03-evals
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0878227Z  * [new branch]      m04-exhibit-polite-answer                -> origin/m04-exhibit-polite-answer
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0878777Z  * [new branch]      m04-gate                                 -> origin/m04-gate
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0879321Z  * [new branch]      m05-pr1-instruments                      -> origin/m05-pr1-instruments
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0879900Z  * [new branch]      m05-pr3-phantom-caller                   -> origin/m05-pr3-phantom-caller
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0880478Z  * [new branch]      m05-pr4a-floors                          -> origin/m05-pr4a-floors
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0881055Z  * [new branch]      m05-pr4b-verifier                        -> origin/m05-pr4b-verifier
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0881540Z  * [new branch]      m05-pr5-template                         -> origin/m05-pr5-template
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0882028Z  * [new branch]      m05-pr6-close                            -> origin/m05-pr6-close
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0882563Z  * [new branch]      m05-spec-draft6                          -> origin/m05-spec-draft6
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0883101Z  * [new branch]      m06-act-redeferral                       -> origin/m06-act-redeferral
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0883573Z  * [new branch]      m06-close                                -> origin/m06-close
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0884115Z  * [new branch]      m06-pr1a-what-the-gate-reads             -> origin/m06-pr1a-what-the-gate-reads
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0885141Z  * [new branch]      m06-pr1b-what-discharges-a-rule          -> origin/m06-pr1b-what-discharges-a-rule
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0885784Z  * [new branch]      m06-pr2-a-definition-security-owns       -> origin/m06-pr2-a-definition-security-owns
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0886394Z  * [new branch]      m06-pr3-adversarial-contracts            -> origin/m06-pr3-adversarial-contracts
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0886938Z  * [new branch]      m06-register-a26-a27                     -> origin/m06-register-a26-a27
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0887465Z  * [new branch]      m06-register-mapping                     -> origin/m06-register-mapping
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0888234Z  * [new branch]      m06-spec-register                        -> origin/m06-spec-register
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0888770Z  * [new branch]      m06-two-decisions-not-built              -> origin/m06-two-decisions-not-built
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0889295Z  * [new branch]      m07-pr6-close                            -> origin/m07-pr6-close
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0889797Z  * [new branch]      m08-budget                               -> origin/m08-budget
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0890339Z  * [new branch]      m08-pr1b-cold-read                       -> origin/m08-pr1b-cold-read
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0891013Z  * [new branch]      m08-pr2-register                         -> origin/m08-pr2-register
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0891691Z  * [new branch]      m08-pr3-ceiling                          -> origin/m08-pr3-ceiling
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0892049Z  * [new branch]      m08-pr4-rescore                          -> origin/m08-pr4-rescore
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0892408Z  * [new branch]      m08-pr5-close                            -> origin/m08-pr5-close
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0892773Z  * [new branch]      m08b-fresh-run                           -> origin/m08b-fresh-run
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0893153Z  * [new branch]      m08b-pr1b-amendment-1                    -> origin/m08b-pr1b-amendment-1
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0893515Z  * [new branch]      m08b-pr2-instrument                      -> origin/m08b-pr2-instrument
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0894021Z  * [new branch]      m08b-pr3-run                             -> origin/m08b-pr3-run
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0894530Z  * [new branch]      m08b-pr4-hermetic                        -> origin/m08b-pr4-hermetic
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0894860Z  * [new branch]      m08b-pr6-close                           -> origin/m08b-pr6-close
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0895186Z  * [new branch]      m09-pr2-followups                        -> origin/m09-pr2-followups
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0895531Z  * [new branch]      m09-pr2-instrument                       -> origin/m09-pr2-instrument
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0895860Z  * [new branch]      m09-pr5-close                            -> origin/m09-pr5-close
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0896180Z  * [new branch]      m09-rules                                -> origin/m09-rules
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0896506Z  * [new branch]      m09b-pr1-documents                       -> origin/m09b-pr1-documents
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0896878Z  * [new branch]      m09b-pr1c-withdrawal                     -> origin/m09b-pr1c-withdrawal
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0897292Z  * [new branch]      m09b-pr1d-replacement                    -> origin/m09b-pr1d-replacement
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0897706Z  * [new branch]      m09b-pr3-one-candidate-per-topic         -> origin/m09b-pr3-one-candidate-per-topic
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0898087Z  * [new branch]      m09b-pr5-close                           -> origin/m09b-pr5-close
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0898464Z  * [new branch]      m09c-pr1-spec                            -> origin/m09c-pr1-spec
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0898951Z  * [new branch]      m09c-pr2-close                           -> origin/m09c-pr2-close
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0899541Z  * [new branch]      m10-pr1-verdict-schema-and-spec          -> origin/m10-pr1-verdict-schema-and-spec
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0900300Z  * [new branch]      m10-pr2-spec-and-static-player           -> origin/m10-pr2-spec-and-static-player
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0900961Z  * [new branch]      m10-pr3-audit-and-cold-review            -> origin/m10-pr3-audit-and-cold-review
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0901689Z  * [new branch]      m10-pr4-close                            -> origin/m10-pr4-close
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0902242Z  * [new branch]      m11-pr2-drill-instrument                 -> origin/m11-pr2-drill-instrument
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0902782Z  * [new branch]      main                                     -> origin/main
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0903256Z  * [new branch]      throwaway-gate                           -> origin/throwaway-gate
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0903767Z  * [new branch]      throwaway-twokey                         -> origin/throwaway-twokey
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0904258Z  * [new tag]         cited-09c-close                          -> cited-09c-close
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0904836Z  * [new tag]         cited-09c-pr1                            -> cited-09c-pr1
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0905281Z  * [new tag]         cited-1492358                            -> cited-1492358
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0905710Z  * [new tag]         cited-a0a63d1                            -> cited-a0a63d1
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0906188Z  * [new tag]         cited-a5a8077                            -> cited-a5a8077
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0906622Z  * [new tag]         cited-e6589ae                            -> cited-e6589ae
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0907061Z  * [new tag]         cited-f8e3bd3                            -> cited-f8e3bd3
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0907518Z  * [new tag]         cited-m08b-pr2-r1                        -> cited-m08b-pr2-r1
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0907997Z  * [new tag]         cited-m08b-pr2-r2                        -> cited-m08b-pr2-r2
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0908463Z  * [new tag]         cited-m09-pr1                            -> cited-m09-pr1
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0908935Z  * [new tag]         cited-m09-pr2-r1                         -> cited-m09-pr2-r1
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0909347Z  * [new tag]         cited-m09-pr2-r2                         -> cited-m09-pr2-r2
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0909721Z  * [new tag]         cited-m09b-pr2                           -> cited-m09b-pr2
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0910220Z  * [new tag]         cited-m10-close                          -> cited-m10-close
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0910661Z  * [new tag]         cited-m10-pr1                            -> cited-m10-pr1
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0911077Z  * [new tag]         cited-m10-pr2                            -> cited-m10-pr2
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0911425Z  * [new tag]         cited-m10-pr3                            -> cited-m10-pr3
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0911708Z  * [new tag]         cited-m11-pr1                            -> cited-m11-pr1
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0911991Z  * [new tag]         cited-m11-pr2                            -> cited-m11-pr2
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0912281Z  * [new tag]         drafts-adr-042                           -> drafts-adr-042
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0912592Z  * [new tag]         drafts-spec-05                           -> drafts-spec-05
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0912883Z  * [new tag]         evidence-m01                             -> evidence-m01
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0913157Z  * [new tag]         m00a                                     -> m00a
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0913417Z  * [new tag]         m00b                                     -> m00b
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0913674Z  * [new tag]         m01                                      -> m01
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0913941Z  * [new tag]         m02                                      -> m02
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0914187Z  * [new tag]         m03                                      -> m03
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0914566Z  * [new tag]         m04                                      -> m04
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0914831Z  * [new tag]         m05                                      -> m05
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0915081Z  * [new tag]         m06                                      -> m06
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0915327Z  * [new tag]         m06b                                     -> m06b
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0915576Z  * [new tag]         m06c                                     -> m06c
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0915847Z  * [new tag]         m06d                                     -> m06d
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0916229Z  * [new tag]         m07                                      -> m07
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0916477Z  * [new tag]         m08                                      -> m08
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0916722Z  * [new tag]         m08b                                     -> m08b
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0916966Z  * [new tag]         m09                                      -> m09
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0917207Z  * [new tag]         m09b                                     -> m09b
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0917453Z  * [new tag]         m09c                                     -> m09c
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0917695Z  * [new tag]         m10                                      -> m10
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0917972Z  * [new ref]         b83f18dbd28b7f3862947095d39ff8e00080691f -> pull/159/merge
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0919148Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0919454Z ##[group]Determining the checkout info
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0919727Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0919907Z [command]/usr/bin/git sparse-checkout disable
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0937117Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0962240Z ##[group]Checking out the ref
+gate	UNKNOWN STEP	2026-09-13T19:44:49.0966177Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/159/merge
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4796284Z Note: switching to 'refs/remotes/pull/159/merge'.
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4796526Z 
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4796652Z You are in 'detached HEAD' state. You can look around, make experimental
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4796928Z changes and commit them, and you can discard any commits you make in this
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4797195Z state without impacting any branches by switching back to a branch.
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4797354Z 
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4797465Z If you want to create a new branch to retain commits you create, you may
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4797722Z do so (now or later) by using -c with the switch command. Example:
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4797863Z 
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4797935Z   git switch -c <new-branch-name>
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4799009Z 
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4799104Z Or undo this operation with:
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4799258Z 
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4799358Z   git switch -
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4799443Z 
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4799596Z Turn off this advice by setting config variable advice.detachedHead to false
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4799768Z 
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4799966Z HEAD is now at b83f18d Merge aba7b0c661fe367cb82d8c16ccdb1a8ef10c17fd into cc35473a7f55d3a46ccf4aba2d95006965f53b36
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4820932Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4862063Z [command]/usr/bin/git log -1 --format=%H
+gate	UNKNOWN STEP	2026-09-13T19:44:49.4884707Z b83f18dbd28b7f3862947095d39ff8e00080691f
+gate	UNKNOWN STEP	2026-09-13T19:44:49.5079803Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+gate	UNKNOWN STEP	2026-09-13T19:44:49.5081023Z ##[group]Run actions/setup-python@v5
+gate	UNKNOWN STEP	2026-09-13T19:44:49.5081191Z with:
+gate	UNKNOWN STEP	2026-09-13T19:44:49.5081317Z   python-version: 3.12
+gate	UNKNOWN STEP	2026-09-13T19:44:49.5081447Z   check-latest: false
+gate	UNKNOWN STEP	2026-09-13T19:44:49.5082751Z   token: ***
+gate	UNKNOWN STEP	2026-09-13T19:44:49.5082873Z   update-environment: true
+gate	UNKNOWN STEP	2026-09-13T19:44:49.5083015Z   allow-prereleases: false
+gate	UNKNOWN STEP	2026-09-13T19:44:49.5083169Z   freethreaded: false
+gate	UNKNOWN STEP	2026-09-13T19:44:49.5083300Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6012616Z ##[group]Installed versions
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6078836Z (node:2036) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6079365Z (Use `node --trace-deprecation ...` to show where the warning was created)
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6080027Z Successfully set up CPython (3.12.14)
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6080466Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6208978Z ##[group]Run pip install -e ".[dev]"
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6209344Z ^[[36;1mpip install -e ".[dev]"^[[0m
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6268197Z shell: /usr/bin/bash -e {0}
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6268378Z env:
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6268549Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6268830Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6269073Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6269286Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6269502Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6269723Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	UNKNOWN STEP	2026-09-13T19:44:49.6269909Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:50.3544700Z Obtaining file:///home/runner/work/beaconpave/beaconpave
+gate	UNKNOWN STEP	2026-09-13T19:44:50.3557939Z   Installing build dependencies: started
+gate	UNKNOWN STEP	2026-09-13T19:44:51.0032830Z   Installing build dependencies: finished with status 'done'
+gate	UNKNOWN STEP	2026-09-13T19:44:51.0038151Z   Checking if build backend supports build_editable: started
+gate	UNKNOWN STEP	2026-09-13T19:44:51.2266373Z   Checking if build backend supports build_editable: finished with status 'done'
+gate	UNKNOWN STEP	2026-09-13T19:44:51.2273277Z   Getting requirements to build editable: started
+gate	UNKNOWN STEP	2026-09-13T19:44:51.4633612Z   Getting requirements to build editable: finished with status 'done'
+gate	UNKNOWN STEP	2026-09-13T19:44:51.4645036Z   Preparing editable metadata (pyproject.toml): started
+gate	UNKNOWN STEP	2026-09-13T19:44:51.6055427Z   Preparing editable metadata (pyproject.toml): finished with status 'done'
+gate	UNKNOWN STEP	2026-09-13T19:44:51.7010972Z Collecting pyyaml (from beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:51.7572447Z   Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:51.7818976Z Collecting jsonschema (from beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:51.7921692Z   Downloading jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:51.8240115Z Collecting pytest (from beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:51.8343899Z   Downloading pytest-9.1.1-py3-none-any.whl.metadata (7.6 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.1116873Z Collecting ruff (from beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.1225218Z   Downloading ruff-0.16.7-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (20 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.1512880Z Collecting attrs>=22.2.0 (from jsonschema->beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.1616346Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.1794612Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema->beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.1898999Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.2115727Z Collecting referencing>=0.28.4 (from jsonschema->beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.2217763Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.3978316Z Collecting rpds-py>=0.25.0 (from jsonschema->beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.4083121Z   Downloading rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.4304944Z Collecting typing-extensions>=4.4.0 (from referencing>=0.28.4->jsonschema->beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.4417482Z   Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.4590803Z Collecting iniconfig>=1.0.1 (from pytest->beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.4697326Z   Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.4900924Z Collecting packaging>=22 (from pytest->beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.5004000Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.5177785Z Collecting pluggy<2,>=1.5 (from pytest->beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.5278126Z   Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.5573050Z Collecting pygments>=2.7.2 (from pytest->beaconpave==0.1.0)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.5678650Z   Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.5825418Z Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.6055605Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.6189103Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.6311313Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.6433715Z Downloading rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (366 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.6739369Z Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.6862145Z Downloading pytest-9.1.1-py3-none-any.whl (386 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.7082007Z Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.7210482Z Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.7335999Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.7466837Z Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.7697757Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 49.3 MB/s  0:00:00
+gate	UNKNOWN STEP	2026-09-13T19:44:52.7800699Z Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (807 kB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.7853745Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 807.9/807.9 kB 150.3 MB/s  0:00:00
+gate	UNKNOWN STEP	2026-09-13T19:44:52.7958613Z Downloading ruff-0.16.7-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (10.4 MB)
+gate	UNKNOWN STEP	2026-09-13T19:44:52.8834756Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.4/10.4 MB 117.9 MB/s  0:00:00
+gate	UNKNOWN STEP	2026-09-13T19:44:52.9098869Z Building wheels for collected packages: beaconpave
+gate	UNKNOWN STEP	2026-09-13T19:44:52.9106229Z   Building editable for beaconpave (pyproject.toml): started
+gate	UNKNOWN STEP	2026-09-13T19:44:53.0661558Z   Building editable for beaconpave (pyproject.toml): finished with status 'done'
+gate	UNKNOWN STEP	2026-09-13T19:44:53.0665836Z   Created wheel for beaconpave: filename=beaconpave-0.1.0-0.editable-py3-none-any.whl size=4039 sha256=713a3bb4cc43855d027333a1c69023eb106a6c8e5dfd1a495f20271169d18eae
+gate	UNKNOWN STEP	2026-09-13T19:44:53.0666795Z   Stored in directory: /tmp/pip-ephem-wheel-cache-araaq9sn/wheels/d9/6e/2a/ad10e4d54ba33ac836463a26689e83741b62c5ec91fc3a106d
+gate	UNKNOWN STEP	2026-09-13T19:44:53.0678934Z Successfully built beaconpave
+gate	UNKNOWN STEP	2026-09-13T19:44:53.0873745Z Installing collected packages: typing-extensions, ruff, rpds-py, pyyaml, pygments, pluggy, packaging, iniconfig, attrs, referencing, pytest, jsonschema-specifications, jsonschema, beaconpave
+gate	UNKNOWN STEP	2026-09-13T19:44:54.2749951Z 
+gate	UNKNOWN STEP	2026-09-13T19:44:54.2762259Z Successfully installed attrs-26.1.0 beaconpave-0.1.0 iniconfig-2.3.0 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 packaging-26.3 pluggy-1.6.0 pygments-2.21.0 pytest-9.1.1 pyyaml-6.0.3 referencing-0.37.0 rpds-py-2026.6.3 ruff-0.16.7 typing-extensions-4.16.0
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3691110Z ##[group]Run python -m pave.cli check --out verdict-contract.json
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3691560Z ^[[36;1mpython -m pave.cli check --out verdict-contract.json^[[0m
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3724370Z shell: /usr/bin/bash -e {0}
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3724515Z env:
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3724672Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3724926Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3725160Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3725371Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3725579Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3725796Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3726001Z   PAVE_BASE: cc35473a7f55d3a46ccf4aba2d95006965f53b36
+gate	UNKNOWN STEP	2026-09-13T19:44:54.3726168Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:44:54.5626929Z All checks passed!
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7390564Z ==> tool-plane drift (G3): the committed Cedar and contracts vs the registry
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7391091Z tool plane current: 4 policies and 3 contract(s) from 3 registered tool(s)
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7391334Z ==> rules registry validation (G7)
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7391582Z rules registry valid: 1 rule(s), all with owner + control + review-by, no orphaned control refs
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7391830Z ==> style (ruff)
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7391955Z ==> L0 unit + L1 contract (hermetic)
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7392139Z ........................................................................ [  1%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7392350Z ........................................................................ [  2%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7392552Z ........................................................................ [  4%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7392753Z ........................................................................ [  5%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7392955Z ........................................................................ [  7%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7393157Z .....................................................s.................. [  8%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7393356Z ........................................................................ [  9%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7393557Z ........................................................................ [ 11%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7393755Z ........................................................................ [ 12%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7393961Z ........................................................................ [ 14%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7394159Z ........................................................................ [ 15%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7394631Z ............F.........................F................................. [ 16%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7394838Z ........................................................................ [ 18%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7395046Z ........................................................................ [ 19%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7395267Z ........................................................................ [ 21%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7395500Z ........................................................................ [ 22%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7395734Z ........................................................................ [ 23%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7395979Z ........................................................................ [ 25%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7396704Z ........................................................................ [ 26%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7396940Z ........................................................................ [ 28%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7397159Z ........................................................................ [ 29%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7397402Z ........................................................................ [ 30%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7397625Z ........................................................................ [ 32%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7398055Z ........................................................................ [ 33%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7398276Z ........................................................................ [ 35%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7398484Z ........................................................................ [ 36%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7398700Z ........................................................................ [ 37%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7398910Z ........................................................................ [ 39%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7399117Z ........................................................................ [ 40%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7399320Z ........................................................................ [ 42%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7399540Z ........................................................................ [ 43%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7399741Z ........................................................................ [ 44%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7399946Z ........................................................................ [ 46%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7400150Z ........................................................................ [ 47%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7400351Z ........................................................................ [ 49%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7400556Z ........................................................................ [ 50%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7400767Z ........................................................................ [ 51%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7400970Z ........................................................................ [ 53%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7401188Z ........................................................................ [ 54%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7401391Z ........................................................................ [ 56%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7401588Z ........................................................................ [ 57%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7401790Z ..................................................................ssss.. [ 58%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7401993Z ........................................................................ [ 60%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7402192Z ........................................................................ [ 61%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7402388Z ........................................................................ [ 63%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7402586Z ........................................................................ [ 64%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7402788Z ........................................................................ [ 65%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7402992Z ........................................................................ [ 67%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7403188Z ........................................................................ [ 68%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7403385Z ........................................................................ [ 70%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7403582Z ........................................................................ [ 71%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7403785Z ........................................................................ [ 72%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7403992Z ..........................ssss.......................................... [ 74%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7404197Z ........................................................................ [ 75%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7404490Z ........................................................................ [ 77%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7404694Z ........................................................................ [ 78%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7405071Z ........................................................................ [ 79%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7405274Z ........................................................................ [ 81%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7405474Z ........................................................................ [ 82%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7405677Z ........................................................................ [ 84%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7405885Z ........................................................................ [ 85%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7406201Z ........................................................................ [ 86%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7406409Z ........................................................................ [ 88%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7406616Z ........................................................................ [ 89%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7406823Z ........................................................................ [ 91%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7407131Z ........................................................................ [ 92%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7423169Z ........................................................................ [ 93%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7423503Z ........................................................................ [ 95%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7423812Z ........................................................................ [ 96%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7424079Z ........................................................................ [ 98%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7424426Z ........................................................................ [ 99%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7424648Z ..............................                                           [100%]
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7424850Z =================================== FAILURES ===================================
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7425105Z _______ test_a_delta_after_an_edit_that_does_not_fix_the_gap_stays_no_go _______
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7425283Z 
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7425434Z tmp_path = PosixPath('/tmp/pytest-of-runner/pytest-0/test_a_delta_after_an_edit_tha0')
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7425625Z 
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7425751Z     def test_a_delta_after_an_edit_that_does_not_fix_the_gap_stays_no_go(tmp_path):
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7426068Z         """ADR-080 decision 2: the one defect the arc cannot catch. A delta drill that said GO on
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7426397Z         ANY change to the failing input passes all five falsifiers, because the fix is the only
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7426680Z         edit to the fixture. Here the file changes and the gap stays."""
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7426894Z         root, prior, first = _seeded(tmp_path)
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7427133Z         _captions(root, _vtt(GAPPED, texts={"s03": "reworded, and the gap is still there"}))
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7427359Z         _commit(root)
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7427530Z         _, edited = _write(root, tmp_path, "edited.json", delta=prior)
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7427804Z >       assert edited["inputs"] != first["inputs"], "the plant did not change the caption file"
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7428089Z E       AssertionError: the plant did not change the caption file
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7428547Z E       assert {'caption_sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'} != {'caption_sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7428906Z 
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7428975Z tests/test_drill.py:334: AssertionError
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7429198Z _____ test_the_readers_were_shown_emitting_before_the_claim_was_committed ______
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7429367Z 
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7429818Z     def test_the_readers_were_shown_emitting_before_the_claim_was_committed():
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7430159Z         text = READINGS.read_text(encoding="utf-8")
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7430455Z         assert f"$ {READ} " in text and f"$ {VERIFY} " in text
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7430855Z         assert "signature: OK" in text and "signature: MISMATCH" in text
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7431386Z         assert text.index("signature: OK") < text.index("signature: MISMATCH"), (
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7432066Z             "F3's liveness check must come first (SPEC/11): verify exits 0 on the well-formed "
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7432445Z             "artifact before any edited copy is read")
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7432734Z         for line in ("decision=NO-GO", "decision=GO", "fix_window_s=", "owner.oncall=",
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7432971Z                      "prior_sha256=", "finding=", "sha256sum"):
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7433184Z             assert line in text, f"readers.txt shows no {line!r} emitted"
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7433457Z     
+gate	UNKNOWN STEP	2026-09-13T19:45:45.7433620Z         readings = _last_change(READINGS.relative_to(ROOT).as_posix())
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1575002Z error: check failed:
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1575304Z   pytest failed (exit 1)
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1575543Z         for path in READ_CODE:
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1575826Z >           assert _descends(_last_change(path), readings), (
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1576301Z                 f"{path} changed after readers.txt was taken: the transcript does not show the "
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1576678Z                 "readers as committed")
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1577173Z E           AssertionError: pave/drill.py changed after readers.txt was taken: the transcript does not show the readers as committed
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1577670Z E           assert False
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1578094Z E            +  where False = _descends('aba7b0c661fe367cb82d8c16ccdb1a8ef10c17fd', 'a0818692051fb27df51304377620d2227d97e7d6')
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1578722Z E            +    where 'aba7b0c661fe367cb82d8c16ccdb1a8ef10c17fd' = _last_change('pave/drill.py')
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1579040Z 
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1579150Z tests/test_drill_pins.py:185: AssertionError
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1579457Z =========================== short test summary info ============================
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1580200Z FAILED tests/test_drill.py::test_a_delta_after_an_edit_that_does_not_fix_the_gap_stays_no_go - AssertionError: the plant did not change the caption file
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1581174Z assert {'caption_sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'} != {'caption_sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1582348Z FAILED tests/test_drill_pins.py::test_the_readers_were_shown_emitting_before_the_claim_was_committed - AssertionError: pave/drill.py changed after readers.txt was taken: the transcript does not show the readers as committed
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1583101Z assert False
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1583484Z  +  where False = _descends('aba7b0c661fe367cb82d8c16ccdb1a8ef10c17fd', 'a0818692051fb27df51304377620d2227d97e7d6')
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1584054Z  +    where 'aba7b0c661fe367cb82d8c16ccdb1a8ef10c17fd' = _last_change('pave/drill.py')
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1584559Z 2 failed, 5131 passed, 9 skipped in 50.80s
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1584841Z ==> guardrail-refusal band (SPEC/01, reporting only)
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1585255Z SPEC/01 guardrail-refusal band: 0-2 expected, >2 is a miscalibrated guardrail (reporting only)
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1585661Z   m00b              0 refused  ungoverned 
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1585926Z   m01               3 refused  BREACH     {'guardrail': 3}
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1586230Z   m02-control-1     5 refused  BREACH     {'guardrail': 5}
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1586538Z   m02-control-2     6 refused  BREACH     {'guardrail': 6}
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1586842Z   m02-control-3     8 refused  BREACH     {'guardrail': 8}
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1587149Z   m02-tools-1       2 refused  within     {'guardrail': 2}
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1587452Z   m02-tools-2       3 refused  BREACH     {'guardrail': 3}
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1587742Z   m02-tools-3       2 refused  within     {'guardrail': 2}
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1588011Z   5 of 7 governed runs breach the band
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1588238Z ==> eval dry-run (no model calls)
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1588471Z loaded 25 golden cases, catalog has 5 titles
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1589040Z dryrun: OK — fixtures resolve, cases load, no model was called
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1589822Z wrote verdict: verdict-contract.json
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1740789Z ##[error]Process completed with exit code 1.
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1798516Z ##[group]Run python -m pave.cli gate history --base "cc35473a7f55d3a46ccf4aba2d95006965f53b36" --out verdict-history.json
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1799005Z ^[[36;1mpython -m pave.cli gate history --base "cc35473a7f55d3a46ccf4aba2d95006965f53b36" --out verdict-history.json^[[0m
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1830401Z shell: /usr/bin/bash -e {0}
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1830542Z env:
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1830699Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1830942Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1831181Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1831396Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1831608Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1831844Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	UNKNOWN STEP	2026-09-13T19:45:46.1832030Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9120267Z [pave history] PASS -- every entry pinned, derivable, anchored; nothing on the base touched.
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9366753Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9367458Z ##[group]Run actions/setup-node@v4
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9367609Z with:
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9367724Z   node-version: 20
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9367841Z   always-auth: false
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9367963Z   check-latest: false
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9369234Z   token: ***
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9369346Z env:
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9369495Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9369747Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9369980Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9370214Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9370424Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9370636Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	UNKNOWN STEP	2026-09-13T19:45:46.9370816Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:45:47.0370206Z Attempting to download 20...
+gate	UNKNOWN STEP	2026-09-13T19:45:47.0470909Z (node:5689) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+gate	UNKNOWN STEP	2026-09-13T19:45:47.0471561Z (Use `node --trace-deprecation ...` to show where the warning was created)
+gate	UNKNOWN STEP	2026-09-13T19:45:47.9834935Z Acquiring 20.20.2 - x64 from https://github.com/actions/node-versions/releases/download/20.20.2-23521894959/node-20.20.2-linux-x64.tar.gz
+gate	UNKNOWN STEP	2026-09-13T19:45:48.4858784Z Extracting ...
+gate	UNKNOWN STEP	2026-09-13T19:45:48.4957657Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/a01d6f5f-355f-4622-8101-95d28561eeac -f /home/runner/work/_temp/f637e6a7-17bd-4dce-a042-2c189144e2d0
+gate	UNKNOWN STEP	2026-09-13T19:45:49.2693300Z Adding to the cache ...
+gate	UNKNOWN STEP	2026-09-13T19:45:50.8429558Z ##[group]Environment details
+gate	UNKNOWN STEP	2026-09-13T19:45:50.9994092Z node: v20.20.2
+gate	UNKNOWN STEP	2026-09-13T19:45:50.9994809Z npm: 10.8.2
+gate	UNKNOWN STEP	2026-09-13T19:45:50.9994982Z yarn: 1.22.22
+gate	UNKNOWN STEP	2026-09-13T19:45:50.9995457Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0139635Z ##[group]Run cd platform/infra && npm ci && npx cdk synth --quiet && cd ../..
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0139945Z ^[[36;1mcd platform/infra && npm ci && npx cdk synth --quiet && cd ../..^[[0m
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0140219Z ^[[36;1mpython -m pave.cli infra snapshot --check --out verdict-infra.json^[[0m
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0173078Z shell: /usr/bin/bash -e {0}
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0173222Z env:
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0173375Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0173646Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0174043Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0174264Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0174656Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0174872Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	UNKNOWN STEP	2026-09-13T19:45:51.0175054Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:45:54.4069420Z 
+gate	UNKNOWN STEP	2026-09-13T19:45:54.4075926Z added 26 packages, and audited 47 packages in 3s
+gate	UNKNOWN STEP	2026-09-13T19:45:54.4076137Z 
+gate	UNKNOWN STEP	2026-09-13T19:45:54.4076274Z 1 package is looking for funding
+gate	UNKNOWN STEP	2026-09-13T19:45:54.4076448Z   run `npm fund` for details
+gate	UNKNOWN STEP	2026-09-13T19:45:54.4076566Z 
+gate	UNKNOWN STEP	2026-09-13T19:45:54.4076633Z found 0 vulnerabilities
+gate	UNKNOWN STEP	2026-09-13T19:45:58.6749550Z Bundling asset BeaconpaveGateway/CatalogSearchFn/Code/Stage...
+gate	UNKNOWN STEP	2026-09-13T19:45:58.6797815Z Bundling asset BeaconpaveGateway/EntitlementCheckFn/Code/Stage...
+gate	UNKNOWN STEP	2026-09-13T19:46:00.3122353Z Successfully synthesized to /home/runner/work/beaconpave/beaconpave/platform/infra/cdk.out
+gate	UNKNOWN STEP	2026-09-13T19:46:00.3122814Z Supply a stack id (BeaconpaveGateway, BeaconpaveAuditTrail) to display its template.
+gate	UNKNOWN STEP	2026-09-13T19:46:00.3128714Z 76 feature flags are not configured. Run 'cdk flags --unstable=flags' to learn more.
+gate	UNKNOWN STEP	2026-09-13T19:46:00.6996161Z wrote verdict: verdict-infra.json
+gate	UNKNOWN STEP	2026-09-13T19:46:00.6996563Z synth snapshot current: 2 template(s)
+gate	UNKNOWN STEP	2026-09-13T19:46:00.7172997Z ##[group]Run python -m pave.cli evals run services/highlights-agent --out verdict-evals.json
+gate	UNKNOWN STEP	2026-09-13T19:46:00.7173384Z ^[[36;1mpython -m pave.cli evals run services/highlights-agent --out verdict-evals.json^[[0m
+gate	UNKNOWN STEP	2026-09-13T19:46:00.7204122Z shell: /usr/bin/bash -e {0}
+gate	UNKNOWN STEP	2026-09-13T19:46:00.7204257Z env:
+gate	UNKNOWN STEP	2026-09-13T19:46:00.7204534Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:00.7204776Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	UNKNOWN STEP	2026-09-13T19:46:00.7205010Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:00.7205235Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:00.7205449Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:00.7205662Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	UNKNOWN STEP	2026-09-13T19:46:00.7205841Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9248414Z [pave evals] highlights-agent: PASS - control_passed 17, tools_passed 15
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9450918Z ##[group]Run python -m pave.cli adversarial run services/highlights-agent --out verdict-adv.json
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9451315Z ^[[36;1mpython -m pave.cli adversarial run services/highlights-agent --out verdict-adv.json^[[0m
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9481530Z shell: /usr/bin/bash -e {0}
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9481669Z env:
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9481818Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9482056Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9482287Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9482510Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9482714Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9482923Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	UNKNOWN STEP	2026-09-13T19:46:00.9483100Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0639699Z [pave adversarial] highlights-agent: PASS - m00b_passed 0, m00b_scored 10, m01_passed 6, m01_scored 10, m04_passed 7, m04_scored 10; 33 of 34 G4 semantics case(s) scored
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0802744Z ##[group]Run python -m pave.cli gate comment --verdicts verdict-contract.json verdict-history.json verdict-infra.json verdict-evals.json verdict-adv.json
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0803340Z ^[[36;1mpython -m pave.cli gate comment --verdicts verdict-contract.json verdict-history.json verdict-infra.json verdict-evals.json verdict-adv.json^[[0m
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0834559Z shell: /usr/bin/bash -e {0}
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0834730Z env:
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0835057Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0835303Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0835543Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0835777Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0836039Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0836324Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0838729Z   GITHUB_TOKEN: ***
+gate	UNKNOWN STEP	2026-09-13T19:46:01.0838874Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1347520Z <!-- beaconpave-gate -->
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1347870Z ### quality gate: BLOCKED
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1348021Z 
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1348148Z | | suite | layer | scores | |
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1348382Z |---|---|---|---|---|
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1348962Z | ❌ FAIL | contract | L1 | — | suite reported FAIL |
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1349321Z | ✅ PASS | history | L1 | — |  |
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1349652Z | ✅ PASS | infra | L1 | — |  |
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1350048Z | ✅ PASS | evals | L2 | `control_passed` 17, `tools_passed` 15 |  |
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1350818Z | ✅ PASS | adversarial | L5 | `m00b_passed` 0, `m00b_scored` 10, `m01_passed` 6, `m01_scored` 10, `m04_passed` 7, `m04_scored` 10 |  |
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1351210Z 
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1351292Z #### what moved
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1351401Z 
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1351532Z **contract**
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1351724Z - pytest failed (exit 1)
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1351885Z 
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1351973Z #### what to do
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1355130Z - **contract** — reproduce locally with `python -m pave.cli check` (or `make check`) — hermetic, no cloud account, no network, about 30 seconds. The failing step's full output is in this run's workflow log; these notes carry the verdict, not the transcript. Re-run a single failure with `python -m pytest <file>::<test> -q`. A test named for a defect that no longer exercises it is worse than a missing one, so fix the code before the assertion. A contract failure is the code under test rather than the harness, so it pages the service team — do NOT reach for a comparator or a baseline.
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1356808Z 
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1357526Z **Blocked (a suite reported a regression); exit 1; owner: service team.** This check is required and cannot be merged past — a gate that can be merged past is not a gate.
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1358225Z [pave gate] updated comment 5655623400 on PR #159
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1547689Z ##[group]Run python -m pave.cli gate decide --verdicts verdict-contract.json verdict-history.json verdict-infra.json verdict-evals.json verdict-adv.json
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1548941Z ^[[36;1mpython -m pave.cli gate decide --verdicts verdict-contract.json verdict-history.json verdict-infra.json verdict-evals.json verdict-adv.json^[[0m
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1592072Z shell: /usr/bin/bash -e {0}
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1592312Z env:
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1592578Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1592980Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1593351Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1593682Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1594013Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1594571Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	UNKNOWN STEP	2026-09-13T19:46:02.1594902Z ##[endgroup]
+gate	UNKNOWN STEP	2026-09-13T19:46:02.2571795Z   [BLOCK] verdict-contract.json (contract L1): suite reported FAIL
+gate	UNKNOWN STEP	2026-09-13T19:46:02.2572444Z   [PASS] verdict-history.json (history L1): suite reported PASS
+gate	UNKNOWN STEP	2026-09-13T19:46:02.2572899Z   [PASS] verdict-infra.json (infra L1): suite reported PASS
+gate	UNKNOWN STEP	2026-09-13T19:46:02.2573319Z   [PASS] verdict-evals.json (evals L2): suite reported PASS
+gate	UNKNOWN STEP	2026-09-13T19:46:02.2573842Z   [PASS] verdict-adv.json (adversarial L5): suite reported PASS
+gate	UNKNOWN STEP	2026-09-13T19:46:02.2574153Z 
+gate	UNKNOWN STEP	2026-09-13T19:46:02.2575441Z gate: BLOCKED (quality regression) — 1 of 5 verdict(s) blocking; exit 1; owner: service team
+gate	UNKNOWN STEP	2026-09-13T19:46:02.2733672Z ##[error]Process completed with exit code 1.
+gate	UNKNOWN STEP	2026-09-13T19:46:02.2801131Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+gate	UNKNOWN STEP	2026-09-13T19:46:02.2801805Z Post job cleanup.
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3400291Z [command]/usr/bin/git version
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3431158Z git version 2.55.0
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3456902Z Temporarily overriding HOME='/home/runner/work/_temp/918652d6-2942-4a81-9f1f-84318612347a' before making global git config changes
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3458008Z Adding repository directory to the temporary git global config as a safe directory
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3460926Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/beaconpave/beaconpave
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3493438Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3521248Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3712277Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3732568Z http.https://github.com/.extraheader
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3740570Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3767190Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3958471Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+gate	UNKNOWN STEP	2026-09-13T19:46:02.3985469Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+gate	UNKNOWN STEP	2026-09-13T19:46:02.4289564Z Cleaning up orphan processes
+gate	UNKNOWN STEP	2026-09-13T19:46:02.4490111Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

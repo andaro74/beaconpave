@@ -398,3 +398,10 @@ No pinned value, falsifier or reader moves. This amendment edits none of these:
 - the scenario or the fixture.
 
 M10's debt row 28 fired because PR 2 edits `pave/twokey.py`, and PR 2 does not pay it.
+
+## Amendment 3 (2026-09-13, M11 PR 2b, before any arc reading)
+
+The 39 plant runs' CI logs are committed under `milestones/M11/pr2-audit-logs/`, one file per
+run id with an index, because GitHub run logs expire and the audit record cites them as its only
+durable evidence, and because V01–V11 joined the spare's checklist beside R03–R10, S01–S06,
+K01–K06 and F01–F08, which item 4 of amendment 2 had left unrun.

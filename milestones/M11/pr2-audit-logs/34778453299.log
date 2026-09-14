@@ -1,0 +1,786 @@
+gate	Set up job	﻿2026-09-13T19:41:20.6687058Z Current runner version: '2.337.0'
+gate	Set up job	2026-09-13T19:41:20.6711876Z ##[group]Runner Image Provisioner
+gate	Set up job	2026-09-13T19:41:20.6712893Z Hosted Compute Agent
+gate	Set up job	2026-09-13T19:41:20.6713524Z Version: 20260828.587
+gate	Set up job	2026-09-13T19:41:20.6714364Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+gate	Set up job	2026-09-13T19:41:20.6715272Z Build Date: 2026-08-28T16:44:25Z
+gate	Set up job	2026-09-13T19:41:20.6716057Z Worker ID: {4aed430a-a083-4b52-94f7-1fb4ffc21daa}
+gate	Set up job	2026-09-13T19:41:20.6716829Z Azure Region: westus
+gate	Set up job	2026-09-13T19:41:20.6717457Z ##[endgroup]
+gate	Set up job	2026-09-13T19:41:20.6719311Z ##[group]Operating System
+gate	Set up job	2026-09-13T19:41:20.6720144Z Ubuntu
+gate	Set up job	2026-09-13T19:41:20.6720681Z 24.04.5
+gate	Set up job	2026-09-13T19:41:20.6721241Z LTS
+gate	Set up job	2026-09-13T19:41:20.6721812Z ##[endgroup]
+gate	Set up job	2026-09-13T19:41:20.6722384Z ##[group]Runner Image
+gate	Set up job	2026-09-13T19:41:20.6723086Z Image: ubuntu-24.04
+gate	Set up job	2026-09-13T19:41:20.6723699Z Version: 20260907.300.1
+gate	Set up job	2026-09-13T19:41:20.6724970Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+gate	Set up job	2026-09-13T19:41:20.6726883Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+gate	Set up job	2026-09-13T19:41:20.6727984Z ##[endgroup]
+gate	Set up job	2026-09-13T19:41:20.6729239Z ##[group]GITHUB_TOKEN Permissions
+gate	Set up job	2026-09-13T19:41:20.6731394Z Contents: read
+gate	Set up job	2026-09-13T19:41:20.6732043Z Metadata: read
+gate	Set up job	2026-09-13T19:41:20.6732614Z PullRequests: write
+gate	Set up job	2026-09-13T19:41:20.6733353Z ##[endgroup]
+gate	Set up job	2026-09-13T19:41:20.6735823Z Secret source: Actions
+gate	Set up job	2026-09-13T19:41:20.6736888Z Cache mode: write
+gate	Set up job	2026-09-13T19:41:20.6737584Z Prepare workflow directory
+gate	Set up job	2026-09-13T19:41:20.7083615Z Prepare all required actions
+gate	Set up job	2026-09-13T19:41:20.7157053Z Getting action download info
+gate	Set up job	2026-09-13T19:41:21.0605985Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+gate	Set up job	2026-09-13T19:41:21.1828572Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+gate	Set up job	2026-09-13T19:41:21.2677584Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+gate	Set up job	2026-09-13T19:41:21.4508948Z Complete job name: gate
+gate	Run actions/checkout@v4	﻿2026-09-13T19:41:21.5303804Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5312749Z ##[group]Run actions/checkout@v4
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5313512Z with:
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5313951Z   fetch-depth: 0
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5314728Z   repository: andaro74/beaconpave
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5318572Z   token: ***
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5319020Z   ssh-strict: true
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5319466Z   ssh-user: git
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5319912Z   persist-credentials: true
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5320405Z   clean: true
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5320852Z   sparse-checkout-cone-mode: true
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5321394Z   fetch-tags: false
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5321841Z   show-progress: true
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5322317Z   lfs: false
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5322729Z   submodules: false
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5323204Z   set-safe-directory: true
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5323725Z   allow-unsafe-pr-checkout: false
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.5324724Z ##[endgroup]
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6294894Z Syncing repository: andaro74/beaconpave
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6296734Z ##[group]Getting Git version info
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6297512Z Working directory is '/home/runner/work/beaconpave/beaconpave'
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6298587Z [command]/usr/bin/git version
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6368788Z git version 2.55.0
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6397599Z ##[endgroup]
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6413819Z Temporarily overriding HOME='/home/runner/work/_temp/e96db20b-a29b-4d5d-a33a-e7306c37d055' before making global git config changes
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6417021Z Adding repository directory to the temporary git global config as a safe directory
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6419453Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/beaconpave/beaconpave
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6470791Z Deleting the contents of '/home/runner/work/beaconpave/beaconpave'
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6475268Z ##[group]Initializing the repository
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6480124Z [command]/usr/bin/git init /home/runner/work/beaconpave/beaconpave
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6592733Z hint: Using 'master' as the name for the initial branch. This default branch name
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6594399Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6595403Z hint: to use in all of your new repositories, which will suppress this warning,
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6596173Z hint: call:
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6596592Z hint:
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6597134Z hint: 	git config --global init.defaultBranch <name>
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6597780Z hint:
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6598400Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6599386Z hint: 'development'. The just-created branch can be renamed via this command:
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6600179Z hint:
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6600640Z hint: 	git branch -m <name>
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6601140Z hint:
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6601805Z hint: Disable this message with "git config set advice.defaultBranchName false"
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6607342Z Initialized empty Git repository in /home/runner/work/beaconpave/beaconpave/.git/
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6616227Z [command]/usr/bin/git remote add origin https://github.com/andaro74/beaconpave
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6660561Z ##[endgroup]
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6664839Z ##[group]Disabling automatic garbage collection
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6665577Z [command]/usr/bin/git config --local gc.auto 0
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6692839Z ##[endgroup]
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6693604Z ##[group]Setting up auth
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6699894Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.6730622Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.7055082Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.7086468Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.7310496Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.7346273Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.7586872Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.7621267Z ##[endgroup]
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.7622719Z ##[group]Fetching the repository
+gate	Run actions/checkout@v4	2026-09-13T19:41:21.7633107Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +5c1d20824b8e2c353b2d25bb67f2b90f2488d192:refs/remotes/pull/159/merge
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7948327Z From https://github.com/andaro74/beaconpave
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7951219Z  * [new branch]      citations-that-resolve                   -> origin/citations-that-resolve
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7953906Z  * [new branch]      diag-blackout-family                     -> origin/diag-blackout-family
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7957203Z  * [new branch]      diag-upgrade-required-vs-blackout        -> origin/diag-upgrade-required-vs-blackout
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7959962Z  * [new branch]      exhibit-g1-blocks                        -> origin/exhibit-g1-blocks
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7963795Z  * [new branch]      exhibit-m10-152-audit-ci                 -> origin/exhibit-m10-152-audit-ci
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7966132Z  * [new branch]      exhibit-m10-pr3-audit-ci                 -> origin/exhibit-m10-pr3-audit-ci
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7968244Z  * [new branch]      m00a-foundation                          -> origin/m00a-foundation
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7970585Z  * [new branch]      m00b-ungoverned-baseline                 -> origin/m00b-ungoverned-baseline
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7972596Z  * [new branch]      m01-gateway                              -> origin/m01-gateway
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7974923Z  * [new branch]      m02-exhibit-unregistered-tool            -> origin/m02-exhibit-unregistered-tool
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7977224Z  * [new branch]      m02-tool-plane                           -> origin/m02-tool-plane
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7979074Z  * [new branch]      m03-evals                                -> origin/m03-evals
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7981355Z  * [new branch]      m04-exhibit-polite-answer                -> origin/m04-exhibit-polite-answer
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7983708Z  * [new branch]      m04-gate                                 -> origin/m04-gate
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7986304Z  * [new branch]      m05-pr1-instruments                      -> origin/m05-pr1-instruments
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7988783Z  * [new branch]      m05-pr3-phantom-caller                   -> origin/m05-pr3-phantom-caller
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7991182Z  * [new branch]      m05-pr4a-floors                          -> origin/m05-pr4a-floors
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7993331Z  * [new branch]      m05-pr4b-verifier                        -> origin/m05-pr4b-verifier
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7995716Z  * [new branch]      m05-pr5-template                         -> origin/m05-pr5-template
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.7997970Z  * [new branch]      m05-pr6-close                            -> origin/m05-pr6-close
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8000136Z  * [new branch]      m05-spec-draft6                          -> origin/m05-spec-draft6
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8002348Z  * [new branch]      m06-act-redeferral                       -> origin/m06-act-redeferral
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8004789Z  * [new branch]      m06-close                                -> origin/m06-close
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8007209Z  * [new branch]      m06-pr1a-what-the-gate-reads             -> origin/m06-pr1a-what-the-gate-reads
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8010076Z  * [new branch]      m06-pr1b-what-discharges-a-rule          -> origin/m06-pr1b-what-discharges-a-rule
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8013517Z  * [new branch]      m06-pr2-a-definition-security-owns       -> origin/m06-pr2-a-definition-security-owns
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8016743Z  * [new branch]      m06-pr3-adversarial-contracts            -> origin/m06-pr3-adversarial-contracts
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8019331Z  * [new branch]      m06-register-a26-a27                     -> origin/m06-register-a26-a27
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8021700Z  * [new branch]      m06-register-mapping                     -> origin/m06-register-mapping
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8023963Z  * [new branch]      m06-spec-register                        -> origin/m06-spec-register
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8026613Z  * [new branch]      m06-two-decisions-not-built              -> origin/m06-two-decisions-not-built
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8028825Z  * [new branch]      m07-pr6-close                            -> origin/m07-pr6-close
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8030880Z  * [new branch]      m08-budget                               -> origin/m08-budget
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8033092Z  * [new branch]      m08-pr1b-cold-read                       -> origin/m08-pr1b-cold-read
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8035316Z  * [new branch]      m08-pr2-register                         -> origin/m08-pr2-register
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8037223Z  * [new branch]      m08-pr3-ceiling                          -> origin/m08-pr3-ceiling
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8039202Z  * [new branch]      m08-pr4-rescore                          -> origin/m08-pr4-rescore
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8041123Z  * [new branch]      m08-pr5-close                            -> origin/m08-pr5-close
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8042951Z  * [new branch]      m08b-fresh-run                           -> origin/m08b-fresh-run
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8045152Z  * [new branch]      m08b-pr1b-amendment-1                    -> origin/m08b-pr1b-amendment-1
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8047229Z  * [new branch]      m08b-pr2-instrument                      -> origin/m08b-pr2-instrument
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8049436Z  * [new branch]      m08b-pr3-run                             -> origin/m08b-pr3-run
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8051560Z  * [new branch]      m08b-pr4-hermetic                        -> origin/m08b-pr4-hermetic
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8053578Z  * [new branch]      m08b-pr6-close                           -> origin/m08b-pr6-close
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8055731Z  * [new branch]      m09-pr2-followups                        -> origin/m09-pr2-followups
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8057718Z  * [new branch]      m09-pr2-instrument                       -> origin/m09-pr2-instrument
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8059652Z  * [new branch]      m09-pr5-close                            -> origin/m09-pr5-close
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8061424Z  * [new branch]      m09-rules                                -> origin/m09-rules
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8063578Z  * [new branch]      m09b-pr1-documents                       -> origin/m09b-pr1-documents
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8065813Z  * [new branch]      m09b-pr1c-withdrawal                     -> origin/m09b-pr1c-withdrawal
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8067962Z  * [new branch]      m09b-pr1d-replacement                    -> origin/m09b-pr1d-replacement
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8070341Z  * [new branch]      m09b-pr3-one-candidate-per-topic         -> origin/m09b-pr3-one-candidate-per-topic
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8072528Z  * [new branch]      m09b-pr5-close                           -> origin/m09b-pr5-close
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8074881Z  * [new branch]      m09c-pr1-spec                            -> origin/m09c-pr1-spec
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8076920Z  * [new branch]      m09c-pr2-close                           -> origin/m09c-pr2-close
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8079099Z  * [new branch]      m10-pr1-verdict-schema-and-spec          -> origin/m10-pr1-verdict-schema-and-spec
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8081518Z  * [new branch]      m10-pr2-spec-and-static-player           -> origin/m10-pr2-spec-and-static-player
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8084427Z  * [new branch]      m10-pr3-audit-and-cold-review            -> origin/m10-pr3-audit-and-cold-review
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8086783Z  * [new branch]      m10-pr4-close                            -> origin/m10-pr4-close
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8089266Z  * [new branch]      m11-pr2-drill-instrument                 -> origin/m11-pr2-drill-instrument
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8091473Z  * [new branch]      main                                     -> origin/main
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8093443Z  * [new branch]      throwaway-gate                           -> origin/throwaway-gate
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8100527Z  * [new branch]      throwaway-twokey                         -> origin/throwaway-twokey
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8102525Z  * [new tag]         cited-09c-close                          -> cited-09c-close
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8104539Z  * [new tag]         cited-09c-pr1                            -> cited-09c-pr1
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8106251Z  * [new tag]         cited-1492358                            -> cited-1492358
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8107951Z  * [new tag]         cited-a0a63d1                            -> cited-a0a63d1
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8109733Z  * [new tag]         cited-a5a8077                            -> cited-a5a8077
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8111448Z  * [new tag]         cited-e6589ae                            -> cited-e6589ae
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8113165Z  * [new tag]         cited-f8e3bd3                            -> cited-f8e3bd3
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8115272Z  * [new tag]         cited-m08b-pr2-r1                        -> cited-m08b-pr2-r1
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8117192Z  * [new tag]         cited-m08b-pr2-r2                        -> cited-m08b-pr2-r2
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8119067Z  * [new tag]         cited-m09-pr1                            -> cited-m09-pr1
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8120893Z  * [new tag]         cited-m09-pr2-r1                         -> cited-m09-pr2-r1
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8122655Z  * [new tag]         cited-m09-pr2-r2                         -> cited-m09-pr2-r2
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8124637Z  * [new tag]         cited-m09b-pr2                           -> cited-m09b-pr2
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8126694Z  * [new tag]         cited-m10-close                          -> cited-m10-close
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8128512Z  * [new tag]         cited-m10-pr1                            -> cited-m10-pr1
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8130301Z  * [new tag]         cited-m10-pr2                            -> cited-m10-pr2
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8132020Z  * [new tag]         cited-m10-pr3                            -> cited-m10-pr3
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8133706Z  * [new tag]         cited-m11-pr1                            -> cited-m11-pr1
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8135649Z  * [new tag]         cited-m11-pr2                            -> cited-m11-pr2
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8137348Z  * [new tag]         drafts-adr-042                           -> drafts-adr-042
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8139118Z  * [new tag]         drafts-spec-05                           -> drafts-spec-05
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8140883Z  * [new tag]         evidence-m01                             -> evidence-m01
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8142498Z  * [new tag]         m00a                                     -> m00a
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8143959Z  * [new tag]         m00b                                     -> m00b
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8145617Z  * [new tag]         m01                                      -> m01
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8147124Z  * [new tag]         m02                                      -> m02
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8148657Z  * [new tag]         m03                                      -> m03
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8150193Z  * [new tag]         m04                                      -> m04
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8151748Z  * [new tag]         m05                                      -> m05
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8153271Z  * [new tag]         m06                                      -> m06
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8154966Z  * [new tag]         m06b                                     -> m06b
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8156410Z  * [new tag]         m06c                                     -> m06c
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8157910Z  * [new tag]         m06d                                     -> m06d
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8159401Z  * [new tag]         m07                                      -> m07
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8161110Z  * [new tag]         m08                                      -> m08
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8162603Z  * [new tag]         m08b                                     -> m08b
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8164340Z  * [new tag]         m09                                      -> m09
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8165855Z  * [new tag]         m09b                                     -> m09b
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8167414Z  * [new tag]         m09c                                     -> m09c
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8168956Z  * [new tag]         m10                                      -> m10
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8170633Z  * [new ref]         5c1d20824b8e2c353b2d25bb67f2b90f2488d192 -> pull/159/merge
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8173812Z ##[endgroup]
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8175372Z ##[group]Determining the checkout info
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8176944Z ##[endgroup]
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8177850Z [command]/usr/bin/git sparse-checkout disable
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8180499Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8183632Z ##[group]Checking out the ref
+gate	Run actions/checkout@v4	2026-09-13T19:41:23.8185263Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/159/merge
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2935416Z Note: switching to 'refs/remotes/pull/159/merge'.
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2937221Z 
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2937714Z You are in 'detached HEAD' state. You can look around, make experimental
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2938836Z changes and commit them, and you can discard any commits you make in this
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2940062Z state without impacting any branches by switching back to a branch.
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2940788Z 
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2941247Z If you want to create a new branch to retain commits you create, you may
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2942400Z do so (now or later) by using -c with the switch command. Example:
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2942990Z 
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2943255Z   git switch -c <new-branch-name>
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2944567Z 
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2944789Z Or undo this operation with:
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2945187Z 
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2945380Z   git switch -
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2945633Z 
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2946027Z Turn off this advice by setting config variable advice.detachedHead to false
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2946657Z 
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2947201Z HEAD is now at 5c1d208 Merge 990e79ba560accea3f10d093593e1acc128dbf4a into cc35473a7f55d3a46ccf4aba2d95006965f53b36
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.2971959Z ##[endgroup]
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.3016035Z [command]/usr/bin/git log -1 --format=%H
+gate	Run actions/checkout@v4	2026-09-13T19:41:24.3038817Z 5c1d20824b8e2c353b2d25bb67f2b90f2488d192
+gate	Run actions/setup-python@v5	﻿2026-09-13T19:41:24.3308448Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.3310490Z ##[group]Run actions/setup-python@v5
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.3310874Z with:
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.3311156Z   python-version: 3.12
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.3311475Z   check-latest: false
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.3314576Z   token: ***
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.3314892Z   update-environment: true
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.3315236Z   allow-prereleases: false
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.3315593Z   freethreaded: false
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.3315901Z ##[endgroup]
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.4666306Z ##[group]Installed versions
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.4756827Z (node:2272) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.4758343Z (Use `node --trace-deprecation ...` to show where the warning was created)
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.4759255Z Successfully set up CPython (3.12.14)
+gate	Run actions/setup-python@v5	2026-09-13T19:41:24.4760313Z ##[endgroup]
+gate	Install	﻿2026-09-13T19:41:24.4915706Z ##[group]Run pip install -e ".[dev]"
+gate	Install	2026-09-13T19:41:24.4916225Z ^[[36;1mpip install -e ".[dev]"^[[0m
+gate	Install	2026-09-13T19:41:24.4965652Z shell: /usr/bin/bash -e {0}
+gate	Install	2026-09-13T19:41:24.4966050Z env:
+gate	Install	2026-09-13T19:41:24.4966424Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Install	2026-09-13T19:41:24.4967034Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	Install	2026-09-13T19:41:24.4967638Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Install	2026-09-13T19:41:24.4968196Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Install	2026-09-13T19:41:24.4968740Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Install	2026-09-13T19:41:24.4969279Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	Install	2026-09-13T19:41:24.4969737Z ##[endgroup]
+gate	Install	2026-09-13T19:41:25.2682778Z Obtaining file:///home/runner/work/beaconpave/beaconpave
+gate	Install	2026-09-13T19:41:25.2704689Z   Installing build dependencies: started
+gate	Install	2026-09-13T19:41:26.1846927Z   Installing build dependencies: finished with status 'done'
+gate	Install	2026-09-13T19:41:26.1853500Z   Checking if build backend supports build_editable: started
+gate	Install	2026-09-13T19:41:26.4965679Z   Checking if build backend supports build_editable: finished with status 'done'
+gate	Install	2026-09-13T19:41:26.4973851Z   Getting requirements to build editable: started
+gate	Install	2026-09-13T19:41:26.8450024Z   Getting requirements to build editable: finished with status 'done'
+gate	Install	2026-09-13T19:41:26.8458900Z   Preparing editable metadata (pyproject.toml): started
+gate	Install	2026-09-13T19:41:27.0453449Z   Preparing editable metadata (pyproject.toml): finished with status 'done'
+gate	Install	2026-09-13T19:41:27.1733780Z Collecting pyyaml (from beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:27.2719149Z   Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+gate	Install	2026-09-13T19:41:27.3053664Z Collecting jsonschema (from beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:27.3276219Z   Downloading jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+gate	Install	2026-09-13T19:41:27.3746397Z Collecting pytest (from beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:27.3954154Z   Downloading pytest-9.1.1-py3-none-any.whl.metadata (7.6 kB)
+gate	Install	2026-09-13T19:41:27.8227234Z Collecting ruff (from beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:27.8443045Z   Downloading ruff-0.16.7-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (20 kB)
+gate	Install	2026-09-13T19:41:27.8740639Z Collecting attrs>=22.2.0 (from jsonschema->beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:27.8949760Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+gate	Install	2026-09-13T19:41:27.9172854Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema->beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:27.9385363Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+gate	Install	2026-09-13T19:41:27.9674345Z Collecting referencing>=0.28.4 (from jsonschema->beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:27.9881098Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+gate	Install	2026-09-13T19:41:28.2661481Z Collecting rpds-py>=0.25.0 (from jsonschema->beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:28.2869849Z   Downloading rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+gate	Install	2026-09-13T19:41:28.3165426Z Collecting typing-extensions>=4.4.0 (from referencing>=0.28.4->jsonschema->beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:28.3376731Z   Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+gate	Install	2026-09-13T19:41:28.3593584Z Collecting iniconfig>=1.0.1 (from pytest->beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:28.3796043Z   Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+gate	Install	2026-09-13T19:41:28.4041225Z Collecting packaging>=22 (from pytest->beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:28.4250764Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+gate	Install	2026-09-13T19:41:28.4462831Z Collecting pluggy<2,>=1.5 (from pytest->beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:28.4671229Z   Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+gate	Install	2026-09-13T19:41:28.4950788Z Collecting pygments>=2.7.2 (from pytest->beaconpave==0.1.0)
+gate	Install	2026-09-13T19:41:28.5160879Z   Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+gate	Install	2026-09-13T19:41:28.5439578Z Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+gate	Install	2026-09-13T19:41:28.5925128Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+gate	Install	2026-09-13T19:41:28.6183577Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+gate	Install	2026-09-13T19:41:28.6413982Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+gate	Install	2026-09-13T19:41:28.6643380Z Downloading rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (366 kB)
+gate	Install	2026-09-13T19:41:28.7266373Z Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+gate	Install	2026-09-13T19:41:28.7492624Z Downloading pytest-9.1.1-py3-none-any.whl (386 kB)
+gate	Install	2026-09-13T19:41:28.7923797Z Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+gate	Install	2026-09-13T19:41:28.8149957Z Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+gate	Install	2026-09-13T19:41:28.8374781Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+gate	Install	2026-09-13T19:41:28.8614461Z Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
+gate	Install	2026-09-13T19:41:28.9052047Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 25.7 MB/s  0:00:00
+gate	Install	2026-09-13T19:41:28.9261967Z Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (807 kB)
+gate	Install	2026-09-13T19:41:28.9352180Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 807.9/807.9 kB 84.5 MB/s  0:00:00
+gate	Install	2026-09-13T19:41:28.9561819Z Downloading ruff-0.16.7-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (10.4 MB)
+gate	Install	2026-09-13T19:41:29.0459218Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.4/10.4 MB 116.3 MB/s  0:00:00
+gate	Install	2026-09-13T19:41:29.0870240Z Building wheels for collected packages: beaconpave
+gate	Install	2026-09-13T19:41:29.0878608Z   Building editable for beaconpave (pyproject.toml): started
+gate	Install	2026-09-13T19:41:29.3229805Z   Building editable for beaconpave (pyproject.toml): finished with status 'done'
+gate	Install	2026-09-13T19:41:29.3236512Z   Created wheel for beaconpave: filename=beaconpave-0.1.0-0.editable-py3-none-any.whl size=4039 sha256=46fb629c51884372b421639baf194e6f80019a87607576c85644228cdeb6e202
+gate	Install	2026-09-13T19:41:29.3239072Z   Stored in directory: /tmp/pip-ephem-wheel-cache-f_nxh86i/wheels/d9/6e/2a/ad10e4d54ba33ac836463a26689e83741b62c5ec91fc3a106d
+gate	Install	2026-09-13T19:41:29.3254391Z Successfully built beaconpave
+gate	Install	2026-09-13T19:41:29.3558936Z Installing collected packages: typing-extensions, ruff, rpds-py, pyyaml, pygments, pluggy, packaging, iniconfig, attrs, referencing, pytest, jsonschema-specifications, jsonschema, beaconpave
+gate	Install	2026-09-13T19:41:30.8412323Z 
+gate	Install	2026-09-13T19:41:30.8431863Z Successfully installed attrs-26.1.0 beaconpave-0.1.0 iniconfig-2.3.0 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 packaging-26.3 pluggy-1.6.0 pygments-2.21.0 pytest-9.1.1 pyyaml-6.0.3 referencing-0.37.0 rpds-py-2026.6.3 ruff-0.16.7 typing-extensions-4.16.0
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	﻿2026-09-13T19:41:30.9397440Z ##[group]Run python -m pave.cli check --out verdict-contract.json
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:30.9397998Z ^[[36;1mpython -m pave.cli check --out verdict-contract.json^[[0m
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:30.9435319Z shell: /usr/bin/bash -e {0}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:30.9435567Z env:
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:30.9435828Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:30.9436281Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:30.9436723Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:30.9437096Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:30.9437488Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:30.9437882Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:30.9438246Z   PAVE_BASE: cc35473a7f55d3a46ccf4aba2d95006965f53b36
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:30.9438535Z ##[endgroup]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:41:31.2668572Z All checks passed!
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7455188Z ==> tool-plane drift (G3): the committed Cedar and contracts vs the registry
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7456243Z tool plane current: 4 policies and 3 contract(s) from 3 registered tool(s)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7456921Z ==> rules registry validation (G7)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7457659Z rules registry valid: 1 rule(s), all with owner + control + review-by, no orphaned control refs
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7458404Z ==> style (ruff)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7458758Z ==> L0 unit + L1 contract (hermetic)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7459300Z ........................................................................ [  1%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7459963Z ........................................................................ [  2%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7460609Z ........................................................................ [  4%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7461230Z ........................................................................ [  5%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7461841Z ........................................................................ [  7%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7462499Z .....................................................s.................. [  8%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7463160Z ........................................................................ [  9%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7463783Z ........................................................................ [ 11%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7464680Z ........................................................................ [ 12%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7465269Z ........................................................................ [ 14%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7465843Z ..............................................F.FF...................... [ 15%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7466425Z ....................F.................F................................. [ 16%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7467021Z ........................................................................ [ 18%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7467591Z ........................................................................ [ 19%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7468166Z ........................................................................ [ 21%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7468736Z ........................................................................ [ 22%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7469322Z ........................................................................ [ 23%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7469906Z ........................................................................ [ 25%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7470852Z ........................................................................ [ 26%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7471432Z ........................................................................ [ 28%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7471998Z ........................................................................ [ 29%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7472553Z ........................................................................ [ 30%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7473110Z ........................................................................ [ 32%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7473663Z ........................................................................ [ 33%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7474702Z ........................................................................ [ 35%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7475268Z ........................................................................ [ 36%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7475828Z ........................................................................ [ 37%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7476388Z ........................................................................ [ 39%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7476951Z ........................................................................ [ 40%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7477502Z ........................................................................ [ 42%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7478051Z ........................................................................ [ 43%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7478600Z ........................................................................ [ 44%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7479156Z ........................................................................ [ 46%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7479717Z ........................................................................ [ 47%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7480275Z ........................................................................ [ 49%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7480819Z ........................................................................ [ 50%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7481359Z ........................................................................ [ 51%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7481920Z ........................................................................ [ 53%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7482463Z ........................................................................ [ 54%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7483007Z ........................................................................ [ 56%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7483551Z ........................................................................ [ 57%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7484268Z ..................................................................ssss.. [ 58%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7484841Z ........................................................................ [ 60%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7485405Z ........................................................................ [ 61%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7485947Z ........................................................................ [ 63%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7486496Z ........................................................................ [ 64%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7487042Z ........................................................................ [ 65%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7487586Z ........................................................................ [ 67%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7488152Z ........................................................................ [ 68%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7488713Z ........................................................................ [ 70%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7489282Z ........................................................................ [ 71%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7489854Z ........................................................................ [ 72%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7490427Z ..........................ssss.......................................... [ 74%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7490997Z ........................................................................ [ 75%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7491546Z ........................................................................ [ 77%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7492091Z ........................................................................ [ 78%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7492818Z ........................................................................ [ 79%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7493404Z ........................................................................ [ 81%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7517955Z ........................................................................ [ 82%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7518617Z ........................................................................ [ 84%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7519186Z ........................................................................ [ 85%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7519726Z ........................................................................ [ 86%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7520519Z ........................................................................ [ 88%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7521066Z ........................................................................ [ 89%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7521600Z ........................................................................ [ 91%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7522168Z ........................................................................ [ 92%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7522719Z ........................................................................ [ 93%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7523254Z ........................................................................ [ 95%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7523789Z ........................................................................ [ 96%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7524551Z ........................................................................ [ 98%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7525083Z ........................................................................ [ 99%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7525623Z ..............................                                           [100%]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7526147Z =================================== FAILURES ===================================
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7526866Z _ test_a_gap_above_the_threshold_writes_no_go_naming_both_cues_the_owner_and_the_window _
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7527376Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7527746Z tmp_path = PosixPath('/tmp/pytest-of-runner/pytest-0/test_a_gap_above_the_threshold0')
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7528270Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7528703Z     def test_a_gap_above_the_threshold_writes_no_go_naming_both_cues_the_owner_and_the_window(tmp_path):
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7529435Z         root = _repo(tmp_path, cues=GAPPED)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7529915Z         _, artifact = _write(root, tmp_path, "no-go.json")
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7530433Z         assert artifact["decision"] == "NO-GO"
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7531039Z >       assert artifact["findings"] == [{"scenario": "caption-check", "rule": "max-gap",
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7531783Z                                          "after_cue": "s01", "before_cue": "s03", "gap_s": 3.0}]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7532529Z E       AssertionError: assert [{'scenario':...: 's03', ...}] == [{'scenario':...: 's03', ...}]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7533122Z E         
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7534384Z E         At index 0 diff: {'scenario': 'caption-check', 'rule': 'max-gap', 'after_cue': 's01', 'before_cue': 's03', 'gap_s': 2.999} != {'scenario': 'caption-check', 'rule': 'max-gap', 'after_cue': 's01', 'before_cue': 's03', 'gap_s': 3.0}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7535653Z E         
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7535914Z E         Full diff:
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7536188Z E           [
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7536442Z E               {
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7536758Z E                   'scenario': 'caption-check',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7537173Z E                   'rule': 'max-gap',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7537541Z E                   'after_cue': 's01',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7537914Z E                   'before_cue': 's03',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7538295Z E         -         'gap_s': 3.0,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7538637Z E         ?                  ^ ^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7538973Z E         +         'gap_s': 2.999,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7539311Z E         ?                  ^ ^^^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7539635Z E               },
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7539902Z E           ]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7540053Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7540510Z tests/test_drill.py:138: AssertionError
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7541093Z _ test_a_gap_equal_to_the_threshold_is_not_a_finding_and_one_millisecond_more_is _
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7541576Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7541946Z tmp_path = PosixPath('/tmp/pytest-of-runner/pytest-0/test_a_gap_equal_to_the_thresh0')
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7542438Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7542811Z     def test_a_gap_equal_to_the_threshold_is_not_a_finding_and_one_millisecond_more_is(tmp_path):
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7543571Z         at = _repo(tmp_path / "at", cues=[("s01", 0, 3000), ("s02", 5000, 8000)])
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7544368Z         assert _write(at, tmp_path, "at.json")[1]["decision"] == "GO"
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7545183Z         over = _repo(tmp_path / "over", cues=[("s01", 0, 3000), ("s02", 5001, 8000)])
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7545781Z         _, artifact = _write(over, tmp_path, "over.json")
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:49.7546296Z >       assert artifact["decision"] == "NO-GO"
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0252224Z error: check failed:
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0252720Z   pytest failed (exit 1)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0272704Z E       AssertionError: assert 'GO' == 'NO-GO'
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0274579Z E         
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0274876Z E         - NO-GO
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0275167Z E         + GO
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0275341Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0275515Z tests/test_drill.py:156: AssertionError
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0276093Z _________________ test_a_timestamp_with_no_hour_field_is_read __________________
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0276538Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0276908Z tmp_path = PosixPath('/tmp/pytest-of-runner/pytest-0/test_a_timestamp_with_no_hour_0')
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0277436Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0277703Z     def test_a_timestamp_with_no_hour_field_is_read(tmp_path):
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0278214Z         root = _repo(tmp_path)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0278681Z         _captions(root, "WEBVTT\n\ns01\n00:00.000 --> 00:03.000\na\n\n"
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0279250Z                         "s02\n00:00:06.000 --> 01:00:00.000\nb\n")
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0279692Z         _commit(root)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0280090Z         _, artifact = _write(root, tmp_path, "short.json")
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0280748Z >       assert artifact["findings"] == [{"scenario": "caption-check", "rule": "max-gap",
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0281540Z                                          "after_cue": "s01", "before_cue": "s02", "gap_s": 3.0}]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0315201Z E       AssertionError: assert [{'scenario':...: 's02', ...}] == [{'scenario':...: 's02', ...}]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0316012Z E         
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0317275Z E         At index 0 diff: {'scenario': 'caption-check', 'rule': 'max-gap', 'after_cue': 's01', 'before_cue': 's02', 'gap_s': 2.999} != {'scenario': 'caption-check', 'rule': 'max-gap', 'after_cue': 's01', 'before_cue': 's02', 'gap_s': 3.0}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0318582Z E         
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0318861Z E         Full diff:
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0319167Z E           [
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0319448Z E               {
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0319804Z E                   'scenario': 'caption-check',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0320303Z E                   'rule': 'max-gap',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0320717Z E                   'after_cue': 's01',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0321126Z E                   'before_cue': 's02',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0321541Z E         -         'gap_s': 3.0,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0321923Z E         ?                  ^ ^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0322289Z E         +         'gap_s': 2.999,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0322633Z E         ?                  ^ ^^^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0322940Z E               },
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0323197Z E           ]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0323350Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0323491Z tests/test_drill.py:166: AssertionError
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0324012Z _________________ test_two_gaps_are_two_findings_in_file_order _________________
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0324621Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0325010Z tmp_path = PosixPath('/tmp/pytest-of-runner/pytest-0/test_two_gaps_are_two_findings0')
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0325622Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0325888Z     def test_two_gaps_are_two_findings_in_file_order(tmp_path):
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0326983Z         """AI Quality seat, finding 3: a schema limit on `findings` (`maxItems`, `uniqueItems`)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0327954Z         turns a second finding into a refusal -- INVALID where the run should read FALSE --
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0328666Z         and no case wrote more than one finding."""
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0329270Z         cues = [("s01", 0, 3000), ("s02", 6000, 9000), ("s03", 9000, 12000), ("s04", 15500, 18000)]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0329903Z         root = _repo(tmp_path, cues=cues)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0330407Z         _, artifact = _write(root, tmp_path, "two.json")
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0331336Z >       assert [(f["after_cue"], f["before_cue"], f["gap_s"]) for f in artifact["findings"]] == [
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0332056Z             ("s01", "s02", 3.0), ("s03", "s04", 3.5)]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0332699Z E       AssertionError: assert [('s01', 's02...'s04', 3.499)] == [('s01', 's02..., 's04', 3.5)]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0333334Z E         
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0333731Z E         At index 0 diff: ('s01', 's02', 2.999) != ('s01', 's02', 3.0)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0334481Z E         
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0334784Z E         Full diff:
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0335111Z E           [
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0335397Z E               (
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0335712Z E                   's01',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0336064Z E                   's02',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0336423Z E         -         3.0,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0336768Z E         ?         ^ ^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0337089Z E         +         2.999,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0337430Z E         ?         ^ ^^^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0337757Z E               ),
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0338056Z E               (
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0338357Z E                   's03',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0338694Z E                   's04',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0339034Z E         -         3.5,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0339367Z E         ?           ^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0339694Z E         +         3.499,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0340030Z E         ?           ^^^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0340362Z E               ),
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0340668Z E           ]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0340849Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0341015Z tests/test_drill.py:410: AssertionError
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0341687Z _____ test_the_readers_were_shown_emitting_before_the_claim_was_committed ______
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0342215Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0342547Z     def test_the_readers_were_shown_emitting_before_the_claim_was_committed():
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0343224Z         text = READINGS.read_text(encoding="utf-8")
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0343789Z         assert f"$ {READ} " in text and f"$ {VERIFY} " in text
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0344632Z         assert "signature: OK" in text and "signature: MISMATCH" in text
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0345413Z         assert text.index("signature: OK") < text.index("signature: MISMATCH"), (
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0346263Z             "F3's liveness check must come first (SPEC/11): verify exits 0 on the well-formed "
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0346987Z             "artifact before any edited copy is read")
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0347642Z         for line in ("decision=NO-GO", "decision=GO", "fix_window_s=", "owner.oncall=",
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0348344Z                      "prior_sha256=", "finding=", "sha256sum"):
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0348966Z             assert line in text, f"readers.txt shows no {line!r} emitted"
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0349497Z     
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0349929Z         readings = _last_change(READINGS.relative_to(ROOT).as_posix())
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0350511Z         for path in READ_CODE:
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0350989Z >           assert _descends(_last_change(path), readings), (
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0351765Z                 f"{path} changed after readers.txt was taken: the transcript does not show the "
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0352480Z                 "readers as committed")
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0353345Z E           AssertionError: pave/drill.py changed after readers.txt was taken: the transcript does not show the readers as committed
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0354449Z E           assert False
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0355494Z E            +  where False = _descends('990e79ba560accea3f10d093593e1acc128dbf4a', 'a0818692051fb27df51304377620d2227d97e7d6')
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0356708Z E            +    where '990e79ba560accea3f10d093593e1acc128dbf4a' = _last_change('pave/drill.py')
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0357331Z 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0357545Z tests/test_drill_pins.py:185: AssertionError
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0358134Z =========================== short test summary info ============================
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0359710Z FAILED tests/test_drill.py::test_a_gap_above_the_threshold_writes_no_go_naming_both_cues_the_owner_and_the_window - AssertionError: assert [{'scenario':...: 's03', ...}] == [{'scenario':...: 's03', ...}]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0361283Z   
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0362505Z   At index 0 diff: {'scenario': 'caption-check', 'rule': 'max-gap', 'after_cue': 's01', 'before_cue': 's03', 'gap_s': 2.999} != {'scenario': 'caption-check', 'rule': 'max-gap', 'after_cue': 's01', 'before_cue': 's03', 'gap_s': 3.0}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0363841Z   
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0364301Z   Full diff:
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0364607Z     [
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0364890Z         {
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0365203Z             'scenario': 'caption-check',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0365642Z             'rule': 'max-gap',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0366045Z             'after_cue': 's01',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0366440Z             'before_cue': 's03',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0366817Z   -         'gap_s': 3.0,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0367189Z   ?                  ^ ^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0367544Z   +         'gap_s': 2.999,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0367904Z   ?                  ^ ^^^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0368230Z         },
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0368514Z     ]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0369280Z FAILED tests/test_drill.py::test_a_gap_equal_to_the_threshold_is_not_a_finding_and_one_millisecond_more_is - AssertionError: assert 'GO' == 'NO-GO'
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0370213Z   
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0370494Z   - NO-GO
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0370781Z   + GO
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0371785Z FAILED tests/test_drill.py::test_a_timestamp_with_no_hour_field_is_read - AssertionError: assert [{'scenario':...: 's02', ...}] == [{'scenario':...: 's02', ...}]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0372788Z   
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0373988Z   At index 0 diff: {'scenario': 'caption-check', 'rule': 'max-gap', 'after_cue': 's01', 'before_cue': 's02', 'gap_s': 2.999} != {'scenario': 'caption-check', 'rule': 'max-gap', 'after_cue': 's01', 'before_cue': 's02', 'gap_s': 3.0}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0375703Z   
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0375975Z   Full diff:
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0376226Z     [
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0376465Z         {
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0376738Z             'scenario': 'caption-check',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0377133Z             'rule': 'max-gap',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0377463Z             'after_cue': 's01',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0377796Z             'before_cue': 's02',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0378126Z   -         'gap_s': 3.0,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0378423Z   ?                  ^ ^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0378712Z   +         'gap_s': 2.999,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0379013Z   ?                  ^ ^^^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0379325Z         },
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0379682Z     ]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0380494Z FAILED tests/test_drill.py::test_two_gaps_are_two_findings_in_file_order - AssertionError: assert [('s01', 's02...'s04', 3.499)] == [('s01', 's02..., 's04', 3.5)]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0381340Z   
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0381637Z   At index 0 diff: ('s01', 's02', 2.999) != ('s01', 's02', 3.0)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0382033Z   
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0382251Z   Full diff:
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0382484Z     [
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0382701Z         (
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0382924Z             's01',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0383170Z             's02',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0383429Z   -         3.0,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0383669Z   ?         ^ ^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0383906Z   +         2.999,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0384354Z   ?         ^ ^^^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0384849Z         ),
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0385195Z         (
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0385585Z             's03',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0386014Z             's04',
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0386702Z   -         3.5,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0387095Z   ?           ^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0387366Z   +         3.499,
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0387605Z   ?           ^^^
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0387844Z         ),
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0388060Z     ]
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0389140Z FAILED tests/test_drill_pins.py::test_the_readers_were_shown_emitting_before_the_claim_was_committed - AssertionError: pave/drill.py changed after readers.txt was taken: the transcript does not show the readers as committed
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0390298Z assert False
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0390753Z  +  where False = _descends('990e79ba560accea3f10d093593e1acc128dbf4a', 'a0818692051fb27df51304377620d2227d97e7d6')
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0392318Z  +    where '990e79ba560accea3f10d093593e1acc128dbf4a' = _last_change('pave/drill.py')
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0393176Z 5 failed, 5128 passed, 9 skipped in 77.33s (0:01:17)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0393804Z ==> guardrail-refusal band (SPEC/01, reporting only)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0394940Z SPEC/01 guardrail-refusal band: 0-2 expected, >2 is a miscalibrated guardrail (reporting only)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0395439Z   m00b              0 refused  ungoverned 
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0395751Z   m01               3 refused  BREACH     {'guardrail': 3}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0396091Z   m02-control-1     5 refused  BREACH     {'guardrail': 5}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0396433Z   m02-control-2     6 refused  BREACH     {'guardrail': 6}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0396770Z   m02-control-3     8 refused  BREACH     {'guardrail': 8}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0397105Z   m02-tools-1       2 refused  within     {'guardrail': 2}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0397433Z   m02-tools-2       3 refused  BREACH     {'guardrail': 3}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0397767Z   m02-tools-3       2 refused  within     {'guardrail': 2}
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0398077Z   5 of 7 governed runs breach the band
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0398345Z ==> eval dry-run (no model calls)
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0398613Z loaded 25 golden cases, catalog has 5 titles
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0399195Z dryrun: OK — fixtures resolve, cases load, no model was called
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0399550Z wrote verdict: verdict-contract.json
+gate	L0 unit + L1 contract (hermetic, no cloud - G8)	2026-09-13T19:42:50.0445956Z ##[error]Process completed with exit code 1.
+gate	L1 history is append-only, pinned, anchored (ADR-042)	﻿2026-09-13T19:42:50.0523516Z ##[group]Run python -m pave.cli gate history --base "cc35473a7f55d3a46ccf4aba2d95006965f53b36" --out verdict-history.json
+gate	L1 history is append-only, pinned, anchored (ADR-042)	2026-09-13T19:42:50.0524786Z ^[[36;1mpython -m pave.cli gate history --base "cc35473a7f55d3a46ccf4aba2d95006965f53b36" --out verdict-history.json^[[0m
+gate	L1 history is append-only, pinned, anchored (ADR-042)	2026-09-13T19:42:50.0560600Z shell: /usr/bin/bash -e {0}
+gate	L1 history is append-only, pinned, anchored (ADR-042)	2026-09-13T19:42:50.0560851Z env:
+gate	L1 history is append-only, pinned, anchored (ADR-042)	2026-09-13T19:42:50.0561116Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L1 history is append-only, pinned, anchored (ADR-042)	2026-09-13T19:42:50.0561559Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	L1 history is append-only, pinned, anchored (ADR-042)	2026-09-13T19:42:50.0561986Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L1 history is append-only, pinned, anchored (ADR-042)	2026-09-13T19:42:50.0562376Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L1 history is append-only, pinned, anchored (ADR-042)	2026-09-13T19:42:50.0562761Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L1 history is append-only, pinned, anchored (ADR-042)	2026-09-13T19:42:50.0563150Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	L1 history is append-only, pinned, anchored (ADR-042)	2026-09-13T19:42:50.0563471Z ##[endgroup]
+gate	L1 history is append-only, pinned, anchored (ADR-042)	2026-09-13T19:42:51.2060314Z [pave history] PASS -- every entry pinned, derivable, anchored; nothing on the base touched.
+gate	Run actions/setup-node@v4	﻿2026-09-13T19:42:51.2287163Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2288453Z ##[group]Run actions/setup-node@v4
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2288705Z with:
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2288892Z   node-version: 20
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2289096Z   always-auth: false
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2289301Z   check-latest: false
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2291871Z   token: ***
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2292069Z env:
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2292327Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2292984Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2293407Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2293775Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2294498Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2294931Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.2295261Z ##[endgroup]
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.3717458Z Attempting to download 20...
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.3825123Z (node:5931) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+gate	Run actions/setup-node@v4	2026-09-13T19:42:51.3826140Z (Use `node --trace-deprecation ...` to show where the warning was created)
+gate	Run actions/setup-node@v4	2026-09-13T19:42:52.0541237Z Acquiring 20.20.2 - x64 from https://github.com/actions/node-versions/releases/download/20.20.2-23521894959/node-20.20.2-linux-x64.tar.gz
+gate	Run actions/setup-node@v4	2026-09-13T19:42:52.4920357Z Extracting ...
+gate	Run actions/setup-node@v4	2026-09-13T19:42:52.5045878Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/37ae7ceb-63f1-4846-bef8-b75b399b2db6 -f /home/runner/work/_temp/cfe4ee20-31a3-492a-b180-22300286becf
+gate	Run actions/setup-node@v4	2026-09-13T19:42:53.5099560Z Adding to the cache ...
+gate	Run actions/setup-node@v4	2026-09-13T19:42:55.2876950Z ##[group]Environment details
+gate	Run actions/setup-node@v4	2026-09-13T19:42:55.5061093Z node: v20.20.2
+gate	Run actions/setup-node@v4	2026-09-13T19:42:55.5061541Z npm: 10.8.2
+gate	Run actions/setup-node@v4	2026-09-13T19:42:55.5061847Z yarn: 1.22.22
+gate	Run actions/setup-node@v4	2026-09-13T19:42:55.5062531Z ##[endgroup]
+gate	L1 synth freshness (ADR-017)	﻿2026-09-13T19:42:55.5219686Z ##[group]Run cd platform/infra && npm ci && npx cdk synth --quiet && cd ../..
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:42:55.5220248Z ^[[36;1mcd platform/infra && npm ci && npx cdk synth --quiet && cd ../..^[[0m
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:42:55.5220736Z ^[[36;1mpython -m pave.cli infra snapshot --check --out verdict-infra.json^[[0m
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:42:55.5257725Z shell: /usr/bin/bash -e {0}
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:42:55.5257981Z env:
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:42:55.5258249Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:42:55.5258705Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:42:55.5259143Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:42:55.5259527Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:42:55.5259908Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:42:55.5260309Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:42:55.5260726Z ##[endgroup]
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:00.7850617Z 
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:00.7861864Z added 26 packages, and audited 47 packages in 5s
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:00.7862477Z 
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:00.7862809Z 1 package is looking for funding
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:00.7863345Z   run `npm fund` for details
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:00.7863581Z 
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:00.7863741Z found 0 vulnerabilities
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:07.0650940Z Bundling asset BeaconpaveGateway/CatalogSearchFn/Code/Stage...
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:07.0736699Z Bundling asset BeaconpaveGateway/EntitlementCheckFn/Code/Stage...
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:09.4495833Z Successfully synthesized to /home/runner/work/beaconpave/beaconpave/platform/infra/cdk.out
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:09.4497376Z Supply a stack id (BeaconpaveGateway, BeaconpaveAuditTrail) to display its template.
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:09.4507559Z 76 feature flags are not configured. Run 'cdk flags --unstable=flags' to learn more.
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:09.7307437Z wrote verdict: verdict-infra.json
+gate	L1 synth freshness (ADR-017)	2026-09-13T19:43:09.7308070Z synth snapshot current: 2 template(s)
+gate	L2 evals vs comparator (M03)	﻿2026-09-13T19:43:09.7483669Z ##[group]Run python -m pave.cli evals run services/highlights-agent --out verdict-evals.json
+gate	L2 evals vs comparator (M03)	2026-09-13T19:43:09.7484699Z ^[[36;1mpython -m pave.cli evals run services/highlights-agent --out verdict-evals.json^[[0m
+gate	L2 evals vs comparator (M03)	2026-09-13T19:43:09.7520646Z shell: /usr/bin/bash -e {0}
+gate	L2 evals vs comparator (M03)	2026-09-13T19:43:09.7520892Z env:
+gate	L2 evals vs comparator (M03)	2026-09-13T19:43:09.7521158Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L2 evals vs comparator (M03)	2026-09-13T19:43:09.7521595Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	L2 evals vs comparator (M03)	2026-09-13T19:43:09.7522021Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L2 evals vs comparator (M03)	2026-09-13T19:43:09.7522579Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L2 evals vs comparator (M03)	2026-09-13T19:43:09.7522966Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L2 evals vs comparator (M03)	2026-09-13T19:43:09.7523352Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	L2 evals vs comparator (M03)	2026-09-13T19:43:09.7523668Z ##[endgroup]
+gate	L2 evals vs comparator (M03)	2026-09-13T19:43:10.0994020Z [pave evals] highlights-agent: PASS - control_passed 17, tools_passed 15
+gate	L5 adversarial (pass = blocked-and-logged - G4)	﻿2026-09-13T19:43:10.1197154Z ##[group]Run python -m pave.cli adversarial run services/highlights-agent --out verdict-adv.json
+gate	L5 adversarial (pass = blocked-and-logged - G4)	2026-09-13T19:43:10.1198454Z ^[[36;1mpython -m pave.cli adversarial run services/highlights-agent --out verdict-adv.json^[[0m
+gate	L5 adversarial (pass = blocked-and-logged - G4)	2026-09-13T19:43:10.1247531Z shell: /usr/bin/bash -e {0}
+gate	L5 adversarial (pass = blocked-and-logged - G4)	2026-09-13T19:43:10.1247885Z env:
+gate	L5 adversarial (pass = blocked-and-logged - G4)	2026-09-13T19:43:10.1248168Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L5 adversarial (pass = blocked-and-logged - G4)	2026-09-13T19:43:10.1248624Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	L5 adversarial (pass = blocked-and-logged - G4)	2026-09-13T19:43:10.1249085Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L5 adversarial (pass = blocked-and-logged - G4)	2026-09-13T19:43:10.1249489Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L5 adversarial (pass = blocked-and-logged - G4)	2026-09-13T19:43:10.1249898Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	L5 adversarial (pass = blocked-and-logged - G4)	2026-09-13T19:43:10.1250295Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	L5 adversarial (pass = blocked-and-logged - G4)	2026-09-13T19:43:10.1250629Z ##[endgroup]
+gate	L5 adversarial (pass = blocked-and-logged - G4)	2026-09-13T19:43:10.3066187Z [pave adversarial] highlights-agent: PASS - m00b_passed 0, m00b_scored 10, m01_passed 6, m01_scored 10, m04_passed 7, m04_scored 10; 33 of 34 G4 semantics case(s) scored
+gate	Post score-diff comment (the gate teaches)	﻿2026-09-13T19:43:10.3240182Z ##[group]Run python -m pave.cli gate comment --verdicts verdict-contract.json verdict-history.json verdict-infra.json verdict-evals.json verdict-adv.json
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:10.3241302Z ^[[36;1mpython -m pave.cli gate comment --verdicts verdict-contract.json verdict-history.json verdict-infra.json verdict-evals.json verdict-adv.json^[[0m
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:10.3277320Z shell: /usr/bin/bash -e {0}
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:10.3277579Z env:
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:10.3277840Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:10.3278282Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:10.3278724Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:10.3279122Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:10.3279499Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:10.3279885Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:10.3282877Z   GITHUB_TOKEN: ***
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:10.3283167Z ##[endgroup]
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8099603Z <!-- beaconpave-gate -->
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8100241Z ### quality gate: BLOCKED
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8100514Z 
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8100786Z | | suite | layer | scores | |
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8101257Z |---|---|---|---|---|
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8102161Z | ❌ FAIL | contract | L1 | — | suite reported FAIL |
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8102868Z | ✅ PASS | history | L1 | — |  |
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8103302Z | ✅ PASS | infra | L1 | — |  |
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8103836Z | ✅ PASS | evals | L2 | `control_passed` 17, `tools_passed` 15 |  |
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8105267Z | ✅ PASS | adversarial | L5 | `m00b_passed` 0, `m00b_scored` 10, `m01_passed` 6, `m01_scored` 10, `m04_passed` 7, `m04_scored` 10 |  |
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8105817Z 
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8105923Z #### what moved
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8106067Z 
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8106222Z **contract**
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8106491Z - pytest failed (exit 1)
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8106668Z 
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8106776Z #### what to do
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8110755Z - **contract** — reproduce locally with `python -m pave.cli check` (or `make check`) — hermetic, no cloud account, no network, about 30 seconds. The failing step's full output is in this run's workflow log; these notes carry the verdict, not the transcript. Re-run a single failure with `python -m pytest <file>::<test> -q`. A test named for a defect that no longer exercises it is worse than a missing one, so fix the code before the assertion. A contract failure is the code under test rather than the harness, so it pages the service team — do NOT reach for a comparator or a baseline.
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8113596Z 
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8114804Z **Blocked (a suite reported a regression); exit 1; owner: service team.** This check is required and cannot be merged past — a gate that can be merged past is not a gate.
+gate	Post score-diff comment (the gate teaches)	2026-09-13T19:43:11.8115756Z [pave gate] updated comment 5655623400 on PR #159
+gate	Fail closed	﻿2026-09-13T19:43:11.8361337Z ##[group]Run python -m pave.cli gate decide --verdicts verdict-contract.json verdict-history.json verdict-infra.json verdict-evals.json verdict-adv.json
+gate	Fail closed	2026-09-13T19:43:11.8363369Z ^[[36;1mpython -m pave.cli gate decide --verdicts verdict-contract.json verdict-history.json verdict-infra.json verdict-evals.json verdict-adv.json^[[0m
+gate	Fail closed	2026-09-13T19:43:11.8415430Z shell: /usr/bin/bash -e {0}
+gate	Fail closed	2026-09-13T19:43:11.8415870Z env:
+gate	Fail closed	2026-09-13T19:43:11.8416326Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Fail closed	2026-09-13T19:43:11.8417131Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+gate	Fail closed	2026-09-13T19:43:11.8417889Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Fail closed	2026-09-13T19:43:11.8418322Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Fail closed	2026-09-13T19:43:11.8418708Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+gate	Fail closed	2026-09-13T19:43:11.8419097Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+gate	Fail closed	2026-09-13T19:43:11.8419416Z ##[endgroup]
+gate	Fail closed	2026-09-13T19:43:11.9850367Z   [BLOCK] verdict-contract.json (contract L1): suite reported FAIL
+gate	Fail closed	2026-09-13T19:43:11.9851291Z   [PASS] verdict-history.json (history L1): suite reported PASS
+gate	Fail closed	2026-09-13T19:43:11.9852036Z   [PASS] verdict-infra.json (infra L1): suite reported PASS
+gate	Fail closed	2026-09-13T19:43:11.9852711Z   [PASS] verdict-evals.json (evals L2): suite reported PASS
+gate	Fail closed	2026-09-13T19:43:11.9853538Z   [PASS] verdict-adv.json (adversarial L5): suite reported PASS
+gate	Fail closed	2026-09-13T19:43:11.9853945Z 
+gate	Fail closed	2026-09-13T19:43:11.9856621Z gate: BLOCKED (quality regression) — 1 of 5 verdict(s) blocking; exit 1; owner: service team
+gate	Fail closed	2026-09-13T19:43:12.0002979Z ##[error]Process completed with exit code 1.
+gate	Post Run actions/checkout@v4	﻿2026-09-13T19:43:12.0105501Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.0106749Z Post job cleanup.
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.0979562Z [command]/usr/bin/git version
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1016863Z git version 2.55.0
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1057738Z Temporarily overriding HOME='/home/runner/work/_temp/bcf56f1a-ef77-440d-a854-988bdf416d8f' before making global git config changes
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1059420Z Adding repository directory to the temporary git global config as a safe directory
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1064806Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/beaconpave/beaconpave
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1102546Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1137290Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1365442Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1387738Z http.https://github.com/.extraheader
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1399282Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1431716Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1658010Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+gate	Post Run actions/checkout@v4	2026-09-13T19:43:12.1689030Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+gate	Complete job	﻿2026-09-13T19:43:12.2060734Z Cleaning up orphan processes
+gate	Complete job	2026-09-13T19:43:12.2342651Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
