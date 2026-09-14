@@ -50,9 +50,11 @@
       "title": "The audience isn't in the room",
       "owner_milestone": "M11",
       "recorded": null,
-      "owed_by": "M11",
-      "deferred_from": [],
-      "why": "Not yet buildable; M11 builds the drill (M09 until ADR-070 shifted the roadmap by one, M10 until ADR-073 shifted it again)."
+      "owed_by": "M12",
+      "deferred_from": ["M11"],
+      "why": "DEFERRED ONCE, from M11, to after its close, by the operator's ruling at M11 PR 3. The reason it carried until then -- 'Not yet buildable; M11 builds the drill' -- stopped being true at M11 PR 3 and is not restated. Everything the take reads exists and is committed: the three artifacts and their readings under milestones/M11/runs/, and the published key. Its script is SPEC/11's demo block, run from a clean shell at M11 PR 3 with its output committed at milestones/M11/runs/demo.md: the seeded NO-GO naming caption-check/max-gap/c006/c008, service-team, webhook:player-captions and a 129600 s window; signature: OK; the control NO-GO for the same gap; and the fixed GO with no finding. For this act the artifact IS the evidence (this file's _what_recording_is_and_is_not_evidence_for), so deferring the video defers only the presentation: claim 11 is proved by the committed artifacts and milestones/M11/runs/falsifiers.md, never by a recording. `M12` is written because an unrecorded act must be owed to a listed open row, and after M11 closes M12 is the only one: it is the date of the next decision, not a schedule, and the act stays owned by M11. Two keys on this edit, Platform Engineering and AI Quality.",
+      "script": "milestones/M11/runs/demo.md",
+      "cost_to_record": "free: local CLI in a clone of main, no network, no model calls, the published key"
     },
     {
       "act": 5,
