@@ -335,3 +335,66 @@ three seats.
 | 5 | the clean fixture's bytes are pinned by no reader, and `drill/fixtures/` is on one key (item 2) | AI Quality | PR 3's seed commit |
 | 6 | **For PR 3:** commit the full sha256 of the run key in the seed commit, before the seeded run (Security seat, finding 7); and a CRLF re-save of the fixture during the fix step makes `tree_clean` false, so the run is INVALID with no retry (Platform Engineering seat) | Security + Platform Engineering | PR 3 |
 | 7 | the ordering test reads git history, so a squash merge of PR 2 turns it red | Platform Engineering | PR 2's merge: by merge commit or rebase, never squash |
+
+## Amendment 2 (2026-09-13, M11 PR 2, after the audit, before the merge and before any arc reading)
+
+**Written after the audit stopped and before PR 2 merged.** No arc run exists. The record
+is `milestones/M11/pr2-deletability-audit.md`. Every ruling below is the operator's.
+
+### 1. Amendment 1 item 4's audit cannot tell a caught code plant from a silent one
+
+Item 4 put each plant commit on PR 2's own branch for a CI run. For a plant to the writer
+or the readers, a commit is itself a second door. Every such commit trips
+`tests/test_drill_pins.py::test_the_readers_were_shown_emitting_before_the_claim_was_committed`,
+because `readers.txt` then no longer descends from the last change to that code. That test
+failed in all 39 plant runs, the four that caught nothing included. **A red CI run is
+therefore not the reading.**
+
+The record reads each plant by the failing tests **other than** that one: CAUGHT if any
+failed, SILENT if none did. The control run on the unmutated head is 34778857665: 5133
+passed, 9 skipped, `check: PASS`.
+
+### 2. The audit is recorded at 39 of 96 and stopped, not resumed
+
+- **Run:** the 39 plants pushed before the operator stopped the push: W01–W36, I3, R01
+  and R02.
+- **CAUGHT:** 35.
+- **SILENT:** 4, W01, W03, W08 and W23. Each refusal is shadowed by a second door, and its
+  test cannot tell which door refused (ADR-040's shape). They are debts D8–D11 in the
+  record, owned by AI Quality + Platform Engineering, triggered by the next PR that edits
+  `pave/drill.py`, and not repaired in PR 2.
+- **Unrun:** 57, listed by id in the record.
+
+The branch was force-restored to the audited head. The 39 red runs stay in PR 2's check
+history.
+
+### 3. Claim 9 is partially measured, and is stated as such
+
+SPEC/11's row 9 reads *conformance, and the non-fixing edit refused*, measured by *PR 2's
+tests, each check deleted and run through `pave check`*.
+- **Measured for** the 39 doors above:
+  - W14: validation before writing, CAUGHT;
+  - W19: the non-fixing edit, CAUGHT.
+- **Not measured for** the schema, the scenario, the registration, the two-key rule, the
+  dispatch, the verifier, and eight later writer doors.
+
+Row 9 is partially measured. It is neither met nor failed.
+
+### 4. The spare, PR 2b, is taken
+
+- **Its checklist:** R03–R10, S01–S06, K01–K06 and F01–F08.
+- **How it is worked:** by reading, per decision 5. It runs nothing, moves no pinned value,
+  and adds or drops no falsifier. Its repairs land in the spare.
+- **Not on the checklist, and staying unrun:** I1, I2, C01, C02, P01–P04, T01, T02,
+  V01–V11, W40, W41 and W43–W48.
+- **The cap:** all four slots are now planned: PR 1, PR 2, PR 2b and PR 3.
+
+### 5. Nothing registered moves
+
+No pinned value, falsifier or reader moves. This amendment edits none of these:
+- SPEC/11;
+- `falsifiers.json` or `readers.txt`;
+- the schema, the writer or the readers;
+- the scenario or the fixture.
+
+M10's debt row 28 fired because PR 2 edits `pave/twokey.py`, and PR 2 does not pay it.
