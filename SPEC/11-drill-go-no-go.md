@@ -4,7 +4,10 @@
 run.** Owned by the PM seat. Tag `m11`; one branch per PR, none named `m11`. Branch point:
 `main` at `8ac2aaa`. **Amended at M11 PR 2, before the registration and before any arc
 reading** (ADR-080 amendment 1): one validity row, that each run's caption bytes are the
-committed fixture's.
+committed fixture's. **Amended again at M11 PR 2b, after the cold review and before PR 3
+branches** (ADR-080 amendment 4): three validity clauses (`drill verify` exits 0 on each run,
+and the seeded artifact's `key_id` equals the committed key hash's). The arc runs in a fresh
+clone, and the cap is five PRs.
 
 **Deliberately short.** Every rule below is derived in **ADR-080**. This file states the
 milestone. **The claim is proposed here and pre-registered in PR 2**, by a committed
@@ -101,9 +104,9 @@ claim is then NOT MEASURED and M11 closes RED. No run is repeated.
 | run | must hold | reader | exists |
 |---|---|---|---|
 | all three | `tree_clean=true`. `caption_sha256` equals `git show <commit>:drill/fixtures/jefferson-derby/captions.vtt \| sha256sum`, the fixture at the run's own `commit` (ADR-080 amendment 1). S, C and F lie in that order on PR 3's branch (`git merge-base --is-ancestor`) | `drill read`, `git show`, `sha256sum`, `git` | PR 2, today |
-| seeded | `mode=full`. `git diff --name-only B S` is exactly the fixture | `git diff` | today |
-| control | `mode=delta`. `prior_sha256` equals `sha256sum R1`. `caption_sha256` equals seeded's. C ≠ S. `git diff --name-only S C` lies under `milestones/M11/` | `drill read`, `sha256sum`, `git diff` | PR 2, today |
-| fixed | `mode=delta`. `prior_sha256` equals `sha256sum R1`. `git diff --name-only C F`, minus `milestones/M11/`, is exactly the fixture. `git diff B F -- drill/fixtures/jefferson-derby/captions.vtt` is empty | same | PR 2, today |
+| seeded | `mode=full`. `git diff --name-only B S` is exactly the fixture. `drill verify` on R1 exits 0 printing `signature: OK`, and `signature.key_id` equals the first 16 hex of `milestones/M11/pre-registration/key.sha256` (ADR-080 amendment 4) | `git diff`, `drill verify`, `grep '"key_id"'` on R1, `head -c 16` on `key.sha256` | PR 2, today |
+| control | `mode=delta`. `prior_sha256` equals `sha256sum R1`. `caption_sha256` equals seeded's. C ≠ S. `git diff --name-only S C` lies under `milestones/M11/`. `drill verify` exits 0 (ADR-080 amendment 4) | `drill read`, `drill verify`, `sha256sum`, `git diff` | PR 2, today |
+| fixed | `mode=delta`. `prior_sha256` equals `sha256sum R1`. `git diff --name-only C F`, minus `milestones/M11/`, is exactly the fixture. `git diff B F -- drill/fixtures/jefferson-derby/captions.vtt` is empty. `drill verify` exits 0 (ADR-080 amendment 4) | `drill read`, `drill verify`, `sha256sum`, `git diff` | PR 2, today |
 
 ## Beside the claim, and not it
 
@@ -140,10 +143,16 @@ claim is then NOT MEASURED and M11 closes RED. No run is repeated.
         with a test that they equal this file's pinned values.
    - **Then** one seat round, and the deletability audit through `pave check`.
 3. **PR 2b**, the named spare. See *Bounded*.
-4. **PR 3**, the arc and the close.
+4. **The PR 2b repair**, added by ADR-080 amendment 4. It carries the rulings on the cold
+   review: the PR 3 run key's sha256, and the three `drill verify` validity clauses. It has
+   no code.
+5. **PR 3**, the arc and the close.
    - **The arc:** the seed commit, the seeded run and F3's copies, the control run, the fix
      commit and the fixed run. Every reading is committed beside its artifact under
      `milestones/M11/runs/{seeded,control,fixed}/`.
+   - **The arc runs in a fresh clone of PR 3's branch**, and the PR 3 body states it.
+     `git update-index --skip-worktree` can hide edits to the writer and the scenario from
+     `tree_clean` (ADR-080 amendment 4; cold review D19).
    - **The key** is published after the last reading.
    - **The close:** the journal, row 11, and tag `m11`.
 
@@ -213,9 +222,11 @@ claim is then NOT MEASURED and M11 closes RED. No run is repeated.
 ## Bounded
 
 **Four PRs in all, including this one and document-only ones: three planned and one named
-spare.** They are PR 1, PR 2, **PR 2b (the spare)** and PR 3.
+spare.** They are PR 1, PR 2, **PR 2b (the spare)** and PR 3. **Amended to five PRs at the
+PR 2b repair** (ADR-080 amendment 4, item 7). PR 2b merged before its repair could land, so
+the repair is its own PR, the fourth, and PR 3 is the fifth.
 - Every PR opened against `main` counts, including an exhibit.
-- The fourth closes the milestone, red if necessary.
+- The fifth closes the milestone, red if necessary. *(Was: the fourth.)*
 - Zero model calls, zero AWS calls, zero deploys, three drill runs and no re-run.
 - One seat round, on PR 2.
 
@@ -270,6 +281,8 @@ The block ships as `text`. Every file it reads is one PR 3 produces.
 - [ ] **PR 2:** schema, writer, readers, scenario, fixture, dispatch, tests, two-key rules;
       `readers.txt`, then `falsifiers.json`; seat round; audit.
 - [ ] **PR 2b** (the spare): the cold review and its repairs, or not taken.
+- [ ] **PR 2b repair** (ADR-080 amendment 4): the run key's sha256 committed; the three
+      `drill verify` validity clauses, verbatim in `falsifiers.json`; the review's debt rows.
 - [ ] **PR 3:** seed, seeded run, F3, control, fix, fixed run, validity and F1–F5 read and
       committed, the key published; `brand_tone` paid or re-deferred; Act 4 recorded or
       deferred; journal; row 11's ✅; tag `m11`.

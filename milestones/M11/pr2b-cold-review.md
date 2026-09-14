@@ -23,24 +23,40 @@ anchor was checked by eye against `main`'s text, and every one is present.
 
 | # | grade | finding | how it happens |
 |---|---|---|---|
-| **B1** | **BLOCKING** | Three carried debts are triggered inside the seeded run's diff window. Paying any of them there makes the seeded run INVALID | by following ADR-080 amendment 1's debt table as worded |
-| **B2** | **BLOCKING** | F3's pass does not show the run key was the writer's. A `verify` under any other key refuses all three copies, and a failed liveness check has no registered meaning | by accident, e.g. a key file saved with CRLF |
-| **B3** | **BLOCKING** | F2 on the control run, F4, F5, and every control and fixed validity row read artifacts no registered check has verified | a hand edit of the control or fixed artifact before its reading |
-| **B4** | **BLOCKING** | `tree_clean` comes from `git status --porcelain`, which skip-worktree defeats. Amendment 1 closed that route for the fixture's bytes only, not the writer's or the scenario's | deliberate `git update-index --skip-worktree`, the mechanism amendment 1 ruled in scope |
-| D1 | DEBT | R09 has no witness: the pre-print surrogate refusal is shadowed by the print guard | ADR-040's shape |
-| D2 | DEBT | S03 has no witness, and the schema's `required: signature` is inert | — |
-| D3 | DEBT | 18 writer refusal tests accept any refusal. By reading, W43's door is shadowed by the schema, so it would be a fifth D8–D11 | ADR-040's shape |
-| D4 | DEBT | The claim's event and tier are read by no reader | — |
-| D5 | DEBT | The command every falsifier names loads the writer in-process | — |
-| D6 | DEBT | PR 3's close work must land after F, or on `main` before B | ordering |
-| D7 | DEBT | The `max-gap` segment of F1's finding is a writer constant | — |
+| **B1** | **BLOCKING → repaired** | Three carried debts are triggered inside the seeded run's diff window. Paying any of them there makes the seeded run INVALID | by following ADR-080 amendment 1's debt table as worded |
+| **B2** | **BLOCKING → repaired** | F3's pass does not show the run key was the writer's. A `verify` under any other key refuses all three copies, and a failed liveness check has no registered meaning | by accident, e.g. a key file saved with CRLF |
+| **B3** | **BLOCKING → repaired** | F2 on the control run, F4, F5, and every control and fixed validity row read artifacts no registered check has verified | a hand edit of the control or fixed artifact before its reading |
+| **B4** | BLOCKING → **DEBT, D19**, by ruling | `tree_clean` comes from `git status --porcelain`, which skip-worktree defeats. Amendment 1 closed that route for the fixture's bytes only, not the writer's or the scenario's | deliberate `git update-index --skip-worktree`, the mechanism amendment 1 ruled in scope |
+| D12 | DEBT | R09 has no witness: the pre-print surrogate refusal is shadowed by the print guard | ADR-040's shape |
+| D13 | DEBT | S03 has no witness, and the schema's `required: signature` is inert | — |
+| D14 | DEBT | 18 writer refusal tests accept any refusal. By reading, W43's door is shadowed by the schema, so it would be a fifth D8–D11 | ADR-040's shape |
+| D15 | DEBT | The claim's event and tier are read by no reader | — |
+| D16 | DEBT | The command every falsifier names loads the writer in-process | — |
+| D17 | DEBT | PR 3's close work must land after F, or on `main` before B | ordering |
+| D18 | DEBT | The `max-gap` segment of F1's finding is a writer constant | — |
 
-**B1–B4 are for your ruling before any repair.**
-- **B1 and B2 meet.** The remedy for B2 is debt 4, and B1 says where debt 4 can land.
-- **Every remedy except one route of B1 is a registration change.** It touches SPEC/11 and
-  `falsifiers.json`, and under amendment 1 item 3 it re-takes `readers.txt`.
-- **Routes are listed under each finding.** None moves a pinned value, and none adds or drops
-  a falsifier.
+## The operator's rulings (ADR-080 amendment 4)
+
+**Recorded after the review above was committed.** The findings below keep their text as
+graded.
+
+| finding | ruling | where |
+|---|---|---|
+| B1 | **Repaired.** The PR 3 run key was generated outside the repository. Its sha256, over exactly the bytes `pave/drill.py` receives, and its `key_id` are committed before PR 3 branches | `milestones/M11/pre-registration/key.sha256` |
+| B2 | **Repaired.** The seeded row gains *`drill verify` on R1 exits 0 printing `signature: OK`, and `signature.key_id` equals the first 16 hex of `key.sha256`*. A failed liveness check is now an INVALID run | SPEC/11's validity table, carried verbatim in `falsifiers.json` |
+| B3 | **Repaired.** The control and fixed rows each gain *`drill verify` exits 0* | same |
+| B4 | **Downgraded to DEBT, D19.** The remedy is procedural: PR 3's arc runs in a fresh clone of its branch, and the PR 3 body states it | SPEC/11's plan for PR 3 |
+
+- **No code changed,** so `readers.txt` is not re-taken.
+- **No pinned value moved,** and no falsifier was added or dropped.
+- **Amendment 1's debt 4, and the key half of debt 6, are resolved.** Debt 5 and the CRLF half
+  of debt 6 are not repaired, and are carried as D20 and D21.
+- **The review's debts are numbered D12–D21**, on from the audit's D8–D11. The review as first
+  committed called D12–D18 "D1–D7".
+- **`signature.key_id` has no registered reader.** It is read with `grep` and `head`, which
+  exist today.
+- **The rulings land in a fourth PR, the PR 2b repair,** because #160 merged first. The cap is
+  amended to five (ADR-080 amendment 4, item 7).
 
 ---
 
@@ -86,7 +102,7 @@ code. They take `commit=` from `read`.
 **Every reader reads the field its row names.** The one adjacent reading, `fix_window_s`, is
 SPEC/11's own definition.
 
-The gaps are in what the rows *gate on*, not in what the lines read: B3, B4 and D4 below.
+The gaps are in what the rows *gate on*, not in what the lines read: B3, B4 and D15 below.
 `read` decides nothing (`:17-19`) and verifies nothing.
 
 ---
@@ -113,7 +129,7 @@ The gaps are in what the rows *gate on*, not in what the lines read: B3, B4 and 
 | R06 | an unreadable document exits 0 | drill_read `test_read_exits_2_on_an_unreadable_file` `:147` (3 cases); `test_read_exits_2_on_a_missing_file_or_a_wrong_argument_count` `:151`; `test_a_duplicate_key_is_refused_by_both_readers` `:271`; `test_what_cannot_be_read_one_way_exits_2_and_never_prints_ok` `:290` (3 cases) | 4 |
 | R07 | `owner.oncall` read from `owner.seat` | drill_read `…specs_order_for_a_no_go` `:98` | 1 |
 | R08 | `caption_sha256` read from the top level, not `inputs` | drill_read `…specs_order_for_a_no_go` `:98`; `…dash_for_every_absent_field_of_a_go` `:117` | 2 |
-| R09 | a lone surrogate passes the pre-print encode (`surrogatepass`) | **NONE.** See D1 | 0 |
+| R09 | a lone surrogate passes the pre-print encode (`surrogatepass`) | **NONE.** See D12 | 0 |
 | R10 | duplicate keys accepted, last value wins | drill_read `test_a_duplicate_key_is_refused_by_both_readers` `:270`. `verify` reads the real `NO-GO`, prints OK and exits 0, where `(2, [])` is expected | 1 |
 
 ### V01–V11: `verify`
@@ -138,7 +154,7 @@ The gaps are in what the rows *gate on*, not in what the lines read: B3, B4 and 
 |---|---|---|---|
 | S01 | top-level `additionalProperties` opened | drill `test_the_artifact_is_validated_before_anything_is_written` (`pytest.raises` at `:116`); `test_the_schema_refuses_an_undeclared_key_at_every_level` `:257`; `test_a_delta_refuses_a_signed_prior_that_does_not_conform` (`:116`); drill_read `…checked_before_the_schema` `:193` | 4 |
 | S02 | an `enum` over `owner.oncall` holding the pinned value | drill `test_the_schema_holds_no_claim_value` `:534` (enum list) and `:539` (`webhook:`). Every synthetic NO-GO is also refused, e.g. `test_a_gap_above_the_threshold…` raises `Refused` | many |
-| S03 | `signature` no longer required | **NONE.** See D2 | 0 |
+| S03 | `signature` no longer required | **NONE.** See D13 | 0 |
 | S04 | `if`/`then` tying `decision` to `owner` and `fix_by` | drill `test_the_schema_holds_no_claim_value` `:513` (forbidden `if`, `then`); `:534` would also fail, but `:513` fails first | 1 |
 | S05 | `owner`'s `additionalProperties` opened | drill `test_the_schema_refuses_an_undeclared_key_at_every_level` `:257` (the second plant) | 1 |
 | S06 | `maxItems: 1` on `findings` | drill `test_the_schema_holds_no_claim_value` `:533`; `test_two_gaps_are_two_findings_in_file_order` (raises `Refused` before `:410`) | 2 |
@@ -176,7 +192,7 @@ Every K plant is caught by `seats` `test_m11s_drill_instrument_collects_its_seat
 ### What section 2 found
 
 - **39 plants read: 37 fire, and 2 have no witness (R09, S03).** Neither reaches a PR 3
-  reading: D1 and D2.
+  reading: D12 and D13.
 - **Single witnesses:** R03, R07, R10, V03, V04, V08, V10, V11, S04, S05, K05, K06 and
   F01–F03, F05–F08. One deleted assertion un-witnesses each. That is recorded here and is not
   a finding.
@@ -191,17 +207,17 @@ Every K plant is caught by `seats` `test_m11s_drill_instrument_collects_its_seat
 | examined | result |
 |---|---|
 | a schema `const` or `enum` on a claim value | **No.** The only enums are `mode` `:30`, `decision` `:44` and `signature.alg` `:89`. The `decision` enum makes neither `GO` nor `NO-GO` true; it only bars a third value, which the writer never emits (`drill.py:295`). No `const`, `if`, `default` or limit under `findings`/`owner` (held by `test_the_schema_holds_no_claim_value`) |
-| a writer default for the owner, window or threshold | **No.** Owner `drill.py:145-146` (`_text` raises); window `:90-95`; threshold `:131-133`; caption source `:97-103`. The threshold is rounded to the millisecond (`:144`), which is exact for 4.0 against millisecond cue times. **One constant in effect:** `:135-136` refuses every rule but `max-gap` (D7) |
-| a reader that imports from, or shares with, the writer | **Not in the module.** `drill_read.py:47-55` imports stdlib and `jsonschema`, and no top-level name is shared. **Shared inputs:** (a) the schema file, which no falsifier reads a line of; (b) the key variable (B2); (c) the process: `python -m pave.cli` imports `pave.drill` at `cli.py:45` before it dispatches (D5) |
+| a writer default for the owner, window or threshold | **No.** Owner `drill.py:145-146` (`_text` raises); window `:90-95`; threshold `:131-133`; caption source `:97-103`. The threshold is rounded to the millisecond (`:144`), which is exact for 4.0 against millisecond cue times. **One constant in effect:** `:135-136` refuses every rule but `max-gap` (D18) |
+| a reader that imports from, or shares with, the writer | **Not in the module.** `drill_read.py:47-55` imports stdlib and `jsonschema`, and no top-level name is shared. **Shared inputs:** (a) the schema file, which no falsifier reads a line of; (b) the key variable (B2); (c) the process: `python -m pave.cli` imports `pave.drill` at `cli.py:45` before it dispatches (D16) |
 | F2's expected values against the writer's input | **Not by construction, but narrow.** `tests/test_drill_pins.py:111-120` holds the scenario equal to the pins, and the writer copies the scenario. So F2 in PR 3 can fire only on a copy error in the writer (W12 and W13, both CAUGHT) or a scenario on disk that differs from the commit (B4) |
 | F3's liveness check | **True by construction**, as SPEC/11 says. Its failure has no registered meaning, so **F3 passes on any refusal** (B2) |
-| checks that pass on any refusal | **F3**, B2. **Tests:** 18 `_refused` calls with no `match` (D3), plus the substring matches behind D8–D11 |
+| checks that pass on any refusal | **F3**, B2. **Tests:** 18 `_refused` calls with no `match` (D14), plus the substring matches behind D8–D11 |
 
 ---
 
 ## The findings
 
-### B1 — BLOCKING: three carried debts fall inside the seeded run's diff window
+### B1 — BLOCKING, repaired: three carried debts fall inside the seeded run's diff window
 
 **What is registered.**
 - **The seeded validity row:** `git diff --name-only B S` is exactly the fixture, where *B* is
@@ -236,7 +252,7 @@ a **false failure** of the seeded validity row, caused by obeying the debt table
 3. **Re-word the triggers of debts 4–6** to "after F, or not at all", and accept what that
    leaves: B2 stays open, and the key is committed after the readings it protects.
 
-### B2 — BLOCKING: F3 passes on any refusal
+### B2 — BLOCKING, repaired: F3 passes on any refusal
 
 **The false state.** `verify` is run on the three copies under a key other than the writer's.
 Every copy prints `signature: MISMATCH` and exits 1, because the value no longer matches
@@ -264,7 +280,7 @@ three copies MISMATCH, and only liveness fails.
 
 No reader's semantics move under either route.
 
-### B3 — BLOCKING: the control and fixed artifacts are read unverified
+### B3 — BLOCKING, repaired: the control and fixed artifacts are read unverified
 
 **What is read without a check.** F2 on the control run, F4, F5, and the control and fixed
 validity rows all read `drill read` output. `read` does not verify (`drill_read.py:17-19`).
@@ -284,7 +300,7 @@ second half. The detector already exists: `verify` exits 1 on each.
 exits 0 printing `signature: OK`*. The reader exists today and runs in PR 3 already, and no
 pinned value moves. It is a registration change that re-takes `readers.txt`.
 
-### B4 — BLOCKING: `tree_clean` is porcelain, and skip-worktree still hides the writer and the scenario
+### B4 — BLOCKING at review, DEBT D19 by ruling: `tree_clean` is porcelain, and skip-worktree still hides the writer and the scenario
 
 **Why the row does not see it.** `tree_clean` is `git status --porcelain` being empty
 (`pave/drill.py:223-227`). Amendment 1 item 1 measured that `--skip-worktree` defeats it, and
@@ -310,7 +326,7 @@ to rule, with that precedent named.
 and no assume-unchanged (lowercase) entry. It is captured in the transcript immediately before
 each of the three runs. The command exists today. It is a registration change.
 
-### D1 — DEBT: R09 has no witness
+### D12 — DEBT: R09 has no witness
 
 - **The door:** `drill_read.py:156` encodes each line before anything is printed, so a lone
   surrogate is refused whole.
@@ -325,7 +341,7 @@ each of the three runs. The command exists today. It is a registration change.
 - **Owner:** AI Quality + Platform Engineering. **Trigger:** the next PR that edits
   `pave/drill_read.py`.
 
-### D2 — DEBT: S03 has no witness, and the requirement is inert
+### D13 — DEBT: S03 has no witness, and the requirement is inert
 
 `required: signature` (`go-no-go.schema.json:18`) is never the refusing door:
 - `verify` checks the signature first (`drill_read.py:213-220`);
@@ -335,7 +351,7 @@ each of the three runs. The command exists today. It is a registration change.
 **Owner:** AI Quality + Platform Engineering. **Trigger:** the next PR that edits
 `quality/drill/`.
 
-### D3 — DEBT: writer refusal tests that accept any refusal, and a fifth shadowed door
+### D14 — DEBT: writer refusal tests that accept any refusal, and a fifth shadowed door
 
 **Tests that accept any refusal.**
 - **No `match`:** `test_a_missing_claim_value_writes_nothing` (10 cases,
@@ -354,7 +370,7 @@ would read SILENT. That is D8–D11's shape.
 **Owner:** AI Quality + Platform Engineering. **Trigger:** the next PR that edits
 `pave/drill.py`, the same as D8–D11.
 
-### D4 — DEBT: the claim's event and tier are read by no reader
+### D15 — DEBT: the claim's event and tier are read by no reader
 
 - **Neither is printed:** `read` prints neither `event` nor `tier` (`drill_read.py:64`).
 - **What holds them:** the scenario carries one event and one tier
@@ -364,7 +380,7 @@ would read SILENT. That is D8–D11's shape.
 
 **Owner:** AI Quality. **Trigger:** the next PR that edits `drill/scenarios/`.
 
-### D5 — DEBT: the command every falsifier names loads the writer
+### D16 — DEBT: the command every falsifier names loads the writer
 
 - **The module holds constraint 6:** `pave/drill_read.py` imports nothing from the writer
   (`tests/test_drill_read.py:366`, `:383`).
@@ -375,7 +391,7 @@ would read SILENT. That is D8–D11's shape.
 
 **Owner:** Platform Engineering. **Trigger:** debt 1's.
 
-### D6 — DEBT: PR 3's close work must land after F
+### D17 — DEBT: PR 3's close work must land after F
 
 **The rows bound each diff window:**
 - B..S is exactly the fixture;
@@ -388,9 +404,9 @@ SPEC edit. Anything else makes one of the three runs INVALID.
 
 SPEC/11's plan puts the close after the arc. The obligations table gives `brand_tone` no order.
 
-**Owner:** PM. **Trigger:** PR 3's first commit.
+**Owner:** PM. **Trigger:** PR 3, after the fixed run (ruling).
 
-### D7 — DEBT: the `max-gap` segment is a writer constant
+### D18 — DEBT: the `max-gap` segment is a writer constant
 
 - **The constant:** `drill.py:135-136` refuses every rule but `max-gap`, so every written
   finding reads `max-gap`.
@@ -401,11 +417,26 @@ SPEC/11's plan puts the close after the arc. The obligations table gives `brand_
 
 **Owner:** AI Quality. **Trigger:** a second rule.
 
+## The debt rows
+
+| # | debt | owner | trigger |
+|---|---|---|---|
+| D12 | R09 has no witness: the pre-print surrogate refusal (`pave/drill_read.py:156`) is shadowed by the print guard (`:164-166`) | AI Quality + Platform Engineering | the next PR that edits `pave/drill_read.py` |
+| D13 | S03 has no witness: `required: signature` is never the refusing door | AI Quality + Platform Engineering | the next PR that edits `quality/drill/` |
+| D14 | 18 writer refusal tests accept any refusal, and W43's tier type check is shadowed by the schema's `integer` | AI Quality + Platform Engineering | the next PR that edits `pave/drill.py` |
+| D15 | the claim's event and tier are read by no reader | AI Quality | the next PR that edits `drill/scenarios/` |
+| D16 | `python -m pave.cli` loads `pave.drill` before it dispatches to the readers | Platform Engineering | amendment 1 debt 1's trigger |
+| D17 | PR 3's close work (`brand_tone`, the Act 4 recording, `README.md` row 11, any ADR or SPEC edit) must land after F | PM | PR 3, after the fixed run |
+| D18 | the `max-gap` segment of every finding is a writer constant | AI Quality | a second rule |
+| D19 | skip-worktree can hide edits to `pave/drill.py` and `drill/scenarios/caption-check.json` from `tree_clean` (was B4). **The remedy is procedural:** PR 3's arc runs in a fresh clone of its branch, stated in the PR 3 body | Platform Engineering + Security | PR 3, before its seeded run |
+| D20 | amendment 1 debt 5: the clean fixture's bytes are pinned by no reader, and `drill/fixtures/` is on one key | AI Quality | PR 3, after the fixed run |
+| D21 | amendment 1 debt 6, its second half: a CRLF re-save of the fixture during the fix step makes the fixed run INVALID, with no retry | Platform Engineering | PR 3's fix step, before the fixed run: `git ls-files --eol` on the fixture, read and not committed |
+
 ## What this review does not show
 
 - **No test was run and no plant was applied.** Each "goes red" is a reading. The audit's
   lesson (amendment 2 item 1) is that a reading is weaker than a run: a door shadowed in a way
   this reviewer did not trace reads as caught here.
 - **Eighteen unrun plants were not on the checklist and were not worked:** I1, I2, C01, C02,
-  P01–P04, T01, T02, W40, W41 and W43–W48. W43 appears only in D3.
+  P01–P04, T01, T02, W40, W41 and W43–W48. W43 appears only in D14.
 - **Nothing here is a seat's disposition (G6).**

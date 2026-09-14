@@ -1,7 +1,7 @@
 {
-  "_comment": "M11's pre-registration: SPEC/11's claim, its pinned values, its five falsifiers and its validity checks, as data. REVISED after M11 PR 2's seat round (ADR-080 amendment 1), superseding the version committed first in PR 2: SPEC/11's validity table gained one row (each run's caption bytes are the committed fixture's), and every falsifier and validity row is now carried verbatim as `spec_row`. Committed AFTER the re-taken `readers.txt`, which shows every reader named here emitting a value on synthetic fixtures at the committed code (CLAUDE.md, Milestone discipline; ADR-080 decision 1). `tests/test_drill_pins.py` holds this file equal to SPEC/11's tables and pinned section and to `drill/scenarios/caption-check.json`. Nothing here may change after the registration this PR carries at its head (SPEC/11, What must not happen; ADR-080 amendment 1). On AI Quality, Platform Engineering and Security.",
+  "_comment": "M11's pre-registration: SPEC/11's claim, its pinned values, its five falsifiers and its validity checks, as data. REVISED after M11 PR 2's seat round (ADR-080 amendment 1), superseding the version committed first in PR 2: SPEC/11's validity table gained one row (each run's caption bytes are the committed fixture's), and every falsifier and validity row is now carried verbatim as `spec_row`. Committed AFTER the re-taken `readers.txt`, which shows every reader named here emitting a value on synthetic fixtures at the committed code (CLAUDE.md, Milestone discipline; ADR-080 decision 1). `tests/test_drill_pins.py` holds this file equal to SPEC/11's tables and pinned section and to `drill/scenarios/caption-check.json`. Nothing here may change after the registration this PR carries at its head (SPEC/11, What must not happen; ADR-080 amendment 1). On AI Quality, Platform Engineering and Security. REVISED AGAIN at M11 PR 2b, after the cold review (ADR-080 amendment 4): the seeded, control and fixed validity rows each gain a `drill verify` clause, carried verbatim from SPEC/11, and F3's liveness `on_failure` now reads INVALID. No pinned value, falsifier or reader moved, so `readers.txt` stands.",
   "spec": "SPEC/11-drill-go-no-go.md",
-  "adr": "ADR-080, amendment 1",
+  "adr": "ADR-080, amendments 1 and 4",
   "claim": "For event jefferson-derby at tier 3, a seeded caption failure makes `pave drill` write a NO-GO. The NO-GO names the seeded gap, the pinned owner, and a fix-by time set by the pinned window, under a signature that refuses a hand edit. The delta drill run without the fix still writes NO-GO for the same gap. The delta drill run with the fix writes GO.",
   "runs": [
     "seeded",
@@ -133,7 +133,7 @@
         "line": "signature: OK",
         "evidence": false,
         "why_not_evidence": "one key and one canonical form make it true by construction",
-        "on_failure": "not registered: SPEC/11 says only that verify must exit 0 first; carried by ruling (ADR-080 amendment 1, item 2)"
+        "on_failure": "INVALID: SPEC/11's seeded validity row requires verify on R1 to exit 0 printing signature: OK, so a failed liveness check makes the seeded run INVALID and no copy is read (ADR-080 amendment 4, item 2, superseding amendment 1 item 2's not registered)"
       },
       "edits": [
         {
@@ -213,15 +213,15 @@
       },
       {
         "run": "seeded",
-        "spec_row": "| seeded | `mode=full`. `git diff --name-only B S` is exactly the fixture | `git diff` | today |"
+        "spec_row": "| seeded | `mode=full`. `git diff --name-only B S` is exactly the fixture. `drill verify` on R1 exits 0 printing `signature: OK`, and `signature.key_id` equals the first 16 hex of `milestones/M11/pre-registration/key.sha256` (ADR-080 amendment 4) | `git diff`, `drill verify`, `grep '\"key_id\"'` on R1, `head -c 16` on `key.sha256` | PR 2, today |"
       },
       {
         "run": "control",
-        "spec_row": "| control | `mode=delta`. `prior_sha256` equals `sha256sum R1`. `caption_sha256` equals seeded's. C ≠ S. `git diff --name-only S C` lies under `milestones/M11/` | `drill read`, `sha256sum`, `git diff` | PR 2, today |"
+        "spec_row": "| control | `mode=delta`. `prior_sha256` equals `sha256sum R1`. `caption_sha256` equals seeded's. C ≠ S. `git diff --name-only S C` lies under `milestones/M11/`. `drill verify` exits 0 (ADR-080 amendment 4) | `drill read`, `drill verify`, `sha256sum`, `git diff` | PR 2, today |"
       },
       {
         "run": "fixed",
-        "spec_row": "| fixed | `mode=delta`. `prior_sha256` equals `sha256sum R1`. `git diff --name-only C F`, minus `milestones/M11/`, is exactly the fixture. `git diff B F -- drill/fixtures/jefferson-derby/captions.vtt` is empty | same | PR 2, today |"
+        "spec_row": "| fixed | `mode=delta`. `prior_sha256` equals `sha256sum R1`. `git diff --name-only C F`, minus `milestones/M11/`, is exactly the fixture. `git diff B F -- drill/fixtures/jefferson-derby/captions.vtt` is empty. `drill verify` exits 0 (ADR-080 amendment 4) | `drill read`, `drill verify`, `sha256sum`, `git diff` | PR 2, today |"
       }
     ]
   },
