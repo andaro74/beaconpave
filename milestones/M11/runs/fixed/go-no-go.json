@@ -1,0 +1,19 @@
+{
+  "event": "jefferson-derby",
+  "tier": 3,
+  "mode": "delta",
+  "commit": "a69e3a7cbd03e535a3d0b5d9cdb4673a26500d70",
+  "tree_clean": true,
+  "ran_at": "2026-09-14T14:06:52Z",
+  "decision": "GO",
+  "findings": [],
+  "inputs": {
+    "caption_sha256": "b9552728f7f7fd402980e3e8801f3f99a9b5c7c59278589b52fc6b525ea8b3ce"
+  },
+  "prior_sha256": "96cb3c3c18406984e974e2cf64b693376f4ac43bb348a01d976c869af0f4bb62",
+  "signature": {
+    "alg": "HMAC-SHA256",
+    "key_id": "cb16e839a08a5a74",
+    "value": "759ea1b339c961726b81f34b7d0031466f7b2fe55b5e992037841578eb9e47fc"
+  }
+}
