@@ -1,0 +1,31 @@
+{
+  "event": "jefferson-derby",
+  "tier": 3,
+  "mode": "full",
+  "commit": "10283eb264ca7d436df60f373ca0bb860cd3f003",
+  "tree_clean": true,
+  "ran_at": "2026-09-14T14:04:29Z",
+  "decision": "NO-GO",
+  "findings": [
+    {
+      "scenario": "caption-check",
+      "rule": "max-gap",
+      "after_cue": "c006",
+      "before_cue": "c008",
+      "gap_s": 5.0
+    }
+  ],
+  "inputs": {
+    "caption_sha256": "1449d4db5c81a50789f0231375d9933742d5f3af32f731020bbc5168a3c0d3de"
+  },
+  "owner": {
+    "seat": "service-team",
+    "oncall": "webhook:player-captions"
+  },
+  "fix_by": "2026-09-16T02:04:29Z",
+  "signature": {
+    "alg": "HMAC-SHA256",
+    "key_id": "cb16e839a08a5a74",
+    "value": "4b4d5ec58e0f371f8936dcae35e556787b38e125147c880322e0b6ee197818e3"
+  }
+}

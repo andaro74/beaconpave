@@ -49,7 +49,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 09b | The rule's second control, and the topic reworded under a rule written first — **closed RED** ❊ | seven PRs ❊ | `m09b` | not run ❊ | not judged ✧ | not run ❊ | ✅ |
 | 09c | Answer quality: the browse gap closes, and the count is the headline — **closed RED** ❋ | two PRs ❋ | `m09c` | not run ❋ | not judged ✧ | not run ❋ | ✅ |
 | 10 | Playwright + k6 on one verdict schema — **closed RED** ✺ | four PRs ✺ | `m10` | not run ✺ | not judged ✧ | not run ✺ | ✅ |
-| 11 | Game-day drill + go/no-go artifact | `m11-drill` | `m11` | – | – | – | ⬜ |
+| 11 | Game-day drill + go/no-go artifact — **claim 11's arc holds** ✻ | five PRs ✻ | `m11` | not run ✻ | not judged ✧ | not run ✻ | ✅ |
 | 12 | Self-heal classifier + curation panel | `m12-selfheal` | `m12` | –/25 | – | –/10 | ⬜ |
 
 Fill each row at milestone close (see `.claude/skills/close-milestone`).
@@ -755,6 +755,28 @@ and claim 12 stays at M12.
 merged nothing and are outside the cap. The withdrawal spent the reading the cap planned
 for PR 4, and the milestone closes rather than taking a sixth PR.
 
+✻ **M11 closed with claim 11's arc holding, on one scenario over a committed fixture (ADR-080; `SPEC/11`;
+`milestones/M11/README.md`).** Three drill runs, each taken once in a fresh clone of the PR 3 branch,
+and each VALID on every registered clause (`milestones/M11/runs/validity.md`):
+- **seeded** (cue `c007` deleted): NO-GO, exactly `caption-check/max-gap/c006/c008`, owner `service-team` /
+  `webhook:player-captions`, `fix_window_s=129600`. Three `sed` copies of it (`decision`, `owner.oncall`,
+  `fix_by`'s year) each `signature: MISMATCH`, exit 1, under the key whose sha256 was committed before the
+  branch point;
+- **control** (the delta drill without the fix): NO-GO for the same gap, the same owner and window;
+- **fixed** (`c007` restored, bytes equal to `main`'s): GO, no finding.
+
+F1–F5 were read after validity, and none fired (`milestones/M11/runs/falsifiers.md`). The key was
+published after the last reading, so from that commit the signature proves nothing further. **What a GO
+does not show:** a live system, a page, a human, an accepted risk, or the two cut scenarios (the blackout
+sweep and the alarm self-test, ADR-080 decision 4). **Row 9 of SPEC/11's measurement table, conformance, is only
+partially measured:** PR 2's deletability audit stopped at 39 of 96 plants with 4 SILENT (ADR-080
+amendment 2). No deploy, zero model calls, zero AWS calls; goldens and adversarial were not run.
+
+**Five PRs, document-only ones included, against a cap raised from four to five** at ADR-080 amendment 4,
+because the cold review's spare merged before its rulings could land. No exhibit was opened.
+`brand_tone`'s owe is re-deferred a seventh time, owned and unscheduled; Act 4's recording is deferred to
+after the close, with the demo block as its script (`milestones/M11/runs/demo.md`).
+
 ## What part one produced
 
 Deliberately without restating a scored number: every one of them is in the
@@ -818,7 +840,7 @@ Anything that doesn't serve one is out of scope.
 | 8 | Self-heal classifies before it repairs | Classifier test suite + one drift-repair PR | 12 |
 | 9 | Judges are calibrated or advisory | ✅ **Advisory, by measurement.** [`held-out-report.json`](milestones/M03/judge/held-out-report.json) — 20 held-out items at `k_judge=3`, every axis demoted, seat correction rate 0/20 published beside it. Auto-demotion test both directions in [`tests/test_judged_entry.py`](tests/test_judged_entry.py); a demoted axis cannot block, a calibrated one turns a deterministic PASS into a judged FAIL | 03 |
 | 10 | Consequence classes gate real actions | ⬜ **UNSCHEDULED** ❖ — no milestone carries this claim. It needs a `publish-highlight` deployment, and the only recorded disposition on one is Legal/S&P answering *no* (`SPEC/06` Decisions 1). Whether that refusal is standing or was scoped to M06 is an open question for that seat | — |
-| 11 | Readiness drills produce go/no-go artifacts | NO-GO → fix → delta drill → GO | 11 |
+| 11 | Readiness drills produce go/no-go artifacts | ✅ **The arc holds** ✻ — [`milestones/M11/runs/falsifiers.md`](milestones/M11/runs/falsifiers.md): a seeded caption gap writes a signed NO-GO naming its gap, `service-team`, `webhook:player-captions` and a 36 h fix-by; the delta drill without the fix stays NO-GO for the same gap; the fix writes GO. All three runs VALID, and none of F1–F5 fired. One scenario over a committed fixture, a MAC in place of a signature, no page and no human | 11 |
 | 12 | Defect leakage is counted honestly | Increments from rollbacks, never gate failures | 12 |
 
 ⁂ **Claim 1 is INCOMPLETE at the M05 tag, for two reasons, and neither is a
