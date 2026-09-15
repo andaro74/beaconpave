@@ -28,17 +28,40 @@ from __future__ import annotations
 import json
 import re
 
+import pytest
 from milestone_status import (
+    RETIRED,
     ROOT,
+    UNSCHEDULED,
     display,
     key,
     latest_closed_milestone,
     milestone_is_closed,
     progression_order,
+    terminal_state_defects,
 )
 
 SCRIPT = ROOT / "docs" / "governance" / "demo-script.md"
 REGISTRY = ROOT / "docs" / "governance" / "recordings.json"
+#: The registry's repo-relative path. Its two-key rule decides who may retire an act.
+REGISTRY_PATH = "docs/governance/recordings.json"
+#: The field in an act that names the milestone it is owed by.
+TARGETS = ("owed_by",)
+
+#: **A made-up README: a claims-shaped table, then a progression table with one closed
+#: row and one open row** (M10 row 24). The claims-shaped row comes FIRST and reads ✅
+#: for `02`, the open progression row, so a parser that stopped scoping itself to the
+#: progression table answers `02` from the wrong table and loses the False.
+MADE_UP_README = "\n".join([
+    "| # | Claim | Proof | M | Status |",
+    "|---|---|---|---|---|",
+    "| 02 | a made-up claim | a made-up proof | 02 | ✅ |",
+    "",
+    "| M | Milestone | Branch | Tag | Goldens | Judged | Adversarial | Status |",
+    "|---|---|---|---|---|---|---|---|",
+    "| 01 | a made-up closed row | `m01-x` | `m01` | – | – | – | ✅ |",
+    "| 02 | a made-up open row | `m02-x` | `m02` | – | – | – | ⬜ |",
+])
 
 #: The progression table's two status cells, named so the fixture below is a
 #: pair of constants rather than two glyphs a reader has to squint at.
@@ -101,18 +124,39 @@ def test_every_act_in_the_script_is_tracked():
         f"script declares {sorted(_acts_in_script())}, registry tracks {sorted(tracked)}")
 
 
+def act_defects(act: dict, text: str | None = None) -> list[str]:
+    """Why an act's obligation has lapsed or is malformed. Empty means it stands.
+
+    A recorded act is paid, and `test_a_claimed_recording_actually_exists` resolves
+    its path. An unrecorded act with a `state` is read by `terminal_state_defects`
+    (ADR-081 decision 5), any value included. Any other unrecorded act must be owed to
+    a milestone that has not closed, which is the teeth, unchanged. **A terminal state
+    does not leave the ratchet:** `uncounted_deferrals` still counts every closed
+    milestone an unrecorded act passed."""
+    if act.get("recorded"):
+        return []
+    if act.get("state") is not None:
+        return terminal_state_defects(act, REGISTRY_PATH, TARGETS, text)
+    owed = act.get("owed_by")
+    if not owed:
+        return [f"Act {act['act']} is unrecorded, owed to no milestone, and holds no "
+                "terminal state"]
+    if milestone_is_closed(owed, text):
+        return [
+            f"Act {act['act']} ({act.get('title')}) was owed by {owed}, {owed} is closed, "
+            "and it is still unrecorded. Record it, re-defer it deliberately in "
+            "docs/governance/recordings.json, or move it to a terminal state (ADR-081 "
+            "decision 5) — the last time this obligation moved, it moved by nobody "
+            "noticing."]
+    return []
+
+
 def test_an_unrecorded_act_is_owed_to_a_milestone_that_has_not_closed():
-    """The teeth. Each act goes red the moment its milestone closes unrecorded."""
+    """The teeth. Each act goes red the moment its milestone closes unrecorded, or
+    when an act in a terminal state is missing what its state must carry."""
     for act in _registry():
-        if act.get("recorded"):
-            continue
-        owed = act.get("owed_by")
-        assert owed, f"Act {act['act']} is unrecorded and owed to no milestone"
-        assert not milestone_is_closed(owed), (
-            f"Act {act['act']} ({act['title']}) was owed by {owed}, {owed} is closed, "
-            "and it is still unrecorded. Record it, or re-defer it deliberately in "
-            "docs/governance/recordings.json — the last time this obligation moved, it "
-            "moved by nobody noticing.")
+        defects = act_defects(act)
+        assert not defects, defects
 
 
 def test_a_claimed_recording_actually_exists():
@@ -129,11 +173,12 @@ def test_an_act_owed_past_its_own_milestone_says_why():
     """Deferring an act beyond the milestone that owns it is a decision, and a
     decision with no stated reason is indistinguishable from an oversight."""
     for act in _registry():
-        if act.get("recorded") or act["owed_by"] == act["owner_milestone"]:
+        if act.get("recorded") or act.get("owed_by") == act["owner_milestone"]:
             continue
+        # A terminal act names no `owed_by`, so it lands here and must say why too.
         assert len(act.get("why", "")) > 60, (
             f"Act {act['act']} is owned by {act['owner_milestone']} and deferred to "
-            f"{act['owed_by']} with no reason recorded")
+            f"{act.get('owed_by') or act.get('state')} with no reason recorded")
 
 
 def test_the_progression_parser_is_not_vacuous():
@@ -145,18 +190,21 @@ def test_the_progression_parser_is_not_vacuous():
     `is True` direction and nobody had noticed, so a rename that touched only the
     counted one would have left a half-restructured guard.
 
-    What it asserts instead is the property: the parser **discriminates**. Reading
-    the live table and requiring both answers to appear survives every close,
-    because a milestone moving from unclosed to closed moves a row from one side
-    to the other rather than emptying either.
+    What it asserts instead is the property: the parser **discriminates**.
 
-    **The horizon, stated rather than asserted away.** This holds while at least
-    one row is unclosed and at least one is closed. When M10 closes, no row
-    returns False and this guard is unsatisfiable again — one milestone later than
-    the literal it replaces, not forever. The alternative is asserting against a
-    synthetic two-row table, which stops reading what the repository publishes and
-    is the whole reason `milestone_status` exists. That trade is recorded here as
-    a decision rather than discovered at M10."""
+    **The horizon arrived at M12, and this is the replacement it asked for** (M10 row
+    24, ADR-081 decision 5 item 5). This used to read `{True, False}` off the live
+    table, and said it held only while one row was unclosed. It predicted failure at
+    M10's close and did not fail then, because rows 11 and 12 were open. Row 12 is the
+    last row, so it would fail the day row 12 reads ✅, and its own message asked for a
+    synthetic table recorded in the same diff. ADR-081 records why.
+
+    **The trade the old docstring named stays visible.** A made-up table stops reading
+    what the repository publishes, which is the whole reason `milestone_status` exists.
+    So a live half stays, and it asserts only what no close can change: the live
+    progression rows parse, there are at least two, and at least one reads closed. The
+    discriminating half reads `MADE_UP_README`, where a claims-shaped row comes first
+    and says ✅ for `02`."""
     # **Scoped to the progression table by its backticked tag cell.** The first
     # version of this guard collected any row whose second cell was a number,
     # which also swept in README's twelve-CLAIMS table — and the two tables
@@ -164,11 +212,10 @@ def test_the_progression_parser_is_not_vacuous():
     # parser while the progression table was uniformly closed. Measured: closing
     # every progression row left this green.
     #
-    # `milestone_status.milestone_is_closed` has the same looseness and takes the
-    # first matching row, so `milestone_is_closed("11")` answers from the claims
-    # table rather than raising. Today the progression table comes first, so every
-    # real milestone resolves correctly; the ordering dependency is noted here
-    # rather than relied on silently.
+    # This comment used to say `milestone_is_closed` shared that looseness and took
+    # the first matching row from either table. `milestone_status._rows` is scoped by
+    # the progression table's header now, so that is no longer true, and the made-up
+    # README exercises the scoping rather than this comment asserting it.
     tag_cell = re.compile(r"^`m\d\d[a-z]?`$")
     rows = [c[1] for c in (
         [x.strip() for x in line.split("|")]
@@ -178,13 +225,17 @@ def test_the_progression_parser_is_not_vacuous():
         f"the progression parser found {len(rows)} milestone rows in README.md. "
         "Every check above reads this table; a parser that matches nothing makes "
         "all of them pass silently.")
-    answers = {milestone_is_closed(number) for number in rows}
-    assert answers == {True, False}, (
-        f"the parser returned only {answers} across {len(rows)} rows. It is no longer "
-        "discriminating: either every milestone reads closed, every one reads open, or "
-        "the marker changed. If this is M10 closing and no row is unclosed any more, "
-        "that is the stated horizon — replace this with a synthetic table and record "
-        "why in the same diff.")
+    live = {milestone_is_closed(number) for number in rows}
+    assert True in live, (
+        f"the parser read no closed row across {len(rows)} live rows. A closed row never "
+        "reopens, so either the marker changed or the parser stopped matching it.")
+
+    made_up = {number: milestone_is_closed(number, MADE_UP_README) for number in ("01", "02")}
+    assert made_up == {"01": True, "02": False}, (
+        f"the parser read the made-up README as {made_up}. It is no longer "
+        "discriminating: every row reads closed, every one reads open, the marker "
+        "changed, or `02` was answered from the claims-shaped table above the "
+        "progression table.")
 
 
 def test_a_deferral_is_counted_and_named():
@@ -223,8 +274,8 @@ def test_a_deferral_is_counted_and_named():
                 f"Act {act['act']} was deferred from {tag} and its `why` does not name "
                 f"{tag}. Each deferral is admitted in the prose a reader actually reads, "
                 "so the admission grows with the count.")
-        assert act["owed_by"] not in history, (
-            f"Act {act['act']} lists {act['owed_by']} — the milestone it is owed by "
+        assert act.get("owed_by") not in history, (
+            f"Act {act['act']} lists {act.get('owed_by')} — the milestone it is owed by "
             "now — among the milestones it was already deferred from.")
         owner = act["owner_milestone"]
         if milestone_is_closed(owner):
@@ -312,3 +363,55 @@ def test_the_ratchet_fires_when_a_milestone_closes():
         f"M06 closes and the ratchet reports {sorted(reported)}; only act 90 passed the "
         "close unrecorded without counting it. 91 counted it, 92 is recorded, and 93 was "
         "not yet owed")
+
+
+# --- the terminal state, on this registry (ADR-081 decision 5) ------------------
+#
+# `tests/test_calibration_owe.py` plants every requirement of `terminal_state_defects`
+# against the owe registry. These plant only what differs here: the target field is
+# `owed_by`, the seats that may retire an act are this registry's, and the ratchet
+# still counts an act in a terminal state.
+
+UNSCHEDULED_ACT = {
+    "act": 97, "title": "a made-up act", "owner_milestone": "M01", "recorded": None,
+    "owed_by": None, "deferred_from": ["M01"], "why": "a made-up reason " * 5,
+    "state": UNSCHEDULED, "owners": ["platform-eng"], "trigger": "a made-up trigger",
+}
+RETIRED_ACT = {
+    "act": 98, "title": "a made-up act", "owner_milestone": "M01", "recorded": None,
+    "owed_by": None, "deferred_from": ["M01"], "why": "a made-up reason " * 5,
+    "state": RETIRED,
+    "retired_by": "docs/adr/ADR-081-m12-is-the-ledger-claims-7-8-and-12-are-"
+                  "unscheduled-and-act-5-is-retired.md",
+    "disposed_by": ["platform-eng", "ai-quality"],
+}
+
+
+def test_a_well_formed_terminal_act_stands():
+    """The control for the refusals below."""
+    assert act_defects(UNSCHEDULED_ACT, MADE_UP_README) == []
+    assert act_defects(RETIRED_ACT, MADE_UP_README) == []
+
+
+@pytest.mark.parametrize("act, phrase", [
+    # still owed to a milestone, and that milestone is open
+    ({**UNSCHEDULED_ACT, "owed_by": "M02"}, "(open)"),
+    # held by nobody
+    ({**UNSCHEDULED_ACT, "owners": []}, "UNSCHEDULED with owners []"),
+    # labels.json's two seats. This registry's rule does not collect Security.
+    ({**RETIRED_ACT, "disposed_by": ["ai-quality", "security"]}, "RETIRED with `disposed_by"),
+])
+def test_a_terminal_state_refuses_an_act_missing_what_it_must_carry(act, phrase):
+    defects = act_defects(act, MADE_UP_README)
+    assert len(defects) == 1 and phrase in defects[0], defects
+
+
+def test_the_ratchet_keeps_counting_an_act_in_a_terminal_state():
+    """ADR-081 decision 5 item 4: *a state change does not erase a slide.* M01 is the
+    latest closed row of the made-up README. A terminal act owned by M01 that does not
+    list M01 in `deferred_from` passed M01 uncounted, whatever its state."""
+    assert latest_closed_milestone(MADE_UP_README) == "1"
+    uncounted = {**UNSCHEDULED_ACT, "deferred_from": []}
+    reported = {int(p.split()[1])
+                for p in uncounted_deferrals([uncounted, RETIRED_ACT], MADE_UP_README)}
+    assert reported == {97}, reported
