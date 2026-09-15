@@ -50,7 +50,7 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 09c | Answer quality: the browse gap closes, and the count is the headline — **closed RED** ❋ | two PRs ❋ | `m09c` | not run ❋ | not judged ✧ | not run ❋ | ✅ |
 | 10 | Playwright + k6 on one verdict schema — **closed RED** ✺ | four PRs ✺ | `m10` | not run ✺ | not judged ✧ | not run ✺ | ✅ |
 | 11 | Game-day drill + go/no-go artifact — **claim 11's arc holds** ✻ | five PRs ✻ | `m11` | not run ✻ | not judged ✧ | not run ✻ | ✅ |
-| 12 | Self-heal classifier + curation panel | `m12-selfheal` | `m12` | –/25 | – | –/10 | ⬜ |
+| 12 | The ledger: every obligation reaches a terminal state, and no claim | `m12-ledger` | `m12` | –/25 | – | –/10 | ⬜ |
 
 Fill each row at milestone close (see `.claude/skills/close-milestone`).
 
@@ -836,12 +836,12 @@ Anything that doesn't serve one is out of scope.
 | 4 | No direct model access | ✅ [PR #14](https://github.com/andaro74/beaconpave/pull/14) blocked by the IAM assertion; the denial witnessed in `milestones/M01/direct-call-witness.json` | 01 |
 | 5 | Adversarial pass = blocked-and-logged | ✅ [`m04-adversarial`](evals/history/m04-adversarial.json) — 10 probes × 3 samples, **7/10** under unanimity. Every observation fetched back **out of the audit lake** rather than taken from the gateway's word; a record that does not resolve scores FAIL. No probe passes on the model's manners — `model_complied` is recorded and never scored | 04 |
 | 6 | Rules have owners and dispositions | ❌ **FAILED on two falsifiers** ⊙ — the rule delta *was* disposed end-to-end (`python -m pave.cli rules trace MER-AI-0001` walks law → rule → control → seven cases with no step supplied by hand, and the gate blocked at exit 1 then permitted at exit 0 on the real deployment). The **claim** — *and the fix makes it pass, with nothing else moving* — failed: **F1** on `disclosure-103`, which passed 2 of 3 **before** the fix, and **F4.2** on `grounded-017`, which passed 3-of-3 at M08b and fails by majority after it | 09 |
-| 7 | AI proposes, a human disposes, rates published | An `ai-proposed` PR merged; curation panel | 12 |
-| 8 | Self-heal classifies before it repairs | Classifier test suite + one drift-repair PR | 12 |
+| 7 | AI proposes, a human disposes, rates published | ⬜ **UNSCHEDULED** — no milestone carries this claim ([ADR-081](docs/adr/ADR-081-m12-is-the-ledger-claims-7-8-and-12-are-unscheduled-and-act-5-is-retired.md) decision 3). **Its rate has no population:** `gh pr list --state all --label ai-proposed` returns 0 PRs, and every PR here is Claude-authored, so the denominator is undefined until the label means something narrower than every PR. The curation panel has no measurement. It becomes measurable when the label has a written definition that excludes some PRs, and at least one PR carries it | — |
+| 8 | Self-heal classifies before it repairs | ⬜ **UNSCHEDULED** — no milestone carries this claim ([ADR-081](docs/adr/ADR-081-m12-is-the-ledger-claims-7-8-and-12-are-unscheduled-and-act-5-is-retired.md) decision 3). **Its false state needs a real tool contract bump that turns contract tests red.** The only candidate is `catalog-search`'s semver bump (09c debt 1, Tool Owner), measured at 19 tests red and never scheduled. `pave selfheal` stays a stub. It becomes measurable when a real contract change turns contract tests red on a PR to `main` | — |
 | 9 | Judges are calibrated or advisory | ✅ **Advisory, by measurement.** [`held-out-report.json`](milestones/M03/judge/held-out-report.json) — 20 held-out items at `k_judge=3`, every axis demoted, seat correction rate 0/20 published beside it. Auto-demotion test both directions in [`tests/test_judged_entry.py`](tests/test_judged_entry.py); a demoted axis cannot block, a calibrated one turns a deterministic PASS into a judged FAIL | 03 |
 | 10 | Consequence classes gate real actions | ⬜ **UNSCHEDULED** ❖ — no milestone carries this claim. It needs a `publish-highlight` deployment, and the only recorded disposition on one is Legal/S&P answering *no* (`SPEC/06` Decisions 1). Whether that refusal is standing or was scoped to M06 is an open question for that seat | — |
 | 11 | Readiness drills produce go/no-go artifacts | ✅ **The arc holds** ✻ — [`milestones/M11/runs/falsifiers.md`](milestones/M11/runs/falsifiers.md): a seeded caption gap writes a signed NO-GO naming its gap, `service-team`, `webhook:player-captions` and a 36 h fix-by; the delta drill without the fix stays NO-GO for the same gap; the fix writes GO. All three runs VALID, and none of F1–F5 fired. One scenario over a committed fixture, a MAC in place of a signature, no page and no human | 11 |
-| 12 | Defect leakage is counted honestly | Increments from rollbacks, never gate failures | 12 |
+| 12 | Defect leakage is counted honestly | ⬜ **UNSCHEDULED** — **no pre-registerable wording** ([ADR-081](docs/adr/ADR-081-m12-is-the-ledger-claims-7-8-and-12-are-unscheduled-and-act-5-is-retired.md) decisions 1 and 2). **There is no rollback here to count:** no delivery pipeline exists and `main` holds 0 revert commits, so a counter that always returns 0 reads the same as a correct one, and a counter that never reads gate runs satisfies *"never gate failures"* by construction. The one wording with a false state counted a seeded revert commit on `main`. That substitutes revert-counting for defect leakage rather than scoping it, and it was refused. It becomes measurable when a rollback population exists that the measurer did not seed | — |
 
 ⁂ **Claim 1 is INCOMPLETE at the M05 tag, for two reasons, and neither is a
 rounding error.**
@@ -980,7 +980,7 @@ make core           # deploy gateway, tools, agent, dashboard
 make evals          # definition of done
 make adversarial    # the security seat's corpus, fetched fresh
 pave new my-agent --brand meridian-sports --classification internal
-pave drill --event jefferson-derby --tier 3
+pave drill --event jefferson-derby --tier 3 --out go-no-go.json
 ```
 
 See `SPEC/00-overview.md` (mission), `SPEC/00b-baseline.md` (the control),
