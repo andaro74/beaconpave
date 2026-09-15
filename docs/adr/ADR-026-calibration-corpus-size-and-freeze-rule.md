@@ -390,3 +390,82 @@ and the first with no reason at all.** It is recorded as a slide, never as a pay
 - The labels: no label moves, and no item is added or removed.
 
 Two keys on the `labels.json` edit, AI Quality and Security.
+
+## Amendment 7 (2026-09-14, at M12 PR 2): the owe is retired, not paid, after seven re-deferrals
+
+**Taken at zero model calls, on amendment 6's second route:** *"retired, by AI Quality with
+Security"*. SPEC/12 and ADR-081 decision 5 route it here. `labels.json`'s `owed` entry now
+reads `state: RETIRED`, with `retired_by` naming this ADR, `disposed_by` naming `ai-quality`
+and `security`, and `re_deferred_to: null`.
+
+### The seven re-deferrals
+
+| # | taken at | to | ground | recorded by |
+|---|---|---|---|---|
+| — | owed to M04 at M03 | — | — | this ADR's *Consequences*. **Lapsed at M04's close, unnoticed** |
+| 1 | after M04 closed | M07 | the next milestone that adds graded content | amendment 1 |
+| 2 | M07's close | M08 | the same, renumbered by ADR-070 | amendment 2 |
+| 3 | M08's open | M09 | the same, renumbered by ADR-073 | amendment 3 |
+| 4 | M09's open | M09b | *"M09b is where the judge moves"*, after ADR-075's split | amendment 4 |
+| 5 | M09b's open | M10 | the `meridian-news` axis and a re-freeze, since SPEC/09b removed amendment 4's ground | amendment 5 |
+| 6 | M10 PR 2 | M11 | **none.** SPEC/10 removed amendment 5's ground | amendment 6 |
+| 7 | M11's close | M12 | **none.** `M12` was written only because a test needed a listed row (M11 debt 21) | **no amendment**, until this one (M11 debt 20) |
+
+One set the reason (1). Two renumbered the milestone it named (2, 3). Two changed the reason
+(4, 5), which is amendment 5's and amendment 6's own count. Two had no reason at all (6, 7).
+**None was a payment.**
+
+### The cost of paying
+
+Paying is unchanged from amendment 1: **extend the deterministic draw, same ordering, larger
+`n`**, and label what it yields under the existing discipline.
+- **The draw needs no new agent answers.** It is over about 480 committed answers (:29-32).
+- **The labels need model calls.** They are model-drafted and curated by AI Quality
+  (`labels.json`'s `provenance`: `drafted_by: claude-opus-5`, `curated_by: ai-quality`).
+- **The judge needs calls at `k_judge = 3`** (`SPEC/03-evals.md:124`, *"`k_judge = 3`, never
+  1"*). That is at least 3 per added item, plus the re-run that publishes the new agreement
+  figure (`milestones/M12/feasibility.md` §4).
+- **No rule pins the wider `n`.** So the number of calls cannot be stated. AI Quality would
+  have to pin `n` before the spend, and a width chosen after seeing this axis's labels is the
+  hand-picking amendment 1 refuses, one step removed.
+- **The result can still be "one value"**, which amendment 1 calls a finding about the axis.
+
+### Why retired, and not paid
+
+1. **Nothing is left to defer to.** Row 12 is the progression table's last row, and
+   `milestone_is_closed` raises for a milestone the table does not list (ADR-081 decision 5
+   item 1). An eighth slide has no target.
+2. **No ground was ever true.** Amendment 1's reason needs graded content the judge reads, and
+   no milestone the owe was pointed at added any. M09 added graded content the judge does not
+   read (amendment 4). Amendment 4's ground was removed by SPEC/09b and amendment 5's by
+   SPEC/10, each the named milestone's own spec. No milestone after M12 is scheduled to make
+   any of them true.
+3. **M12 cannot pay it.** SPEC/12 bounds the milestone at zero model calls, and forbids paying
+   this owe inside M12 at all. Paying anyway would be a spend of unpinned size inside a
+   milestone written to make none.
+4. **Keeping it owed has a measured cost.** Seven slides in a two-key file, six amendments and
+   one missing amendment. An owe that is re-dated every milestone and paid by none tells a
+   reader it is scheduled when it is not. `recordings.json` was built after this owe's first
+   lapse to refuse that shape, and ADR-081 decision 6 declines to repeat it on Act 5.
+
+### What retirement does not do
+
+- **The defect stands.** The axis holds 7 items, 5 gradeable, every one labelled 0.5.
+  Amendment 1 said *"neither number says anything about whether the judge is any good"*, and
+  that stays true. **Retirement ends the obligation. It does not calibrate the axis**, and
+  no agreement figure for `brand_tone:meridian-sports` becomes meaningful because of it. It was
+  already at the insufficient-evidence floor at M03 (:56-57, :77-80).
+- **The history stays.** The entry stays in `owed`, so
+  `test_every_zero_variance_axis_is_recorded_as_owed` still sees it.
+  `originally_due`, `why_re_deferred` and `how_it_must_be_paid` are byte-identical, and the
+  reason for retiring is a new `why_retired` field beside them.
+- **Nothing moves under the judge.** No label, no item and no draw moves, and
+  `quality/judge/frozen.json` is byte-identical.
+- **It is reversible, at the same price.** Re-opening the owe is an edit to `labels.json` on
+  AI Quality and Security, with a further amendment here, and `how_it_must_be_paid` stays the
+  only admissible route.
+
+**Debts:** this pays M11 debt 20 (no amendment recorded the seventh slide), and M11 debt 18
+(`brand_tone`) ends in RETIRED.
+
+Two keys on the `labels.json` edit, AI Quality and Security.
