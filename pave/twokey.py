@@ -859,6 +859,32 @@ RULES: tuple[Rule, ...] = (
         ("platform-eng", "ai-quality"),
     ),
     Rule(
+        # **M12 PR 2, ADR-081 decision 5 item 6: the reader both obligation registries
+        # are judged through, and the owe test.** Measured on `fbf69f3` by
+        # `twokey.triggered` over each path, before this rule existed: both `[]`.
+        #
+        # `tests/milestone_status.py` answers, for `labels.json` and for
+        # `recordings.json`, whether the milestone an obligation names has closed, and
+        # from this PR it also decides what a terminal state must carry. Both registries
+        # take two keys, and `tests/test_demo_recordings.py` rides the register's rule,
+        # while this reader and `tests/test_calibration_owe.py` took none. ADR-035's
+        # shape: the registries keyed and the reader that decides whether they have
+        # lapsed free.
+        #
+        # G9: PM feels a slide, and PM is not an enforceable seat here. So AI Quality,
+        # which owns what an owe means, and Platform Engineering, which owns the test
+        # harness. Security is not added: the owe's registry already collects it, and
+        # this reader decides nothing about a probe.
+        #
+        # `(\.py|/.+)` for the module, for ADR-052 round 3's reason: a package named
+        # `tests/milestone_status/` shadows the module for `from milestone_status
+        # import`, and a pattern ending `\.py$` would not match it.
+        "the obligation mechanism — whether an owed milestone has closed, what a "
+        "terminal state must carry, and the owe test that reads it",
+        re.compile(r"^tests/(milestone_status(\.py|/.+)|test_calibration_owe\.py)$"),
+        ("ai-quality", "platform-eng"),
+    ),
+    Rule(
         # **ADR-049. SPEC/05 named this row and no PR built it.** Justified on
         # `evals:` and `adversarial:` -- the two `--record` entrypoints -- and above
         # all on the `OBSERVATIONS` guard, whose entire job is to stop a bare
@@ -1746,13 +1772,20 @@ RULES: tuple[Rule, ...] = (
         #
         # NOT on this rule, on purpose: `drill/fixtures/`. The fix is the owning
         # team's edit to its own captions, and PR 3's validity checks bound what
-        # may change there. `tests/test_drill*.py` is not on it either, which is
-        # M10's row 28 (33 test files on no rule), fired by this edit and carried.
+        # may change there.
+        #
+        # **`tests/test_drill*.py` joined at M12 PR 2, paying M11 debt 2.** M11 PR 2
+        # left them off as M10's row 28 (test files on no rule), fired by that edit
+        # and carried. They are the witnesses of the signature, the pins and the
+        # readers, so on no rule they could be deleted in the same diff as a
+        # weakening of the code this rule takes three keys for. A pattern rather
+        # than three names, so a fourth drill test lands on the rule the day it is
+        # written.
         "the drill's go/no-go instrument — the scenario that sets its owner, window "
         "and threshold, the artifact schema, the writer, the readers, and M11's "
         "pre-registration and runs",
         re.compile(r"^(drill/scenarios/|quality/drill/|pave/drill(_read)?(\.py$|/)"
-                   r"|milestones/M11/)"),
+                   r"|milestones/M11/|tests/test_drill[a-z0-9_]*\.py$)"),
         ("ai-quality", "platform-eng", "security"),
     ),
 )

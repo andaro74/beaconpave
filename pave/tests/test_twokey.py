@@ -1426,3 +1426,43 @@ def test_the_cli_does_not_filter_what_the_gate_refused(repo, tmp_path, monkeypat
         f"a diff writing a real decision record was still refused, so the refusal "
         f"above is not attributable to the missing record: {out2}"
     )
+
+
+# --- M12 PR 2: the obligation mechanism and the drill's tests, on rules ---------
+#
+# Here rather than in `tests/test_twokey_seats.py`, and the key count is the reason.
+# That file takes six seats; this one rides `pave/twokey.py`'s own four. Reverting
+# either rule below means editing `pave/twokey.py`, which collects every seat these
+# two rules name, so a witness beside the module loses no key and adds none.
+
+def _seats_for(path: str) -> set:
+    return {seat for rule, _ in twokey.triggered([path]) for seat in rule.seats}
+
+
+@pytest.mark.parametrize("path", [
+    "tests/milestone_status.py",
+    "tests/test_calibration_owe.py",
+    # a package of this name shadows the module for `from milestone_status import`
+    "tests/milestone_status/__init__.py",
+])
+def test_the_obligation_mechanism_collects_ai_quality_and_platform_eng(path):
+    """ADR-081 decision 5 item 6. Both files returned `[]` from `triggered` on
+    `fbf69f3`: the reader that decides whether an obligation in either two-key
+    registry has lapsed was editable on no key."""
+    assert {"ai-quality", "platform-eng"} <= _seats_for(path), (
+        f"{path} collects {sorted(_seats_for(path))}. The function that decides whether "
+        "every obligation has lapsed must take AI Quality and Platform Engineering "
+        "(ADR-081 decision 5).")
+
+
+@pytest.mark.parametrize("path", [
+    "tests/test_drill.py",
+    "tests/test_drill_pins.py",
+    "tests/test_drill_read.py",
+    "tests/test_drill_a_file_not_written_yet.py",
+])
+def test_the_drill_tests_collect_the_drill_rules_seats(path):
+    """M11 debt 2. The witnesses of the signature, the pins and the readers sat on
+    no rule while the code they witness took three keys."""
+    assert {"ai-quality", "platform-eng", "security"} <= _seats_for(path), (
+        f"{path} collects {sorted(_seats_for(path))}, not the drill rule's three seats.")
