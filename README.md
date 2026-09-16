@@ -50,9 +50,21 @@ scored numbers live in that table and its footnotes, and nowhere else.
 | 09c | Answer quality: the browse gap closes, and the count is the headline — **closed RED** ❋ | two PRs ❋ | `m09c` | not run ❋ | not judged ✧ | not run ❋ | ✅ |
 | 10 | Playwright + k6 on one verdict schema — **closed RED** ✺ | four PRs ✺ | `m10` | not run ✺ | not judged ✧ | not run ✺ | ✅ |
 | 11 | Game-day drill + go/no-go artifact — **claim 11's arc holds** ✻ | five PRs ✻ | `m11` | not run ✻ | not judged ✧ | not run ✻ | ✅ |
-| 12 | The ledger: every obligation reaches a terminal state, and no claim | `m12-ledger` | `m12` | –/25 | – | –/10 | ⬜ |
+| 12 | The ledger: every obligation reaches a terminal state, and no claim ❄ | three PRs ❄ | `m12` | – ❄ | – | – ❄ | ✅ |
+| | **— end of part two: the path was built, and five claims of twelve are proven. One is incomplete, one FAILED on two falsifiers, and five were never measurable here. Building stops; the obligations carry on, in `milestones/M12/README.md` —** | | | | | | |
 
 Fill each row at milestone close (see `.claude/skills/close-milestone`).
+
+❄ **Row 12 ran nothing, and owed nothing to run.** `SPEC/12` bounded M12 at zero
+model calls, zero AWS calls, no deploy, no drill run and no eval run before its first
+PR opened, because the milestone carries no claim: the feasibility check found claim
+12 unpre-registerable once the rollback cut was refused (ADR-081 decisions 1–2), and
+claims 7 and 8 went unscheduled with it. So the three eval cells read – rather than
+*not run*: there is no suite this row declined to run. What the row did build is the
+obligation mechanism's terminal state, `brand_tone` retired, Act 4 recorded, Act 5
+retired, and the single debt register every earlier milestone's debts carry into
+(`milestones/M12/README.md`). **Close-milestone steps 2 and 6b are NOT EXERCISED**,
+for that one reason, and the journal says so with the files that do not exist.
 
 ✧ **The judged column is what the judge SUBTRACTED, not a re-scored total.** A
 judge in this repo can only subtract: `veto` turns a deterministic PASS into a
