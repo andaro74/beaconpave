@@ -991,8 +991,8 @@ make bootstrap      # one-time: CDK bootstrap, tool deps
 make core           # deploy gateway, tools, agent, dashboard
 make evals          # definition of done
 make adversarial    # the security seat's corpus, fetched fresh
-pave new my-agent --brand meridian-sports --classification internal
-pave drill --event jefferson-derby --tier 3 --out go-no-go.json
+python -m pave.cli new my-agent --brand meridian-sports
+python -m pave.cli drill --event jefferson-derby --tier 3 --out go-no-go.json
 ```
 
 See `SPEC/00-overview.md` (mission), `SPEC/00b-baseline.md` (the control),
