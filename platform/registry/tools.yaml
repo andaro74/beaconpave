@@ -9,7 +9,7 @@
     input: tools/catalog-search/schema.in.json
     output: tools/catalog-search/schema.out.json
   consequence: read
-  callers: [highlights-agent]
+  callers: [highlights-agent, game-recap-agent]
 
 - id: entitlement-check
   owner: seat:tool-owner

@@ -18,6 +18,12 @@ permit(
   resource == Tool::"catalog-search"
 );
 
+permit(
+  principal == Service::"game-recap-agent",
+  action == Action::"invoke",
+  resource == Tool::"catalog-search"
+);
+
 // --- entitlement-check (consequence: read) ---
 
 permit(

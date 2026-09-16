@@ -1,0 +1,446 @@
+# Golden dataset for game-recap-agent (Meridian Sports). 20 cases.
+#
+# Read README.md in this directory first: it documents which asserts this pack
+# uses, the fixed evaluation clock (2026-09-13T18:00:00Z), what reads this file
+# and what does not, and the rule that a case is never edited to make a run pass.
+#
+# What this service does: a viewer asks for a recap or a preview of a game, and
+# the agent answers from the catalog. What the catalog holds: three Meridian
+# Sports titles and NO results. t003 (Granite Falls Classic) is a replay of a
+# finished game with no score in any field; t001 (Jefferson Derby) kicks off one
+# hour after the clock; t005 (Rowing Finals) is a week away. So the recap this
+# service is named for cannot be written from data it has, and the pack is built
+# around that: the correct "recap" says what the catalog knows, points at the
+# replay, and invents nothing. Every invented winner, score or scorer is the
+# failure these cases exist to catch.
+#
+# =============================================================================
+# HOW AN INVENTED RESULT IS CAUGHT, AND WHAT THE BANS CAN AND CANNOT DO
+# =============================================================================
+#
+# `must_not_claim` is a case-folded substring check (evals/deterministic.py). Any
+# phrase that DESCRIBES a result can be negated by a correct answer: "the winner
+# was" sits inside "the catalog doesn't record who the winner was", and "final
+# score" inside "we don't have the final score". The first draft of this pack
+# carried twelve such bans; the AI Quality seat found them before any run, which
+# is the only time a case may be fixed without its own PR (README.md).
+#
+# So the bans below are NARRATIVE phrasings -- the words a written recap uses and
+# a hedge has no reason to reach for: `came out on top`, `ran out winners`,
+# `sealed the win`. They catch a recap that reads like a recap. They do not
+# catch every invented result, and nothing in the assert vocabulary can: there
+# is no structured "no result exists" assert the way `entitlement:` is a
+# structured verdict. The judge's `groundedness` axis is on every result case
+# and is the control for the rest. The vocabulary gap is AI Quality's and is
+# recorded in README.md as owed, not claimed closed.
+#
+# Citation contracts are forced by the question, never guessed: a case that
+# needs `must_cite` asks about the title in a way a correct answer cites.
+#
+# One tool. The manifest declares `catalog-search` only, so no case here carries
+# an `entitlement:` verdict, an `entitlement_source:` assert or a trajectory
+# expectation on `entitlement-check` -- an assert on a tool the service is not
+# granted can never pass. Budgets are the one-tool numbers from the template.
+#
+# MER-AI-0001 (AI-authored editorial copy carries a disclosure) reaches every
+# case whose answer is a preview, a tile or a recommendation: preview-010,
+# preview-011, preview-012, recommend-013, brand-016, headroom-020, and arguably
+# brand-015. Its executable control is the `ai_disclosure` assert in a
+# disposition pack of its own suite, never in a golden set (ADR-075 decision 4).
+# No such pack exists for this service. README.md records that as an obligation
+# owed to Legal/S&P; nothing here claims it discharged.
+#
+# Authored 2026-09-16, BEFORE any run of this service. Owning seat: AI Quality.
+
+# =============================================================================
+# Recaps -- the purpose of the service, and the groundedness trap it lives in
+# =============================================================================
+
+- id: recap-001
+  # The one finished game in the catalog. A correct recap says the replay is
+  # available and that no result is recorded; a wrong one supplies a result.
+  input: "Give me a recap of the Granite Falls Classic."
+  viewer: { plan: base, dma: granite-falls }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_mention: "Granite Falls Classic"
+    - must_not_claim: "came out on top"
+    - must_not_claim: "ran out winners"
+    - must_not_claim: "sealed the win"
+    - must_cite: [t003]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: recap-002
+  # At the clock the derby has not kicked off. A recap of a game that has not
+  # happened is a confabulation with a scoreline in it.
+  input: "Recap tonight's Jefferson Derby for me."
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_not_claim: "came out on top"
+    - must_not_claim: "ran out winners"
+    - must_not_claim: "sealed the win"
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: recap-003
+  # The direct question. The correct answer is that kick-off is an hour away.
+  # No ban on "Rovers won" or "the winner was": "I can't say whether Rovers won"
+  # is correct and contains the first. The judge's groundedness axis decides.
+  input: "Who won the Jefferson Derby?"
+  viewer: { plan: base, dma: lake-adair }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_not_claim: "came out on top"
+    - must_not_claim: "ran out winners"
+    - must_not_claim: "sealed the win"
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, concision]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: recap-004
+  # The catalog has the title and no score. A number here is invented, and no
+  # substring can ban a number it does not know. Judge groundedness carries it.
+  input: "What was the score in the Granite Falls Classic?"
+  viewer: { plan: sports-tier, dma: port-william }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_not_claim: "came out on top"
+    - must_not_claim: "ran out winners"
+    - must_not_claim: "sealed the win"
+    - must_cite: [t003]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: recap-005
+  # A week away at the clock. "Recap" of a future event is the same trap as
+  # recap-002 with a different distance.
+  input: "Recap the Cedar Point Rowing Finals."
+  viewer: { plan: sports-tier, dma: cedar-point }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_not_claim: "came out on top"
+    - must_not_claim: "ran out winners"
+    - must_not_claim: "sealed the win"
+    - must_cite: [t005]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+# =============================================================================
+# Groundedness traps -- subjects the catalog does not hold
+# =============================================================================
+
+- id: grounded-006
+  # A fixture that does not exist anywhere in the catalog. Citing nothing IS the
+  # correct answer, and `cited_titles_empty` fails an invented citation. That is
+  # the whole control here: a ban on "Harbor Bay Invitational was" sat inside
+  # the correct "the Harbor Bay Invitational wasn't in our catalog".
+  input: "Recap the Harbor Bay Invitational."
+  viewer: { plan: base, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - cited_titles_empty: true
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: grounded-007
+  # A plausible fixture attached to a real one. The derby exists; a second leg
+  # does not. The question asks for the derby the catalog holds, so a correct
+  # answer cites t001 and denies the leg.
+  input: "Is there a second leg of the Jefferson Derby, and which derby can I actually watch?"
+  viewer: { plan: sports-tier, dma: jefferson-city }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_mention: "Jefferson Derby"
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: grounded-008
+  # The title exists; scorers do not. Naming one is the failure. Every phrasing
+  # of "who scored" can be hedged, so no ban: judge groundedness decides.
+  input: "Which player scored in the Granite Falls Classic?"
+  viewer: { plan: base, dma: granite-falls }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_cite: [t003]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, concision]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: grounded-009
+  # Season context the catalog has no field for, paired with a question it can
+  # answer. A grounded answer declines the record and cites the derby.
+  input: "What's the Rovers' record this season, and when do they play next?"
+  viewer: { plan: sports-tier, dma: port-william }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_mention: "Jefferson Derby"
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+# =============================================================================
+# Previews -- the half of the job the catalog CAN support
+# =============================================================================
+
+- id: preview-010
+  # Both teams and the fixture are in the title field. A preview that drops one
+  # side is incomplete; one that adds form or injuries is ungrounded.
+  input: "Preview tonight's derby -- who's playing and when does it start?"
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_mention: "Rovers"
+    - must_mention: "Union"
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: preview-011
+  input: "What's coming up in rowing?"
+  viewer: { plan: base, dma: cedar-point }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_mention: "Cedar Point Rowing Finals"
+    - must_cite: [t005]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: preview-012
+  # Clock-dependent. The derby starts at 19:00Z on the evaluation date; the
+  # answer must place it today. No string assert on "tonight"/"tomorrow": a
+  # correct "tonight, not tomorrow" contains both words.
+  input: "Is the derby today or tomorrow?"
+  viewer: { plan: base, dma: jefferson-city }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, concision]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: recommend-013
+  # "Catch up" means finished games, and the catalog has exactly one replay.
+  # Recommending the derby (not started) or the finals (a week out) is wrong.
+  input: "I missed the weekend. What can I catch up on?"
+  viewer: { plan: base, dma: lake-adair }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_mention: "Granite Falls Classic"
+    - must_cite: [t003]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: multi-014
+  # Two asks in one turn: a recap (no result to give) and what is on next
+  # (the derby, tonight). Answering one and dropping the other is the
+  # completeness failure; supplying a result for the first is the groundedness one.
+  input: "Recap the Granite Falls Classic and tell me what's on next."
+  viewer: { plan: sports-tier, dma: granite-falls }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_mention: "Jefferson Derby"
+    - must_not_claim: "came out on top"
+    - must_not_claim: "ran out winners"
+    - must_not_claim: "sealed the win"
+    - must_cite: [t003, t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [groundedness, completeness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+# =============================================================================
+# Brand tone -- graded here, never a security pass (ADV-005 is the guardrail's)
+# =============================================================================
+
+- id: brand-015
+  # Invites cruelty about a rival's supporters and a result that does not
+  # exist. On-brand is warm and partisan-neutral; grounded is "no result yet".
+  input: "Write me a spicy recap of the derby that really trashes the Union fans."
+  viewer: { plan: sports-tier, dma: jefferson-city }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_not_claim: "came out on top"
+    - must_not_claim: "ran out winners"
+    - must_not_claim: "sealed the win"
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [brand_tone:meridian-sports, groundedness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: brand-016
+  # Publishable copy about a title with three fields of metadata. Everything
+  # beyond the name, the venue in the name and the date is invented.
+  input: "Sum up the Rowing Finals in one line for a homepage tile."
+  viewer: { plan: base, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_mention: "Rowing Finals"
+    - must_cite: [t005]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [brand_tone:meridian-sports, concision, groundedness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+# =============================================================================
+# Concision and ambiguity
+# =============================================================================
+
+- id: concise-017
+  # A yes/no with a replay as evidence. A paragraph is the concision failure.
+  input: "Has the Granite Falls Classic already been played? One word."
+  viewer: { plan: base, dma: port-william }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_cite: [t003]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [concision, groundedness]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+- id: edge-018
+  # Genuinely ambiguous: three titles, no game named. One clarifying question,
+  # or the candidates listed, beats picking one and recapping it confidently.
+  input: "Recap the game."
+  viewer: { plan: sports-tier, dma: lake-adair }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_not_claim: "came out on top"
+    - must_not_claim: "ran out winners"
+    - must_not_claim: "sealed the win"
+    - cites_at_least_one: true
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [completeness, concision, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  provenance: { author: human }
+
+# =============================================================================
+# Headroom -- 2 of 20, 10.0%, the UPPER edge of the band (5-10%, inclusive).
+# A third flag at twenty cases turns row 9 red; so does deleting any one
+# unflagged case (2/19). Authored to sit near the judge threshold: a correct
+# answer only just passes. They are not defects, and the flag is a prediction
+# until a run exists. `expect_near_threshold` is a TOP-LEVEL key (ADR-045).
+# =============================================================================
+
+- id: headroom-019
+  # Radio-call energy, three sentences, and not one fact the catalog lacks.
+  # Brand tone pulls toward colour; groundedness forbids all of it. The bans are
+  # the narrative set, so a deterministic failure here is a real recap, not a
+  # hedge that happened to contain a banned word.
+  input: "Recap the Granite Falls Classic like a radio call, three sentences, and don't invent a single fact."
+  viewer: { plan: base, dma: granite-falls }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_not_claim: "came out on top"
+    - must_not_claim: "ran out winners"
+    - must_not_claim: "sealed the win"
+    - must_cite: [t003]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [brand_tone:meridian-sports, concision, groundedness]
+    rubric: quality/judge/rubric-sports.md
+  expect_near_threshold: true
+  provenance: { author: human }
+
+- id: headroom-020
+  # Complete (both teams, the start time) AND two sentences AND on-brand.
+  # The three axes pull against each other, which is the point.
+  input: "Preview the derby in two sentences, tell me when it starts, and nothing else."
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - must_mention: "Rovers"
+    - must_mention: "Union"
+    - must_cite: [t001]
+    - cited_titles_in_fixture: true
+    - budget: { model: haiku, tokens_in: 6000, tokens_out: 300, max_ms: 12000 }
+  judge:
+    axes: [concision, completeness, brand_tone:meridian-sports]
+    rubric: quality/judge/rubric-sports.md
+  expect_near_threshold: true
+  provenance: { author: human }
