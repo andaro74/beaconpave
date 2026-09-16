@@ -172,13 +172,40 @@ machine-signed NO-GO with a named owner and a fix-by time. Fix, delta-drill,
 GO. Note that the artifact is never hand-edited: humans fix systems or formally
 accept risks.
 
-## Act 5 — AI proposes, humans dispose (M12) · 90s
-Tool schema bump turns contract tests red. The classifier says *drift, not
-defect*. Claude proposes the repair as an `ai-proposed` PR with reasoning. The
-tool owner curates. The curation-rate panel ticks.
+## Act 5 — AI proposes, humans dispose (M12) · **RETIRED, never recorded**
+**Retired at the M12 close** (ADR-081 decision 6), by Platform Engineering with AI
+Quality, in the same diff as `recordings.json`. It is not deferred: a deferral needs
+a date, and every beat below is cut or unscheduled. The script is kept and struck
+rather than deleted, because an act deleted leaves a reader nothing to ask about.
 
-**Close on the dashboard:** one verdict schema, three surfaces, leakage counted
-from rollbacks and never from gate failures.
+> ~~Tool schema bump turns contract tests red. The classifier says *drift, not
+> defect*. Claude proposes the repair as an `ai-proposed` PR with reasoning. The
+> tool owner curates. The curation-rate panel ticks.~~
+
+- the bump and the classifier are **claim 8, UNSCHEDULED**. Its only candidate false
+  state is a semver bump on `catalog-search`'s input contract (09c debt 1, Tool
+  Owner), measured at 19 tests red and planned by no milestone. `pave selfheal`
+  stays a stub;
+- the `ai-proposed` PR and the curation panel are **claim 7, UNSCHEDULED**. The label
+  is on 0 PRs and every PR here is Claude-authored, so the rate has no denominator;
+- the dashboard was **cut** at ADR-079 decision 1, for having no measurement;
+- *"leakage counted from rollbacks and never from gate failures"* is **claim 12,
+  UNSCHEDULED**. `main` holds 0 revert commits, so a counter that always returns 0
+  reads the same as a correct one (ADR-081 decisions 1 and 2).
+
+**Close on what the demo actually shows, which is four acts and not five** (M10 row
+23, paid here). The old close was *"one verdict schema, three surfaces, leakage
+counted from rollbacks and never from gate failures"*: the dashboard it closed on is
+cut, claim 3 is unscheduled because one builder constructs every verdict record, and
+there is no leakage counter. What the four recorded acts do show is an ungoverned
+control answering from a tool it does not have; a paved road that refuses its own
+scaffold; a gate going red for a quality reason and naming the probes that moved; a
+rule walked from law to a failing assert; and a drill writing a signed NO-GO, holding
+it under a control, and turning GO on the fix. **Five of the twelve claims are proven,
+one is incomplete, one FAILED on two falsifiers, and five are unscheduled** — which
+is the number to close on, rather than the arc this script was written to end with.
+Every cut is an ADR, and each unscheduled claim carries the condition under which it
+becomes measurable (`README.md`, *The twelve claims*).
 
 ## What to say if asked "why so small?"
 "Every scope cut is an ADR ending with 'at scale, replace with X; the interface
