@@ -273,3 +273,72 @@ RED and names it.
 
 **At scale**, each UNSCHEDULED claim carries the condition under which it becomes measurable, and
 the owners who would schedule it. Un-cutting a claim starts at that condition, not at a rewrite.
+
+---
+
+## Amendment 1 (2026-09-15, M12 PR 3, before the close is written): three corrections, none of which changes what M12 built
+
+Written on `m12-pr3-close`, after PR 2 merged and before the journal, with zero model calls and
+zero AWS calls. **SPEC/12 amendment 1 carries the same three points**, in the file a reader of
+the milestone reaches first. All three are corrections to what this ADR and that spec *say was
+built*, not to what was built.
+
+### 1. There is no PAID state; the built states are RETIRED and UNSCHEDULED
+
+Decision 5 item 2 names three states and reads as if all three are `state` values. PR 2 built
+two, and that is the correct reading of both registries rather than a shortfall:
+
+- **A paid owe leaves the registry.** `labels.json`'s `owed` is a list of what is owed. Paying
+  `brand_tone` means a wider deterministic draw and a labelling pass, and what discharges it is
+  the corpus; the entry goes, it is not restamped. A `PAID` value would be a state with no
+  population and no reader — the shape CLAUDE.md calls a protection stated and absent.
+- **A recorded act is its own paid state.** `recordings.json` spells payment `recorded: <path>`,
+  and `test_a_claimed_recording_actually_exists` resolves it. A second spelling of one fact is
+  the two-registry drift `tests/milestone_status.py`'s docstring exists to refuse.
+
+**So `milestone_status.TERMINAL_STATES` is `("RETIRED", "UNSCHEDULED")`, and PAID is a shape, not
+a value.** Decision 5's *"the committed path that discharges it"* is exactly that shape, and it
+is read that way from here. The field names were left to PR 2 by *What this ADR does not decide*,
+and PR 2's body recorded this as flag 4; this amendment is where the ADR stops disagreeing with
+its own implementation.
+
+### 2. `pave/cli.py:888` is UNSCHEDULED, with the other six M10 row 26 sites
+
+Decision 7 gives PR 2 *"`pave/cli.py:880`"*; PR 2's brief omitted it and its body flagged it
+(flag 3), offering it to PR 3. **PR 3 does not take it.** PR 3 carries no code and no test, by
+the operator's ruling and by SPEC/12 constraint 1's spirit: a single stale sentence edited inside
+the close would be the one code change in the PR whose point is that the close changes none.
+
+So **M10 row 26 fires and is not paid, at all seven sites** — `pave/cli.py:888`,
+`pave/floors.py:338`, `pave/manifest.py:161` and `:354`, `pave/scaffold.py:123`,
+`templates/agent-tools/README.md:28`, `tests/test_floors.py:250`. Owner: Platform Engineering.
+Trigger, unchanged: the next PR that edits each file. `milestones/M12/README.md` carries the row
+once.
+
+### 3. The PR 2 seat round was not taken, by ruling
+
+Decision 7 gives PR 2 *"one seat round"*. It did not run (PR 2's body, flag 2), and it does not
+run at PR 3. **The reason is the cap read forward: PR 3 carries no code, so a finding has nowhere
+to land.** There is no spare, and a fourth PR is forbidden by decision 7, so every finding would
+become a debt row — a seat round producing prose about prose, which is the M06d shape this
+repository has already paid for once.
+
+**This is recorded as an unmet item of the definition of done, not as a substitution.** What
+stands in its place is a measurement rather than a reading: PR 2's deletability audit, 25 plants,
+25 CAUGHT, 0 SILENT, each plant's old text confirmed unique before the plant and the bytes
+restored from a backup rather than from git. That is evidence about the code. It is not a seat's
+disposition, and nothing here claims it is. **M12 closes with this item unmet and named**, in
+SPEC/12 amendment 1 and in the journal.
+
+### One consequence for this ADR's own header
+
+**`milestones/M12/feasibility.md` is no longer byte-identical to the scratch copy the operator
+ruled on** (sha256 `0c04b6dec693…`, the header above, and `docs/pr-bodies/m12-pr1.md`). PR 3
+corrects one line in it: the `grep` in §1 had no `-E`, so as printed GNU grep read `|` as a
+literal and the command returned nothing. The correction adds `-E`, a three-line note saying so,
+and the three matches the check's summary omitted — `pave/cli.py:1744`,
+`quality/judge/calibration/labels.json:356` and `tests/test_no_account_identifiers.py:174`, none
+of them a counter. **Every measurement and every ruling in the check is unchanged**, and this
+ADR's decision 1 already recorded the same re-run and the same three lines. The header's
+byte-identity claim is superseded by this paragraph; the file's content is otherwise untouched,
+and `git log -p milestones/M12/feasibility.md` is the diff.

@@ -215,3 +215,51 @@ The third reads the tag that follows PR 3's merge.
   M12.
 - `brand_tone` paid by hand-picked items, or paid at all inside M12.
 - A closed milestone's record edited.
+
+---
+
+## Amendment 1, 2026-09-15, M12 PR 3 — three things this spec got wrong, recorded before the close reads it
+
+Written at PR 3, after PR 2 merged, on the same three points as **ADR-081 amendment 1**. None
+of them changes what M12 builds; all three change what this file says was built.
+
+**1. There is no PAID state.** *The three states, pinned* above names PAID as one of three, and
+PR 2 built two. That is not a shortfall, it is the correct reading of the two registries:
+
+- **A paid owe leaves the registry.** `labels.json`'s `owed` list holds what is *owed*. An owe
+  that is paid is paid by widening the draw and labelling it, and what discharges it is the
+  corpus itself — the entry is then removed, not restamped. A `state: "PAID"` value would be a
+  field with no population and no reader, which is the shape this repo calls a protection
+  stated and absent.
+- **A recorded act is its own paid state.** `recordings.json` already records payment as
+  `recorded: <path>`, and `test_a_claimed_recording_actually_exists` resolves it. A second
+  spelling of the same fact is the two-registry drift `tests/milestone_status.py`'s own
+  docstring exists to refuse.
+
+**So the built states are `RETIRED` and `UNSCHEDULED`** (`milestone_status.TERMINAL_STATES`),
+and PAID is a shape, not a value. ADR-081 decision 5 item 2 reads the same way once PAID is
+read as "the committed path that discharges it" rather than as a string. PR 2's body, flag 4,
+is where this was first written down.
+
+**2. `pave/cli.py:888` moves to the ledger.** *What it builds* lists the stale *"lanes arrive at
+M10"* sentence, and the obligations table assigns it to PR 2. PR 2's brief left it out and its
+body flagged it (flag 3). **PR 3 does not take it either:** PR 3 carries no code, and a
+one-sentence edit to `pave/cli.py` inside the close would be the only code change in a PR whose
+whole point is that the close edits no code and no test. So **all seven of M10 row 26's sites
+are UNSCHEDULED**, and the ledger carries them once, with Platform Engineering as owner and the
+row's own trigger.
+
+**3. The PR 2 seat round was not taken, by ruling.** *Bounded* says *"One seat round, on PR 2"*
+and PR 2's body flagged that it had not run (flag 2). It is not run at PR 3 either. The reason
+is the cap, read forward: **PR 3 carries no code, so it has nothing to land a finding in.** A
+seat round whose findings can only be recorded as debts is a round that produces prose about
+prose, and M06d is the milestone that measured what that costs. PR 2's deletability audit — 25
+plants, 25 CAUGHT, 0 SILENT — is the measurement that stands in its place, and it is a
+measurement of the code rather than a reading of it. **This is recorded as an unpaid item of
+the definition of done, not as a substitution:** M12 closes with one spec item unmet, named
+here and in `milestones/M12/README.md`.
+
+**Definition of done, corrected.** PR 2's line above should read: *the rule commit first; the
+three states and their tests; the parser guards moved; `brand_tone` RETIRED with ADR-026
+amendment 7; the audit; four attestations* — with **`pave/cli.py:880` and the seat round struck
+and carried**.

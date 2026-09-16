@@ -35,10 +35,16 @@ $ gh pr list --state all --label exhibit --limit 100 --json number,state --jq 'l
 $ gh pr list --state all --label ai-proposed --limit 100 --json number,state,title --jq '...'
 (nothing: 0 PRs)
 
-$ grep -rn -i "leakage|rollback|self.heal|selfheal|curation|drift.vs" pave evals quality tools services platform templates tests Makefile .github
+$ grep -rn -iE "leakage|rollback|self.heal|selfheal|curation|drift.vs" pave evals quality tools services platform templates tests Makefile .github
+  # CORRECTED AT M12 PR 3: as first written this line had no -E, so GNU grep read `|`
+  # as a literal and the command printed nothing; the three lines below it finds and the
+  # check's summary omitted are added here, none of them a counter (ADR-081 amendment 1).
 pave/cli.py:33:  pave selfheal <service>   classify red suite, propose repair
+pave/cli.py:1744:    elif cmd == "selfheal":
 pave/cli.py:1745: _stub("selfheal", "classify the red suite for … as drift-vs-defect; if drift, propose …")
+quality/judge/calibration/labels.json:356: prose inside brand_tone's `why_re_deferred`
 quality/verdicts/schema.json:5: "… makes company-wide regression-risk and defect-leakage dashboards possible."
+tests/test_no_account_identifiers.py:174: a "leakage scan" for account identifiers
 (no counter, no rollback record, no classifier)
 
 $ ls -la quality/selfheal     -> one empty directory, tests/
