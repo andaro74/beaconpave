@@ -966,6 +966,7 @@ platform/gateway/      the single LLM control point: classify -> guardrail ->
 platform/registry/     tools.yaml — owner, semver, schemas, consequence class
 platform/policy/       Cedar policies (in-process; ADR-004)
 services/              scaffolded agents (highlights-agent is the reference)
+docs/samples/          worked onboarding records (game-recap-agent)
 tools/                 MCP tools incl. publish-highlight (approval interlock)
 quality/verdicts/      THE verdict schema — the unifying contract
 quality/adversarial/   10 probes; pass = blocked or denied, AND logged

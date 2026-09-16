@@ -128,3 +128,32 @@ in ADR-044 as owed; unchanged here.
 interface already matches — the control takes a `list[dict]` and the committed
 registry is one. M06 adds the second tool and M08 the second service, at which
 point the fixture becomes a real pair again and this ADR's cut un-cuts itself.*
+
+## Amendment 1 (2026-09-16) — a second committed service un-cuts decision 1 at the registry, not at the runtime
+
+`game-recap-agent` joins `platform/registry/tools.yaml` as a second caller of
+`catalog-search`, and the generated policy set gains one permit. This is the
+state the scale-up path above names: a second committed service, not a synthetic
+one. Three things are true at once and are stated here so that none is
+discovered:
+
+- **The entry is a service.** `services/game-recap-agent/` carries a manifest a
+  verifier passes and a golden pack a seat disposed. It is not the `recap-agent`
+  line decision 1 removed, which named nothing.
+- **The permit is still unreachable through the deployed stack.** The gateway
+  principal is fixed to `highlights-agent` in `platform/infra/lib/gateway-stack.ts`,
+  so the deployed authorization set carries a standing grant no request can
+  exercise. That is claim 1 first reason, unchanged by this amendment: the un-cut
+  is at the registry and the runtime is where it stops.
+- **The synthetic control stays.** Decision 2 is not reversed. The committed pair
+  now exists, but the cross-tool test keeps its in-module registry until the
+  deployed principal can be the second service, at which point the fixture
+  becomes real and decision 2 un-cuts on its own terms.
+
+Of the four prose sites decision 5 corrected, `tools/catalog-search/README.md` is
+corrected again here. `platform/gateway/handler.py` describes the one-caller state
+in its docstring and is keyed to the gateway; it is left as it stands and named
+stale. The registry-to-documentation check recorded above as owed is still owed,
+and this amendment is one more site it would have caught.
+
+Record: `docs/samples/game-recap-agent.md`.
