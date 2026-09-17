@@ -32,9 +32,10 @@ them would make this check red on true documents or mutate the tree.
   opposite of what they say.
 - `SPEC/05`'s block is a scaffolding how-to that runs `pave.cli policy generate`
   (which **writes** `platform/gateway/policy/`) and `git add`.
-- `README.md`'s *Quick start* is the target developer experience: `pave new`,
-  `pave drill` and `make core`, which deploy, and which are not on `PATH` in a
-  clone at all.
+- `README.md`'s *Quick start* deploys and mutates the tree: `make bootstrap` and
+  `make core` create AWS stacks, the runners invoke the deployed gateway, `make
+  down` destroys the stacks, `pave new` writes five files and the drill writes
+  its artifact into the working directory.
 
 Widening to those needs each block to declare the tree it is true of, which is a
 document change and not a test change; it is recorded as a debt in
@@ -99,10 +100,14 @@ DEMO_HEADING = "## Demo artifact"
 #: the block that makes running it assert something false or mutate the tree.
 UNRUN_BASH_BLOCKS: dict[str, str] = {
     "README.md":
-        "the Quick start, which is the TARGET developer experience rather than a "
-        "reading of this tree: `make bootstrap`/`make core` deploy, and `pave new` "
-        "and `pave drill` are not on PATH in a clone at all. Running it would "
-        "either fail on a true document or bill an AWS account from `make check`.",
+        "the Quick start, whose first paragraph says which of its lines were run "
+        "here and which were read. The block as a whole is the deployed developer "
+        "experience: `make bootstrap`/`make core` create AWS stacks, the runners "
+        "invoke the deployed gateway and bill Bedrock, `make down` destroys the "
+        "stacks, `pave new` writes five files into `services/` and the drill writes "
+        "`go-no-go.json` into the working directory. Running it from `make check` "
+        "would bill an account and mutate the tree, and no line in it is worth a "
+        "second block that this table would then have to count.",
     "SPEC/06c-instrument-repair.md":
         "`run_evals --record --tag m06c`, which APPENDS to `evals/history/`. Demo "
         "commands are read-only by construction (`test_no_demo_command_writes_to_"
