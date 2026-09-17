@@ -110,13 +110,27 @@ change is two-key and lands in its own PR with `tests/test_contracts.py`.
 (row 8), the headroom band (row 9), unknown top-level keys (row 11) and the
 budget keys (row 12).
 
-**Nothing else reads it.** `tests/test_contracts.py` and the CI evals step are
-pinned to `services/highlights-agent`. The assert-vocabulary, vacuous-groundedness,
-catalog-id and viewer-vocabulary checks that protect the reference pack do not
-run on this one. The AI Quality seat ran them against this pack by repointing the
-test locally and every one passed, but a check that ran once on a laptop is not a
-protection. Extending `tests/test_contracts.py` past its hard-coded path is
-two-key (`ai-quality`, `platform-eng`) and is recorded as owed.
+**`tests/test_contracts.py` reads it too, since the PR that widened that file
+past its hard-coded reference path.** Newly applied to this pack there: the
+assert vocabulary, the vacuous-groundedness and contradictory-citation guards,
+catalog-id existence, real DMAs and plans, budgets against this service's own
+manifest, and the percentile and currency bans. The case floor, the headroom
+band and the top-level key vocabulary were already applied by `pave verify`
+through `tests/test_manifest_verify.py`, and are now applied from both readers
+through the same functions in `pave/floors.py`. Discovery is bound to
+`pave/manifest.py`'s own service enumeration and pack path, and asserts its
+sufficiency both ways, so a service with a manifest and no pack, or a pack
+beside no manifest, is red by name. Every message names the service, because
+`recommend-013` is a case id in both committed packs. Planted and measured
+before the widening merged: a misspelled assert key, an unreal DMA, the pack
+deleted outright, a stray pack, a pack-less manifest, and the pack path moved in
+the manifest module were each caught.
+
+**What still does not read it.** The CI evals step scores committed answers for
+`services/highlights-agent` only, and this service has no answers to score.
+Eval-history recording and its append-only verification (`pave/history.py`,
+`evals/run_evals.py`) digest the reference pack's path into every entry and are
+reference-only until a run of this service exists to record.
 
 ## Headroom
 
