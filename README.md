@@ -19,15 +19,69 @@ and rename it for yours.
 
 ## Quick start
 
+Lines marked `AWS:` create, invoke or destroy resources in an account and bill
+Bedrock at cents per run; the rest run on a clone. Before this block was written,
+`make check`, both scorers (on run files committed under `milestones/`), the drill
+and `pave new` were run against this tree. The `AWS:` lines were read from the
+Makefile, the CDK app and the runners' parsers, not run. No compute bills while
+idle; the target is under $5 a month idle (G10).
+
 ```bash
-make check          # hermetic: unit + contract + rules validation, no cloud
-make bootstrap      # one-time: CDK bootstrap, tool deps
-make core           # deploy gateway, tools, agent, dashboard
-make evals          # definition of done
-make adversarial    # the security seat's corpus, fetched fresh
-python -m pave.cli new my-agent --brand meridian-sports
+# pytest and ruff for the check, boto3 for the runners. `make bootstrap` installs neither.
+pip install -e ".[dev,baseline]"
+# hermetic: unit + contract + rules validation. No cloud, no model.
+make check
+# AWS: edit the profile. boto3 needs AWS_DEFAULT_REGION when no config file names a
+# region; the CDK CLI reads AWS_REGION. Export both.
+export AWS_PROFILE=your-profile AWS_REGION=us-west-2 AWS_DEFAULT_REGION=us-west-2
+# AWS, one time: npm install and cdk bootstrap. Its pip install is the bare package.
+make bootstrap
+# AWS: verify every manifest, then deploy TWO stacks, the gateway (its tool Lambdas,
+# guardrails and Cedar) and the audit trail.
+make core
+# AWS: print the deployed function, guardrail versions and bundle digests. Zero model
+# calls, nothing written.
+python services/highlights-agent/run_with_tools.py --preflight-only
+# AWS: one golden case through the gateway. `--tag` keeps your audit records apart
+# from the committed workflows' key names.
+python services/highlights-agent/run_with_tools.py --tag quickstart --only blackout-001 --out run.json
+# AWS: all 25 cases, one sample each. Writes run.json plus -refusals and -trajectory sidecars.
+python services/highlights-agent/run_with_tools.py --tag quickstart --out run.json
+# offline scorer: deterministic asserts. `pave gate decide` is the gate.
+python -m evals.run_evals --answers run.json
+# AWS: every probe in the corpus (11 today), k=3 each, unanimity.
+python services/highlights-agent/run_probes_via_gateway.py --tag quickstart --out probes.json
+# offline scorer: pass = blocked or denied AND an audit record fetched back.
+python -m evals.run_adversarial --observations probes.json
+# AWS: cdk destroy --all. Three RETAIN buckets (two versioned) outlive it; the two
+# guardrail versions carry RETAIN, their parent guardrails do not.
+make down
+# at least 32 bytes, or the drill exits 2 and writes nothing
+export BEACONPAVE_DRILL_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+# offline: a signed GO (exit 0) or NO-GO (exit 1)
 python -m pave.cli drill --event jefferson-derby --tier 3 --out go-no-go.json
+# offline: scaffold only. It prints the two steps it will not take.
+python -m pave.cli new my-agent --brand meridian-sports
 ```
+
+**`make core` deploys the platform, not an agent.** The CDK app holds two stacks,
+`BeaconpaveGateway` and `BeaconpaveAuditTrail`, and no dashboard (`dashboards/`
+is a README). The reference service's code never leaves your machine: the runner
+sends each viewer turn to the gateway Lambda, which classifies, guards, calls the
+model, meters and writes an audit record, and the runner fetches that record back
+from S3 rather than trusting the response. The deployed gateway authorizes **as**
+one caller, `highlights-agent`; that is deployment configuration, and its un-cut
+path is written down (ADR-023). A service you scaffold is refused by
+`pave verify` with two named findings until you register it and write its cases
+(ADR-047). The judge is a second runner,
+`services/highlights-agent/run_judge.py`, three samples per case; its docstring
+carries the commands. Nothing above writes to `evals/history/`, and neither
+`make` recording form records a governed run correctly as written:
+`make evals ANSWERS=run.json` passes no `--target` or `--tag`, so the run is
+recorded as the baseline, and `make adversarial OBSERVATIONS=probes.json` exits 2
+because `--record` also needs `--instrument-name`, `--guardrail-version` and
+`--guardrail-policy-sha256`. Record with the scorers' own flags; their help text
+names them.
 
 See `SPEC/00-overview.md` (mission), `SPEC/00b-baseline.md` (the control),
 `CLAUDE.md` (rules), `BUILD.md` (milestone build order).
@@ -47,7 +101,7 @@ services/              scaffolded agents (highlights-agent is the reference)
 docs/samples/          worked onboarding records (game-recap-agent)
 tools/                 MCP tools incl. publish-highlight (approval interlock)
 quality/verdicts/      THE verdict schema — the unifying contract
-quality/adversarial/   10 probes; pass = blocked or denied, AND logged
+quality/adversarial/   11 probes; pass = blocked or denied, AND logged
 quality/judge/         rubric + calibration set; published or demoted
 quality/selfheal/      drift-vs-defect classifier (with its own tests)
 rules/                 rules registry: owner, source, disposition, review-by
