@@ -66,6 +66,15 @@ scope:
     below, and given no revival condition of its own. A disclosure act does not
     stop at a brand boundary; the rule binds to the service, and which brands
     that service carries is the manifest's to say.
+
+    **Read against `game-recap-agent` on 2026-09-16 (ADR-082 decision 1).** A
+    one-tool service's non-editorial answers are catalog facts: a kick-off time,
+    or the plan tier a title carries in `data/catalog.json`, read off the record
+    and stated as a fact. Those sit on the same line as the reference service's
+    entitlement answers and are not publishable summaries of what a title is.
+    Live-versus-replay asked as a request for publishable copy is such a summary
+    and stays in scope; asked as a bare lookup it is a fact like the other two.
+    The line is summary versus bare fact, never the subject.
   excludes: >-
     AI-generated recaps — editorial copy narrating the outcome of an event. Not
     retired and not disclaimed: the obligation is sound and the bound service has
@@ -83,8 +92,21 @@ scope:
     query that brand, and golden case `brand-020` already asks about one of
     them. News copy is in scope today under `covers`; what is excluded is the
     recap SENSE, for every brand alike.
+
+    **Read against `game-recap-agent` on 2026-09-16 (ADR-082 decision 2): NOT
+    triggered.** The second disjunct asks whether a service that authors
+    post-event copy has joined the registry as a caller. A service so named did.
+    On substance it is granted `catalog-search` and no other tool, so its only
+    source is `data/catalog.json`, which carries no outcome for any title; it has
+    nothing to author post-event copy FROM, and its golden pack scores an invented
+    result as a failure (narrative-result bans on its recap cases, the judge's
+    groundedness axis on every result case). Its answer to a recap request is the
+    refusal to confabulate `excludes` already names. The state in which this
+    disjunct fires on its own, without the catalog moving: a service granted a
+    tool that exposes outcomes from any source joining the registry as a caller.
+    The first disjunct is unchanged and still open.
   decided_by: legal-sp
-  decided_on: "2026-09-10"
+  decided_on: "2026-09-10"   # the operative sentences; the two readings above carry their own date
 
 owner_seat: legal-sp
 severity: blocking
@@ -96,7 +118,7 @@ disposition:
   # arrived, a disposed one records when it was decided.
   decided_on: "2026-09-11"
   controls:
-    # **The executable control, and the only one this disposition claims.** L3:
+    # **The executable controls, and the only kind this disposition claims.** L3:
     # the disclosure pack is scored by `pave evals disclosure`, which writes a
     # `suite: "disclosure"` verdict the gate blocks on. The gateway disclosure
     # guardrail is **M09b's** and is deliberately not named here -- a disposition
@@ -105,6 +127,15 @@ disposition:
     # unattributable between them (ADR-075 decision 1).
     - type: eval_pack
       ref: services/highlights-agent/evals/disclosure/cases.yaml
+      layer: L3
+    # **The second service, bound by its own pack (ADR-082 decision 1).** The
+    # rule binds to the service and `game-recap-agent` authors copy `covers`
+    # reaches, so it takes a control of its own rather than borrowing the
+    # reference's. Same shape, same asserts, same phrasings; a negative half made
+    # of schedule facts, because a one-tool service has no entitlement verdicts
+    # to state. Bound and UNRUN -- see the third limit below and ADR-082 decision 3.
+    - type: eval_pack
+      ref: services/game-recap-agent/evals/disclosure/cases.yaml
       layer: L3
   # What the disposition does NOT reach. Recorded in the REGISTRY and not only in
   # the ADR, so a reader of `pave rules trace MER-AI-0001` meets the boundary at
@@ -138,5 +169,28 @@ disposition:
         rather than a hole the model can walk through.
       owed_to: [legal-sp, ai-quality]
       dated: "the milestone that wires a disclosure judge axis, if one is ever owed"
+    - limit: >-
+        The second control is bound and unrun. ADR-075 disposed this rule by a
+        delta someone read: run A failed every positive case against the deployed
+        reference service, one sentence fixed it, run B passed. `game-recap-agent`
+        has no deployment to score (the gateway principal is fixed to the
+        reference service, ADR-048 amendment 1) and no committed answers, so its
+        pack can fail the day a run exists and has not been read against one. A
+        reader of this chain must not infer a second delta from a second control.
+        No gate scores the disclosure suite for either service; the lane is
+        `pave evals disclosure <service> --answers ...`, run by hand, so a run is a
+        decision someone takes and not a step CI takes for them.
+      owed_to: [legal-sp, ai-quality, platform-eng, security]
+      dated: "the milestone that deploys a second principal and takes the run"
+    - limit: >-
+        The second service sits outside the M09b gateway disclosure guardrail.
+        That guardrail is scoped to the deployed principal, which is the reference
+        service, so `game-recap-agent` has an L3 answer-side control and no
+        guardrail line. The probe to write when a principal exists: a
+        negation-phrased disclosure issued as this service, asserting the guardrail
+        denies AND an audit record resolves (G4). Today there is no principal to
+        fire it.
+      owed_to: [security, legal-sp]
+      dated: "the milestone that deploys a second principal and takes the run"
 status: enforced
 review_by: "2026-10-01"           # the law's effective date: disposition cannot slip past it

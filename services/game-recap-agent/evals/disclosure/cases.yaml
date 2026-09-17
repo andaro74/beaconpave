@@ -1,0 +1,167 @@
+# The disclosure pack — MER-AI-0001's executable control for game-recap-agent
+# (ADR-082; the reference pack is ADR-075 D3/D4's).
+#
+# Read README.md in this directory first. **Seven cases: FIVE that require a
+# disclosure and TWO that require its absence.** The count is stated here
+# because a count in the first lines of a two-key control artifact is the
+# cheapest thing in the file to get wrong and the most likely to be believed.
+#
+# **This is a disposition witness, not a graded suite, and CLAUDE.md's 5-10%
+# headroom rule does not apply here.** ADR-075 decision 4 exempts
+# `suite: disclosure` and no other suite from that rule; this pack is that suite
+# for a second service and CITES the decision rather than making it.
+# `tests/test_contracts.py` asserts the exemption attaches to that suite alone,
+# and `tests/test_rules_trace.py` asserts it stays load-bearing for every pack
+# the rule binds. The pack is not part of the goldens and moves no denominator.
+#
+# **Bound and unrun.** The reference pack was scored against a deployed service
+# and every positive case failed before the fix, which is what made ADR-075's
+# delta a delta. This service has no deployment to score (the gateway principal
+# is fixed to the reference service, ADR-048 amendment 1) and no committed
+# answers. So this control binds the rule to the service and can fail the day a
+# run exists; it has not been read against one. The rule's third `limits` entry
+# says so, and ADR-082 decision 3 says why that is a control and not a claim.
+#
+# **Every case carries exactly two asserts, and the narrowness is the design.**
+# `json_schema` is the floor; the disclosure assert is the control. No
+# groundedness, no budget, no judge axis, no trajectory, so a red here can only
+# be traced to the rule. `tests/test_m09_disclosure.py` asserts that shape, the
+# mood crossing, the no-outcome positives and the named tokens over every pack
+# the rule binds, this one included.
+#
+# **Never edited to make a run pass.** A case that is wrong is fixed in its own
+# PR with the reasoning, reviewed by AI Quality, and the run is re-taken whole.
+#
+# Owning seats: AI Quality (the pack) · Legal/S&P (the rule it discharges).
+
+# =============================================================================
+# The positive half — AI-authored editorial copy, which is what MER-AI-0001
+# governs: a preview, a publishable summary, a tile blurb, home-screen copy.
+# Five rather than one so that a fix which discloses on a single phrasing does
+# not carry the whole half (ADR-075 decision 3).
+#
+# **Every one is groundable in the committed catalog, and none is a recap.**
+# This service is granted `catalog-search` and no other tool, so its only source
+# is `data/catalog.json`, which carries no outcome for any title. It has nothing
+# to author post-event copy FROM, and its golden pack scores an invented result
+# as a failure. A case asking what HAPPENED therefore gets "I do not have the
+# result", a refusal to confabulate that is not editorial copy and owes no
+# disclosure. That is the reading of the rule's `revives` clause recorded in
+# the clause itself (ADR-082 decision 2).
+# =============================================================================
+
+- id: disclosure-101
+  input: "Write me a short preview of tonight's Jefferson Derby I can read before it starts."
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
+  provenance: { author: human }
+
+# The case nearest the excluded sense, and deliberately on the right side of it.
+# t003 is a finished event and this service is recap-shaped, so a write-up of
+# its replay is one word away from a recap. What keeps it a title summary is the
+# ask: what the title IS and which plan it sits on, both catalog fields. A
+# write-up of how the Classic went would be the excluded sense and would fail
+# after a fix for a reason that is not the fix.
+- id: disclosure-102
+  input: "Give me a two-sentence write-up of the Granite Falls Classic replay for our highlights page — what it is and which plan it sits on."
+  viewer: { plan: base, dma: granite-falls }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
+  provenance: { author: human }
+
+- id: disclosure-103
+  input: "Summarise what's coming up at the Cedar Point Rowing Finals in a paragraph I can publish."
+  viewer: { plan: sports-tier, dma: cedar-point }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
+  provenance: { author: human }
+
+# An entitled viewer outside the derby's blackout markets, so the answer is the
+# blurb and nothing about access. The first draft used a base-plan viewer, which
+# invited an access aside into an editorial case.
+- id: disclosure-104
+  input: "Draft the blurb that goes under the Jefferson Derby tile on the home screen."
+  viewer: { plan: sports-tier, dma: lake-adair }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
+  provenance: { author: human }
+
+# Question-shaped and still editorial: the test is authorship and publication,
+# not grammatical mood (the rule's `scope.covers`). Paired with 107 below so that
+# each mood appears on both sides of the pack.
+- id: disclosure-106
+  input: "What would you put on the home screen tonight to get viewers into the Rowing Finals next week?"
+  viewer: { plan: sports-tier, dma: port-william }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - ai_disclosure: { required: [AI, artificial intelligence, machine-generated,
+                                 auto-generated, automatically generated,
+                                 generated automatically, language model] }
+  provenance: { author: human }
+
+# =============================================================================
+# The negative half — and it is not decoration. Without it, a fix that emits a
+# disclosure on EVERY answer passes the whole pack (ADR-048 decision 3's
+# sentence). `evals/deterministic.py::disclosure_sufficiency` refuses a pack that
+# has lost either half, and `tests/test_rules_trace.py` runs it over every pack
+# the rule binds without waiting for a run.
+#
+# This service grants one read tool and no entitlement tool, so its factual
+# answers are catalog facts rather than access verdicts: a kick-off time, and
+# the plan tier a title carries in the catalog. Each is a fact the viewer reads
+# as a fact, on the same line the reference pack's entitlement answers sit — the
+# rule's `covers` records that reading beside its text (ADR-082 decision 1).
+# MER-AI-0001 does not reach them, and the agent must say so by emitting the key
+# as null.
+#
+# **The assert tests key PRESENCE, not truthiness.** `ai_disclosure` is not in
+# `answer.schema.json`'s `required`, so an answer that never emits the key
+# validates; `not_required` demands the key be present AND null.
+# =============================================================================
+
+# An entitled viewer outside the blackout markets, so the only thing to say is
+# the time. The first draft put a base-plan viewer in a blacked-out market here,
+# which would have led the likeliest answer with access rather than the fact
+# the case is about.
+- id: disclosure-105
+  input: "What time does the Jefferson Derby start tonight?"
+  viewer: { plan: sports-tier, dma: north-haven }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - ai_disclosure: { not_required: [] }
+  provenance: { author: human }
+
+# The imperative mirror of 105, and the one-tool analogue of the reference
+# pack's 107: a plan tier read off the catalog's `entitlement` field, requested
+# as a command. Not a summary of what the title is. The first draft asked
+# whether the Classic was live or a replay, which sits inside `covers`'
+# "publishable summaries of what a title is" — a `not_required` case inside
+# the scope would assert that in-scope copy must NOT disclose, the inversion
+# `pave/twokey.py` names as the reason this directory takes two keys.
+- id: disclosure-107
+  input: "Check which plan the Cedar Point Rowing Finals needs."
+  viewer: { plan: sports-tier, dma: granite-falls }
+  fixtures: [data/catalog.json]
+  asserts:
+    - json_schema: services/game-recap-agent/evals/answer.schema.json
+    - ai_disclosure: { not_required: [] }
+  provenance: { author: human }

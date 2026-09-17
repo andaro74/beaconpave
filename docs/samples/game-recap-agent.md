@@ -175,12 +175,17 @@ score.
   defects in this pack were each caught by name before it merged. The CI evals
   step still scores committed answers for the reference service only, and this
   service has none to score.
-- **No disclosure control.** MER-AI-0001 is `enforced`, binds to the service, and
-  its `covers` reaches previews, tiles and home-screen blurbs, which this service
-  writes. Its only control binds to `highlights-agent`. Whether the rule's
-  `revives` clause fires on a recap-named service joining the registry as a
-  caller, and whether the scope is amended, are Legal/S&P decisions recorded here
-  as **owed against the rule's 2026-10-01 `review_by`**, not taken.
+- **A disclosure control, bound and unrun (ADR-082).** MER-AI-0001 is `enforced`,
+  binds to the service, and its `covers` reaches previews, tiles and home-screen
+  blurbs, which this service writes. When the sample merged its only control
+  bound to `highlights-agent`. The rule now lists this service's own disclosure
+  pack as a second control, reads its `revives` and `covers` clauses against
+  this service in the fields the trace prints, and records in its limits that
+  the control has no run to be read against, because nothing can deploy this
+  service yet, and that the service sits outside the M09b guardrail. The
+  disclosure pack-quality checks in `tests/test_m09_disclosure.py` and the
+  cross-pack checks in `tests/test_rules_trace.py` run over this pack. A bound
+  control with stated limits; not a second reading of claim 6.
 - **No second brand.** `--brand meridian-sports` is the only value the judge can
   score.
 - **One frozen file.** Onboarding touched nothing under `pave/`, and could not
