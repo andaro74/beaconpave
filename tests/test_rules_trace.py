@@ -65,6 +65,8 @@ REGISTRY = ROOT / "rules"
 SCHEMA = json.loads((REGISTRY / "schema.json").read_text(encoding="utf-8"))
 COMMITTED = yaml.safe_load((REGISTRY / "MER-AI-0001.yaml").read_text(encoding="utf-8"))
 PACK_REF = "services/highlights-agent/evals/disclosure/cases.yaml"
+#: The second service's pack (ADR-082 decision 1). Listed second in the rule.
+SECOND_REF = "services/game-recap-agent/evals/disclosure/cases.yaml"
 
 #: Steps that RECORD something about the disposition rather than being a link
 #: of the walk: the rule's scope and its excluded sense, the revival condition,
@@ -244,12 +246,151 @@ def test_the_committed_rules_enforcing_control_resolves_and_is_not_an_orphan():
     exists."* This is that assertion: the ref is enforcing, it resolves, and the
     check that would refuse it has live input at last."""
     controls = rules.enforcing_controls(COMMITTED)
-    assert [c["type"] for c in controls] == ["eval_pack"], controls
-    assert controls[0]["ref"] == PACK_REF and controls[0]["layer"] == "L3", controls[0]
-    assert rules._resolves(controls[0]["ref"], ROOT), (
-        f"the disposition names {controls[0]['ref']!r} and it does not resolve in this "
-        "tree — a named control that is not there is the orphan-rule shape")
+    # Two since ADR-082: the reference service's pack and the second service's,
+    # in that order. A list equality rather than `>= 2`, so a third binding is a
+    # decision someone writes here and not a count that drifts.
+    assert [c["type"] for c in controls] == ["eval_pack", "eval_pack"], controls
+    assert [c["ref"] for c in controls] == [PACK_REF, SECOND_REF], controls
+    assert all(c["layer"] == "L3" for c in controls), controls
+    for control in controls:
+        assert rules._resolves(control["ref"], ROOT), (
+            f"the disposition names {control['ref']!r} and it does not resolve in this "
+            "tree -- a named control that is not there is the orphan-rule shape")
     assert rules.orphan_rules(REGISTRY, ROOT) == []
+
+
+def _bound_packs() -> list:
+    """`(ref, cases)` for every `eval_pack` control the committed rule binds.
+
+    Filtered on type, because `enforcing_controls` returns every non-`no-control`
+    control and the rule reserves a future guardrail one; reading a Cedar policy as
+    a case file would fail on the wrong link. Non-empty is asserted by the caller."""
+    packs = []
+    for control in rules.enforcing_controls(COMMITTED):
+        if control.get("type") != "eval_pack":
+            continue
+        packs.append((control["ref"],
+                      yaml.safe_load((ROOT / control["ref"]).read_text(encoding="utf-8"))))
+    return packs
+
+
+def _required_tokens(case: dict) -> list | None:
+    for assertion in case.get("asserts") or []:
+        spec = assertion.get("ai_disclosure")
+        if isinstance(spec, dict) and "required" in spec:
+            return list(spec["required"] or [])
+    return None
+
+
+def test_every_bound_disclosure_pack_carries_both_halves():
+    """A second pack is a second place the negative half can quietly go.
+
+    `evals/deterministic.py::disclosure_sufficiency` refuses a one-sided pack and a
+    `required: []` case, but only when the lane runs, and the second service has
+    no run (ADR-082 decision 3). `tests/test_m09_disclosure.py` parametrises its
+    pack-quality checks over the same packs; this one holds the properties that
+    only make sense across packs, beside the pin on the controls:
+
+    - both halves present and no toothless case, by the instrument's own check;
+    - at least five `required` cases, ADR-075 decision 3's reason: a fix that
+      discloses on one phrasing must not carry the half;
+    - every `required` case names the SAME phrasings as every other bound pack.
+      The phrasings are policy and the reference pack's list is checked by its
+      run; a second pack with no run inherits that check only by equality. The
+      Security seat measured `required: [a]` on the second pack scoring 7/7 PASS
+      against the answer `"a"` with nothing red -- the toothless finding that seat
+      closed once, reopened one field over;
+    - the headroom exemption ADR-075 decision 4 attaches to this suite is
+      load-bearing for every pack and cited by every pack, not re-decided;
+    - every case's schema path points at the pack's own service, so a pack copied
+      from the reference with its path left behind is red."""
+    from evals.deterministic import disclosure_sufficiency
+    from pave import floors
+
+    packs = _bound_packs()
+    assert packs, "the committed rule binds no eval_pack control; nothing to check"
+    token_lists = {}
+    for ref, cases in packs:
+        service = pathlib.PurePosixPath(ref).parts[1]
+        result = disclosure_sufficiency(cases)
+        assert result.passed, (ref, result.detail)
+        required = [c for c in cases if _required_tokens(c) is not None]
+        assert len(required) >= 5, (
+            f"{ref}: {len(required)} required case(s); ADR-075 decision 3 wants five so a "
+            "fix that discloses on one phrasing does not carry the half")
+        for case in required:
+            token_lists.setdefault(tuple(_required_tokens(case)), set()).add(ref)
+        with pytest.raises(ValueError, match=r"headroom is 0/\d+ = 0\.0%"):
+            floors.check_headroom(cases)
+        header = (ROOT / ref).read_text(encoding="utf-8").split("- id:")[0]
+        assert "ADR-075 decision 4" in header, (
+            f"{ref} no longer cites the decision that exempts it from the headroom rule, "
+            "so the exemption is stated in the file it exempts")
+        readme = (ROOT / ref).parent / "README.md"
+        assert readme.is_file() and "MER-AI-0001" in readme.read_text(encoding="utf-8"), (
+            f"{ref} has no README naming the rule it discharges")
+        for case in cases:
+            schema = next(a["json_schema"] for a in case["asserts"] if "json_schema" in a)
+            assert schema.startswith(f"services/{service}/"), (
+                f"{ref}:{case['id']} validates against {schema}, another service's schema")
+    assert len(token_lists) == 1, (
+        "bound packs disagree on the accepted disclosure phrasings: "
+        + "; ".join(f"{sorted(refs)} -> {list(tokens)}" for tokens, refs in token_lists.items()))
+
+
+def test_the_second_bindings_boundary_is_written_where_the_trace_prints_it():
+    """The diff that bound the second service is prose, and prose is deletable in
+    silence: the Security seat struck the bound-and-unrun limit and the `revives`
+    reading one at a time and nothing went red. Pinned by the sentences a reader
+    of `pave rules trace` meets, in the fields it prints (ADR-082 decisions 2, 3)."""
+    scope = COMMITTED["scope"]
+    # Content, not only the citation: the Legal/S&P seat measured that the substantive
+    # sentences could go with the `ADR-082` string left behind and nothing red.
+    for sentence in ("ADR-082 decision 2", "NOT",
+                     "nothing to author post-event copy",
+                     "tool that exposes outcomes"):
+        assert sentence in scope["revives"], (
+            f"the `revives` reading against the second service no longer says {sentence!r} "
+            "in the field the trace prints; a scope clause read in an ADR alone is a "
+            "decision nobody meets")
+    for sentence in ("ADR-082 decision 1", "read off the record and stated as a fact",
+                     "summary versus bare fact"):
+        assert sentence in scope["covers"], sentence
+    limits = [entry["limit"] for entry in COMMITTED["disposition"]["limits"]]
+    # Sentences, not headlines: the Security seat gutted both limits to their first
+    # sentence, deleting the G4 line that discharges its own finding, and nothing red.
+    for sentence in ("bound and unrun", "has not been read against one",
+                     "run by hand"):
+        assert any(sentence in text for text in limits), (
+            f"no limit says {sentence!r}; a reader of the chain infers a second delta "
+            "from a second control")
+    for sentence in ("outside the M09b gateway disclosure guardrail",
+                     "denies AND an audit record resolves (G4)"):
+        assert any(sentence in text for text in limits), sentence
+
+
+def test_the_revives_readings_premise_holds_in_the_registry_and_the_manifest():
+    """**The falsifier the reading names, as a check (ADR-080).** The `revives` clause
+    is read down to NOT triggered on one premise: the second bound service is granted
+    `catalog-search` and no other tool, so it has no source of outcomes. The Security
+    seat granted it a registry-backed outcome tool and measured `pave verify` PASS,
+    the trace still printing NOT triggered, and every test green -- a narrowing of a
+    live revival clause on an enforced blocking rule that nothing could detect. A
+    substring pin on the field cannot hold a conclusion (the same seat rewrote NOT
+    triggered to TRIGGERED around the pinned strings, silently); this holds the
+    premise instead, in the two artifacts that decide it. The day it fails, the
+    reading is re-taken on Legal/S&P's key, not this assertion loosened."""
+    manifest = yaml.safe_load(
+        (ROOT / "services" / "game-recap-agent" / "pave.manifest.yaml").read_text(encoding="utf-8"))
+    declared = sorted(str(tool["id"]).split("@")[0] for tool in manifest["tools"])
+    assert declared == ["catalog-search"], (
+        f"game-recap-agent declares {declared}. The `revives` reading in rules/MER-AI-0001.yaml "
+        "rests on the service holding no tool that exposes outcomes; a second grant is the "
+        "state the reading names as firing the clause, and it is Legal/S&P's to re-read.")
+    registry = yaml.safe_load((ROOT / "platform" / "registry" / "tools.yaml").read_text(encoding="utf-8"))
+    granted = sorted(tool["id"] for tool in registry if "game-recap-agent" in (tool.get("callers") or []))
+    assert granted == ["catalog-search"], (
+        f"the registry grants game-recap-agent {granted}; see the `revives` reading")
 
 
 def test_a_ref_escaping_the_repository_does_not_resolve(tmp_path):
@@ -356,17 +497,20 @@ def test_the_committed_rule_traces_from_the_rule_to_its_asserts():
     kinds = [s.kind for s in chain.steps if s.kind not in ANNOTATIONS]
     assert kinds[:4] == ["source", "owner", "control", "binds"], kinds
 
-    committed_cases = yaml.safe_load((ROOT / PACK_REF).read_text(encoding="utf-8"))
+    # Both packs since ADR-082: the walk reaches every case of every bound control.
+    committed_cases = [case for ref in (PACK_REF, SECOND_REF)
+                       for case in yaml.safe_load((ROOT / ref).read_text(encoding="utf-8"))]
     cases = [s for s in chain.steps if s.kind == "case"]
-    assert len(cases) == len(committed_cases) >= 5, (
-        f"the walk reached {len(cases)} of the pack's {len(committed_cases)} cases")
+    assert len(cases) == len(committed_cases) >= 10, (
+        f"the walk reached {len(cases)} of the packs' {len(committed_cases)} cases")
     assert all("ai_disclosure" in s.detail for s in cases), [s.detail for s in cases]
 
     rendered = rules.render(chain)
     assert "chain: RESOLVED" in rendered and "NOT RESOLVED" not in rendered
     # The service, named by the disposition rather than inferred by the reader.
-    assert next(s for s in chain.steps if s.kind == "binds").ref == "highlights-agent"
-    assert "highlights-agent" in rendered
+    assert [s.ref for s in chain.steps if s.kind == "binds"] == ["highlights-agent",
+                                                                 "game-recap-agent"]
+    assert "highlights-agent" in rendered and "game-recap-agent" in rendered
     # The surface, named by the scope record the same lookup prints.
     assert "editorial copy" in rendered and "previews" in rendered, (
         "the lookup does not print the surface the rule binds, so a reader of the "

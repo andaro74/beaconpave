@@ -51,6 +51,28 @@ from evals.deterministic import (
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PACK = ROOT / "services" / "highlights-agent" / "evals" / "disclosure" / "cases.yaml"
 PACK_README = ROOT / "services" / "highlights-agent" / "evals" / "disclosure" / "README.md"
+
+#: Every pack `rules/MER-AI-0001.yaml` binds, read off the rule rather than listed.
+#: `PACK` above stays the reference pack for the lane and run tests, which need a
+#: run; the per-pack PROPERTY tests below take `pack` and run over all of these.
+#: ADR-082 bound a second service, and every property this file asserted was
+#: hard-scoped to the first -- the shape `disclosure_sufficiency`'s own docstring
+#: records having been paid for twice.
+BOUND_PACKS = [
+    ROOT / control["ref"]
+    for control in (yaml.safe_load((ROOT / "rules" / "MER-AI-0001.yaml")
+                                   .read_text(encoding="utf-8"))["disposition"]["controls"])
+    if control.get("type") == "eval_pack"
+]
+
+
+def test_the_rule_binds_the_reference_pack_and_at_least_one_more():
+    """The parametrisation's own sufficiency. This was a module-level `assert`, which
+    the Security seat measured as a COLLECTION error: strike the second control from
+    the rule and every test in this file, the G-invariant ones included, is skipped
+    rather than run. A test fails; a module aborts the session."""
+    assert PACK in BOUND_PACKS, BOUND_PACKS
+    assert len(BOUND_PACKS) >= 2, BOUND_PACKS
 ANSWER_SCHEMA = ROOT / "services" / "highlights-agent" / "evals" / "answer.schema.json"
 GOLDENS = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
 RUNNER = ROOT / "services" / "highlights-agent" / "run_with_tools.py"
@@ -63,8 +85,8 @@ CATALOG = json.loads((ROOT / "data" / "catalog.json").read_text(encoding="utf-8"
 BASE_ANSWER = {"answer": "The Jefferson Derby starts at 7pm.", "cited_titles": ["t001"]}
 
 
-def _cases() -> list[dict]:
-    return yaml.safe_load(PACK.read_text(encoding="utf-8")) or []
+def _cases(pack: pathlib.Path = PACK) -> list[dict]:
+    return yaml.safe_load(pack.read_text(encoding="utf-8")) or []
 
 
 def _case(case_id: str) -> dict:
@@ -148,7 +170,8 @@ def test_sufficiency_counts_modes_and_not_cases():
     assert not disclosure_sufficiency(one_sided).passed
 
 
-def test_every_case_carries_exactly_the_schema_floor_and_one_disclosure_assert():
+@pytest.mark.parametrize("pack", BOUND_PACKS, ids=lambda p: p.parents[2].name)
+def test_every_case_carries_exactly_the_schema_floor_and_one_disclosure_assert(pack):
     """The narrowness is the design, not an omission.
 
     The agent stands at 10/25 on the goldens, so a disclosure case carrying a
@@ -156,7 +179,7 @@ def test_every_case_carries_exactly_the_schema_floor_and_one_disclosure_assert()
     that is not the disclosure control and pass run B for a reason that is not
     the fix — and claim 6's whole content is that a reader can trace the red to
     the RULE."""
-    for case in _cases():
+    for case in _cases(pack):
         keys = [k for a in case.get("asserts") or [] for k in a]
         assert keys == ["json_schema", "ai_disclosure"], (
             f"{case['id']} asserts {keys}. A disclosure case carries the schema floor and "
@@ -167,7 +190,8 @@ def test_every_case_carries_exactly_the_schema_floor_and_one_disclosure_assert()
             "M09; a judged case would move the frozen instrument inside the disposition.")
 
 
-def test_the_pack_crosses_grammatical_mood_against_authorship():
+@pytest.mark.parametrize("pack", BOUND_PACKS, ids=lambda p: p.parents[2].name)
+def test_the_pack_crosses_grammatical_mood_against_authorship(pack):
     """**Round 1 (Legal/S&P): the pack's discriminating signal was verb mood.**
 
     As first authored all four positives were imperatives (*Write / Give /
@@ -182,8 +206,8 @@ def test_the_pack_crosses_grammatical_mood_against_authorship():
     def is_question(case):
         return case["input"].rstrip().endswith("?")
 
-    positives = [c for c in _cases() if _mode(c) == "required"]
-    negatives = [c for c in _cases() if _mode(c) == "not_required"]
+    positives = [c for c in _cases(pack) if _mode(c) == "required"]
+    negatives = [c for c in _cases(pack) if _mode(c) == "not_required"]
     assert any(is_question(c) for c in positives), (
         "no positive case is a question, so every disclosure the pack requires is "
         "requested in the imperative and 'disclose on imperatives' passes the half")
@@ -194,7 +218,8 @@ def test_the_pack_crosses_grammatical_mood_against_authorship():
     assert any(is_question(c) for c in negatives)
 
 
-def test_no_positive_case_asks_for_an_outcome_the_catalog_cannot_ground():
+@pytest.mark.parametrize("pack", BOUND_PACKS, ids=lambda p: p.parents[2].name)
+def test_no_positive_case_asks_for_an_outcome_the_catalog_cannot_ground(pack):
     """**The measurement that moved the rule, kept as a check on the pack.**
 
     `data/catalog.json` carries no outcome for any title — every field any title
@@ -217,7 +242,7 @@ def test_no_positive_case_asks_for_an_outcome_the_catalog_cannot_ground():
 
     outcome_words = ("who won", "how did", "what happened", "final score", "the result",
                      "played out", "play out", "recap of")
-    for case in _cases():
+    for case in _cases(pack):
         if _mode(case) != "required":
             continue
         lowered = case["input"].lower()
@@ -338,14 +363,15 @@ def test_a_disclosure_that_does_not_say_what_it_discloses_fails():
                                 spec).passed
 
 
-def test_every_positive_case_names_the_token_its_disclosure_must_carry():
+@pytest.mark.parametrize("pack", BOUND_PACKS, ids=lambda p: p.parents[2].name)
+def test_every_positive_case_names_the_token_its_disclosure_must_carry(pack):
     """The tokens are POLICY and live in the case file, not in the scorer.
 
     `evals/deterministic.py` is the goldens scorer at (ai-quality,
     platform-eng) and holds the mechanism; what a disclosure must actually *say*
     is Legal/S&P's, so it sits where that seat's key reaches it. A positive case
     with an empty token list would be back to accepting any visible string."""
-    for case in _cases():
+    for case in _cases(pack):
         if _mode(case) == "required":
             assert _tokens(case), (
                 f"{case['id']} requires a disclosure but names no token it must carry, so "
@@ -354,12 +380,13 @@ def test_every_positive_case_names_the_token_its_disclosure_must_carry():
             assert _tokens(case) == [], f"{case['id']} is a negative case with tokens"
 
 
-def test_the_packs_asserts_are_in_the_documented_vocabulary():
+@pytest.mark.parametrize("pack", BOUND_PACKS, ids=lambda p: p.parents[2].name)
+def test_the_packs_asserts_are_in_the_documented_vocabulary(pack):
     """`tests/test_contracts.py::ASSERT_KEYS` is the one vocabulary. A pack using
     a key outside it would be scored by the `unknown assert` branch — INFRA, not
     a silent skip — but the vocabulary check is what makes that unreachable."""
     from tests.test_contracts import ASSERT_KEYS
-    for case in _cases():
+    for case in _cases(pack):
         for assertion in case.get("asserts") or []:
             unknown = set(assertion) - ASSERT_KEYS
             assert not unknown, f"{case['id']}: undocumented assert(s) {sorted(unknown)}"
@@ -519,17 +546,19 @@ def test_an_unknown_mode_fails_rather_than_being_skipped():
 
 # --- the pack scored end to end -----------------------------------------------
 
-def test_the_positive_cases_fail_on_todays_answer_shape_and_this_is_f1s_premise():
+@pytest.mark.parametrize("pack", BOUND_PACKS, ids=lambda p: p.parents[2].name)
+def test_the_positive_cases_fail_on_todays_answer_shape_and_this_is_f1s_premise(pack):
     """Every committed M08b sample carries `ai_disclosure: null`. So the positive
     half fails before the fix **by construction**, which is what makes the delta a
     delta — the rule file's own recorded hazard is a disposition whose control the
     service already satisfies."""
-    for case in [c for c in _cases() if _mode(c) == "required"]:
+    for case in [c for c in _cases(pack) if _mode(c) == "required"]:
         result = _score(case, {**BASE_ANSWER, "ai_disclosure": None})
         assert result.result == FAIL, f"{case['id']} passes pre-fix; F1's premise is gone"
 
 
-def test_the_negative_case_passes_on_todays_answer_shape():
+@pytest.mark.parametrize("pack", BOUND_PACKS, ids=lambda p: p.parents[2].name)
+def test_the_negative_case_passes_on_todays_answer_shape(pack):
     """And it is expected to, which is why F1 is scoped to the positive half.
 
     The negative case asserts the field is NOT disclosed, and the service already
@@ -538,31 +567,32 @@ def test_the_negative_case_passes_on_todays_answer_shape():
     fire on it whatever the system did, closing the milestone red by
     construction. The falsifier is scoped to the positive half in all three sites
     (ADR-075 amendment 2)."""
-    case = next(c for c in _cases() if _mode(c) == "not_required")
+    case = next(c for c in _cases(pack) if _mode(c) == "not_required")
     assert _score(case, {**BASE_ANSWER, "ai_disclosure": None}).result == PASS
 
 
-def test_the_whole_pack_passes_only_on_the_post_fix_shape():
+@pytest.mark.parametrize("pack", BOUND_PACKS, ids=lambda p: p.parents[2].name)
+def test_the_whole_pack_passes_only_on_the_post_fix_shape(pack):
     """Both halves in one run, in both directions — ADR-048 decision 3's shape.
 
     A fix that discloses on **everything** fails the negative case; a fix that
     discloses on **nothing** fails the positive ones; only the discriminating fix
     passes the pack."""
     def run(answer_for):
-        return [_score(c, answer_for(c)) for c in _cases()]
+        return [_score(c, answer_for(c)) for c in _cases(pack)]
 
     discloses_everything = run(lambda c: {**BASE_ANSWER, "ai_disclosure": GOOD_DISCLOSURE})
-    negatives = len([c for c in _cases() if _mode(c) == "not_required"])
+    negatives = len([c for c in _cases(pack) if _mode(c) == "not_required"])
     assert tally(discloses_everything)["failed"] == negatives
 
     discloses_nothing = run(lambda c: {**BASE_ANSWER, "ai_disclosure": None})
-    positives = len([c for c in _cases() if _mode(c) == "required"])
+    positives = len([c for c in _cases(pack) if _mode(c) == "required"])
     assert tally(discloses_nothing)["failed"] == positives
 
     correct = run(lambda c: {**BASE_ANSWER,
                              "ai_disclosure": GOOD_DISCLOSURE if _mode(c) == "required" else None})
     counts = tally(correct)
-    assert counts["failed"] == 0 and counts["passed"] == len(_cases())
+    assert counts["failed"] == 0 and counts["passed"] == len(_cases(pack))
 
 
 def test_a_missing_answer_is_infra_and_never_a_pass():
