@@ -20,12 +20,58 @@ import yaml
 from core import cedar
 
 from pave import floors
+from pave import manifest as manifest_mod
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 REGISTRY = ROOT / "platform" / "registry" / "tools.yaml"
 MANIFEST = ROOT / "services" / "highlights-agent" / "pave.manifest.yaml"
 GOLDENS = ROOT / "services" / "highlights-agent" / "evals" / "golden" / "cases.yaml"
+
+#: Every committed service's golden pack, read off the two constants that own it.
+#:
+#: **Until `game-recap-agent` landed, every per-case check below read `GOLDENS`
+#: and nothing else.** A second service's pack was therefore covered by four rows
+#: of `pave verify` (floor, headroom band, top-level keys, budget keys) and by no
+#: contract test at all: the assert vocabulary, the vacuous-groundedness guard,
+#: catalog-id existence and real DMAs and plans never ran on it, while this file's
+#: own docstrings and the golden README said they did. The AI Quality seat found
+#: it by repointing this file at the new pack by hand; a check that ran once on a
+#: laptop is not a protection. Stated in `docs/samples/game-recap-agent.md` as
+#: owed, discharged here.
+#:
+#: **Bound to `pave/manifest.py`, not re-globbed.** `manifest.services()` is the
+#: one enumeration of `services/*` (its docstring: a caller that hard-codes a
+#: service name has re-created the premise M05 removed) and `manifest.GOLDEN_PACK`
+#: is the one spelling of where a pack lives. The first draft here globbed both
+#: again; the Platform Engineering seat moved `GOLDEN_PACK` and this file stayed
+#: green at 45 passed, which is ADR-045 decision 7's second copy. The
+#: enumeration's own non-emptiness is `tests/test_manifest_verify.py`'s to assert;
+#: what is asserted below is that every enumerated service has the pack this
+#: file reads, and that no pack sits under `services/` outside the enumeration.
+#: Only packs that exist are loaded. A service whose pack is missing is refused BY
+#: NAME in `test_every_committed_service_pack_is_read_here`; without this filter it
+#: was refused there and then nineteen more times as a raw `FileNotFoundError`
+#: from every per-case loop -- the accidental-red shape `pave/floors.py` names as
+#: what a verifier exists to replace. One named red, not twenty.
+GOLDEN_PACKS = [p for p in (d.joinpath(*manifest_mod.GOLDEN_PACK) for d in manifest_mod.services())
+               if p.is_file()]
+
+
+def golden_cases() -> list:
+    """`(service, case)` for every case in every committed pack.
+
+    The service rides along because case ids are unique WITHIN a pack and not
+    across packs: `recommend-013` is a case in both committed packs today, so a
+    message reading `recommend-013: ...` names a case that exists in two files."""
+    return [(pack.parents[2].name, case) for pack in GOLDEN_PACKS for case in load_yaml(pack)]
+
+
+def service_packs() -> list:
+    """`(pack, manifest)` per service, for the checks that pair the two."""
+    return [(pack, pack.parents[2] / manifest_mod.MANIFEST_NAME) for pack in GOLDEN_PACKS]
+
+
 PROBES = ROOT / "quality" / "adversarial" / "probes.yaml"
 
 #: The value `cedar.GATED_CONSEQUENCES` must hold, restated here so that changing
@@ -157,21 +203,59 @@ def test_manifest_classification_is_declarable():
 
 # --- goldens ------------------------------------------------------------------
 
+def test_every_committed_service_golden_pack_is_read_here():
+    """The discovery's sufficiency, asserted rather than trusted, in both directions.
+
+    Every service `manifest.services()` enumerates has the pack this file reads at
+    the path `manifest.GOLDEN_PACK` spells, and no pack sits under `services/` in a
+    directory the enumeration does not return -- a pack beside no manifest would
+    otherwise be read by nothing. A missing pack is refused here by name and
+    nowhere else: `GOLDEN_PACKS` loads only packs that exist, so the per-case
+    loops do not each raise a `FileNotFoundError` beside this one. The
+    reference pack is among them. No count is asserted: a `>= 2` was a guard
+    coupled to the current service list, red the day a sample is legitimately
+    removed, and the equality below already refuses an empty or drifted set.
+    The baseline control carries no manifest and no pack and is outside both
+    directions (`services/highlights-agent-baseline/README.md`)."""
+    enumerated = manifest_mod.services()
+    missing = [d.name for d in enumerated if not d.joinpath(*manifest_mod.GOLDEN_PACK).is_file()]
+    assert not missing, (
+        f"service(s) with a manifest and no golden pack at {'/'.join(manifest_mod.GOLDEN_PACK)}: "
+        f"{missing}. The manifest gate admits them and this file cannot read them.")
+    stray = sorted(p.parents[2].name
+                   for p in (ROOT / "services").glob("*/" + "/".join(manifest_mod.GOLDEN_PACK))
+                   if p.parents[2] not in enumerated)
+    assert not stray, (
+        f"golden pack(s) under services/ beside no {manifest_mod.MANIFEST_NAME}: {stray}. "
+        "Nothing enumerates them, so nothing reads them.")
+    # **The ratchet.** The AI Quality seat rebound `GOLDEN_PACKS = [GOLDENS]` -- the
+    # one line that undoes the whole widening -- and this file stayed green at 45
+    # passed with a real defect planted in the second pack behind it. The two
+    # assertions above compare the enumeration with the FILESYSTEM; this one compares
+    # it with what the loops READ. Equality, not a count, so it is not coupled to how
+    # many services exist today.
+    assert sorted(GOLDEN_PACKS) == [d.joinpath(*manifest_mod.GOLDEN_PACK) for d in enumerated], (
+        "the packs the per-case checks read are not the packs the enumeration returns; "
+        "a narrowed discovery makes every widened check below silent on the rest")
+    assert GOLDENS in GOLDEN_PACKS
+
+
 def test_golden_case_ids_are_unique():
-    ids = [c["id"] for c in load_yaml(GOLDENS)]
-    assert len(ids) == len(set(ids))
+    for pack in GOLDEN_PACKS:
+        ids = [c["id"] for c in load_yaml(pack)]
+        assert len(ids) == len(set(ids)), pack
 
 
 def test_every_path_referenced_by_a_golden_case_exists():
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         for fixture in case.get("fixtures", []):
-            assert (ROOT / fixture).is_file(), f"{case['id']}: fixture {fixture} missing"
+            assert (ROOT / fixture).is_file(), f"{service}/{case['id']}: fixture {fixture} missing"
         for assertion in case.get("asserts", []):
             if "json_schema" in assertion:
-                assert (ROOT / assertion["json_schema"]).is_file(), f"{case['id']}: answer schema missing"
+                assert (ROOT / assertion["json_schema"]).is_file(), f"{service}/{case['id']}: answer schema missing"
         rubric = case.get("judge", {}).get("rubric")
         if rubric:
-            assert (ROOT / rubric).is_file(), f"{case['id']}: rubric {rubric} missing"
+            assert (ROOT / rubric).is_file(), f"{service}/{case['id']}: rubric {rubric} missing"
 
 
 def test_golden_set_is_the_size_the_progression_table_claims():
@@ -196,10 +280,10 @@ CASE_KEYS = floors.CASE_TOP_LEVEL_KEYS
 
 
 def test_no_case_uses_an_undocumented_top_level_key():
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         unknown = sorted(set(case) - CASE_KEYS)
         assert not unknown, (
-            f"case {case.get('id')!r} carries unknown top-level key(s) {unknown}. The "
+            f"case {service}/{case.get('id')!r} carries unknown top-level key(s) {unknown}. The "
             "runner ignores what it does not recognise, so a misspelled key is a case "
             f"reporting PASS while checking nothing. Known keys: {sorted(CASE_KEYS)}.")
 
@@ -216,9 +300,9 @@ def test_the_headroom_flag_is_not_accepted_inside_the_judge_block():
     and at the platform floor of 20 a typo nested under `judge:` is caught by
     nothing at all — measured: N=20 with the flag nested and one nested typo is
     1/20 = 5%, legal, and the vocabulary check never sees it."""
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         assert "expect_near_threshold" not in (case.get("judge") or {}), (
-            f"case {case.get('id')!r} carries `expect_near_threshold` inside its "
+            f"case {service}/{case.get('id')!r} carries `expect_near_threshold` inside its "
             "`judge:` block. It belongs at the case top level, where the closed key "
             "vocabulary can see a typo in it.")
 
@@ -233,7 +317,13 @@ def test_golden_set_keeps_headroom():
     the repository's only headroom check — measured at 1859 passed, zero keys,
     before ADR-044 put this file on a rule. `tests/test_floors.py` calls the same
     function against the same pack, so gutting either leaves the other."""
-    floors.check_headroom(load_yaml(GOLDENS))
+    for pack in GOLDEN_PACKS:
+        try:
+            floors.check_headroom(load_yaml(pack))
+        except ValueError as exc:
+            # `check_headroom` names a ratio and a policy, never a pack; with two packs
+            # of different sizes the denominator was the only clue, which is not a name.
+            raise AssertionError(f"{pack.parents[2].name}: {exc}") from exc
 
 
 
@@ -332,27 +422,27 @@ def test_no_case_uses_an_undocumented_assert():
     """A typo'd assert key is worse than a missing one: the harness skips what it
     does not recognise, so the case reports PASS while checking nothing. Failing
     the build is the only way that stays visible."""
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         for assertion in case.get("asserts", []):
             unknown = set(assertion) - ASSERT_KEYS
-            assert not unknown, f"{case['id']}: undocumented assert(s) {sorted(unknown)}"
+            assert not unknown, f"{service}/{case['id']}: undocumented assert(s) {sorted(unknown)}"
 
 
 def test_every_case_validates_its_answer_against_the_schema():
     """Schema conformance is the floor. A case without it can pass on prose that
     is not even the right shape."""
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         keys = {k for a in case.get("asserts", []) for k in a}
-        assert "json_schema" in keys, f"{case['id']}: no json_schema assert"
+        assert "json_schema" in keys, f"{service}/{case['id']}: no json_schema assert"
 
 
 def test_every_case_checks_groundedness():
     """`cited_titles_in_fixture` is the deterministic groundedness check. Omitting
     it leaves confabulation to a judge whose axes are advisory until it publishes
     an agreement number."""
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         keys = {k for a in case.get("asserts", []) for k in a}
-        assert "cited_titles_in_fixture" in keys, f"{case['id']}: groundedness unchecked"
+        assert "cited_titles_in_fixture" in keys, f"{service}/{case['id']}: groundedness unchecked"
 
 
 def test_no_case_can_pass_groundedness_by_citing_nothing():
@@ -368,11 +458,11 @@ def test_no_case_can_pass_groundedness_by_citing_nothing():
     Without this, a new case can be authored with the vacuous shape and nothing
     notices — which is how M02's `edge-025` recorded a real regression as
     *unchanged*."""
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         keys = {k for a in case.get("asserts", []) for k in a}
         decisive = keys & {"must_cite", "cites_at_least_one", "cited_titles_empty"}
         assert decisive, (
-            f"{case['id']}: asserts cited_titles_in_fixture and nothing else about "
+            f"{service}/{case['id']}: asserts cited_titles_in_fixture and nothing else about "
             "citations, so it passes groundedness on an empty citation list. Add "
             "`cites_at_least_one: true`, or `cited_titles_empty: true` if the "
             "subject is deliberately absent from the catalog."
@@ -383,14 +473,14 @@ def test_the_two_citation_expectations_are_never_both_asserted():
     """`cites_at_least_one` and `cited_titles_empty` are contradictory. A case
     carrying both can never pass, and would read as a defect in the service rather
     than in the case."""
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         keys = {k for a in case.get("asserts", []) for k in a}
         assert not ({"cites_at_least_one", "cited_titles_empty"} <= keys), (
-            f"{case['id']}: asserts both that it cites something and that it cites nothing"
+            f"{service}/{case['id']}: asserts both that it cites something and that it cites nothing"
         )
         if "cited_titles_empty" in keys:
             assert "must_cite" not in keys, (
-                f"{case['id']}: asserts cited_titles_empty and must_cite together"
+                f"{service}/{case['id']}: asserts cited_titles_empty and must_cite together"
             )
 
 
@@ -399,21 +489,21 @@ def test_cited_and_expected_titles_exist_in_the_catalog():
     never pass — a broken case that looks like a failing system."""
     catalog = load_json(ROOT / "data" / "catalog.json")
     known = {t["id"] for t in catalog["titles"]}
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         for assertion in case.get("asserts", []):
             for title_id in assertion.get("must_cite", []):
-                assert title_id in known, f"{case['id']}: must_cite names unknown title {title_id}"
+                assert title_id in known, f"{service}/{case['id']}: must_cite names unknown title {title_id}"
 
 
 def test_viewer_context_names_real_dmas_and_plans():
     catalog = load_json(ROOT / "data" / "catalog.json")
     dmas = set(catalog["dmas"])
     plans = {t["entitlement"] for t in catalog["titles"]}
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         viewer = case.get("viewer")
         if viewer:
-            assert viewer["dma"] in dmas, f"{case['id']}: unknown DMA {viewer['dma']}"
-            assert viewer["plan"] in plans, f"{case['id']}: unknown plan {viewer['plan']}"
+            assert viewer["dma"] in dmas, f"{service}/{case['id']}: unknown DMA {viewer['dma']}"
+            assert viewer["plan"] in plans, f"{service}/{case['id']}: unknown plan {viewer['plan']}"
 
 
 def test_cases_asserting_an_entitlement_verdict_require_the_tool():
@@ -421,7 +511,7 @@ def test_cases_asserting_an_entitlement_verdict_require_the_tool():
     the model reasoned its way to is the exact failure the control demonstrates.
     A case that accepts one without demanding `entitlement-check` is scoring the
     guess."""
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         keys = {k for a in case.get("asserts", []) for k in a}
         if "entitlement" not in keys:
             continue
@@ -429,29 +519,31 @@ def test_cases_asserting_an_entitlement_verdict_require_the_tool():
         if verdict.get("reason") == "unknown-title":
             continue  # no title to check against; the tool is not reachable
         assert "entitlement_source" in keys, (
-            f"{case['id']} asserts an entitlement verdict without requiring entitlement-check"
+            f"{service}/{case['id']} asserts an entitlement verdict without requiring entitlement-check"
         )
 
 
 def test_trajectory_expectations_name_registered_tools():
     registered = {t["id"] for t in load_yaml(REGISTRY)}
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         expected = case.get("trajectory", {}).get("expect_tool_before_answer")
         if expected:
-            assert expected in registered, f"{case['id']}: unregistered tool {expected}"
+            assert expected in registered, f"{service}/{case['id']}: unregistered tool {expected}"
 
 
 def test_budgets_stay_within_the_service_manifest():
     """Per-case budgets that exceed the manifest's ceilings would let a service
     pass its evals and blow its declared budget in production."""
-    gates = load_yaml(MANIFEST)["gates"]["budgets"]
-    for case in load_yaml(GOLDENS):
-        for assertion in case.get("asserts", []):
-            budget = assertion.get("budget")
-            if budget:
-                assert budget["max_ms"] <= gates["max_ms"], f"{case['id']}: max_ms over manifest"
-                assert budget["tokens_in"] <= gates["max_tokens_in"], f"{case['id']}: input over manifest"
-                assert budget["tokens_out"] <= gates["max_tokens_out"], f"{case['id']}: output over manifest"
+    for pack, manifest in service_packs():
+        service = pack.parents[2].name
+        gates = load_yaml(manifest)["gates"]["budgets"]
+        for case in load_yaml(pack):
+            for assertion in case.get("asserts", []):
+                budget = assertion.get("budget")
+                if budget:
+                    assert budget["max_ms"] <= gates["max_ms"], f"{service}/{case['id']}: max_ms over manifest"
+                    assert budget["tokens_in"] <= gates["max_tokens_in"], f"{service}/{case['id']}: input over manifest"
+                    assert budget["tokens_out"] <= gates["max_tokens_out"], f"{service}/{case['id']}: output over manifest"
 
 
 def test_no_case_asserts_a_percentile_against_a_single_request():
@@ -460,12 +552,12 @@ def test_no_case_asserts_a_percentile_against_a_single_request():
     permits into a per-case failure. It cost three of m00b's ten golden failures
     before it was caught. `p95_ms` belongs to the manifest, where the runner
     checks it across the whole suite; a case gets `max_ms`, a hang guard."""
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         for assertion in case.get("asserts", []):
             budget = assertion.get("budget") or {}
             percentiles = sorted(k for k in budget if k.startswith("p") and k[1:].split("_")[0].isdigit())
             assert not percentiles, (
-                f"{case['id']}: budget asserts {percentiles} against a single measurement. "
+                f"{service}/{case['id']}: budget asserts {percentiles} against a single measurement. "
                 "Percentiles are suite-level (manifest `gates.budgets.p95_ms`)."
             )
 
@@ -475,12 +567,12 @@ def test_no_budget_is_denominated_in_currency():
     not silently re-score a suite whose numbers are compared across milestones.
     A `cost_usd` reintroduced here would re-couple the golden set to a price list
     — and would do it quietly, since the value would still look plausible."""
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         for assertion in case.get("asserts", []):
             budget = assertion.get("budget") or {}
             priced = sorted(k for k in budget if "usd" in k or "cost" in k)
             assert not priced, (
-                f"{case['id']}: budget carries currency field(s) {priced}. Token ceilings are "
+                f"{service}/{case['id']}: budget carries currency field(s) {priced}. Token ceilings are "
                 "the assert; dollars are computed at report time (ADR-014)."
             )
 
@@ -494,11 +586,16 @@ def test_case_count_clears_the_manifest_gate():
     against a floor of 20 — this test passed while the floor was breached and the
     disposed-set ratio was 0%. Two counting rules for one number is how ADR-037
     happened."""
-    disposed = floors.disposed(load_yaml(GOLDENS))
-    declared = load_yaml(MANIFEST)["gates"]["eval_min_cases"]
-    assert len(disposed) >= declared, (
-        f"{len(disposed)} disposed case(s) against a declared floor of {declared}. "
-        "Rows scaffolded by `pave new` do not count until an author disposes them.")
+    for pack, manifest in service_packs():
+        disposed = floors.disposed(load_yaml(pack))
+        declared = load_yaml(manifest)["gates"]["eval_min_cases"]
+        # The same rule `pave verify` row 8 applies (`pave/manifest.py`): the declared
+        # floor, never below the platform floor. One formula, not two.
+        floor = max(floors.PLATFORM_EVAL_MIN_CASES, declared)
+        assert len(disposed) >= floor, (
+            f"{pack.parents[2].name}: {len(disposed)} disposed case(s) against a floor of "
+            f"{floor} (declared {declared}, platform {floors.PLATFORM_EVAL_MIN_CASES}). Rows "
+            "scaffolded by `pave new` do not count until an author disposes them.")
 
 
 def test_no_golden_case_is_disposed_by_an_undisposed_rule():
@@ -509,11 +606,11 @@ def test_no_golden_case_is_disposed_by_an_undisposed_rule():
     for path in (ROOT / "rules").glob("*.yaml"):
         rule = load_yaml(path)
         rules[rule["rule"]] = rule["status"]
-    for case in load_yaml(GOLDENS):
+    for service, case in golden_cases():
         rule_id = case.get("provenance", {}).get("rule")
         if rule_id:
             assert rules.get(rule_id) == "enforced", (
-                f"{case['id']} is attributed to {rule_id}, which is not enforced — "
+                f"{service}/{case['id']} is attributed to {rule_id}, which is not enforced — "
                 "the case pre-dates its own disposition"
             )
 

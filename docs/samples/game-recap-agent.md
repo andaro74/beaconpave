@@ -167,11 +167,14 @@ score.
   does not have. The number claim 1 is short on was not measured here. The
   pack's size is recorded above so that a later measurement has something to
   compare against.
-- **No control reads the pack in CI.** `pave verify` reads four rows of it.
-  `tests/test_contracts.py` and the CI evals step are pinned to the reference
-  service, so the vocabulary, vacuity, catalog-id and viewer checks never run on
-  this pack. Extending the test is two-key (`ai-quality`, `platform-eng`) and is
-  owed.
+- **The contract tests read the pack, since the PR after this one.** When the
+  sample merged, `pave verify` read four rows of it and `tests/test_contracts.py`
+  was pinned to the reference service, so the vocabulary, vacuity, catalog-id and
+  viewer checks never ran on this pack. That file now discovers every committed
+  service's pack and asserts the discovery's own sufficiency; three planted
+  defects in this pack were each caught by name before it merged. The CI evals
+  step still scores committed answers for the reference service only, and this
+  service has none to score.
 - **No disclosure control.** MER-AI-0001 is `enforced`, binds to the service, and
   its `covers` reaches previews, tiles and home-screen blurbs, which this service
   writes. Its only control binds to `highlights-agent`. Whether the rule's

@@ -3,7 +3,8 @@ the services it runs on.
 
 **The premise this file closes.** Nothing in this repository enumerated
 `services/*` — both CI evaluation steps name `highlights-agent` literally, and
-`tests/test_contracts.py` reads one hard-coded `MANIFEST` path. A second service
+`tests/test_contracts.py` read one hard-coded path (its per-case checks now run
+over every service `services()` returns, bound to it rather than re-globbed). A second service
 could be added with a manifest declaring a tool it is not granted, a brand nothing
 can judge and `eval_min_cases: 0`, and no check would look at it. So
 `test_the_service_glob_finds_something` is not a smoke test: a glob that matches
@@ -121,7 +122,8 @@ def test_the_good_fixture_earns_no_refusal(tmp_path):
 def test_the_service_glob_finds_something():
     """**Not a smoke test.** Before ADR-046 nothing enumerated `services/*` at all;
     both CI evaluation steps name `highlights-agent` literally and
-    `tests/test_contracts.py` reads one hard-coded path. If `services()` ever
+    `tests/test_contracts.py` read one hard-coded path, and now binds its per-case
+    checks to this function. If `services()` ever
     returns `[]`, `pave verify --all` verifies nothing and every test in this file
     that iterates it passes over an empty set — the shape ADR-048 found in the
     cross-tool control, which was green with zero pairs constructible."""
