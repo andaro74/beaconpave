@@ -15,6 +15,108 @@ and rename it for yours.
 > **The paved road provides. The quality gate decides. The seat disposes.
 > The leakage number keeps everyone honest.**
 
+## Quick start
+
+```bash
+make check          # hermetic: unit + contract + rules validation, no cloud
+make bootstrap      # one-time: CDK bootstrap, tool deps
+make core           # deploy gateway, tools, agent, dashboard
+make evals          # definition of done
+make adversarial    # the security seat's corpus, fetched fresh
+python -m pave.cli new my-agent --brand meridian-sports
+python -m pave.cli drill --event jefferson-derby --tier 3 --out go-no-go.json
+```
+
+See `SPEC/00-overview.md` (mission), `SPEC/00b-baseline.md` (the control),
+`CLAUDE.md` (rules), `BUILD.md` (milestone build order).
+
+## Repository map
+
+```
+SPEC/                  the mission and per-milestone specs (PM seat owns)
+CLAUDE.md              rules for Claude Code — read before any change
+pave/                  CLI: new, check, evals, adversarial, drill, selfheal
+templates/agent-tools/ the scaffold every service is born from
+platform/gateway/      the single LLM control point: classify -> guardrail ->
+                       invoke -> meter -> audit
+platform/registry/     tools.yaml — owner, semver, schemas, consequence class
+platform/policy/       Cedar policies (in-process; ADR-004)
+services/              scaffolded agents (highlights-agent is the reference)
+docs/samples/          worked onboarding records (game-recap-agent)
+tools/                 MCP tools incl. publish-highlight (approval interlock)
+quality/verdicts/      THE verdict schema — the unifying contract
+quality/adversarial/   10 probes; pass = blocked or denied, AND logged
+quality/judge/         rubric + calibration set; published or demoted
+quality/selfheal/      drift-vs-defect classifier (with its own tests)
+rules/                 rules registry: owner, source, disposition, review-by
+surfaces/web-player/   Playwright + k6 on the same verdict schema
+drill/                 game-day readiness scenarios -> go/no-go artifact
+evals/history/         append-only scores keyed by git SHA
+milestones/MNN/        journals: what I can demo, delta, what broke
+loadtest/              k6 profiles for spike-shape soak
+docs/governance/       ROLES, demo script, branch-protection setup
+docs/adr/              every scope cut, with its scale-up path
+.claude/agents/        role subagents: first-pass review from each seat
+.claude/skills/        close-milestone ritual
+```
+
+## Golden rules (invariants — enforced, never merely asserted)
+
+| # | Rule | Enforced by |
+|---|---|---|
+| G1 | Every model call transits the gateway; no service holds direct model-invoke permissions | IAM assertion tests; org SCP at scale |
+| G2 | Gates fail closed; an errored gate blocks, never skips | Gate exit-code contract; branch protection |
+| G3 | Every tool call is authorized against the registry via policy | Cedar; unregistered tools unreachable |
+| G4 | Adversarial "pass" = *guardrail blocked or policy denied, and logged* — never *the model resisted* | Probe assertion semantics |
+| G5 | Classification routes model access; `sensitive` is refused by design | Gateway classification router |
+| G6 | AI proposes; a human seat disposes; curation rates published | `ai-proposed` PR flow + CODEOWNERS |
+| G7 | Every rule has an owner, source, enforcing control, and review-by date | Rules schema validated in CI |
+| G8 | Local checks are hermetic: `make check` needs no cloud, no network | Committed fixtures and catalog |
+| G9 | Whoever feels a control's pain never solely controls its strength | `pave/twokey.py` + the required `two-key` job, reading attestations from the PR body — **not** CODEOWNERS, which provably collects nothing on a one-operator repo (ADR-013, ADR-037) |
+| G10 | Nothing bills while idle | Serverless-only infrastructure |
+
+## Traceability rules
+
+- **One milestone = one branch (`mNN-<slug>`) = one tag at close (`mNN`).**
+  Branch and tag must NEVER share a name: git cannot disambiguate
+  `refs/heads/x` from `refs/tags/x`, so `git push -u origin x` fails with
+  "src refspec matches more than one" and `git checkout x` is ambiguous.
+- `python evals/run_evals.py --record` after every green run you care about —
+  history is append-only JSON keyed by git SHA + suite.
+- Consequential choices get an ADR (`docs/adr/`). Superseded ADRs are marked,
+  never deleted.
+- `milestones/MNN/README.md` answers: **what can I demo right now, what's the
+  delta vs baseline, what broke.**
+- Deliberately-red demo PRs are labeled `exhibit` and closed unmerged — `main`
+  is always green. A gate that can be merged past is not a gate.
+
+## Governance (separation of roles, from the start)
+
+The org chart is encoded in the repo. `.github/CODEOWNERS` maps files to role
+seats — Platform Engineering owns the road and the gate *mechanism*, AI Quality
+owns thresholds and judges, Security owns the adversarial corpus and guardrails,
+Legal/S&P owns `rules/`, Data Governance owns classification, Tool Owners own
+schemas and consequence classes, Service Teams own their own prompts — branch
+protection makes those reviews mandatory, the quality-gate workflow blocks any
+PR that regresses the golden set or the adversarial suite, and **role subagents
+in `.claude/agents/` run first-pass review from each seat** before a human
+disposes.
+
+Start here: `docs/governance/ROLES.md` · demo script:
+`docs/governance/demo-script.md` · setup: `docs/governance/branch-protection.md`
+
+## Cost posture
+
+Serverless only. Target: under $5/month idle, under $2 per full demo run.
+Per-case cost budgets are part of the gate — a cost regression blocks like a
+quality regression.
+
+## Scaling this up
+
+Every deliberate scope cut is an ADR in `docs/adr/`, and each ends with the same
+sentence: *"At scale, replace with X; the interface already matches."* That is
+what makes this miniature production-**grade** rather than a toy.
+
 ## Two parts, and this is the end of part one
 
 **Part one (M00a–M04) built the machinery that judges an agent. Part two
@@ -22,8 +124,128 @@ and rename it for yours.
 make an agent: `pave new` is a stub that prints a sentence and exits 0, and
 `templates/agent-tools/` is one README. That is the honest description of where
 this repo stands, and M05 is where it stops being true. What part one actually
-produced is [recapped below the progression table](#what-part-one-produced);
+produced is [recapped next, ahead of the progression table](#what-part-one-produced);
 scored numbers live in that table and its footnotes, and nowhere else.
+
+## What part one produced
+
+Deliberately without restating a scored number: every one of them is in the
+progression table below, and duplicating it here would create a second copy that
+can drift from the first.
+
+| | |
+|---|---|
+| **A control that fails, and is kept failing** | The `00b` row is the only one that is *supposed* to look bad. A flattering baseline makes every later milestone unfalsifiable, so an unearned pass is recorded as unearned rather than quietly improved |
+| **A gateway no service can go around** | G1 asserted against the committed synth snapshot, CI re-synthesizing and blocking on drift. [PR #14](https://github.com/andaro74/beaconpave/pull/14) was blocked by it, and the denial is witnessed in the audit lake rather than asserted |
+| **A tool plane where unregistered tools are unreachable** | `platform/registry/tools.yaml` renders the Cedar policy set. A tool with no registry entry has no permit, and gated consequence classes carry `forbid` clauses no argument talks past |
+| **A judge that was measured and found unfit** | 20 held-out items at `k_judge=3`, every axis demoted. The judged column is a signed subtraction so that no reader can mistake it for an improvement — it can only ever take passes away |
+| **A gate that fails closed and teaches** | [PR #29](https://github.com/andaro74/beaconpave/pull/29), labeled `exhibit` and closed unmerged: exit **1**, naming the probes that moved and the comparator they moved against |
+| **An adversarial suite that does not score manners** | Every observation is fetched back out of the audit lake rather than taken from the gateway's word, and a record that does not resolve scores FAIL. `model_complied` is recorded and never scored |
+| **Two-key governance a one-operator repo can actually collect** | `pave/twokey.py` plus the required `two-key` job, reading attestations out of the PR body — because `.github/CODEOWNERS` provably collects nothing here (ADR-013) |
+
+**Four of the twelve claims below are proven** — 2, 4, 5 and 9 — each with a
+linked artifact rather than a description. The other eight belong to part two.
+
+### What part one does not have, stated rather than implied
+
+- **No agent that a team created.** Claim 1 is M05's, and it is the claim the
+  other eleven are worth having *for*.
+- **`pave.manifest.yaml` is a ten-field declaration nothing verifies.** Six of
+  its ten keys — `apiVersion`, `template`, `brand`, `owners`, `runtime`,
+  `attestations` — can be deleted outright with the full suite still green, and
+  a service declaring `classification: public` passes every check while serving
+  nothing. `SPEC/05-paved-road.md` measures this; it is why M05 exists.
+- **The seats are subagents, not people.** Their output is advisory input to a
+  human (G6), never an approval.
+- **Every scope cut is an ADR, never a silent simplification.** Scaling this up
+  is un-cutting the cuts rather than a rewrite — which is the design, not an
+  excuse for what is missing.
+
+### Why the seam falls here
+
+Part one's milestones are all *measurement*: a control that fails, a gateway, a
+registry, a calibrated judge, a gate that blocks. Each can be built and proven
+before any service exists, and each is the kind of thing that cannot be
+retrofitted — a paved road laid before the gate exists paves over whatever the
+road happened to do. Part two spends that machinery on what a platform is for:
+**one command, and what comes out is governed by default.**
+
+Stopping at the seam leaves nothing half-open: M04 is closed and tagged, and M05
+has no branch.
+
+## The twelve claims
+
+This repo exists to prove twelve falsifiable claims about quality platforms.
+Anything that doesn't serve one is out of scope.
+
+| # | Claim | Proof artifact | M |
+|---|---|---|---|
+| 1 | One command → governed service | ⬜ **INCOMPLETE** ⁂ — `pave new` renders five files and `pave verify` refuses fourteen ways, but **nothing is deployed** and the developer's remaining authorship is **well over an hour** against a claim of thirty minutes | 05 |
+| 2 | Gates fail closed and teach | ✅ [PR #29](https://github.com/andaro74/beaconpave/pull/29) — labeled `exhibit`, closed unmerged. Six lines make a probe pass because the model declined; the gate answers `BLOCKED (quality regression); exit 1` and its comment names the five probes that moved, the comparator they moved against, and what to do. Exit **1**, never 2 — a caught regression, not a broken harness | 04 |
+| 3 | One verdict schema, many runners | ⬜ **UNSCHEDULED** ✺ — **not measurable as an envelope claim** (ADR-079 amendment 2). Every verdict record is built by one function, `pave.verdict.build`, which validates it against the schema file the gate reads before anything is written, so no record a runner writes can be refused and the claim confirms itself. M10 closed RED with it NOT MEASURED. It becomes measurable when **a record can reach `gate decide` without passing through `verdict.build`**, or when **the schema can change between a record's write and its read** — and neither is an envelope claim | — |
+| 4 | No direct model access | ✅ [PR #14](https://github.com/andaro74/beaconpave/pull/14) blocked by the IAM assertion; the denial witnessed in `milestones/M01/direct-call-witness.json` | 01 |
+| 5 | Adversarial pass = blocked-and-logged | ✅ [`m04-adversarial`](evals/history/m04-adversarial.json) — 10 probes × 3 samples, **7/10** under unanimity. Every observation fetched back **out of the audit lake** rather than taken from the gateway's word; a record that does not resolve scores FAIL. No probe passes on the model's manners — `model_complied` is recorded and never scored | 04 |
+| 6 | Rules have owners and dispositions | ❌ **FAILED on two falsifiers** ⊙ — the rule delta *was* disposed end-to-end (`python -m pave.cli rules trace MER-AI-0001` walks law → rule → control → cases with no step supplied by hand: seven at M09, and two controls over fourteen since ADR-082 bound a second service, and the gate blocked at exit 1 then permitted at exit 0 on the real deployment). The **claim** — *and the fix makes it pass, with nothing else moving* — failed: **F1** on `disclosure-103`, which passed 2 of 3 **before** the fix, and **F4.2** on `grounded-017`, which passed 3-of-3 at M08b and fails by majority after it | 09 |
+| 7 | AI proposes, a human disposes, rates published | ⬜ **UNSCHEDULED** — no milestone carries this claim ([ADR-081](docs/adr/ADR-081-m12-is-the-ledger-claims-7-8-and-12-are-unscheduled-and-act-5-is-retired.md) decision 3). **Its rate has no population:** `gh pr list --state all --label ai-proposed` returns 0 PRs, and every PR here is Claude-authored, so the denominator is undefined until the label means something narrower than every PR. The curation panel has no measurement. It becomes measurable when the label has a written definition that excludes some PRs, and at least one PR carries it | — |
+| 8 | Self-heal classifies before it repairs | ⬜ **UNSCHEDULED** — no milestone carries this claim ([ADR-081](docs/adr/ADR-081-m12-is-the-ledger-claims-7-8-and-12-are-unscheduled-and-act-5-is-retired.md) decision 3). **Its false state needs a real tool contract bump that turns contract tests red.** The only candidate is `catalog-search`'s semver bump (09c debt 1, Tool Owner), measured at 19 tests red and never scheduled. `pave selfheal` stays a stub. It becomes measurable when a real contract change turns contract tests red on a PR to `main` | — |
+| 9 | Judges are calibrated or advisory | ✅ **Advisory, by measurement.** [`held-out-report.json`](milestones/M03/judge/held-out-report.json) — 20 held-out items at `k_judge=3`, every axis demoted, seat correction rate 0/20 published beside it. Auto-demotion test both directions in [`tests/test_judged_entry.py`](tests/test_judged_entry.py); a demoted axis cannot block, a calibrated one turns a deterministic PASS into a judged FAIL | 03 |
+| 10 | Consequence classes gate real actions | ⬜ **UNSCHEDULED** ❖ — no milestone carries this claim. It needs a `publish-highlight` deployment, and the only recorded disposition on one is Legal/S&P answering *no* (`SPEC/06` Decisions 1). Whether that refusal is standing or was scoped to M06 is an open question for that seat | — |
+| 11 | Readiness drills produce go/no-go artifacts | ✅ **The arc holds** ✻ — [`milestones/M11/runs/falsifiers.md`](milestones/M11/runs/falsifiers.md): a seeded caption gap writes a signed NO-GO naming its gap, `service-team`, `webhook:player-captions` and a 36 h fix-by; the delta drill without the fix stays NO-GO for the same gap; the fix writes GO. All three runs VALID, and none of F1–F5 fired. One scenario over a committed fixture, a MAC in place of a signature, no page and no human | 11 |
+| 12 | Defect leakage is counted honestly | ⬜ **UNSCHEDULED** — **no pre-registerable wording** ([ADR-081](docs/adr/ADR-081-m12-is-the-ledger-claims-7-8-and-12-are-unscheduled-and-act-5-is-retired.md) decisions 1 and 2). **There is no rollback here to count:** no delivery pipeline exists and `main` holds 0 revert commits, so a counter that always returns 0 reads the same as a correct one, and a counter that never reads gate runs satisfies *"never gate failures"* by construction. The one wording with a false state counted a seeded revert commit on `main`. That substitutes revert-counting for defect leakage rather than scoping it, and it was refused. It becomes measurable when a rollback population exists that the measurer did not seed | — |
+
+⁂ **Claim 1 is INCOMPLETE at the M05 tag, for two reasons, and neither is a
+rounding error.**
+
+**There is no deployed agent.** `pave verify` runs *in the repository*. The
+manifest's `attestations.manifest_signature: required` is checked by nothing at
+deploy time; ADR-046 decision 4 records that as a stated cut rather than an
+omission, and `make core` now refuses to deploy without the verifier passing —
+which is a control on the repository, not on the runtime, and must not be sold as
+the other thing.
+
+**"Under 30 min" is not what the scaffold leaves behind.** The Service Team seat
+measured the developer's remaining authorship against the reference pack rather
+than estimating it: 510 lines over 25 cases (~15.6 content lines each), **138
+asserts** (mean 5.5), six top-level keys per case with 12 of 25 adding
+`trajectory`, 18 of 25 requiring memorised catalog ids, and a ~180-line assert
+vocabulary — so the twenty cases the floor demands are ~310 content lines and ~110
+asserts. The decisive number is in the pack's own README: **4 of the 25 starter
+cases** were written with negative substring bans that a *correct* answer trips,
+**by the author of the vocabulary** — a 16% authoring-defect rate, each defect
+presenting first as a platform bug. An earlier draft of this spec called the
+burden "roughly an hour"; that was measured as too **low**. Understating it
+flatters the platform, which is the failure this claim exists to avoid.
+
+⊙ **Claim 6 FAILED at the `m09` tag, on two independent falsifiers, and the
+count did not notice either of them.** Five falsifiers were pre-registered at
+PR 1, before any code, deploy or call (ADR-075 decision 5). Two fired.
+
+**F1 — a positive disclosure case passed before the fix.** `disclosure-103` asks
+for *"a paragraph I can publish"*; the pre-fix service volunteered a disclosure
+on **two of three** samples, in two different wordings, so the control was
+already satisfied there. That is `rules/MER-AI-0001.yaml`'s own recorded hazard,
+which is why F1 was the falsifier the ADR led with. **`disclosure-101` volunteered
+on one of three** as well — it fails by majority so F1 does not fire on it, but
+**two of the five positive cases disclosed at least once before the fix**, which
+is a stronger statement about the pre-disposition service than the one case F1
+names.
+
+**F4.2 — a case that passed 3-of-3 at M08b fails by majority after the fix.**
+`grounded-017`, on `tokens_out` at a tier nothing in this milestone touched.
+**The count published in the `09` row of the progression table below is `10/25` — the predicted number, and
+M08b's exact number — over a fired falsifier**, because `entitlement-011` gained
+a majority as `grounded-017` lost one. A reader of the count alone publishes *no
+change*. SPEC/09 moved the two direction predicates **into** F4 and demoted the
+count to a side-prediction for exactly this reason, and the compensation happened
+on the first run after the change.
+
+**What did hold.** F2, F3 and F5 are clean: every positive case passes after the
+fix, the gate blocked at exit 1 and permitted at exit 0 on the deployed gateway,
+and the negative case discloses nothing. The registry chain resolves end to end.
+**The count landing on its prediction is a side-prediction hitting, not a partial
+success**, and the claim is not re-scoped to fit what survived. The whole reading
+is `milestones/M09/README.md`, ADR-075 amendments 5 and 6, and
+`milestones/M09/{falsifiers,f4}.txt`.
 
 ## Progression
 
@@ -788,228 +1010,6 @@ amendment 2). No deploy, zero model calls, zero AWS calls; goldens and adversari
 because the cold review's spare merged before its rulings could land. No exhibit was opened.
 `brand_tone`'s owe is re-deferred a seventh time, owned and unscheduled; Act 4's recording is deferred to
 after the close, with the demo block as its script (`milestones/M11/runs/demo.md`).
-
-## What part one produced
-
-Deliberately without restating a scored number: every one of them is in the
-progression table above, and duplicating it here would create a second copy that
-can drift from the first.
-
-| | |
-|---|---|
-| **A control that fails, and is kept failing** | The `00b` row is the only one that is *supposed* to look bad. A flattering baseline makes every later milestone unfalsifiable, so an unearned pass is recorded as unearned rather than quietly improved |
-| **A gateway no service can go around** | G1 asserted against the committed synth snapshot, CI re-synthesizing and blocking on drift. [PR #14](https://github.com/andaro74/beaconpave/pull/14) was blocked by it, and the denial is witnessed in the audit lake rather than asserted |
-| **A tool plane where unregistered tools are unreachable** | `platform/registry/tools.yaml` renders the Cedar policy set. A tool with no registry entry has no permit, and gated consequence classes carry `forbid` clauses no argument talks past |
-| **A judge that was measured and found unfit** | 20 held-out items at `k_judge=3`, every axis demoted. The judged column is a signed subtraction so that no reader can mistake it for an improvement — it can only ever take passes away |
-| **A gate that fails closed and teaches** | [PR #29](https://github.com/andaro74/beaconpave/pull/29), labeled `exhibit` and closed unmerged: exit **1**, naming the probes that moved and the comparator they moved against |
-| **An adversarial suite that does not score manners** | Every observation is fetched back out of the audit lake rather than taken from the gateway's word, and a record that does not resolve scores FAIL. `model_complied` is recorded and never scored |
-| **Two-key governance a one-operator repo can actually collect** | `pave/twokey.py` plus the required `two-key` job, reading attestations out of the PR body — because `.github/CODEOWNERS` provably collects nothing here (ADR-013) |
-
-**Four of the twelve claims below are proven** — 2, 4, 5 and 9 — each with a
-linked artifact rather than a description. The other eight belong to part two.
-
-### What part one does not have, stated rather than implied
-
-- **No agent that a team created.** Claim 1 is M05's, and it is the claim the
-  other eleven are worth having *for*.
-- **`pave.manifest.yaml` is a ten-field declaration nothing verifies.** Six of
-  its ten keys — `apiVersion`, `template`, `brand`, `owners`, `runtime`,
-  `attestations` — can be deleted outright with the full suite still green, and
-  a service declaring `classification: public` passes every check while serving
-  nothing. `SPEC/05-paved-road.md` measures this; it is why M05 exists.
-- **The seats are subagents, not people.** Their output is advisory input to a
-  human (G6), never an approval.
-- **Every scope cut is an ADR, never a silent simplification.** Scaling this up
-  is un-cutting the cuts rather than a rewrite — which is the design, not an
-  excuse for what is missing.
-
-### Why the seam falls here
-
-Part one's milestones are all *measurement*: a control that fails, a gateway, a
-registry, a calibrated judge, a gate that blocks. Each can be built and proven
-before any service exists, and each is the kind of thing that cannot be
-retrofitted — a paved road laid before the gate exists paves over whatever the
-road happened to do. Part two spends that machinery on what a platform is for:
-**one command, and what comes out is governed by default.**
-
-Stopping at the seam leaves nothing half-open: M04 is closed and tagged, and M05
-has no branch.
-
-## The twelve claims
-
-This repo exists to prove twelve falsifiable claims about quality platforms.
-Anything that doesn't serve one is out of scope.
-
-| # | Claim | Proof artifact | M |
-|---|---|---|---|
-| 1 | One command → governed service | ⬜ **INCOMPLETE** ⁂ — `pave new` renders five files and `pave verify` refuses fourteen ways, but **nothing is deployed** and the developer's remaining authorship is **well over an hour** against a claim of thirty minutes | 05 |
-| 2 | Gates fail closed and teach | ✅ [PR #29](https://github.com/andaro74/beaconpave/pull/29) — labeled `exhibit`, closed unmerged. Six lines make a probe pass because the model declined; the gate answers `BLOCKED (quality regression); exit 1` and its comment names the five probes that moved, the comparator they moved against, and what to do. Exit **1**, never 2 — a caught regression, not a broken harness | 04 |
-| 3 | One verdict schema, many runners | ⬜ **UNSCHEDULED** ✺ — **not measurable as an envelope claim** (ADR-079 amendment 2). Every verdict record is built by one function, `pave.verdict.build`, which validates it against the schema file the gate reads before anything is written, so no record a runner writes can be refused and the claim confirms itself. M10 closed RED with it NOT MEASURED. It becomes measurable when **a record can reach `gate decide` without passing through `verdict.build`**, or when **the schema can change between a record's write and its read** — and neither is an envelope claim | — |
-| 4 | No direct model access | ✅ [PR #14](https://github.com/andaro74/beaconpave/pull/14) blocked by the IAM assertion; the denial witnessed in `milestones/M01/direct-call-witness.json` | 01 |
-| 5 | Adversarial pass = blocked-and-logged | ✅ [`m04-adversarial`](evals/history/m04-adversarial.json) — 10 probes × 3 samples, **7/10** under unanimity. Every observation fetched back **out of the audit lake** rather than taken from the gateway's word; a record that does not resolve scores FAIL. No probe passes on the model's manners — `model_complied` is recorded and never scored | 04 |
-| 6 | Rules have owners and dispositions | ❌ **FAILED on two falsifiers** ⊙ — the rule delta *was* disposed end-to-end (`python -m pave.cli rules trace MER-AI-0001` walks law → rule → control → cases with no step supplied by hand: seven at M09, and two controls over fourteen since ADR-082 bound a second service, and the gate blocked at exit 1 then permitted at exit 0 on the real deployment). The **claim** — *and the fix makes it pass, with nothing else moving* — failed: **F1** on `disclosure-103`, which passed 2 of 3 **before** the fix, and **F4.2** on `grounded-017`, which passed 3-of-3 at M08b and fails by majority after it | 09 |
-| 7 | AI proposes, a human disposes, rates published | ⬜ **UNSCHEDULED** — no milestone carries this claim ([ADR-081](docs/adr/ADR-081-m12-is-the-ledger-claims-7-8-and-12-are-unscheduled-and-act-5-is-retired.md) decision 3). **Its rate has no population:** `gh pr list --state all --label ai-proposed` returns 0 PRs, and every PR here is Claude-authored, so the denominator is undefined until the label means something narrower than every PR. The curation panel has no measurement. It becomes measurable when the label has a written definition that excludes some PRs, and at least one PR carries it | — |
-| 8 | Self-heal classifies before it repairs | ⬜ **UNSCHEDULED** — no milestone carries this claim ([ADR-081](docs/adr/ADR-081-m12-is-the-ledger-claims-7-8-and-12-are-unscheduled-and-act-5-is-retired.md) decision 3). **Its false state needs a real tool contract bump that turns contract tests red.** The only candidate is `catalog-search`'s semver bump (09c debt 1, Tool Owner), measured at 19 tests red and never scheduled. `pave selfheal` stays a stub. It becomes measurable when a real contract change turns contract tests red on a PR to `main` | — |
-| 9 | Judges are calibrated or advisory | ✅ **Advisory, by measurement.** [`held-out-report.json`](milestones/M03/judge/held-out-report.json) — 20 held-out items at `k_judge=3`, every axis demoted, seat correction rate 0/20 published beside it. Auto-demotion test both directions in [`tests/test_judged_entry.py`](tests/test_judged_entry.py); a demoted axis cannot block, a calibrated one turns a deterministic PASS into a judged FAIL | 03 |
-| 10 | Consequence classes gate real actions | ⬜ **UNSCHEDULED** ❖ — no milestone carries this claim. It needs a `publish-highlight` deployment, and the only recorded disposition on one is Legal/S&P answering *no* (`SPEC/06` Decisions 1). Whether that refusal is standing or was scoped to M06 is an open question for that seat | — |
-| 11 | Readiness drills produce go/no-go artifacts | ✅ **The arc holds** ✻ — [`milestones/M11/runs/falsifiers.md`](milestones/M11/runs/falsifiers.md): a seeded caption gap writes a signed NO-GO naming its gap, `service-team`, `webhook:player-captions` and a 36 h fix-by; the delta drill without the fix stays NO-GO for the same gap; the fix writes GO. All three runs VALID, and none of F1–F5 fired. One scenario over a committed fixture, a MAC in place of a signature, no page and no human | 11 |
-| 12 | Defect leakage is counted honestly | ⬜ **UNSCHEDULED** — **no pre-registerable wording** ([ADR-081](docs/adr/ADR-081-m12-is-the-ledger-claims-7-8-and-12-are-unscheduled-and-act-5-is-retired.md) decisions 1 and 2). **There is no rollback here to count:** no delivery pipeline exists and `main` holds 0 revert commits, so a counter that always returns 0 reads the same as a correct one, and a counter that never reads gate runs satisfies *"never gate failures"* by construction. The one wording with a false state counted a seeded revert commit on `main`. That substitutes revert-counting for defect leakage rather than scoping it, and it was refused. It becomes measurable when a rollback population exists that the measurer did not seed | — |
-
-⁂ **Claim 1 is INCOMPLETE at the M05 tag, for two reasons, and neither is a
-rounding error.**
-
-**There is no deployed agent.** `pave verify` runs *in the repository*. The
-manifest's `attestations.manifest_signature: required` is checked by nothing at
-deploy time; ADR-046 decision 4 records that as a stated cut rather than an
-omission, and `make core` now refuses to deploy without the verifier passing —
-which is a control on the repository, not on the runtime, and must not be sold as
-the other thing.
-
-**"Under 30 min" is not what the scaffold leaves behind.** The Service Team seat
-measured the developer's remaining authorship against the reference pack rather
-than estimating it: 510 lines over 25 cases (~15.6 content lines each), **138
-asserts** (mean 5.5), six top-level keys per case with 12 of 25 adding
-`trajectory`, 18 of 25 requiring memorised catalog ids, and a ~180-line assert
-vocabulary — so the twenty cases the floor demands are ~310 content lines and ~110
-asserts. The decisive number is in the pack's own README: **4 of the 25 starter
-cases** were written with negative substring bans that a *correct* answer trips,
-**by the author of the vocabulary** — a 16% authoring-defect rate, each defect
-presenting first as a platform bug. An earlier draft of this spec called the
-burden "roughly an hour"; that was measured as too **low**. Understating it
-flatters the platform, which is the failure this claim exists to avoid.
-
-⊙ **Claim 6 FAILED at the `m09` tag, on two independent falsifiers, and the
-count did not notice either of them.** Five falsifiers were pre-registered at
-PR 1, before any code, deploy or call (ADR-075 decision 5). Two fired.
-
-**F1 — a positive disclosure case passed before the fix.** `disclosure-103` asks
-for *"a paragraph I can publish"*; the pre-fix service volunteered a disclosure
-on **two of three** samples, in two different wordings, so the control was
-already satisfied there. That is `rules/MER-AI-0001.yaml`'s own recorded hazard,
-which is why F1 was the falsifier the ADR led with. **`disclosure-101` volunteered
-on one of three** as well — it fails by majority so F1 does not fire on it, but
-**two of the five positive cases disclosed at least once before the fix**, which
-is a stronger statement about the pre-disposition service than the one case F1
-names.
-
-**F4.2 — a case that passed 3-of-3 at M08b fails by majority after the fix.**
-`grounded-017`, on `tokens_out` at a tier nothing in this milestone touched.
-**The count published in the row above is `10/25` — the predicted number, and
-M08b's exact number — over a fired falsifier**, because `entitlement-011` gained
-a majority as `grounded-017` lost one. A reader of the count alone publishes *no
-change*. SPEC/09 moved the two direction predicates **into** F4 and demoted the
-count to a side-prediction for exactly this reason, and the compensation happened
-on the first run after the change.
-
-**What did hold.** F2, F3 and F5 are clean: every positive case passes after the
-fix, the gate blocked at exit 1 and permitted at exit 0 on the deployed gateway,
-and the negative case discloses nothing. The registry chain resolves end to end.
-**The count landing on its prediction is a side-prediction hitting, not a partial
-success**, and the claim is not re-scoped to fit what survived. The whole reading
-is `milestones/M09/README.md`, ADR-075 amendments 5 and 6, and
-`milestones/M09/{falsifiers,f4}.txt`.
-
-## Governance (separation of roles, from the start)
-
-The org chart is encoded in the repo. `.github/CODEOWNERS` maps files to role
-seats — Platform Engineering owns the road and the gate *mechanism*, AI Quality
-owns thresholds and judges, Security owns the adversarial corpus and guardrails,
-Legal/S&P owns `rules/`, Data Governance owns classification, Tool Owners own
-schemas and consequence classes, Service Teams own their own prompts — branch
-protection makes those reviews mandatory, the quality-gate workflow blocks any
-PR that regresses the golden set or the adversarial suite, and **role subagents
-in `.claude/agents/` run first-pass review from each seat** before a human
-disposes.
-
-Start here: `docs/governance/ROLES.md` · demo script:
-`docs/governance/demo-script.md` · setup: `docs/governance/branch-protection.md`
-
-## Golden rules (invariants — enforced, never merely asserted)
-
-| # | Rule | Enforced by |
-|---|---|---|
-| G1 | Every model call transits the gateway; no service holds direct model-invoke permissions | IAM assertion tests; org SCP at scale |
-| G2 | Gates fail closed; an errored gate blocks, never skips | Gate exit-code contract; branch protection |
-| G3 | Every tool call is authorized against the registry via policy | Cedar; unregistered tools unreachable |
-| G4 | Adversarial "pass" = *guardrail blocked or policy denied, and logged* — never *the model resisted* | Probe assertion semantics |
-| G5 | Classification routes model access; `sensitive` is refused by design | Gateway classification router |
-| G6 | AI proposes; a human seat disposes; curation rates published | `ai-proposed` PR flow + CODEOWNERS |
-| G7 | Every rule has an owner, source, enforcing control, and review-by date | Rules schema validated in CI |
-| G8 | Local checks are hermetic: `make check` needs no cloud, no network | Committed fixtures and catalog |
-| G9 | Whoever feels a control's pain never solely controls its strength | `pave/twokey.py` + the required `two-key` job, reading attestations from the PR body — **not** CODEOWNERS, which provably collects nothing on a one-operator repo (ADR-013, ADR-037) |
-| G10 | Nothing bills while idle | Serverless-only infrastructure |
-
-## Traceability rules
-
-- **One milestone = one branch (`mNN-<slug>`) = one tag at close (`mNN`).**
-  Branch and tag must NEVER share a name: git cannot disambiguate
-  `refs/heads/x` from `refs/tags/x`, so `git push -u origin x` fails with
-  "src refspec matches more than one" and `git checkout x` is ambiguous.
-- `python evals/run_evals.py --record` after every green run you care about —
-  history is append-only JSON keyed by git SHA + suite.
-- Consequential choices get an ADR (`docs/adr/`). Superseded ADRs are marked,
-  never deleted.
-- `milestones/MNN/README.md` answers: **what can I demo right now, what's the
-  delta vs baseline, what broke.**
-- Deliberately-red demo PRs are labeled `exhibit` and closed unmerged — `main`
-  is always green. A gate that can be merged past is not a gate.
-
-## Repository map
-
-```
-SPEC/                  the mission and per-milestone specs (PM seat owns)
-CLAUDE.md              rules for Claude Code — read before any change
-pave/                  CLI: new, check, evals, adversarial, drill, selfheal
-templates/agent-tools/ the scaffold every service is born from
-platform/gateway/      the single LLM control point: classify -> guardrail ->
-                       invoke -> meter -> audit
-platform/registry/     tools.yaml — owner, semver, schemas, consequence class
-platform/policy/       Cedar policies (in-process; ADR-004)
-services/              scaffolded agents (highlights-agent is the reference)
-docs/samples/          worked onboarding records (game-recap-agent)
-tools/                 MCP tools incl. publish-highlight (approval interlock)
-quality/verdicts/      THE verdict schema — the unifying contract
-quality/adversarial/   10 probes; pass = blocked or denied, AND logged
-quality/judge/         rubric + calibration set; published or demoted
-quality/selfheal/      drift-vs-defect classifier (with its own tests)
-rules/                 rules registry: owner, source, disposition, review-by
-surfaces/web-player/   Playwright + k6 on the same verdict schema
-drill/                 game-day readiness scenarios -> go/no-go artifact
-evals/history/         append-only scores keyed by git SHA
-milestones/MNN/        journals: what I can demo, delta, what broke
-loadtest/              k6 profiles for spike-shape soak
-docs/governance/       ROLES, demo script, branch-protection setup
-docs/adr/              every scope cut, with its scale-up path
-.claude/agents/        role subagents: first-pass review from each seat
-.claude/skills/        close-milestone ritual
-```
-
-## Quick start
-
-```bash
-make check          # hermetic: unit + contract + rules validation, no cloud
-make bootstrap      # one-time: CDK bootstrap, tool deps
-make core           # deploy gateway, tools, agent, dashboard
-make evals          # definition of done
-make adversarial    # the security seat's corpus, fetched fresh
-python -m pave.cli new my-agent --brand meridian-sports
-python -m pave.cli drill --event jefferson-derby --tier 3 --out go-no-go.json
-```
-
-See `SPEC/00-overview.md` (mission), `SPEC/00b-baseline.md` (the control),
-`CLAUDE.md` (rules), `BUILD.md` (milestone build order).
-
-## Cost posture
-
-Serverless only. Target: under $5/month idle, under $2 per full demo run.
-Per-case cost budgets are part of the gate — a cost regression blocks like a
-quality regression.
-
-## Scaling this up
-
-Every deliberate scope cut is an ADR in `docs/adr/`, and each ends with the same
-sentence: *"At scale, replace with X; the interface already matches."* That is
-what makes this miniature production-**grade** rather than a toy.
 
 ## License
 
