@@ -39,6 +39,22 @@ Each said "above" or "below" about a section that moved:
 - claim 6's footnote said the count is in *the row above*; it now names the `09`
   row of the progression table below.
 
+## The header image
+
+`docs/assets/readme-header.png` (2400 x 780, 150 KB) is linked above the
+`# beaconpave` heading, and the repository map gains a `docs/assets/` row. Every
+figure the banner shows is read from the repo: 25 goldens and k = 3 from the
+reference pack and the judge estimator, 10 probes from the adversarial suite, MIT
+from `LICENSE`, `m12` from the last tag. It is a picture, not a claim: no test
+reads it, and no number in it is one the progression table does not already
+publish.
+
+The file is binary, so the two tree scanners treat it the way they treat the
+five recordings: `tests/test_line_endings.py` passes it on the NUL byte and
+`tests/test_no_account_identifiers.py` skips it twice as not decodable: one
+pass and two skips for the file, measured with `-k readme-header`.
+`COLLECTED_FLOOR` is a minimum and unaffected.
+
 ## Why the readers are safe
 
 `tests/milestone_status.py` scopes to the progression table by its header cell,
@@ -50,6 +66,6 @@ readers pass: 308 tests.
 
 ## Checked
 
-`make check` on the branch: 5502 passed, 10 skipped.
+`make check` on the branch: 5506 passed, 12 skipped.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

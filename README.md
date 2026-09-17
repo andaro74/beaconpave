@@ -1,3 +1,5 @@
+![beaconpave: a production-shaped quality platform for AI agents on AWS. The paved road provides. The quality gate decides. The seat disposes.](docs/assets/readme-header.png)
+
 # beaconpave
 
 A miniature, production-shaped **quality platform for agentic AI and streaming
@@ -56,6 +58,7 @@ milestones/MNN/        journals: what I can demo, delta, what broke
 loadtest/              k6 profiles for spike-shape soak
 docs/governance/       ROLES, demo script, branch-protection setup
 docs/adr/              every scope cut, with its scale-up path
+docs/assets/           the README header image
 .claude/agents/        role subagents: first-pass review from each seat
 .claude/skills/        close-milestone ritual
 ```
