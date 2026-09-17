@@ -31,9 +31,12 @@ idle; the target is under $5 a month idle (G10).
 pip install -e ".[dev,baseline]"
 # hermetic: unit + contract + rules validation. No cloud, no model.
 make check
-# AWS: edit the profile. boto3 needs AWS_DEFAULT_REGION when no config file names a
-# region; the CDK CLI reads AWS_REGION. Export both.
+# AWS: replace your-profile with a profile from `aws configure list-profiles`. Written
+# without angle brackets because bash reads <...> as a redirection and the export
+# silently fails. boto3 reads AWS_DEFAULT_REGION, the CDK CLI reads AWS_REGION.
 export AWS_PROFILE=your-profile AWS_REGION=us-west-2 AWS_DEFAULT_REGION=us-west-2
+# AWS: prove the credentials resolve before anything deploys
+aws sts get-caller-identity
 # AWS, one time: npm install and cdk bootstrap. Its pip install is the bare package.
 make bootstrap
 # AWS: verify every manifest, then deploy TWO stacks, the gateway (its tool Lambdas,
